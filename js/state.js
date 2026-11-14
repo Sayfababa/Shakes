@@ -128,16 +128,18 @@ export function power(A = stats()) {
   const hit = 1 - Math.min(0.5, en / (en + A.dex * 3 + 40));
   const crit = Math.min(0.6, CFG.critBase + A.lck / (A.lck + 100 + L * 5) + (A.crit || 0));
   const strike = (A.dmg[0] + A.dmg[1]) / 2 * (1 + A[A.main] / CFG.mainDiv);
-  let dpt = strike * (1 - red) * hit * (1 + crit * (1 + (A.bleed || 0))) * (1 + (A.rage || 0) * 0.3 + (A.execute || 0) * 0.2 + (A.poison || 0));
-  let heal = (A.regen || 0) * A.hp + dpt * (A.leech || 0);
+  const onHit = (1 + crit * (1 + (A.bleed || 0))) * (1 + (A.execute || 0) * 0.2 + (A.poison || 0));   // gilt für Hieb und Zauber
+  let dpt = strike * (1 - red) * hit * onHit * (1 + (A.rage || 0) * 0.3);
+  let heal = (A.regen || 0) * A.hp;
   for (const s of A.spells || []) {
-    const sd = strike * A.amp * (1 - red) * hit;
+    const sd = strike * A.amp * (1 - red) * hit * onHit;
     const v = s.kind === 'multi' ? sd * s.mult * s.hits : s.kind === 'dot' ? sd * s.mult * 3 : s.kind === 'buff' ? dpt * s.v * 2
       : s.kind === 'heal' || s.kind === 'shield' ? 0 : sd * s.mult * (s.kind === 'mark' ? 1.4 : s.kind === 'stun' ? 1.5 : 1);
     const ev = s.every / (1 + (A.haste || 0));
     dpt += (v * (1 + (A.echo || 0)) - dpt) / ev;
     if (s.kind === 'heal' || s.kind === 'shield') heal += A.hp * s.pct * A.amp / ev;
   }
+  heal += dpt * (A.leech || 0);   // Lebensraub aus Hieben und Zaubern
   const taken = eDmg * (1 - Math.min(0.6, A.armor / (A.armor + 20 + L * 8))) * (1 - Math.min(0.5, A.dex / (A.dex + en * 3 + 40) + (A.evade || 0))) * (1 - Math.min(0.5, A.block || 0));
   const ehp = A.hp * (1 + (A.ward || 0)) / (taken * Math.max(0.3, 1 - heal * 0.6 / Math.max(1, taken))) * eDmg;   // Leben, umgerechnet in "wie viele Gegner-Hiebe halte ich aus"
   return Math.round(Math.sqrt(Math.max(1, dpt) * ehp) * 20);

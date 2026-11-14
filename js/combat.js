@@ -40,16 +40,18 @@ export function fight(A, B) {
     const amp = x.amp || 1, red = 1 - Math.min(0.6, y.armor / (y.armor + 20 + x.lvl * 8)) * (1 - Math.min(0.9, x.pen || 0));
     const dmgKind = !['heal', 'shield', 'buff'].includes(s.kind);
     if (dmgKind && chance(Math.min(0.5, y.dex / (y.dex + x.dex * 3 + 40) + (y.evade || 0)))) return say(x.side, `${x.name} wirkt ${s.name} – ${y.name} weicht aus.`, { spell: s.name, sid: s.id });
-    const dmgOf = m => Math.max(1, Math.round(base(x) * m * amp * red));
-    let t = `${x.name} wirkt ${s.name}`, d = 0;
+    let t = `${x.name} wirkt ${s.name}`, d = 0, anyCrit = false, extra = '';
+    // Ein Zauber-Treffer läuft durch dieselben Werte wie ein Hieb (Henker, Krit, Lebensraub, Bluten, Gift, Glocke, Dornen)
+    const zap = raw => { const r = finish(x, y, raw); hurt(y, r.d); d += r.d; anyCrit ||= r.crit; extra += onHit(x, y, r.d, r.crit); return r; };
     if (s.kind === 'hit' || s.kind === 'stun' || s.kind === 'mark') {
-      d = dmgOf(s.mult * (s.kind === 'mark' && y.cur < y.hp / 2 ? 2 : 1)); hurt(y, d); t += `: ${d}.`;
+      const r = zap(base(x) * s.mult * (s.kind === 'mark' && y.cur < y.hp / 2 ? 2 : 1) * amp * red); t += `: ${r.crit ? 'KRITISCH ' : ''}${r.d}.`;
       if (s.kind === 'stun') { y.stunned = true; t += ` ${y.name} ist betäubt.`; }
     } else if (s.kind === 'multi') {
-      for (let i = 0; i < s.hits; i++) { const h = Math.round(dmgOf(s.mult) * (0.8 + rand() * 0.4)); d += h; hurt(y, h); }
-      t += `: ${s.hits} Treffer, ${d}.`;
+      let n = 0; for (let i = 0; i < s.hits && y.cur > 0; i++, n++) zap(base(x) * s.mult * amp * red * (0.8 + rand() * 0.4));
+      t += `: ${n} Treffer, ${d}${anyCrit ? ' (kritisch)' : ''}.`;
     } else if (s.kind === 'dot') {
-      y.poisonDmg = Math.max(y.poisonDmg || 0, dmgOf(s.mult)); t += `. Gift: ${y.poisonDmg} je Runde.`;
+      const r = finish(x, y, base(x) * s.mult * amp * red); anyCrit = r.crit;   // Giftstärke: auch Henker/Krit zählen
+      y.poisonDmg = Math.max(y.poisonDmg || 0, r.d); t += `. ${r.crit ? 'Kritisches ' : ''}Gift: ${y.poisonDmg} je Runde.`;
     } else if (s.kind === 'heal') {
       const h = Math.round(x.hp * s.pct * amp); x.cur = Math.min(x.hp, x.cur + h); t += `: +${h} Leben.`;
     } else if (s.kind === 'shield') {
@@ -58,28 +60,38 @@ export function fight(A, B) {
       x.buff = Math.min(1 + (s.max || 9), x.buff + s.v); t += `: Schaden +${Math.round((x.buff - 1) * 100)} %.`;
     }
     if (x.side === 'a') cast.push(s.name);
-    say(x.side, t, { spell: s.name, sid: s.id, dmg: d || undefined });
+    say(x.side, t + extra, { spell: s.name, sid: s.id, dmg: d || undefined, crit: anyCrit });
     // Nachhall: der Zauber wirkt ein zweites Mal (nie öfter)
     if (x.echo && !x.echoing && y.cur > 0 && chance(x.echo)) { x.echoing = true; say(x.side, `${s.name} hallt nach!`, {}); spell(x, y, s); x.echoing = false; }
+  }
+
+  // Henker und Krit auf rohen Schaden (für Hieb und Zauber)
+  function finish(x, y, raw) {
+    let d = raw; if (x.execute && y.cur < y.hp * 0.3) d *= 1 + x.execute;
+    const crit = chance(Math.min(0.6, CFG.critBase + x.lck / (x.lck + 100 + y.lvl * 5) + (x.crit || 0)));
+    if (crit) d *= 2;
+    return { d: Math.max(1, Math.round(d)), crit };
+  }
+  // Was ein Treffer zusätzlich auslöst (für Hieb und Zauber) – neue Effekte hier eintragen, dann gelten sie für beides
+  function onHit(x, y, d, crit) {
+    let t = '';
+    if (x.leech) { const h = Math.round(d * x.leech); x.cur = Math.min(x.hp, x.cur + h); if (h) t += ` +${h} Leben.`; }
+    if (crit && x.bleed) y.bleedDmg = Math.max(y.bleedDmg || 0, Math.round(d * x.bleed));
+    if (x.poison) y.poisonDmg = Math.min(Math.round(y.hp * 0.08), (y.poisonDmg || 0) + Math.max(1, Math.round(d * x.poison)));
+    if (x.toll && (x.hits = (x.hits || 0) + 1) % 3 === 0) { y.stunned = true; t += ' Die Glocke dröhnt!'; }
+    if (y.thorns && y.cur > 0) { const r = Math.round(d * y.thorns); hurt(x, r); if (r) t += ` Dornen: ${r}.`; }
+    return t;
   }
 
   function strike(x, y) {
     const evade = Math.min(0.5, y.dex / (y.dex + x.dex * 3 + 40) + (y.evade || 0));
     if (chance(evade)) return say(x.side, `${y.name} weicht aus.`);
     if (y.block && chance(Math.min(0.5, y.block))) return say(x.side, `${y.name} blockt.`);
-    let d = roll(x.dmg[0], x.dmg[1]) * (1 + x[x.main] / CFG.mainDiv) * x.buff;
-    d *= 1 - Math.min(0.6, y.armor / (y.armor + 20 + x.lvl * 8)) * (1 - Math.min(0.9, x.pen || 0));
-    if (x.execute && y.cur < y.hp * 0.3) d *= 1 + x.execute;
-    const crit = chance(Math.min(0.6, CFG.critBase + x.lck / (x.lck + 100 + y.lvl * 5) + (x.crit || 0)));
-    if (crit) d *= 2;
-    d = Math.max(1, Math.round(d));
+    const raw = roll(x.dmg[0], x.dmg[1]) * (1 + x[x.main] / CFG.mainDiv) * x.buff
+      * (1 - Math.min(0.6, y.armor / (y.armor + 20 + x.lvl * 8)) * (1 - Math.min(0.9, x.pen || 0)));
+    const { d, crit } = finish(x, y, raw);
     hurt(y, d);
-    let t = `${x.name} trifft ${crit ? 'KRITISCH ' : ''}für ${d}.`;
-    if (x.leech) { const h = Math.round(d * x.leech); x.cur = Math.min(x.hp, x.cur + h); if (h) t += ` +${h} Leben.`; }
-    if (crit && x.bleed) y.bleedDmg = Math.max(y.bleedDmg || 0, Math.round(d * x.bleed));
-    if (x.poison) y.poisonDmg = Math.min(Math.round(y.hp * 0.08), (y.poisonDmg || 0) + Math.max(1, Math.round(d * x.poison)));
-    if (x.toll && (x.hits = (x.hits || 0) + 1) % 3 === 0) { y.stunned = true; t += ' Die Glocke dröhnt!'; }
-    if (y.thorns && y.cur > 0) { const r = Math.round(d * y.thorns); hurt(x, r); if (r) t += ` Dornen: ${r}.`; }
+    const t = `${x.name} trifft ${crit ? 'KRITISCH ' : ''}für ${d}.` + onHit(x, y, d, crit);
     say(x.side, t, { crit, dmg: d });
   }
 }

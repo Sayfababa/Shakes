@@ -296,3 +296,15 @@ test('Umschmieden: kein Gold durch Craften+Verkaufen – bei keinem Eingriff, ke
     assert.ok(gain < spent, `${op}/${rar}/${L}: Wertzuwachs ${gain} > Kosten ${spent}`);
   }
 });
+
+test('Zauber nutzen alle Werte: Lebensraub, Krit, Gift, Henker, Glocke', () => {
+  const S = fresh('witch'); S.lvl = 20;   // Grabhexe: 20 % Lebensraub als Klasse
+  const A = { ...G.stats(), crit: 0.6, toll: 1, poison: 0.1 };
+  let leech = false, crit = false, poison = false, toll = false;
+  for (let i = 0; i < 40; i++) for (const l of fight(A, G.makeMonster(3, 1)).log) if (l.spell) {
+    if (/\+\d+ Leben/.test(l.t)) leech = true; if (l.crit) crit = true; if (l.t.includes('Glocke')) toll = true; }
+  for (let i = 0; i < 40 && !poison; i++) { const f = fight({ ...A, spells: A.spells.slice(0, 1) }, G.makeMonster(3, 1)); const k = f.log.findIndex(l => l.spell && l.dmg);
+    if (k >= 0 && f.log.slice(k + 1).some(l => l.t.includes('Gift zerfrisst'))) poison = true; }
+  assert.ok(leech, 'Zauber heilt nicht über Lebensraub'); assert.ok(crit, 'Zauber trifft nie kritisch');
+  assert.ok(toll, 'Zauber zählt nicht für die Glocke'); assert.ok(poison, 'Zauber vergiftet nicht');
+});
