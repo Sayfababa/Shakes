@@ -10,7 +10,7 @@ let view = 'char', pickCls = null, F = null, rival = null, fightTimer = null;
 
 function render() {
   const S = G.S;
-  if (!S) { app.innerHTML = UI.viewCreate(pickCls); return; }
+  if (!S) { app.innerHTML = `<main>${UI.viewCreate(pickCls)}</main>`; return; }
   G.tickGlut();
   let body;
   if (view === 'fight' && F) body = UI.viewFight(F);
@@ -18,7 +18,7 @@ function render() {
   else if (view === 'shop') { if (Date.now() > S.shopTs + CFG.shopRefreshSec * 1000) G.rollShop(); body = UI.viewShop(); }
   else if (view === 'arena') { rival ||= makeRival(); body = UI.viewArena(rival); }
   else body = UI.viewChar();
-  app.innerHTML = UI.header(view === 'fight' ? F?.back : view) + body;
+  app.innerHTML = UI.hud() + `<main>${body}</main>` + UI.navBar(view === 'fight' ? F?.back : view);
   const log = document.getElementById('log'); if (log) log.scrollTop = log.scrollHeight;
   G.save();
 }

@@ -29,6 +29,7 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - Schnelltest Logik: `node --input-type=module -e "import('./js/combat.js')..."`
 
 ## Mobile / PWA
-- Wird primär am Handy als Homescreen-App getestet (GitHub Pages). Jede UI-Änderung auch bei 390px Breite prüfen.
+- Wird primär am Handy als Homescreen-App getestet: https://sayfababa.github.io/Shakes/ (Pages vom Arbeits-Branch).
+- **Kein Scrollen**: App-Layout = HUD oben, `<main>` (100dvh, overflow hidden), Tabs unten. Jede Ansicht muss auf iPhone SE (375×667) und iPhone 13 passen – mit Playwright prüfen (Elemente unter main-Unterkante zählen). Nur Kampflog darf intern scrollen.
 - `manifest.json` + `sw.js` (network-first, damit Updates sofort ankommen). Alle Pfade relativ (Pages-Unterordner!).
 - Touch: Item-Tap öffnet Detail-Popup mit Aktionen (`showTouchTip` in main.js), kein Hover/Rechtsklick voraussetzen.

@@ -58,85 +58,80 @@ export function itemTip(it, cmp) {
   return lines[0] + lines.slice(1).join('<br>');
 }
 
-export function header(view) {
-  const tabs = [['char', 'Charakter'], ['quests', 'Leichenhalle'], ['shop', 'Schmied'], ['arena', 'Die Grube']];
-  return `<h1>Aschenkrone</h1>
-  <div class="top">
-    <nav>${tabs.map(([k, n]) => `<a class="${view === k ? 'on' : ''}" data-action="go" data-v="${k}">${n}</a>`).join('')}</nav>
-    <div class="res"><span>Gold <b>${S.gold}</b></span><span>Stufe <b>${S.lvl}</b></span><span>Ehre <b>${S.honor}</b></span></div>
-  </div>
-  <div class="grid3" style="margin-bottom:14px">
-    <div><small class="muted">Erfahrung ${S.xp}/${xpNeed(S.lvl)}</small><div class="bar xp"><i style="width:${pct(S.xp, xpNeed(S.lvl))}%"></i></div></div>
-    <div><small class="muted">Glut ${S.glut}/${CFG.maxGlut}</small><div class="bar glut"><i style="width:${pct(S.glut, CFG.maxGlut)}%"></i></div></div>
-    <div style="text-align:right"><button data-action="wipe" class="muted" style="font-size:.65rem">Neu beginnen</button></div>
-  </div>`;
+export function hud() {
+  return `<header class="hud">
+    <div class="hud-row"><span class="cinzel ttl">Aschenkrone</span>
+      <span class="res"><span>Gold <b>${S.gold}</b></span><span>Stufe <b>${S.lvl}</b></span><span>Ehre <b>${S.honor}</b></span></span></div>
+    <div class="hud-row bars">
+      <div><small>EP ${S.xp}/${xpNeed(S.lvl)}</small><div class="bar xp"><i style="width:${pct(S.xp, xpNeed(S.lvl))}%"></i></div></div>
+      <div><small>Glut ${S.glut}/${CFG.maxGlut}</small><div class="bar glut"><i style="width:${pct(S.glut, CFG.maxGlut)}%"></i></div></div>
+    </div></header>`;
+}
+
+export function navBar(view) {
+  const tabs = [['char', 'Held'], ['quests', 'Aufträge'], ['shop', 'Schmied'], ['arena', 'Grube']];
+  return `<nav class="tabs">${tabs.map(([k, n]) => `<a class="${view === k ? 'on' : ''}" data-action="go" data-v="${k}">${n}</a>`).join('')}</nav>`;
 }
 
 export function viewCreate(sel) {
-  return `<h1>Aschenkrone</h1><div class="sub">Die Glocke hat geschlagen. Die Toten stehen auf. Wer bist du?</div>
-  <div class="frame"><div class="classes">${Object.entries(CLASSES).map(([k, c]) =>
+  return `<div class="create"><h1>Aschenkrone</h1><div class="sub">Die Glocke hat geschlagen. Die Toten stehen auf.</div>
+  <div class="classes">${Object.entries(CLASSES).map(([k, c]) =>
     `<div class="cls ${sel === k ? 'on' : ''}" data-action="pick" data-c="${k}"><img class="portrait" src="${P(k)}" alt=""><div class="cinzel">${c.name}</div></div>`).join('')}</div>
-  ${sel ? `<p style="text-align:center;margin:16px 0 8px"><b class="cinzel" style="color:var(--gold)">${CLASSES[sel].name}</b> – ${CLASSES[sel].desc}<br><span class="muted">Hauptattribut: ${ATTRS[CLASSES[sel].main]}</span></p>
-  <div style="display:flex;gap:8px;max-width:420px;margin:0 auto"><input id="nm" maxlength="16" placeholder="Name des Verdammten"><button class="red" data-action="create">Erwachen</button></div>` : '<p class="sub" style="margin-top:16px">Wähle dein Schicksal.</p>'}</div>`;
+  ${sel ? `<p class="cdesc"><b class="cinzel">${CLASSES[sel].name}</b> – ${CLASSES[sel].desc} <span class="muted">(${ATTRS[CLASSES[sel].main]})</span></p>
+  <div class="cname"><input id="nm" maxlength="16" placeholder="Name des Verdammten"><button class="red" data-action="create">Erwachen</button></div>` : '<p class="sub">Wähle dein Schicksal.</p>'}</div>`;
 }
 
 export function viewChar() {
   const st = stats(), c = CLASSES[S.cls];
   const eq = ['helm', 'amulet', 'chest', 'ring1', 'weapon', 'gloves', 'belt', 'ring2', 'offhand', 'boots'];
   const lbl = { ring1: 'Ring', ring2: 'Ring' };
-  return `<div class="grid2">
-    <div class="frame"><img class="portrait" src="${P(S.cls)}" alt="">
-      <h2 style="text-align:center;margin-top:10px;border:0">${S.name}<br><small class="muted">${c.name} · Stufe ${S.lvl}</small></h2>
-      ${Object.entries(ATTRS).map(([k, n]) => `<div class="stat"><span>${n}${k === c.main ? ' ✦' : ''}</span><span><b>${st[k]}</b> <button data-action="attr" data-k="${k}" ${S.gold < attrCost(k) ? 'disabled' : ''}>+ ${attrCost(k)}g</button></span></div>`).join('')}
-      <div class="stat"><span>Leben</span><b>${st.hp}</b></div>
-      <div class="stat"><span>Schaden</span><b>${st.dmg[0]}–${st.dmg[1]}</b></div>
-      <div class="stat"><span>Rüstung</span><b>${st.armor}</b></div>
-      <div class="stat"><span>Siege / Tode</span><b>${S.wins} / ${S.deaths}</b></div>
-    </div>
-    <div class="frame"><h2>Ausrüstung</h2>
-      <div class="equip">${eq.map(s => slotBox(S.equip[s], { action: `data-action="unequip" data-s="${s}"`, label: lbl[s] || SLOTS[s] })).join('')}</div>
-      <h2>Beutel <small class="muted">(${S.bag.length}/20) – Antippen für Details</small></h2>
-      <div class="bag">${S.bag.map(it => slotBox(it, { action: `data-action="equip" data-id="${it.id}"` })).join('') || '<span class="muted">Leer.</span>'}</div>
-      <h2 style="margin-top:16px">Tagebuch</h2>
-      <div class="journal">${S.journal.slice(0, 8).map(j => `<div>${j.t}</div>`).join('') || '<div class="muted">Noch keine Einträge.</div>'}</div>
-    </div></div>`;
+  return `<div class="char">
+    <section class="frame head">
+      <img class="portrait" src="${P(S.cls)}" alt="">
+      <div class="attrs"><div class="who cinzel">${S.name} <small class="muted">${c.name}</small></div>
+        ${Object.entries(ATTRS).map(([k, n]) => `<div class="stat"><span>${n}${k === c.main ? ' ✦' : ''}</span><span><b>${st[k]}</b> <button data-action="attr" data-k="${k}" ${S.gold < attrCost(k) ? 'disabled' : ''}>+${attrCost(k)}</button></span></div>`).join('')}
+      </div>
+      <div class="derived"><span>Leben <b>${st.hp}</b></span><span>Schaden <b>${st.dmg[0]}–${st.dmg[1]}</b></span><span>Rüstung <b>${st.armor}</b></span><span>S/T <b>${S.wins}/${S.deaths}</b></span></div>
+    </section>
+    <section class="frame"><div class="equip">${eq.map(s => slotBox(S.equip[s], { action: `data-action="unequip" data-s="${s}"`, label: lbl[s] || SLOTS[s] })).join('')}</div></section>
+    <section class="frame grow"><h2>Beutel <small class="muted">${S.bag.length}/20</small><button class="tiny" data-action="wipe">Neu beginnen</button></h2>
+      <div class="bag">${Array.from({ length: 20 }, (_, i) => S.bag[i] ? slotBox(S.bag[i], { action: `data-action="equip" data-id="${S.bag[i].id}"` }) : '<div class="slot"></div>').join('')}</div></section>
+  </div>`;
 }
 
 export function viewQuests() {
   if (S.active) {
     const left = Math.ceil((S.active.end - Date.now()) / 1000), q = S.active.q;
-    return `<div class="frame waiting"><h2>${q.title}</h2><p class="muted"><i>Du ziehst ${q.place} umher…</i></p>
-      ${left > 0 ? `<div class="big" id="cd">${fmtT(left)}</div><br><button data-action="rush" ${S.gold < 1 ? 'disabled' : ''}>Eilen (1 Gold)</button>`
-                 : `<button class="red" data-action="resolve">Zum Kampf</button>`}</div>`;
+    return `<div class="col"><section class="frame waiting">${monsterArt(q.monster.glyph)}<h2>${q.title}</h2><p class="muted"><i>Du ziehst ${q.place} umher…</i></p>
+      ${left > 0 ? `<div class="big" id="cd">${fmtT(left)}</div><button data-action="rush" ${S.gold < 1 ? 'disabled' : ''}>Eilen (1 Gold)</button>`
+                 : `<button class="red" data-action="resolve">Zum Kampf</button>`}</section>
+      <section class="frame grow journal"><h2>Tagebuch</h2>${S.journal.slice(0, 6).map(j => `<div>${j.t}</div>`).join('')}</section></div>`;
   }
-  return `<div class="grid3">${S.quests.map(q => `<div class="frame quest">
+  return `<div class="col">${S.quests.map(q => `<section class="frame quest" data-action="quest" data-id="${q.id}" ${S.glut < q.glut ? 'aria-disabled="true"' : ''}>
     ${monsterArt(q.monster.glyph)}
-    <h3 class="cinzel" style="margin-top:10px">${q.title}</h3>
-    <p>Gesichtet ${q.place}. ${q.diff > 1.1 ? 'Gefährlich.' : q.diff < 0.9 ? 'Ein leichtes Opfer.' : ''}</p>
-    <div class="rw"><span>${q.gold} Gold</span><span>${q.xp} EP</span><span>${fmtT(q.sec)}</span><span>${q.glut} Glut</span></div>
-    <button class="red" style="width:100%" data-action="quest" data-id="${q.id}" ${S.glut < q.glut ? 'disabled' : ''}>Aufbrechen</button>
-  </div>`).join('')}</div>`;
+    <div class="qtxt"><h3 class="cinzel">${q.title}</h3>
+    <p>${q.place[0].toUpperCase() + q.place.slice(1)}. ${q.diff > 1.1 ? '<span class="down">Gefährlich.</span>' : q.diff < 0.9 ? 'Leichte Beute.' : ''}</p>
+    <div class="rw"><span><b>${q.gold}</b> Gold</span><span><b>${q.xp}</b> EP</span><span>${fmtT(q.sec)}</span><span>${q.glut} Glut</span></div></div>
+  </section>`).join('')}</div>`;
 }
 
 export function viewShop() {
   const left = Math.max(0, Math.ceil((S.shopTs + CFG.shopRefreshSec * 1000 - Date.now()) / 1000));
-  return `<div class="grid2"><div class="frame"><h2>Schmied Halvar</h2>
-    <p class="muted"><i>„Der Stahl ist alt, aber er schneidet noch. Wie du.“</i></p>
-    <p class="muted">Neue Ware in ${fmtT(left)}</p><button data-action="reroll" ${S.gold < 5 ? 'disabled' : ''}>Neue Ware (5 Gold)</button></div>
-    <div class="frame"><h2>Ware – Klick: kaufen</h2>
-    <div class="bag">${S.shop.map(it => slotBox(it, { price: true, action: `data-action="buy" data-id="${it.id}"` })).join('') || '<span class="muted">Ausverkauft.</span>'}</div>
-    <h2 style="margin-top:16px">Dein Beutel – Klick: verkaufen</h2>
-    <div class="bag">${S.bag.map(it => slotBox(it, { action: `data-action="sell" data-id="${it.id}"` })).join('') || '<span class="muted">Leer.</span>'}</div></div></div>`;
+  return `<div class="col"><section class="frame"><h2>Schmied Halvar <button class="tiny" data-action="reroll" ${S.gold < 5 ? 'disabled' : ''}>Neue Ware 5g</button></h2>
+    <p class="muted quote"><i>„Der Stahl ist alt, aber er schneidet noch.“</i> · neu in ${fmtT(left)}</p>
+    <div class="bag shop">${S.shop.map(it => slotBox(it, { price: true, action: `data-action="buy" data-id="${it.id}"` })).join('') || '<span class="muted">Ausverkauft.</span>'}</div></section>
+    <section class="frame grow"><h2>Verkaufen <small class="muted">${S.bag.length}/20</small></h2>
+    <div class="bag">${Array.from({ length: 20 }, (_, i) => S.bag[i] ? slotBox(S.bag[i], { action: `data-action="sell" data-id="${S.bag[i].id}"` }) : '<div class="slot"></div>').join('')}</div></section></div>`;
 }
 
 export function viewArena(rival) {
   const cd = Math.max(0, Math.ceil((S.arenaTs - Date.now()) / 1000));
-  return `<div class="grid2"><div class="frame"><img class="portrait" src="${P(rival.cls)}" alt="">
-    <h2 style="text-align:center;border:0;margin-top:10px">${rival.name}<br><small class="muted">${CLASSES[rival.cls].name} · Stufe ${rival.lvl}</small></h2></div>
-    <div class="frame"><h2>Die Grube</h2><p><i>Im Sand liegen die Zähne der Verlierer. Ein anderer Verdammter wartet auf dich.</i></p>
-    <p class="muted">Sieg: +${rival.lvl * 3} Gold, +10 Ehre. Niederlage: −5 Ehre.</p>
-    <button class="red" data-action="arena" ${cd ? 'disabled' : ''}>${cd ? `Erschöpft (${fmtT(cd)})` : 'Herausfordern'}</button>
-    <button data-action="rival">Anderer Gegner</button></div></div>`;
+  return `<div class="col"><section class="frame arena"><img class="portrait" src="${P(rival.cls)}" alt="">
+    <h2>${rival.name}<br><small class="muted">${CLASSES[rival.cls].name} · Stufe ${rival.lvl}</small></h2>
+    <p><i>Im Sand liegen die Zähne der Verlierer.</i></p>
+    <p class="muted">Sieg: +${rival.lvl * 3} Gold, +10 Ehre · Niederlage: −5 Ehre</p>
+    <div class="btns"><button class="red" data-action="arena" ${cd ? 'disabled' : ''}>${cd ? `Erschöpft ${fmtT(cd)}` : 'Herausfordern'}</button>
+    <button data-action="rival">Anderer Gegner</button></div></section></div>`;
 }
 
 export function viewFight(F) {
@@ -146,7 +141,7 @@ export function viewFight(F) {
   const last = shown[shown.length - 1] || {};
   const hpA = last.hpA ?? F.hpA, hpB = last.hpB ?? F.hpB;
   const done = F.step >= F.log.length;
-  return `<div class="frame"><div class="fight">
+  return `<div class="frame fightwrap"><div class="fight">
     ${side(F.A, hpA, F.hpA, last.who === 'b' ? 'hit' : '')}
     <div><div class="log" id="log">${shown.map(l => `<div class="${l.who} ${l.crit ? 'crit' : ''}">${l.t}</div>`).join('')}</div>
       ${done ? `<div class="result ${F.winner === 'a' ? 'win' : 'lose'}">${F.winner === 'a' ? 'Sieg' : 'Du bist gefallen'}</div>
