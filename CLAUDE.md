@@ -8,7 +8,7 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - Palette: fast Schwarz (#0b0907), verbranntes Braun, Eisen-Grau, Blutrot (#8a1c13), gedämpftes Gold (#b08a3e).
 - Schrift: `Grenze Gotisch` (Titel), `Alegreya` (Text), `Alegreya SC` (Labels/Buttons). Kein Cinzel (wirkt generisch).
 - Texturen statt Flächen: Rauschen/Stein (`--noise`, `--stonetex`), Nieten (`--rivets`) auf `.panel`, Quest-Zettel als Pergament (`.note`).
-- Items sind handgezeichnete SVGs (`js/art.js`), Größe im Raster w×h wie Diablo. NPCs bis echte Portraits da sind: Silhouetten (`NPC_ART`).
+- Items sind handgezeichnete SVGs (`js/art.js`), Größe im Raster w×h wie Diablo. NPC-Portraits in `assets/npcs/` (halvar, ysolde, kaspar, vargo, ilse, prophet); Sprecher-Leiste `say(id)` in ui.js mit Sätzen aus `NPCS`.
 - Rahmen: harte Kanten, doppelte Eisen-/Steinrahmen, Innenschatten, Vignette. Max. 2px Border-Radius.
 - Loot-Farben (D2-Konvention): grau=zerbrochen, weiß=gewöhnlich, #6969ff=magisch, #ffff64=selten, #c7b377=legendär, #00c400=Set.
 - Portraits liegen in `assets/portraits/` (sorceress, assassin, barbarian, paladin, huntress, witch). Keine generierten Ersatzbilder ohne Absprache.

@@ -172,7 +172,7 @@ input { background: #000; color: var(--text); border: 1px solid var(--edge); pad
 
 /* --- Grube --- */
 .arena { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.arena .portrait { width: min(55%, 40vh); } .arena h2 { justify-content: center; border: 0; box-shadow: none; margin: 8px 0 0; font-size: 1.5rem; }
+.arena .portrait { width: min(50%, 30vh); } .arena h2 { justify-content: center; border: 0; box-shadow: none; margin: 8px 0 0; font-size: 1.5rem; }
 
 /* --- Kampf --- */
 .fightwrap { display: flex; flex-direction: column; }
@@ -218,3 +218,8 @@ input { background: #000; color: var(--text); border: 1px solid var(--edge); pad
   .note p { -webkit-line-clamp: 3; } .lore { font-size: .8rem; }
   .plate b { font-size: 1rem; } .herobar { font-size: .74rem; gap: 7px; }
 }
+
+/* Sprecher (NPC mit Satz) */
+.speaker { display: grid; grid-template-columns: calc(var(--u) * 2.4) 1fr; gap: 10px; align-items: center; flex: none !important; padding: 6px 8px; }
+.speaker b { font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.05rem; } .speaker .lore { margin: 1px 0 0; font-size: .8rem; line-height: 1.2; }
+.portrait.npc { border-color: #3a2e22; filter: contrast(1.05) saturate(.95); }

@@ -84,12 +84,18 @@ export const LOCATIONS = [
 // --- Händler (Treue-Stufen wie bei Fraktions-Händlern) -------------------
 // Treue-Stufe n braucht rep >= need[n] und Spielerstufe >= lvl[n]. Höhere Treue = bessere Ware.
 export const TRADERS = {
-  halvar: { name: 'Halvar', role: 'Schmied', glyph: 'smith', slots: ['weapon', 'offhand'],
+  halvar: { name: 'Halvar', role: 'Schmied', glyph: 'halvar', slots: ['weapon', 'offhand'],
     quote: 'Der Stahl ist alt. Er schneidet trotzdem. Wie ich.', need: [0, 120, 400, 1000], lvl: [1, 5, 12, 20] },
-  ysolde: { name: 'Mutter Ysolde', role: 'Kräuterhexe', glyph: 'crone', slots: ['amulet', 'ring', 'belt'],
+  ysolde: { name: 'Mutter Ysolde', role: 'Kräuterhexe', glyph: 'ysolde', slots: ['amulet', 'ring', 'belt'],
     quote: 'Bring mir, was die Toten nicht mehr brauchen, Kind.', need: [0, 120, 400, 1000], lvl: [1, 6, 14, 22] },
-  kaspar: { name: 'Bruder Kaspar', role: 'Totengräber', glyph: 'digger', slots: ['helm', 'chest', 'gloves', 'boots'],
+  kaspar: { name: 'Bruder Kaspar', role: 'Totengräber', glyph: 'kaspar', slots: ['helm', 'chest', 'gloves', 'boots'],
     quote: 'Ich grabe sie ein. Und manchmal wieder aus. Die Rüstung braucht keiner mehr.', need: [0, 120, 400, 1000], lvl: [1, 4, 10, 18] },
+};
+// Weitere Figuren (Portraits in assets/npcs/)
+export const NPCS = {
+  vargo: { name: 'Vargo', role: 'Grubenmeister', lines: ['Blut ist die einzige Münze, die hier zählt.', 'Steh wieder auf. Die Menge will mehr.', 'Ich hab Bessere als dich im Sand verscharrt.'] },
+  ilse: { name: 'Schwester Ilse', role: 'Kryptenwächterin', lines: ['Ich halte das Licht. Du hältst die Klinge.', 'Unten schläft nichts mehr. Geh trotzdem.', 'Ich bete für dich. Es hilft nicht oft.'] },
+  prophet: { name: 'Der Bettlerprophet', role: 'Seher', lines: ['Die Glocke schlägt dreimal. Beim dritten Mal stehst auch du nicht mehr auf.', 'Ich sehe dich, Kind der Asche. Ich sehe, was du wirst.', 'Gib mir Brot, und ich sage dir, wo du stirbst.', 'Der Kronenlose trägt dein Gesicht.'] },
 };
 export const LOYALTY = ['I', 'II', 'III', 'IV'];
 

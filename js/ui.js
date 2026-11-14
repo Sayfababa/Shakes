@@ -1,5 +1,5 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
-import { CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H } from './data.js';
+import { NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H } from './data.js';
 import { S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
@@ -11,7 +11,10 @@ const pct = (a, b) => Math.max(0, Math.min(100, (a / b) * 100));
 const effLine = e => Object.entries(e).map(([k, v]) => `${EFFECT_NAMES[k]}${k === 'first' ? '' : ' +' + Math.round(v * 100) + '%'}`).join(', ');
 
 export const monsterArt = g => `<div class="portrait monster"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#070403"/>${MON[g] || MON.skull}</svg></div>`;
-const npcArt = g => `<div class="portrait npc"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#0a0705"/>${NPC_ART[g]}</svg></div>`;
+const npcArt = g => NPC_ART[g] ? `<div class="portrait npc"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#0a0705"/>${NPC_ART[g]}</svg></div>` : `<img class="portrait npc" src="assets/npcs/${g}.jpg" alt="">`;
+// Sprecher-Leiste: kleines Portrait + wechselnder Satz
+const say = id => { const n = NPCS[id], line = n.lines[Math.floor(Date.now() / 60000) % n.lines.length];
+  return `<section class="panel speaker">${npcArt(id)}<div><b>${n.name}</b> <span class="h2r">${n.role}</span><p class="lore">„${line}“</p></div></section>`; };
 
 // --- Items ---
 export function itemTip(it, cmp) {
@@ -119,7 +122,7 @@ export function viewTrips() {
       <p class="dim">Du folgst einer Spur: <b>${a.mob}</b>.</p>
       ${left > 0 ? `<div class="big">${fmtT(left)}</div><button data-action="rush" ${S.gold < 1 ? 'disabled' : ''}>Eilen · 1 Gold</button>`
                  : `<button class="red big-btn" data-action="resolve">Stellen</button>`}</section>
-      <section class="panel grow journal"><h2>Tagebuch</h2>${S.journal.slice(0, 6).map(j => `<div>${j.t}</div>`).join('')}</section></div>`;
+      ${say('prophet')}<section class="panel grow journal"><h2>Tagebuch</h2>${S.journal.slice(0, 6).map(j => `<div>${j.t}</div>`).join('')}</section></div>`;
   }
   return `<div class="trips">${LOCATIONS.map(l => { const open = locOpen(l), r = tripReward(l, 1, (l.sec[0] + l.sec[1]) / 2);
     const wanted = new Set(Object.keys(TRADERS).filter(available).flatMap(t => current(t).obj.filter(o => o.at === l.id || l.mobs.includes(o.kill)).map(() => t)));
@@ -158,7 +161,7 @@ export function viewTrader(tid) {
 // --- Krypten ---
 export function viewCrypts() {
   const d = DIFFICULTIES[S.crypt.diff], cd = Math.max(0, Math.ceil((S.crypt.cd - Date.now()) / 1000));
-  return `<div class="col"><section class="panel"><h2>Die Krypten <span class="h2r">${d.name} · ${cd ? `Erholung ${fmtT(cd)}` : 'bereit'}</span></h2></section>
+  return `<div class="col">${say('ilse')}<section class="panel"><h2>Die Krypten <span class="h2r">${d.name} · ${cd ? `Erholung ${fmtT(cd)}` : 'bereit'}</span></h2></section>
     ${CRYPTS.map(c => { const f = cryptFloor(c), open = cryptOpen(c), done = f >= 5;
       const troph = S.trophies.some(t => t.key === c.id + ':' + S.crypt.diff);
       return `<section class="panel crypt ${!open ? 'locked' : ''} ${done ? 'done' : ''}" ${open && !done && !cd ? `data-action="crypt" data-id="${c.id}"` : ''}>
@@ -171,9 +174,9 @@ export function viewCrypts() {
 
 export function viewArena(rival) {
   const cd = Math.max(0, Math.ceil((S.arenaTs - Date.now()) / 1000));
-  return `<div class="col"><section class="panel arena"><img class="portrait" src="${P(rival.cls)}" alt="">
+  return `<div class="col">${say('vargo')}<section class="panel arena"><img class="portrait" src="${P(rival.cls)}" alt="">
     <h2>${rival.name}</h2><p class="dim">${CLASSES[rival.cls].name} · Stufe ${rival.lvl}</p>
-    <p class="lore">Im Sand liegen die Zähne der Verlierer.</p>
+    
     <p class="small">Sieg: ${rival.lvl * 3} Gold, 10 Ehre · Niederlage: 5 Ehre · Deine Ehre: <b>${S.honor}</b></p>
     <div class="btns"><button class="red" data-action="arena" ${cd ? 'disabled' : ''}>${cd ? `Erschöpft ${fmtT(cd)}` : 'Herausfordern'}</button>
     <button data-action="rival">Anderer Gegner</button></div></section></div>`;
