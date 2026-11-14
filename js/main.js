@@ -218,4 +218,13 @@ setInterval(() => {
   }
 }, 1000);
 
+// iOS-Homescreen-App: der Viewport ist dort zu kurz gemeldet (unten blieb ~100 pt frei, obwohl gezeichnet wird).
+// Dann die echte Bildschirmhöhe nehmen.
+const STANDALONE = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+function fitApp() {
+  if (!STANDALONE) return;
+  const portrait = innerHeight >= innerWidth, h = Math.max(innerHeight, portrait ? screen.height : screen.width);
+  app.style.bottom = 'auto'; app.style.height = h + 'px';
+}
+addEventListener('resize', fitApp); addEventListener('orientationchange', () => setTimeout(fitApp, 300)); fitApp();
 G.load(); render();
