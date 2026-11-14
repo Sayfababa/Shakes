@@ -45,7 +45,7 @@ test('Inventar: Items überlappen nie, voller Beutel lehnt ab', () => {
   assert.ok(added < 60);
   for (const a of S.bag) for (const b of S.bag) if (a !== b)
     assert.ok(!(a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h), 'Überlappung');
-  const n = S.bag.length; G.sortBag(); assert.ok(S.bag.length >= n - 0);
+  const n = S.bag.length; G.sortBag(); assert.equal(S.bag.length, n, 'Ordnen darf keine Items verlieren');
 });
 
 test('Anlegen tauscht und verliert nichts', () => {
@@ -73,7 +73,7 @@ test('Quest: Abgabe verbraucht Material und gibt Lohn', () => {
 });
 
 test('Finale: Entscheidung setzt Titel und Segen', () => {
-  const S = fresh(); S.lvl = 30; S.traders.prophet.q = D.QUESTS.prophet.length - 1;
+  const S = fresh(); S.lvl = 30; S.traders.prophet.q = D.QUESTS.prophet.findIndex(q => q.choice);
   S.trophies.push({ key: 'c5:0', name: 'x', eff: {} });
   assert.equal(Q.complete('prophet'), null, 'ohne Wahl keine Abgabe');
   const r = Q.complete('prophet', 'crown'); assert.equal(S.title, 'Der Kronenlose'); assert.ok(r.perks.length);
@@ -125,7 +125,21 @@ test('Tiefer gehen: Niederlage kostet die ungesicherte Beute, Erfahrung bleibt',
 
 test('Spuren: blutige Spur ist gefährlicher als leichte', () => {
   const S = fresh(); S.lvl = 5; const l = D.LOCATIONS[0];
-  const safe = Game.winChance('t-safe', () => G.makeMonster(G.locLvl(l), D.TRACKS[0].diff), 200);
-  const blood = Game.winChance('t-blood', () => G.makeMonster(G.locLvl(l), D.TRACKS[2].diff), 200);
+  const safe = Game.winChance('t-safe', () => G.makeMonster(Math.max(1, G.locLvl(l) - 1), D.TRACKS[0].diff), 200);
+  const blood = Game.winChance('t-blood', () => G.makeMonster(S.lvl + 3, D.TRACKS[2].diff), 200);
   assert.ok(safe > blood);
+});
+
+test('Steckbriefe: 3 verschiedene pro Tag, abholbar, nur einmal', () => {
+  const S = fresh(); const b = G.bounties(); assert.equal(b.length, 3); assert.equal(new Set(b.map(x => x.id)).size, 3);
+  b[0].prog = b[0].n; const g = S.gold; assert.ok(G.claimBounty(0)); assert.ok(S.gold > g); assert.equal(G.claimBounty(0), null);
+});
+
+test('Glücksgriff gibt ein mindestens magisches Item gegen Gold', () => {
+  const S = fresh(); S.gold = 5000; const it = G.doService('ysolde', 'gamble');
+  assert.ok(it && ['magic', 'rare', 'legendary'].includes(it.rarity)); assert.ok(S.gold < 5000);
+});
+
+test('Eilen kostet mit Restzeit und Stufe mehr', () => {
+  const S = fresh(); G.startTrip('friedhof', 'safe'); const c1 = G.rushCost(); S.lvl = 30; assert.ok(G.rushCost() > c1);
 });

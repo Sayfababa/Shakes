@@ -1,4 +1,4 @@
-import { BASES, RARITIES, AFFIXES, LEGEND_NAMES } from './data.js';
+import { BASES, RARITIES, AFFIXES, LEGEND_NAMES, CFG } from './data.js';
 import { roll, pick, weighted, uid, rand } from './rng.js';
 
 // Erzeugt ein Item für Stufe `lvl`. luck verschiebt Seltenheiten nach oben.
@@ -7,7 +7,11 @@ export function makeItem(lvl, { luck = 0, slot, slots, cls, minRarity = 0 } = {}
   if (cls && rand() < 0.6) pool = pool.filter(b => b.slot !== 'weapon' || b.kind === cls.weapon) ;
   const base = pick(pool.length ? pool : BASES);
   const boost = 1 + Math.min(luck, 200) / 100;
-  const rar = weighted(RARITIES.map((r, i) => ({ ...r, w: i < minRarity ? 0 : r.id === 'normal' || r.id === 'broken' ? r.w : r.w * boost })));
+  // Seltenes/Legendäres erst ab bestimmter Gegenstandsstufe (wie Stufen-Anforderungen bei Uniques)
+  const gate = r => r.id === 'legendary' ? (lvl >= CFG.legendaryMinLvl ? 1 : 0) : r.id === 'rare' ? (lvl >= CFG.rareMinLvl ? 1 : 0.15) : 1;
+  let ws = RARITIES.map((r, i) => ({ ...r, w: i < minRarity ? 0 : (r.id === 'normal' || r.id === 'broken' ? r.w : r.w * boost) * gate(r) }));
+  if (!ws.some(r => r.w > 0)) ws = RARITIES.map((r, i) => ({ ...r, w: i === Math.min(minRarity, 3) ? 1 : 0 }));   // Mindest-Seltenheit gewinnt
+  const rar = weighted(ws);
   const ilvl = Math.max(1, lvl + roll(-1, 1));
   const scale = (1 + ilvl * 0.18) * rar.mult;
   const it = { id: uid(), slot: base.slot, kind: base.kind, base: base.name, art: base.art, w: base.w, h: base.h, rarity: rar.id, lvl: ilvl, mods: {} };
@@ -15,7 +19,7 @@ export function makeItem(lvl, { luck = 0, slot, slots, cls, minRarity = 0 } = {}
   if (base.dmg) it.dmg = [Math.round(base.dmg[0] * scale), Math.round(base.dmg[1] * scale)];
   const n = Array.isArray(rar.affixes) ? roll(...rar.affixes) : rar.affixes;
   const chosen = [...AFFIXES].sort(() => rand() - 0.5).slice(0, n);
-  for (const a of chosen) it.mods[a.stat] = Math.max(1, Math.round(a.per * ilvl * (0.6 + rand() * 0.8) * (rar.id === 'legendary' ? 1.5 : 1)));
+  for (const a of chosen) it.mods[a.stat] = Math.max(1, Math.round(a.per * (CFG.affixBase + ilvl * CFG.affixPerLvl) * (0.6 + rand() * 0.8) * (rar.id === 'legendary' ? 1.5 : 1)));
   it.name = nameOf(it, base, chosen);
   it.value = Math.round((4 + ilvl * 3) * rar.mult ** 3 * (1 + n * 0.4));
   return it;

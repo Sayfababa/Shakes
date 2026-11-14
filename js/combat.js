@@ -30,7 +30,7 @@ export function fight(A, B) {
     const evade = Math.min(0.5, y.dex / (y.dex + x.dex * 3 + 40) + (y.evade || 0));
     if (chance(evade)) return say(x.side, `${y.name} weicht aus.`);
     if (y.block && chance(Math.min(0.5, y.block))) return say(x.side, `${y.name} blockt.`);
-    let d = roll(x.dmg[0], x.dmg[1]) * (1 + x[x.main] / 10);
+    let d = roll(x.dmg[0], x.dmg[1]) * (1 + x[x.main] / CFG.mainDiv);
     d *= 1 - Math.min(0.6, y.armor / (y.armor + 20 + x.lvl * 8)) * (1 - Math.min(0.9, x.pen || 0));
     if (x.execute && y.cur < y.hp * 0.3) d *= 1 + x.execute;
     const crit = chance(Math.min(0.6, CFG.critBase + x.lck / (x.lck + 100 + y.lvl * 5) + (x.crit || 0)));

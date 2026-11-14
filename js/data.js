@@ -85,11 +85,11 @@ export const LOCATIONS = [
 // Treue-Stufe n braucht rep >= need[n] und Spielerstufe >= lvl[n]. Höhere Treue = bessere Ware.
 export const TRADERS = {
   halvar: { name: 'Halvar', role: 'Schmied', glyph: 'halvar', slots: ['weapon', 'offhand'],
-    quote: 'Der Stahl ist alt. Er schneidet trotzdem. Wie ich.', need: [0, 120, 400, 1000], lvl: [1, 5, 12, 20] },
+    quote: 'Der Stahl ist alt. Er schneidet trotzdem. Wie ich.', need: [0, 200, 700, 1600], lvl: [1, 6, 14, 22] },
   ysolde: { name: 'Mutter Ysolde', role: 'Kräuterhexe', glyph: 'ysolde', slots: ['amulet', 'ring', 'belt'],
-    quote: 'Bring mir, was die Toten nicht mehr brauchen, Kind.', need: [0, 120, 400, 1000], lvl: [1, 6, 14, 22] },
+    quote: 'Bring mir, was die Toten nicht mehr brauchen, Kind.', need: [0, 200, 700, 1600], lvl: [1, 7, 15, 23] },
   kaspar: { name: 'Bruder Kaspar', role: 'Totengräber', glyph: 'kaspar', slots: ['helm', 'chest', 'gloves', 'boots'],
-    quote: 'Ich grabe sie ein. Und manchmal wieder aus. Die Rüstung braucht keiner mehr.', need: [0, 120, 400, 1000], lvl: [1, 4, 10, 18] },
+    quote: 'Ich grabe sie ein. Und manchmal wieder aus. Die Rüstung braucht keiner mehr.', need: [0, 200, 700, 1600], lvl: [1, 5, 12, 20] },
 };
 // Weitere Figuren (Portraits in assets/npcs/)
 export const NPCS = {
@@ -189,6 +189,13 @@ export const QUESTS = {
         { id: 'break', label: 'Die Glocke zerbrechen', text: 'Die Glocke schweigt für immer. Die Toten schlafen.', title: 'Glockenbrecher', perk: { name: 'Glockenbrecher', eff: { dmgPct: 0.1, crit: 0.05 } } },
         { id: 'crown', label: 'Die Krone nehmen', text: 'Du setzt sie auf. Sie passt. Sie hat immer gepasst.', title: 'Der Kronenlose', perk: { name: 'Krone der Asche', eff: { hpPct: 0.15, leech: 0.08 } } },
       ] },
+    // Nach dem Finale: der zweite und dritte Schlag der Glocke (Albtraum, Hölle)
+    { id: 'p6', title: 'Der zweite Schlag', lvl: 24, text: 'Die Glocke schweigt nicht lange, Kind. Die Toten stehen wieder auf – stärker. Fälle die Ertränkte und den Verseuchten ein zweites Mal.',
+      obj: [{ bossd: 'c1', d: 1 }, { bossd: 'c2', d: 1 }], rew: { gold: 2500, xp: 8000, rep: 0, perk: { name: 'Zweiter Atem', eff: { hpPct: 0.08 } } } },
+    { id: 'p7', title: 'Albtraum der Glocke', lvl: 34, text: 'Er ist zurück. Mit deinem Gesicht, mit deiner Krone. Und diesmal kennt er dich.',
+      obj: [{ bossd: 'c5', d: 1 }], rew: { gold: 6000, xp: 20000, rep: 0, perk: { name: 'Narbe der Glocke', eff: { dmgPct: 0.1, crit: 0.03 } } } },
+    { id: 'p8', title: 'Der letzte Schlag', lvl: 46, text: 'In der Hölle gibt es keine Glocke mehr. Nur dich. Und ihn.',
+      obj: [{ bossd: 'c5', d: 2 }], rew: { gold: 15000, xp: 50000, rep: 0, title: 'Der Unvergängliche', perk: { name: 'Unvergänglich', eff: { hpPct: 0.15, leech: 0.05 } } } },
   ],
 };
 
@@ -214,6 +221,8 @@ export const SERVICES = {
   ],
   ysolde: [
     { id: 'reroll', name: 'Amulett neu weihen', slot: 'amulet', cost: [{ schwanz: 2 }], gold: [40], perLvl: 8 },
+    // Glücksgriff: zufälliges, meist magisches Stück – Gold-Senke wie das Glücksspiel bei Gheed/Anya
+    { id: 'gamble', name: 'Glücksgriff', cost: [{}], gold: [60], perLvl: 45 },
   ],
 };
 
@@ -234,14 +243,31 @@ export const TUTORIAL = [
 export const TRACKS = [
   { id: 'safe', name: 'Leichte Spur', diff: 0.85, lvlAdd: -1, rew: 0.7, loot: 0.4, text: 'Sicher, aber mager.' },
   { id: 'norm', name: 'Spur', diff: 1.0, lvlAdd: 0, rew: 1.0, loot: 0.55, text: 'Der übliche Weg.' },
-  { id: 'blood', name: 'Blutige Spur', diff: 1.3, lvlAdd: 4, atLeastPlayer: 2, rew: 1.6, loot: 0.9, minRarity: 2, text: 'Gegner über deiner Stufe. Mehr Lohn, magische Beute – wenn du überlebst.' },
+  { id: 'blood', name: 'Blutige Spur', diff: 1.55, lvlAdd: 5, atLeastPlayer: 4, rew: 1.6, loot: 0.9, minRarity: 2, text: 'Gegner über deiner Stufe. Mehr Lohn, magische Beute – wenn du überlebst.' },
 ];
 // Tiefer gehen: Beute ist erst gesichert, wenn du heimkehrst (Vorbild: Schatz zählt erst im Hafen)
 // Jede Tiefe kostet die Glut des Ortes, Gegner +2 Stufen und +12 %, Lohn +25 %. Gold, Erfahrung und Beute erst daheim.
-export const DELVE = { max: 5, lvlPer: 2, diffPer: 0.12, rewPer: 0.25 };
+export const DELVE = { max: 5, lvlPer: 3, diffPer: 0.15, rewPer: 0.3 };
+
+// --- Steckbriefe: täglich 3 Aufträge (Endspiel, wiederholbar) ---
+export const BOUNTIES = [
+  { id: 'kill', n: 5, text: (t) => `Töte ${t}` },
+  { id: 'blood', n: 2, text: () => 'Siege auf blutiger Spur' },
+  { id: 'deep', n: 1, text: () => 'Erreiche Tiefe 2 und kehre heim' },
+  { id: 'crypt', n: 3, text: () => 'Siege in den Krypten' },
+  { id: 'arena', n: 2, text: () => 'Siege in der Grube' },
+];
 
 export const CFG = {
-  maxGlut: 100, glutRegenMin: 6,      // 1 Glut pro x Minuten (Echtzeit)
+  maxGlut: 120, glutRegenMin: 4,      // 1 Glut pro x Minuten (Echtzeit)
+  // --- Kurven (nach Bot-Review: Anfang strecken, Zahlen flach halten) ---
+  xpBase: 90, xpExp: 1.75,            // EP für nächste Stufe = xpBase * Stufe^xpExp
+  hpBase: 3, hpPerLvl: 0.25,          // Leben = Kon × Klassenfaktor × (hpBase + Stufe × hpPerLvl)  (Spieler und Monster)
+  mainDiv: 20,                        // Schaden × (1 + Hauptattribut / mainDiv)
+  affixBase: 1, affixPerLvl: 0.5,     // Affix-Wert = per × (affixBase + iLvl × affixPerLvl)
+  rareMinLvl: 4, legendaryMinLvl: 10, // darunter keine/kaum seltene bzw. legendäre Beute
+  bossHp: 2.2, bossDiff: 1.35,
+  rushPerLvl: 3,                      // Eilen: 1 Gold je 20 s Restzeit × (1 + Stufe / rushPerLvl)
   attrPerLevel: 5, startPoints: 5,       // Attributpunkte pro Stufenaufstieg
   respecPerLvl: 30,                        // Läuterung: Gold je Stufe (erste gratis)
   cryptCdSec: 180, arenaCdSec: 300, arenaGlut: 4,                         // Pause nach jedem Krypta-Kampf (Prototyp)

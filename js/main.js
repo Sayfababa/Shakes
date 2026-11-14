@@ -15,6 +15,7 @@ function render() {
     fight: () => UI.viewFight(F), trips: UI.viewTrips, stats: UI.viewStats, talents: UI.viewTalents, crypt: UI.viewCrypts,
     traders: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewTrader(trader),
     trippick: () => UI.viewTripPick(tripLoc),
+    bounties: UI.viewBounties,
     npc: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewNpc(npc),
     arena: () => UI.viewArena(rival ||= Game.makeRival()), hero: UI.viewHero,
   };
@@ -120,7 +121,8 @@ const actions = {
   bank: () => { const h = Game.bank(); view = 'trips'; F = null; clearInterval(fightTimer);
     if (h?.up) G.journal(`Stufe ${G.S.lvl} erreicht.`); if (h) G.journal(`Heimgekehrt mit ${h.gold} Gold${h.items.length ? ` und ${h.items.length} Fundstück${h.items.length > 1 ? 'en' : ''}` : ''}.`); render(); },
   delve: () => showFight(Game.delve(), 'trips'),
-  rush: () => { const S = G.S; if (S.gold >= 1) { S.gold -= 1; S.active.end = Date.now(); } render(); },
+  rush: () => { const S = G.S, c = G.rushCost(); if (S.active && S.gold >= c) { S.gold -= c; S.active.end = Date.now(); } render(); },
+  claim: d => { const r = G.claimBounty(+d.i); if (r) G.journal(`Steckbrief erfüllt: ${r.gold} Gold, ${r.xp} EP.`); render(); },
   resolve: () => showFight(Game.resolveTrip(), 'trips'),
   crypt: d => showFight(Game.cryptFight(d.id), 'crypt'),
   rival: () => { rival = Game.makeRival(); render(); },

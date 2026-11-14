@@ -1,5 +1,5 @@
 // Händler-Questketten. DOM-frei. Fortschritt zählt nur, solange die Quest aktiv ist.
-import { QUESTS, TRADERS, MATS, LOCATIONS, CRYPTS, SLOTS, RARITIES, CLASSES, GIVERS, NPCS } from './data.js';
+import { QUESTS, TRADERS, MATS, LOCATIONS, CRYPTS, SLOTS, RARITIES, CLASSES, GIVERS, NPCS, DIFFICULTIES } from './data.js';
 import { S, setQuestMatCheck, loyalty, removeFromBag, addToBag, gainXp, cryptFloor, journal } from './state.js';
 const giverName = id => (TRADERS[id] || NPCS[id]).name;
 import { makeItem } from './loot.js';
@@ -38,6 +38,7 @@ export function objectives(tid) {
     // Boss zählt auch, wenn er schon vor der Quest besiegt wurde (sonst wäre die Quest unlösbar – Krypten bleiben geräumt)
     else if (o.boss) { const c = CRYPTS.find(c => c.id === o.boss); label = `Bezwinge: ${c.boss.name}`; cur = (pr[i] || S.trophies.some(t => t.key.startsWith(c.id + ':'))) ? 1 : 0; }
     else if (o.arena) { label = 'Siege in der Grube'; cur = pr[i] || 0; }
+    else if (o.bossd) { const c = CRYPTS.find(c => c.id === o.bossd); label = `Bezwinge: ${c.boss.name} (${DIFFICULTIES[o.d].name})`; cur = S.trophies.some(t => t.key === `${c.id}:${o.d}`) ? 1 : 0; n = 1; }
     else if (o.honor) { label = 'Ehre in der Grube'; cur = Math.min(o.honor, S.honor); }
     else if (o.clear) { const c = CRYPTS.find(c => c.id === o.clear); label = `Räume: ${c.name}`; cur = cryptFloor(c) >= 5 ? 1 : 0; n = 1; }
     else if (o.omen) { label = 'Erfülle Omen des Propheten'; cur = pr[i] || 0; }
@@ -65,6 +66,7 @@ export function complete(tid, choiceId) {
   if (r.perk) perks.push(r.perk);
   let choice = null;
   if (q.choice) { choice = q.choice.find(c => c.id === choiceId); perks.push(choice.perk); S.title = choice.title; }
+  if (r.title) S.title = r.title;
   for (const p of perks) S.trophies.push({ key: 'perk:' + p.name, name: p.name, diff: 'Segen', eff: p.eff });
   st.q++; st.prog = []; st.shop = [];
   journal(`${giverName(tid)}: „${q.title}“ erledigt.`);

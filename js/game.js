@@ -54,7 +54,7 @@ export function resolveTrip() {
   const A = G.stats(), r = fight(A, m), win = r.winner === 'a', rew = newRew();
   S.active = null;
   if (!win) { S.deaths++; G.journal(`${m.name} in ${l.name} hat mich zerrissen.`); return { A, B: m, r, win, rew, place: l }; }
-  S.wins++; Q.event({ type: 'kill', mob: a.mob, loc: l.id });
+  S.wins++; Q.event({ type: 'kill', mob: a.mob, loc: l.id }); G.bountyEvent({ type: 'kill', mob: a.mob }); G.bountyEvent({ type: 'trip', track: tr.id });
   S.haul = { loc: l.id, track: tr.id, depth: 0, gold: 0, mats: {}, items: [] };
   tripLoot(l, m, tr, 0, od, rew);
   if (od && G.fulfillOmen()) { Q.event({ type: 'omen' }); rew.omen = true; G.journal(`Das Omen über ${l.name} hat sich erfüllt.`); }
@@ -85,7 +85,7 @@ export function delve() {
   G.journal(`Tiefe ${h.depth} in ${l.name} überlebt.`);
   return { A, B: m, r, win, rew, place: l, haul: h };
 }
-export const bank = () => G.bankHaul();
+export const bank = () => { const d = G.S.haul?.depth || 0, h = G.bankHaul(); if (h) G.bountyEvent({ type: 'bank', depth: d }); return h; };
 
 // --- Krypta-Kampf ---
 export function cryptFight(id) {
@@ -95,10 +95,10 @@ export function cryptFight(id) {
   S.crypt.cd = now() + CFG.cryptCdSec * 1000;
   const A = G.stats(), r = fight(A, m), win = r.winner === 'a', rew = newRew();
   if (!win) { S.deaths++; G.journal(`${m.name} in ${c.name} hat mich niedergestreckt.`); return { A, B: m, r, win, rew, crypt: c }; }
-  S.wins++; Q.event({ type: 'kill', mob: m.name }); if (boss) Q.event({ type: 'boss', crypt: c.id });
+  S.wins++; Q.event({ type: 'kill', mob: m.name }); if (boss) Q.event({ type: 'boss', crypt: c.id }); G.bountyEvent({ type: 'crypt' }); G.bountyEvent({ type: 'kill', mob: m.name });
   Object.assign(rew, G.cryptWin(c));
   pay(rew, Math.round((10 + m.lvl * 5) * (boss ? 4 : 1)), Math.round((25 + m.lvl * 14) * (boss ? 3 : 1.2)));
-  dropMat(m, rew); dropItem(m.lvl, boss ? 1 : 0.35, boss ? 3 : 2, rew);
+  dropMat(m, rew); dropItem(m.lvl, boss ? 1 : 0.35, boss ? (['c1', 'c2'].includes(c.id) ? 2 : 3) : 1, rew);
   G.journal(boss ? `${m.name} ist gefallen. ${c.name} schweigt.` : `${m.name} in ${c.name} erschlagen.`);
   return { A, B: m, r, win, rew, crypt: c };
 }
@@ -108,7 +108,7 @@ export function arenaFight(R) {
   const S = G.S; if (now() < S.arenaTs || !R || S.glut < CFG.arenaGlut) return null;
   S.arenaTs = now() + CFG.arenaCdSec * 1000; S.glut -= CFG.arenaGlut;
   const A = G.stats(), B = G.stats(R), r = fight(A, B), win = r.winner === 'a', rew = newRew();
-  if (win) { S.honor += 10; S.wins++; pay(rew, R.lvl * 3, 0); rew.honor = 10; Q.event({ type: 'arena' }); G.journal(`${R.name} in der Grube besiegt.`); }
+  if (win) { S.honor += 10; S.wins++; pay(rew, R.lvl * 3, 0); rew.honor = 10; Q.event({ type: 'arena' }); G.bountyEvent({ type: 'arena' }); G.journal(`${R.name} in der Grube besiegt.`); }
   else { S.honor = Math.max(0, S.honor - 5); rew.honor = -5; S.deaths++; }
   return { A, B, r, win, rew };
 }

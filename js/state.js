@@ -1,9 +1,9 @@
-import { TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS } from './data.js';
+import { BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS } from './data.js';
 import { makeItem } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 export let S = null; // aktueller Spielstand
 
 export const now = () => Date.now();
@@ -34,13 +34,14 @@ function migrate(d) {
   }
   if (d.v === 4) { d.haul = null; d.v = 5;
   }
+  if (d.v === 5) { d.bounty = null; d.v = 6; }
   return d.v === SAVE_VERSION ? d : null;
 }
 
 export function newChar(name, cls) {
   const c = CLASSES[cls];
   S = { v: SAVE_VERSION, name, cls, lvl: 1, xp: 0, gold: 40, attrs: baseAttrs(cls), points: CFG.startPoints, tal: {}, respecs: 0,
-    crypt: { diff: 0, prog: {}, cd: 0 }, trophies: [], traders: freshTraders(), mats: {}, omen: null, omens: 0, shards: [], tut: 0, title: null, haul: null,
+    crypt: { diff: 0, prog: {}, cd: 0 }, trophies: [], traders: freshTraders(), mats: {}, omen: null, omens: 0, shards: [], tut: 0, title: null, haul: null, bounty: null,
     equip: {}, bag: [], glut: CFG.maxGlut, glutTs: now(), active: null,
     journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0 };
   const wb = BASES.find(b => b.kind === c.weapon);
@@ -50,7 +51,7 @@ export function newChar(name, cls) {
   return S;
 }
 
-export const xpNeed = l => Math.round(80 * l ** 1.6);
+export const xpNeed = l => Math.round(CFG.xpBase * l ** CFG.xpExp);
 
 // --- Fortschritt: Punkte, Talente, Rang, Läuterung ---
 export const rank = (lvl = S.lvl) => { const r = [...RANKS].reverse().find(r => lvl >= r.lvl); return S?.title ? { ...r, title: S.title } : r; };
@@ -93,7 +94,7 @@ export function stats(p = S) {
   return { ...e, ...st, name: p.name, cls: p.cls, lvl: p.lvl, main: c.main,
     armor: Math.round(st.armor * (1 + (e.armorPct || 0))),
     dmg: [Math.round((base[0] + st.dmgBonus) * dm), Math.round((base[1] + st.dmgBonus) * dm)],
-    hp: Math.round(st.con * c.hp * (2 + p.lvl * 0.6) * (1 + (e.hpPct || 0))) };
+    hp: Math.round(st.con * c.hp * (CFG.hpBase + p.lvl * CFG.hpPerLvl) * (1 + (e.hpPct || 0))) };
 }
 
 // Monster skaliert auf Stufe; diff 0.8 .. 1.3
@@ -103,7 +104,7 @@ export function makeMonster(lvl, diff = 1, m = pick(MONSTERS)) {
   const mo = { name: m.name, glyph: m.glyph, mat: m.mat, lvl, main, str: a(), dex: a(), int: a(), con: a(), lck: a() * 0.5, armor: Math.round(lvl * 5 * diff) };
   mo[main] = a('main');
   mo.dmg = [Math.round((2 + lvl * 1.7) * diff), Math.round((5 + lvl * 3) * diff)];
-  mo.hp = Math.round(mo.con * 3.6 * (2 + lvl * 0.6));
+  mo.hp = Math.round(mo.con * 3.6 * (CFG.hpBase + lvl * CFG.hpPerLvl));
   return mo;
 }
 
@@ -144,7 +145,7 @@ export function loyalty(id) {
 export function rollShop(id) {
   const t = TRADERS[id], L = loyalty(id);
   S.traders[id].shop = Array.from({ length: CFG.shopSize }, () => {
-    const it = makeItem(S.lvl + L, { luck: S.attrs.lck + L * 25, slots: t.slots, cls: CLASSES[S.cls], minRarity: Math.min(3, L + (L ? 1 : 0)) });
+    const it = makeItem(S.lvl + L, { luck: S.attrs.lck + L * 25, slots: t.slots, cls: CLASSES[S.cls], minRarity: Math.min(3, L) });
     it.price = Math.round(it.value * (4.5 - L * 0.4)); return it;
   });
   S.traders[id].ts = now();
@@ -177,9 +178,11 @@ export function addToBag(it) { const p = findSpot(it.w || 1, it.h || 1); if (!p)
 export const removeFromBag = id => { const i = S.bag.findIndex(x => x.id === id); return i < 0 ? null : S.bag.splice(i, 1)[0]; };
 // Neu sortieren: große Items zuerst
 export function sortBag() {
+  const before = S.bag.map(it => [it, it.x, it.y]);
   const items = S.bag.splice(0).sort((a, b) => b.w * b.h - a.w * a.h || b.h - a.h);
   const rest = []; for (const it of items) if (!addToBag(it)) rest.push(it);
-  return rest;
+  if (rest.length) { S.bag = before.map(([it, x, y]) => Object.assign(it, { x, y })); return false; }   // passt neu sortiert nicht: alte Ordnung behalten, nichts verlieren
+  return true;
 }
 
 export function equip(id) {
@@ -202,9 +205,9 @@ export const cryptOpen = c => S.lvl >= c.lvl + DIFFICULTIES[S.crypt.diff].lvlAdd
 export function cryptEnemy(c) {
   const f = cryptFloor(c), lvl = cryptLvl(c, f), boss = f === 4, d = DIFFICULTIES[S.crypt.diff];
   const m = boss ? c.boss : MONSTERS.find(x => x.name === c.floors[f]);
-  const mo = makeMonster(lvl, (boss ? 1.25 : 1 + f * 0.05) * d.mult, m);
+  const mo = makeMonster(lvl, (boss ? CFG.bossDiff : 1 + f * 0.05) * d.mult, m);
   if (boss) {
-    mo.hp = Math.round(mo.hp * 1.8); mo.boss = true; mo.rage = 0.2; mo.crit = 0.05;
+    mo.hp = Math.round(mo.hp * CFG.bossHp); mo.boss = true; mo.rage = 0.2; mo.crit = 0.05;
     // Jeder Boss hat ein eigenes Muster statt nur größerer Zahlen
     const { mirror, ...mech } = c.boss.mech || {};
     Object.assign(mo, mech);
@@ -243,6 +246,39 @@ export function fulfillOmen() { if (!S.omen.done) { S.omen.done = true; S.omens+
 let questNeedsMat = () => false;
 export const setQuestMatCheck = f => { questNeedsMat = f; };
 
+// --- Eilen: kostet mit Restzeit und Stufe ---
+export const rushCost = () => !S.active ? 0 : Math.max(1, Math.ceil(Math.max(0, S.active.end - now()) / 20000) * Math.ceil(1 + S.lvl / CFG.rushPerLvl));
+
+// --- Steckbriefe (täglich 3, deterministisch aus dem Datum) ---
+export function bounties() {
+  const day = dayNo();
+  if (!S.bounty || S.bounty.day !== day) {
+    const open = LOCATIONS.filter(locOpen), mobs = [...new Set(open.flatMap(l => l.mobs))];
+    let h = Math.imul(day, 2246822519) >>> 0; const next = m => { h = (Math.imul(h, 1103515245) + 12345) >>> 0; return (h >>> 8) % m; };
+    const types = BOUNTIES.filter(b => b.id !== 'arena' || S.lvl >= 3).slice();
+    const pickT = []; while (pickT.length < 3 && types.length) pickT.push(types.splice(next(types.length), 1)[0]);   // ohne Wiederholung, endet sicher
+    S.bounty = { day, list: pickT.map(t => ({ id: t.id, target: t.id === 'kill' ? mobs[next(mobs.length)] : null, n: t.n, prog: 0, claimed: false })) };
+  }
+  return S.bounty.list;
+}
+export function bountyEvent(ev) {
+  if (!S.bounty) return;
+  for (const b of bounties()) {
+    if (b.claimed || b.prog >= b.n) continue;
+    const hit = (b.id === 'kill' && ev.type === 'kill' && ev.mob === b.target) || (b.id === 'blood' && ev.type === 'trip' && ev.track === 'blood')
+      || (b.id === 'deep' && ev.type === 'bank' && ev.depth >= 2) || (b.id === 'crypt' && ev.type === 'crypt') || (b.id === 'arena' && ev.type === 'arena');
+    if (hit) b.prog++;
+  }
+}
+export const bountyReward = () => ({ gold: 40 + S.lvl * 20, xp: Math.round(xpNeed(S.lvl) * 0.12) });
+export function claimBounty(i) {
+  const b = bounties()[i]; if (!b || b.claimed || b.prog < b.n) return null;
+  b.claimed = true; const r = bountyReward(); S.gold += r.gold; const up = gainXp(r.xp);
+  const mat = pick(Object.keys(MATS)); addMat(mat, 2);
+  const t = pick(Object.keys(TRADERS)); S.traders[t].rep += 25;
+  return { ...r, up, mat, trader: t };
+}
+
 // --- Dienste (Schärfen, Verstärken, Bestellen, Neu weihen) ---
 const costOf = (sv, step) => sv.cost[Math.min(step, sv.cost.length - 1)];
 const goldOf = (sv, step) => (sv.gold[Math.min(step, sv.gold.length - 1)] || 0) + (sv.perLvl || 0) * S.lvl;
@@ -267,6 +303,11 @@ export function doService(tid, svId) {
   if (sv.id === 'reroll') {
     const fresh = makeItem(it.lvl, { slot: it.slot, minRarity: ['broken', 'normal', 'magic', 'rare', 'legendary'].indexOf(it.rarity), luck: S.attrs.lck });
     it.mods = fresh.mods; return it;
+  }
+  if (sv.id === 'gamble') {
+    const g = makeItem(S.lvl, { luck: S.attrs.lck, minRarity: 2 });   // meist magisch, selten mehr – wie das Glücksspiel in D2
+    if (!addToBag(g)) { S.gold += goldOf(sv, 0); return null; }
+    return g;
   }
   if (sv.id === 'order') {
     const w = makeItem(S.lvl + 1, { slot: 'weapon', cls: { weapon: CLASSES[S.cls].weapon }, minRarity: 2, luck: 40 });

@@ -46,3 +46,38 @@ Aber die Kurve ist falsch geformt: **zu viel am ersten Tag, zu wenig nach Tag 13
 4. **Risiko spürbar machen**: blutige Spur/Tiefe mit echten Verlusten (Zahlen anpassen, bis sie „mäßig“ statt „gering“ zeigen).
 5. **Endspiel**: tägliche Kopfgelder, Albtraum-Questkette, neue Bosse – damit nach Tag 13 etwas zu tun bleibt.
 6. **Zahlen zähmen**: Leben/Schaden-Formeln flacher (linear statt quadratisch), Affix-Werte begrenzen.
+
+
+---
+
+# Runde 2: nach den Änderungen (gleiche Bots, gleiche 30 Tage)
+
+## Was geändert wurde
+| Problem | Änderung |
+|---|---|
+| Anfang zu großzügig | Legendär erst ab Gegenstandsstufe 10, Selten ab 4; Boss-Beute der ersten Krypten nur magisch; Treue-Schwellen 200/700/1600 statt 120/400/1000; flachere Stufenkurve (90·Stufe^1,75) |
+| Zahlen explodieren | Leben wächst linear (Kon × Klasse × (3 + Stufe·0,25)), Schaden × (1 + Haupt/20) statt /10, Affix-Werte halbiert |
+| Gold wertlos | **Glücksgriff** bei Ysolde (wie D2-Glücksspiel, 60 + 45×Stufe Gold), **Eilen** kostet mit Restzeit × Stufe |
+| Risiko ohne Folgen | Blutige Spur: Gegner ≥ deine Stufe + 4, ×1,55; jede Tiefe +3 Stufen, +15 % |
+| Glut zu knapp | Vorrat 120 statt 100, +1 Glut alle 4 statt 6 Minuten (+50 % pro Tag) |
+| Leere nach der Story | **Steckbriefe**: täglich 3 neue Aufträge mit Lohn; Prophet-Kette geht weiter (Albtraum, Hölle, Titel „Der Unvergängliche“) |
+| (gefunden) | „Ordnen“ konnte Items verlieren · Steckbriefe konnten das Spiel einfrieren (beide behoben, mit Tests) |
+
+## Vorher → nachher
+| | Optimist | Realist | Pessimist |
+|---|---|---|---|
+| Story-Finale | Tag 13 → **Tag 16** | Tag 13 → **Tag 17** | Tag 30 → **nach Tag 30** (Stufe 21) |
+| Erstes legendäres Item | Tag 1–2 → **Tag 2+** | Tag 1 → **Tag 2+** | Tag 1 → **Tag 5** |
+| Niederlagen | ~8 → **21** (davon 18 in der Tiefe, 4.764 Gold verloren) | 2 → **7** | 2 → 0 |
+| Gold am Ende | 100.000 → **9.500** | 250.000 → **22.000** | 15.000 → 30.000 |
+| Gold ausgegeben | 300.000 → 600.000 (Händler, Glücksgriff, Eilen) | 140.000 → 466.000 | 74.000 → 56.000 |
+| Leben auf Stufe ~34 | 113.000 → **22.500** | 123.000 → **24.000** | 41.000 → 6.600 (Stufe 21) |
+| Sitzungen ohne Fortschritt | 37 → **32** /120 | 32 → **22** /90 | 16 → 19 /60 |
+| Steckbriefe erfüllt | – | – | 55 / 54 / 13 |
+
+## Neue gemeinsame Meinung
+- **Einig:** Risiko hat jetzt Gewicht. Der Optimist verliert spürbar Beute in der Tiefe, der Realist gelegentlich, der Pessimist spielt sicher, aber deutlich langsamer (Stufe 21 statt 33). Das ist eine echte Entscheidung.
+- **Einig:** Gold ist wieder etwas wert. Niemand sitzt mehr auf Hunderttausenden. Glücksgriff und Eilen schlucken den Überschuss.
+- **Einig:** Nach der Geschichte gibt es jeden Tag etwas zu tun, nämlich Steckbriefe und die Albtraum-Kette.
+- **Uneinig:** Der Pessimist schafft die Geschichte in 30 Tagen nicht mehr. Für vorsichtige Spieler mit wenig Zeit ist das Spiel jetzt lang. Die beiden anderen finden das Tempo angemessen.
+- **Bleibt:** In langen Sitzungen wartet man weiter viel auf Glut. Das gehört zum Spielprinzip (kurze Sitzungen über den Tag verteilt), ist aber spürbar seltener leer.

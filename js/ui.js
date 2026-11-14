@@ -1,6 +1,6 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
-import { MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE } from './data.js';
-import { S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState } from './state.js';
+import { MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
+import { S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
 import { tripChance, cryptChance, threatLabel, canDelve, delveChance } from './game.js';
@@ -65,10 +65,10 @@ export function hud(tut = '') {
 }
 export function navBar(view) {
   const tabs = [['hero', 'Held'], ['trips', 'Streifzug'], ['traders', 'Händler'], ['crypt', 'Krypta'], ['arena', 'Grube']];
-  const map = { stats: 'hero', talents: 'hero', npc: 'trips' };
+  const map = { stats: 'hero', talents: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips' };
   // Nur echte Handlungsaufforderungen markieren – ein Dauer-Punkt auf jedem Tab sagt nichts mehr
   const badge = { hero: S.points + talentPoints() > 0, traders: Object.keys(TRADERS).some(canComplete), arena: canComplete('vargo'),
-    crypt: canComplete('ilse'), trips: !!S.haul || canComplete('prophet') || (!!S.active && Date.now() >= S.active.end) };
+    crypt: canComplete('ilse'), trips: !!S.haul || canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) || (!!S.active && Date.now() >= S.active.end) };
   const on = map[view] || view;
   return `<nav class="tabs">${tabs.map(([k, n]) => `<a class="${on === k ? 'on' : ''} ${badge[k] ? 'badge' : ''}" data-action="go" data-v="${k}">${n}</a>`).join('')}</nav>`;
 }
@@ -144,13 +144,15 @@ export function viewTrips() {
     const a = S.active, l = LOCATIONS.find(x => x.id === a.loc), left = Math.ceil((a.end - Date.now()) / 1000);
     return `<div class="col"><section class="panel waiting"><h2>${l.name}</h2><p class="lore">${l.text}</p>
       <div class="waitmob">${monsterArt(MONSTERS.find(m => m.name === a.mob).glyph)}</div><p class="dim">Du folgst einer Spur: <b>${a.mob}</b>.</p>
-      ${left > 0 ? `<div class="big" data-until="${a.end}">${fmtT(left)}</div><button data-action="rush" ${S.gold < 1 ? 'disabled' : ''}>Eilen · 1 Gold</button>`
+      ${left > 0 ? `<div class="big" data-until="${a.end}">${fmtT(left)}</div><button data-action="rush" ${S.gold < rushCost() ? 'disabled' : ''}>Eilen · ${rushCost()} Gold</button>`
                  : `<button class="red big-btn" data-action="resolve">Stellen</button>`}</section>
       ${say('prophet')}<section class="panel grow journal"><h2>Tagebuch</h2>${S.journal.slice(0, 6).map(j => `<div>${j.t}</div>`).join('')}</section></div>`;
   }
   const o = omen();
   const openLocs = LOCATIONS.filter(locOpen), nextLoc = LOCATIONS.find(l => !locOpen(l)), later = LOCATIONS.filter(l => !locOpen(l) && l !== nextLoc);
-  return `<div class="col">${S.haul ? haulPanel() : say('prophet', omenLine())}<div class="trips">${[...openLocs, ...(nextLoc ? [nextLoc] : [])].map(l => { const open = locOpen(l), r = tripReward(l, 1, (l.sec[0] + l.sec[1]) / 2);
+  const bl = bounties(), bDone = bl.filter(b => b.claimed).length, bReady = bl.some(b => !b.claimed && b.prog >= b.n);
+  const bbar = `<div class="bountybar ${bReady ? 'ready' : ''}" data-action="go" data-v="bounties"><span>Steckbriefe heute</span><b>${bDone}/3</b>${bReady ? '<i>Lohn abholen</i>' : ''}</div>`;
+  return `<div class="col">${S.haul ? haulPanel() : say('prophet', omenLine())}${bbar}<div class="trips">${[...openLocs, ...(nextLoc ? [nextLoc] : [])].map(l => { const open = locOpen(l), r = tripReward(l, 1, (l.sec[0] + l.sec[1]) / 2);
     const isOmen = open && S.lvl >= 3 && o.loc === l.id && !o.done;
     const wanted = new Set(Object.keys(TRADERS).filter(available).flatMap(t => current(t).obj.filter(o => o.at === l.id || l.mobs.includes(o.kill)).map(() => t)));
     return `<section class="panel trip ${open ? '' : 'locked'} ${isOmen ? 'omen' : ''} ${S.glut < l.glut ? 'tired' : ''}" ${open ? `data-action="trip" data-id="${l.id}"` : ''}>
@@ -174,6 +176,18 @@ function haulPanel() {
   const h = S.haul, l = LOCATIONS.find(x => x.id === h.loc);
   return `<section class="panel haul"><h2>Beute <span class="h2r">ungesichert · Tiefe ${h.depth}/${DELVE.max}</span></h2>
     <p class="small">${haulText(h)}</p><p class="dim small hint">Erst daheim gehört sie dir. Fällst du in der Tiefe, ist alles verloren.</p>${haulActions()}</section>`;
+}
+
+// Steckbriefe (täglich)
+export function viewBounties() {
+  const r = bountyReward();
+  return `<div class="col"><section class="panel"><h2>Steckbriefe <span class="h2r">neu jeden Tag</span><button class="tiny" data-action="go" data-v="trips">Zurück</button></h2>
+    <p class="lore small">Am Friedhofstor hängen frische Zettel. Wer sie erfüllt, wird bezahlt – und die Händler hören davon.</p></section>
+    ${bounties().map((b, i) => { const def = BOUNTIES.find(x => x.id === b.id), done = b.prog >= b.n;
+      return `<div class="note bounty ${b.claimed ? 'sealed' : ''}"><h4>${def.text(b.target)}</h4>
+        <ul><li class="${done ? 'ok' : ''}">Fortschritt <b>${Math.min(b.prog, b.n)}/${b.n}</b></li></ul>
+        <div class="rew">Lohn: ${r.gold} Gold · ${r.xp} EP · 2 Materialien · Ruf</div>
+        ${b.claimed ? '<p class="small">Erledigt.</p>' : done ? `<button class="red" data-action="claim" data-i="${i}">Lohn abholen</button>` : ''}</div>`; }).join('')}</div>`;
 }
 
 // Spur wählen

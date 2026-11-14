@@ -14,11 +14,11 @@ const Game = await import('../js/game.js');
 const MIN = 60000, HOUR = 60 * MIN, DAY = 24 * HOUR;
 const PERSONAS = [
   { id: 'optimist', name: 'Der Optimist', cls: 'assassin', sessions: [[8, 30], [13, 40], [19, 60], [22, 30]],
-    track: c => c.blood >= 0.55 ? 'blood' : 'norm', delveMin: 0.55, cryptMin: 0.35, buyFactor: 1.05, upgrade: 1.05, rush: true, arena: true, finale: 'crown' },
+    track: c => c.blood >= 0.55 ? 'blood' : 'norm', delveMin: 0.55, cryptMin: 0.35, buyFactor: 1.05, upgrade: 1.05, rush: true, arena: true, finale: 'crown', gamble: 6 },
   { id: 'realist', name: 'Der Realist', cls: 'paladin', sessions: [[7, 20], [18, 60], [21, 30]],
-    track: c => c.blood >= 0.8 ? 'blood' : c.norm >= 0.7 ? 'norm' : 'safe', delveMin: 0.8, cryptMin: 0.6, buyFactor: 1.5, upgrade: 1.15, rush: false, arena: true, finale: 'break' },
+    track: c => c.blood >= 0.8 ? 'blood' : c.norm >= 0.7 ? 'norm' : 'safe', delveMin: 0.8, cryptMin: 0.6, buyFactor: 1.5, upgrade: 1.15, rush: false, arena: true, finale: 'break', gamble: 15 },
   { id: 'pessimist', name: 'Der Pessimist', cls: 'witch', sessions: [[12, 25], [20, 45]],
-    track: c => c.norm >= 0.9 ? 'norm' : 'safe', delveMin: 1.1, cryptMin: 0.85, buyFactor: 3, upgrade: 1.3, rush: false, arena: false, finale: 'break' },
+    track: c => c.norm >= 0.9 ? 'norm' : 'safe', delveMin: 1.1, cryptMin: 0.85, buyFactor: 3, upgrade: 1.3, rush: false, arena: false, finale: 'break', gamble: 0 },
 ];
 
 const score = it => !it ? 0 : (it.dmg ? (it.dmg[0] + it.dmg[1]) * 1.5 : 0) + (it.armor || 0) + Object.values(it.mods).reduce((a, b) => a + b, 0) * 1.5;
@@ -30,7 +30,7 @@ function play(P, days) {
   const S = G.S, c = D.CLASSES[S.cls];
   const st = { sessions: 0, emptySessions: 0, idleMin: 0, playMin: 0, levels: [], quests: [], loyalty: 0, highlights: [], lows: [],
     trips: 0, tripLoss: 0, delves: 0, delveLoss: 0, lostGold: 0, crypt: 0, cryptLoss: 0, arena: 0, arenaLoss: 0, bought: 0, spent: 0,
-    maxGold: 0, bestRar: 1, tracks: { safe: 0, norm: 0, blood: 0 }, rushes: 0, daysNoQuest: 0, finaleDay: null, perDay: [], services: 0 };
+    maxGold: 0, bestRar: 1, rushGold: 0, gambles: 0, gambleGold: 0, bounties: 0, tracks: { safe: 0, norm: 0, blood: 0 }, rushes: 0, daysNoQuest: 0, finaleDay: null, perDay: [], services: 0 };
   let lastQuestDay = 0, rival = null;
   const wrongWeapon = it => it.slot === 'weapon' && it.kind !== c.weapon;
   const slotOf = it => it.slot === 'ring' ? (!S.equip.ring1 ? 'ring1' : !S.equip.ring2 ? 'ring2' : (score(S.equip.ring1) < score(S.equip.ring2) ? 'ring1' : 'ring2')) : it.slot;
@@ -58,8 +58,11 @@ function play(P, days) {
       if (r) { progress = true; lastQuestDay = day(); st.quests.push(`${t}:${r.q.id}`); if (r.loyaltyUp) { st.loyalty++; note(st.highlights, `Treue bei ${D.TRADERS[t].name} steigt`); }
         if (r.choice) { st.finaleDay = day(); note(st.highlights, `Finale: ${r.choice.label}`); } }
     }
+    G.bounties().forEach((b, i) => { if (G.claimBounty(i)) { st.bounties++; progress = true; } });
     for (const [t, list] of Object.entries(D.SERVICES)) for (const sv of list) {
-      const ss = G.serviceState(sv); if (sv.id !== 'order' && ss.can && !ss.questMat && S.gold > 150 * P.buyFactor) { G.doService(t, sv.id); st.services++; progress = true; }
+      const ss = G.serviceState(sv);
+      if (sv.id === 'gamble') { const price = sv.gold[0] + sv.perLvl * S.lvl; if (P.gamble && S.gold > price * P.gamble && S.bag.length < 8) { S.gold -= 0; const g0 = S.gold; if (G.doService(t, 'gamble')) { st.gambles++; st.gambleGold += g0 - S.gold; } } continue; }
+      if (sv.id !== 'order' && ss.can && !ss.questMat && S.gold > 150 * P.buyFactor) { G.doService(t, sv.id); st.services++; progress = true; }
     }
     for (const t of Object.keys(D.TRADERS)) for (const it of [...G.shopFor(t)]) {
       if (S.gold >= it.price * P.buyFactor && !wrongWeapon(it) && score(it) > score(S.equip[slotOf(it)]) * P.upgrade) {
@@ -86,7 +89,7 @@ function play(P, days) {
       clock = start; const end = start + mins * MIN; st.sessions++; progress = false; const lvlS = S.lvl;
       while (clock < end) {
         G.tickGlut(); manage(); let acted = false;
-        if (S.active && clock < S.active.end && P.rush && S.gold > 50) { S.gold -= 1; S.active.end = clock; st.rushes++; }
+        if (S.active && clock < S.active.end && P.rush && S.gold > G.rushCost() * 4) { st.rushGold += G.rushCost(); S.gold -= G.rushCost(); S.active.end = clock; st.rushes++; }
         if (S.active && clock >= S.active.end) {
           const r = Game.resolveTrip(); st.trips++; acted = true;
           if (!r.win) { st.tripLoss++; note(st.lows, `Streifzug verloren gegen ${r.B.name}`); }
@@ -140,6 +143,8 @@ for (const { P, st, S, openQuests, stats } of results) {
   console.log(`Spielzeit aktiv ${Math.round(st.playMin)} min, Leerlauf in Sitzungen ${Math.round(st.idleMin)} min, Sitzungen ohne Fortschritt ${st.emptySessions}/${st.sessions}, Tage ohne Quest ${st.daysNoQuest}/${days}`);
   console.log(`Streifzüge ${st.trips} (−${st.tripLoss}) Spuren ${JSON.stringify(st.tracks)} · Tiefe ${st.delves} (−${st.delveLoss}, verloren ${st.lostGold} Gold) · Krypta ${st.crypt} (−${st.cryptLoss}) · Grube ${st.arena} (−${st.arenaLoss}) · Eilen ${st.rushes}`);
   console.log(`Gekauft ${st.bought} für ${st.spent} Gold, Dienste ${st.services}, max. Gold ${st.maxGold}, Treue-Aufstiege ${st.loyalty}`);
+  console.log(`Eilen ${st.rushes}× für ${st.rushGold} Gold · Glücksgriff ${st.gambles}× für ${st.gambleGold} Gold · Steckbriefe ${st.bounties}`);
+  console.log('Höhepunkte je Tag:', [...Array(days)].map((_, i) => st.highlights.filter(h => h.startsWith(`T${i + 1}:`)).length).join(' '));
   console.log('Stufen pro Tag:', st.perDay.map(x => x.lvl).join(' '));
   console.log('Quests pro Tag:', st.perDay.map(x => x.quests).join(' '));
   console.log('Offene Quests:', openQuests.join(' '));
