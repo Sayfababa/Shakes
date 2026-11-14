@@ -64,7 +64,8 @@ const ART = {
 };
 
 // Gemalte Item-Bilder (assets/items/<art>.webp). Fehlt eins, wird das SVG gezeichnet.
-const PAINTED = new Set(['cap', 'helm', 'mask', 'leather', 'mail', 'plate', 'gloves', 'gauntlets', 'boots', 'greaves', 'sash', 'belt', 'buckler', 'tower', 'amulet', 'ring']);
+const PAINTED = new Set(['cap', 'helm', 'mask', 'leather', 'mail', 'plate', 'gloves', 'gauntlets', 'boots', 'greaves', 'sash', 'belt', 'buckler', 'tower', 'amulet', 'ring',
+  'hatchet', 'waraxe', 'sword', 'longsword', 'dagger', 'claw', 'bow', 'longbow', 'staff', 'runestaff', 'wand', 'scepter']);
 export function itemArt(it) {
   if (PAINTED.has(it.art)) return `<img class="iart" src="assets/items/${it.art}.webp" alt="" draggable="false">`;
   const w = (it.w || 1) * 20, h = (it.h || 1) * 20, f = ART[it.art] || ART.ring;
