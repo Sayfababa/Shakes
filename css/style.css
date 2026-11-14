@@ -227,3 +227,10 @@ input { background: #000; color: var(--text); border: 1px solid var(--edge); pad
 /* Gemalte Item-Bilder */
 img.iart { width: 100%; height: 100%; object-fit: contain; display: block; filter: drop-shadow(0 2px 2px #000); pointer-events: none; }
 .eslot .ghost img.iart { filter: grayscale(1) brightness(1.4); }
+
+/* Monster-Bilder in Streifzügen */
+.mobpics { display: flex; gap: 4px; margin: 3px 0; } .mobpics .portrait { width: calc(var(--u) * 1.6); border-width: 1px; }
+.waitmob .portrait { width: min(36%, 18vh); margin: 4px auto; }
+img.portrait.monster { object-fit: cover; }
+@media (max-height: 720px) { .trip:not(.locked) .lore { display: none; } }
+.trip { overflow: hidden; }

@@ -57,9 +57,9 @@ export const MATS = {
   blutstein: 'Blutstein', haar: 'Hexenhaar', asche: 'Höllenasche', leinen: 'Grableinen',
 };
 export const MONSTERS = [
-  { name: 'Verfaulter Ghul', glyph: 'ghoul', mat: 'zahn' }, { name: 'Gefallener', glyph: 'imp', mat: 'asche' },
-  { name: 'Skelettkrieger', glyph: 'skull', mat: 'staub' }, { name: 'Grabräuber', glyph: 'hood', mat: 'leinen' },
-  { name: 'Pestratte', glyph: 'rat', mat: 'schwanz' }, { name: 'Kultist der Glocke', glyph: 'hood', mat: 'siegel' },
+  { name: 'Verfaulter Ghul', glyph: 'ghul', mat: 'zahn' }, { name: 'Gefallener', glyph: 'fallen', mat: 'asche' },
+  { name: 'Skelettkrieger', glyph: 'skelett', mat: 'staub' }, { name: 'Grabräuber', glyph: 'grabraeuber', mat: 'leinen' },
+  { name: 'Pestratte', glyph: 'pestratte', mat: 'schwanz' }, { name: 'Kultist der Glocke', glyph: 'kultist', mat: 'siegel' },
   { name: 'Blutfürst', glyph: 'horn', mat: 'blutstein' }, { name: 'Sumpfhexe', glyph: 'hood', mat: 'haar' },
   { name: 'Knochenhund', glyph: 'skull', mat: 'staub' }, { name: 'Gehäuteter', glyph: 'ghoul', mat: 'blutstein' },
   { name: 'Höllenbrut', glyph: 'horn', mat: 'asche' }, { name: 'Wiedergänger', glyph: 'skull', mat: 'leinen' },
