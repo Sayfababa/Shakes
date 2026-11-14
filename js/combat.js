@@ -1,6 +1,7 @@
 // Reine Kampfsimulation, kein DOM.
 // Kämpfer: { name, cls?, str,dex,int,con,lck, armor, dmg:[a,b], hp, main, lvl,
-//            crit, evade, block, leech, bleed, rage, pen, regen, thorns, execute, first }  (Effekte optional, 0..1)
+//            crit, evade, block, leech, bleed, rage, pen, regen, thorns, execute, first,
+//            poison (Gift je Treffer, stapelt), toll (jeder 3. Treffer betäubt) }  (Effekte optional, 0..1)
 import { CFG } from './data.js';
 import { roll, chance } from './rng.js';
 
@@ -15,9 +16,11 @@ export function fight(A, B) {
 
   for (let r = 0; r < MAX_ROUNDS && a.cur > 0 && b.cur > 0; r++) {
     if (atk.regen && atk.cur < atk.hp) { const h = Math.round(atk.hp * atk.regen); atk.cur = Math.min(atk.hp, atk.cur + h); say(atk.side, `${atk.name} regeneriert ${h}.`); }
+    if (atk.stunned) { atk.stunned = false; say(def.side, `${atk.name} ist betäubt und taumelt.`); [atk, def] = [def, atk]; continue; }
     strike(atk, def);
     if (atk.rage && def.cur > 0 && atk.cur < atk.hp / 2 && chance(atk.rage)) { say(atk.side, `${atk.name} rast vor Wut!`); strike(atk, def); }
     if (def.bleedDmg && def.cur > 0) { def.cur -= def.bleedDmg; say(atk.side, `${def.name} blutet (${def.bleedDmg}).`); }
+    if (def.poisonDmg && def.cur > 0) { def.cur -= def.poisonDmg; say(atk.side, `Gift zerfrisst ${def.name} (${def.poisonDmg}).`); }
     [atk, def] = [def, atk];
   }
   const winner = a.cur > 0 && (b.cur <= 0 || a.cur / a.hp >= b.cur / b.hp) ? 'a' : 'b';
@@ -37,6 +40,8 @@ export function fight(A, B) {
     let t = `${x.name} trifft ${crit ? 'KRITISCH ' : ''}für ${d}.`;
     if (x.leech) { const h = Math.round(d * x.leech); x.cur = Math.min(x.hp, x.cur + h); if (h) t += ` +${h} Leben.`; }
     if (crit && x.bleed) y.bleedDmg = Math.max(y.bleedDmg || 0, Math.round(d * x.bleed));
+    if (x.poison) y.poisonDmg = Math.min(Math.round(y.hp * 0.08), (y.poisonDmg || 0) + Math.max(1, Math.round(d * x.poison)));
+    if (x.toll && (x.hits = (x.hits || 0) + 1) % 3 === 0) { y.stunned = true; t += ' Die Glocke dröhnt!'; }
     if (y.thorns && y.cur > 0) { const r = Math.round(d * y.thorns); x.cur -= r; if (r) t += ` Dornen: ${r}.`; }
     say(x.side, t, { crit });
   }

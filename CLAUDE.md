@@ -21,7 +21,8 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - `js/loot.js`    – Item-Erzeugung (Seltenheit, Affixe, Wert).
 - `js/quests.js`  – Questketten aller Questgeber (`GIVERS`: 3 Händler + Vargo, Ilse, Prophet): Ziele, Fortschritt (`event()`), Abgabe (`complete(tid, choice)`). Segen (`rew.perk`) landen als Trophäe in `S.trophies`.
 - `js/art.js`     – SVG-Grafiken: Items, leere Slots, NPCs, Monster.
-- `js/combat.js`  – reine Kampfsimulation: `fight(a, b) -> {winner, log}`. Kein DOM. Effekte generisch (crit, evade, block, leech, bleed, rage, pen, regen, thorns, execute, first).
+- `js/game.js`    – Spielzüge ohne DOM (`resolveTrip`, `cryptFight`, `arenaFight`, `champFight`, `makeRival`) + Gefahr-Schätzung (`tripChance`, `cryptChance`). main.js zeigt nur an.
+- `js/combat.js`  – reine Kampfsimulation: `fight(a, b) -> {winner, log}`. Kein DOM. Effekte generisch (crit, evade, block, leech, bleed, rage, pen, regen, thorns, execute, first, poison, toll).
 - `js/ui.js`      – Rendering (Templates als Strings), Tooltips.
 - `js/main.js`    – Bootstrapping, Navigation, Event-Delegation (`data-action`).
 
@@ -54,3 +55,14 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - **Glockensplitter**: erster Bosssieg in Krypta 1–4 → `S.shards`. 4 Splitter öffnen Krypta 5 „Die Glocke“, Boss „Der Kronenlose“ = eigenes Portrait (`glyph: 'self'`).
 - **Finale**: Prophet-Quest p5 hat `choice` → Titel (`S.title`) + Segen.
 - **Tutorial** (`TUTORIAL`, `tutCheck()` in main.js): ersetzt im HUD die Balken, nie als Overlay über Buttons.
+
+## Tests (vor jedem Push: `sh tests/run.sh`)
+- `tests/logic.test.mjs` – node:test, Logik & Daten-Konsistenz (Quest-Ziele, Bilder, Migration, Softlocks).
+- `tests/bot.mjs [klasse] [tage]` – Bot spielt mit simulierter Uhr und zeigt Tempo pro Tag (Stufe, Quests, Splitter, Niederlagen). Für Balance-Fragen benutzen.
+- `tests/ui.cjs` – Playwright auf iPhone SE + 13: alle Ansichten, JS-Fehler, nichts ragt heraus. Screenshots in `tests/out/` (nicht committen).
+- Neue Features: Logik in game.js/state.js (DOM-frei), dann Test ergänzen.
+
+## Design-Leitlinien (GameGene-Joseki, angewendet)
+- **Kein unfairer Verlust**: Gefahr vor jedem Kampf anzeigen (Streifzug-Karte, Krypta-Ebene), Boss-Besonderheit vorher nennen.
+- **Schwierigkeit durch Muster, nicht nur Zahlen**: jeder Boss hat eine eigene Mechanik (`boss.mech`).
+- **Zeit des Spielers respektieren**: keine Softlocks (Boss-Ziele zählen rückwirkend), Gegner wachsen nur halb mit (`locLvl`).

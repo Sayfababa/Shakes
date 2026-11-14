@@ -3,6 +3,8 @@ import { MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_N
 import { S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
+import { tripChance, cryptChance, threatLabel } from './game.js';
+const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
 const P = cls => `assets/portraits/${CLASSES[cls].portrait}.jpg`;
 const rarName = id => RARITIES.find(r => r.id === id)?.name || '';
@@ -153,7 +155,7 @@ export function viewTrips() {
       ${isOmen ? `<span class="omentag">Omen: ${o.def.short}</span>` : ''}
       <h3>${l.name}${open && wanted.size ? '<span class="qmark" title="Auftrag">!</span>' : ''}</h3><p class="lore small">${l.text}</p>
       ${open ? `<div class="mobpics">${l.mobs.map(n => monsterArt(MONSTERS.find(m => m.name === n).glyph)).join('')}</div>
-      <div class="tripinfo"><span>Stufe ${locLvl(l)}</span><span>${fmtT(l.sec[0])}–${fmtT(l.sec[1])}</span><span>${l.glut} Glut</span><span>~${r.gold} Gold</span></div>` : `<div class="mobs">Erst ab Stufe ${l.lvl}</div>`}
+      <div class="tripinfo">${threat(tripChance(l))}${S.points && tripChance(l) < 0.65 ? '<span class="threat t-high">Verteile deine Punkte!</span>' : ''}<span>Stufe ${locLvl(l)}</span><span>${fmtT(l.sec[0])}–${fmtT(l.sec[1])}</span><span>${l.glut} Glut</span><span>~${r.gold} Gold</span></div>` : `<div class="mobs">Erst ab Stufe ${l.lvl}</div>`}
     </section>`; }).join('')}</div></div>`;
 }
 
@@ -186,7 +188,7 @@ export function viewTrader(tid) {
     ${note}
     <section class="panel services">${(SERVICES[tid] || []).map(sv => { const st = serviceState(sv);
       return `<button class="svc" data-action="service" data-t="${tid}" data-s="${sv.id}" ${st.can ? '' : 'disabled'}>
-        <b>${sv.name}${sv.max && st.it ? ` +${st.step}` : ''}</b><small>${st.reason || st.costText}</small></button>`; }).join('')}</section>
+        <b>${sv.name}${sv.max && st.it ? ` +${st.step}` : ''}</b><small>${st.reason || st.costText}${st.questMat && !st.reason ? ` <i class="hot">– ${MATS[st.questMat]} für Auftrag!</i>` : ''}</small></button>`; }).join('')}</section>
     <section class="panel shop"><div class="invhead"><span>Ware</span><small class="dim">bessere Ware mit höherer Treue</small></div>
       <div class="shoprow">${shop.map(it => `<div class="sitem r-${it.rarity}" data-tip="${it.id}" data-action="buy" data-t="${tid}" data-id="${it.id}">${itemArt(it)}<span class="price ${S.gold < it.price ? 'no' : ''}">${it.price}</span></div>`).join('') || '<span class="dim">Ausverkauft.</span>'}</div></section>
   </div>`;
@@ -201,7 +203,7 @@ export function viewCrypts() {
       return `<section class="panel crypt ${!open ? 'locked' : ''} ${done ? 'done' : ''}" ${open && !done && !cd ? `data-action="crypt" data-id="${c.id}"` : ''}>
         ${monsterArt(c.boss.glyph)}
         <div><h3>${c.name}</h3>
-          <p class="small">${!open ? (c.shards && S.shards.length < c.shards ? `Versiegelt · Glockensplitter ${S.shards.length}/${c.shards}` : `Versiegelt bis Stufe ${c.lvl + d.lvlAdd - 2}`) : done ? `${c.boss.name} ist gefallen.` : f === 4 ? `<span class="hot">${c.boss.name}</span>` : `Ebene ${f + 1}: ${c.floors[f]} · Stufe ${cryptLvl(c, f)}`}</p>
+          <p class="small">${!open ? (c.shards && S.shards.length < c.shards ? `Versiegelt · Glockensplitter ${S.shards.length}/${c.shards}` : `Versiegelt bis Stufe ${c.lvl + d.lvlAdd - 2}`) : done ? `${c.boss.name} ist gefallen.` : f === 4 ? `<span class="hot">${c.boss.name}</span> · <i>${c.boss.mechText}</i>` : `Ebene ${f + 1}: ${c.floors[f]} · Stufe ${cryptLvl(c, f)}`}${open && !done ? ' · ' + threat(cryptChance(c)) : ''}</p>
           <div class="floors">${[0, 1, 2, 3, 4].map(i => `<i class="${i < f ? 'on' : ''} ${i === 4 ? 'boss' : ''}"></i>`).join('')}</div>
           <div class="dim small">Trophäe: ${effLine(c.trophy)}${troph ? ' · errungen' : ''}</div></div></section>`; }).join('')}</div>`;
 }
@@ -212,7 +214,7 @@ export function viewArena(rival) {
     <h2>${rival.name}</h2><p class="dim">${CLASSES[rival.cls].name} · Stufe ${rival.lvl}</p>
     
     <p class="small">Sieg: ${rival.lvl * 3} Gold, 10 Ehre · Niederlage: 5 Ehre · Deine Ehre: <b>${S.honor}</b></p>
-    <div class="btns"><button class="red" data-action="arena" ${cd ? 'disabled' : ''}>${cd ? `Erschöpft <span data-until="${S.arenaTs}">${fmtT(cd)}</span>` : 'Herausfordern'}</button>
+    <div class="btns"><button class="red" data-action="arena" ${cd || S.glut < CFG.arenaGlut ? 'disabled' : ''}>${cd ? `Erschöpft <span data-until="${S.arenaTs}">${fmtT(cd)}</span>` : `Herausfordern · ${CFG.arenaGlut} Glut`}</button>
     <button data-action="rival">Anderer Gegner</button></div></section></div>`;
 }
 

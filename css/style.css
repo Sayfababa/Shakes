@@ -259,3 +259,8 @@ img.portrait.monster { object-fit: cover; }
 }
 .herobar span, .herobar button { white-space: nowrap; }
 @media (max-width: 400px) { .herobar { gap: 6px; font-size: .72rem; } .herobar button { padding: 5px 7px; font-size: .68rem; } }
+
+/* Gefahr-Anzeige vor dem Kampf */
+.threat { font-family: 'Alegreya SC'; font-size: .66rem; grid-column: 1 / -1; }
+.t-low { color: #6f9a4c; } .t-mid { color: var(--gold); } .t-high { color: #d0702a; } .t-deadly { color: var(--blood-hi); text-shadow: 0 0 6px #6a0d07; }
+.crypt .threat { display: inline; }

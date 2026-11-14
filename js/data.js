@@ -233,7 +233,7 @@ export const CFG = {
   maxGlut: 100, glutRegenMin: 6,      // 1 Glut pro x Minuten (Echtzeit)
   attrPerLevel: 5, startPoints: 5,       // Attributpunkte pro Stufenaufstieg
   respecPerLvl: 30,                        // Läuterung: Gold je Stufe (erste gratis)
-  cryptCdSec: 180,                         // Pause nach jedem Krypta-Kampf (Prototyp)
+  cryptCdSec: 180, arenaCdSec: 300, arenaGlut: 4,                         // Pause nach jedem Krypta-Kampf (Prototyp)
   shopSize: 6, shopRefreshSec: 600, matChance: 0.7,
   lootChance: 0.55, critBase: 0.05,
 };
@@ -254,7 +254,7 @@ export const RANKS = [
 // dmgPct, hpPct, armorPct (Multiplikator), crit, evade, block, leech, bleed, rage, pen, regen, thorns, execute, first
 export const EFFECT_NAMES = { dmgPct: 'Schaden', hpPct: 'Leben', armorPct: 'Rüstung', crit: 'Krit-Chance', evade: 'Ausweichen',
   block: 'Blocken', leech: 'Lebensraub', bleed: 'Bluten bei Krit', rage: 'Raserei', pen: 'Rüstung ignorieren', regen: 'Regeneration/Runde',
-  thorns: 'Dornen', execute: 'Schaden gg. Sterbende', first: 'Erstschlag' };
+  thorns: 'Dornen', execute: 'Schaden gg. Sterbende', first: 'Erstschlag', poison: 'Gift', toll: 'Betäuben' };
 
 // Talentbaum je Klasse: 3 Pfade × 3 Stufen. Stufe n braucht 1 Rang im Talent davor + Charakterstufe TIER_LVL[n].
 export const TIER_LVL = [2, 8, 16];
@@ -300,15 +300,15 @@ export const DIFFICULTIES = [
 ];
 export const CRYPTS = [
   { id: 'c1', name: 'Gruft der Wäscherinnen', lvl: 1, glyph: 'skull', floors: ['Knochenhund', 'Skelettkrieger', 'Wiedergänger', 'Grabräuber'],
-    boss: { name: 'Mutter Gerlinde, die Ertränkte', glyph: 'gerlinde' }, trophy: { hpPct: 0.05 } },
+    boss: { name: 'Mutter Gerlinde, die Ertränkte', glyph: 'gerlinde', mech: { regen: 0.03, leech: 0.1 }, mechText: 'Zieht Leben aus dir und heilt sich' }, trophy: { hpPct: 0.05 } },
   { id: 'c2', name: 'Die Pestkapelle', lvl: 6, glyph: 'rat', floors: ['Pestratte', 'Verfaulter Ghul', 'Kultist der Glocke', 'Gehäuteter'],
-    boss: { name: 'Bruder Aldemar, der Verseuchte', glyph: 'aldemar' }, trophy: { dmgPct: 0.05 } },
+    boss: { name: 'Bruder Aldemar, der Verseuchte', glyph: 'aldemar', mech: { poison: 0.25 }, mechText: 'Gift, das sich stapelt – kurze Kämpfe gewinnen' }, trophy: { dmgPct: 0.05 } },
   { id: 'c3', name: 'Das Schlachthaus', lvl: 12, glyph: 'ghoul', floors: ['Gehäuteter', 'Gefallener', 'Blutfürst', 'Höllenbrut'],
-    boss: { name: 'Der Metzger von Vhal', glyph: 'butcher' }, trophy: { crit: 0.03 } },
+    boss: { name: 'Der Metzger von Vhal', glyph: 'butcher', mech: { execute: 0.6, rage: 0.4 }, mechText: 'Wird rasend und schlachtet Geschwächte' }, trophy: { crit: 0.03 } },
   { id: 'c4', name: 'Turm der Glocke', lvl: 20, glyph: 'horn', floors: ['Kultist der Glocke', 'Sumpfhexe', 'Blutfürst', 'Höllenbrut'],
-    boss: { name: 'Der Glöckner', glyph: 'bellringer' }, trophy: { armorPct: 0.1, hpPct: 0.05 } },
+    boss: { name: 'Der Glöckner', glyph: 'bellringer', mech: { toll: 1 }, mechText: 'Jeder dritte Schlag betäubt dich' }, trophy: { armorPct: 0.1, hpPct: 0.05 } },
   { id: 'c5', name: 'Die Glocke', lvl: 26, shards: 4, floors: ['Kultist der Glocke', 'Wiedergänger', 'Blutfürst', 'Höllenbrut'],
-    boss: { name: 'Der Kronenlose', glyph: 'self' }, trophy: { dmgPct: 0.1, hpPct: 0.1 } },
+    boss: { name: 'Der Kronenlose', glyph: 'self', mech: { mirror: 1 }, mechText: 'Kämpft mit deinen eigenen Talenten' }, trophy: { dmgPct: 0.1, hpPct: 0.1 } },
 ];
 // Jeder erste Bosssieg (Krypta 1–4) bringt einen Glockensplitter. Vier öffnen "Die Glocke".
 export const SHARD_CRYPTS = ['c1', 'c2', 'c3', 'c4'];

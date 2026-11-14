@@ -107,7 +107,8 @@ export function makeMonster(lvl, diff = 1, m = pick(MONSTERS)) {
 
 // --- Streifzüge ---
 export const locOpen = l => S.lvl >= l.lvl;
-export const locLvl = l => Math.max(l.lvl, Math.min(S.lvl, l.lvl + 8));   // Gegner wachsen bis +8 über Ortsstufe mit
+// Gegner wachsen nur halb so schnell wie du mit (max. +8 über Ortsstufe) – ein Stufenaufstieg ohne verteilte Punkte darf nicht tödlich sein
+export const locLvl = l => Math.max(l.lvl, Math.min(l.lvl + Math.floor((S.lvl - l.lvl) / 2), l.lvl + 8));
 export function startTrip(id) {
   const l = LOCATIONS.find(x => x.id === id); if (!l || !locOpen(l) || S.glut < l.glut || S.active) return false;
   const sec = roll(...l.sec), mob = pick(l.mobs);
@@ -187,7 +188,13 @@ export function cryptEnemy(c) {
   const f = cryptFloor(c), lvl = cryptLvl(c, f), boss = f === 4, d = DIFFICULTIES[S.crypt.diff];
   const m = boss ? c.boss : MONSTERS.find(x => x.name === c.floors[f]);
   const mo = makeMonster(lvl, (boss ? 1.25 : 1 + f * 0.05) * d.mult, m);
-  if (boss) { mo.hp = Math.round(mo.hp * 1.8); mo.boss = true; mo.rage = 0.2; mo.crit = 0.05; }
+  if (boss) {
+    mo.hp = Math.round(mo.hp * 1.8); mo.boss = true; mo.rage = 0.2; mo.crit = 0.05;
+    // Jeder Boss hat ein eigenes Muster statt nur größerer Zahlen
+    const { mirror, ...mech } = c.boss.mech || {};
+    Object.assign(mo, mech);
+    if (mirror) { const me = effects(); for (const k of ['crit', 'evade', 'block', 'leech', 'bleed', 'rage', 'pen', 'regen', 'thorns', 'execute']) if (me[k]) mo[k] = me[k]; }
+  }
   return mo;
 }
 export function cryptWin(c) {
@@ -203,7 +210,7 @@ export function cryptWin(c) {
 }
 
 // --- Tägliches Omen ---
-const dayNo = () => { const d = new Date(); return Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000); };
+const dayNo = () => { const t = Date.now(); return Math.floor((t - new Date(t).getTimezoneOffset() * 60000) / 86400000); };
 export function omen() {
   const day = dayNo();
   if (!S.omen || S.omen.day !== day) {
@@ -217,6 +224,10 @@ export function omen() {
 export function omenFor(locId) { if (S.lvl < 3) return null; const o = omen(); return o.loc === locId ? o : null; }
 export function fulfillOmen() { if (!S.omen.done) { S.omen.done = true; S.omens++; return true; } return false; }
 
+// Wird dieses Material gerade für einen offenen Auftrag gebraucht? (Warnung bei Diensten)
+let questNeedsMat = () => false;
+export const setQuestMatCheck = f => { questNeedsMat = f; };
+
 // --- Dienste (Schärfen, Verstärken, Bestellen, Neu weihen) ---
 const costOf = (sv, step) => sv.cost[Math.min(step, sv.cost.length - 1)];
 const goldOf = (sv, step) => (sv.gold[Math.min(step, sv.gold.length - 1)] || 0) + (sv.perLvl || 0) * S.lvl;
@@ -229,7 +240,7 @@ export function serviceState(sv) {
   else if (sv.max && step >= sv.max) reason = 'Vollendet';
   else if (sv.id === 'reroll' && !Object.keys(it.mods).length) reason = 'Keine Zauber';
   const enough = S.gold >= gold && Object.entries(cost).every(([k, n]) => (S.mats[k] || 0) >= n);
-  return { it, step, costText, reason, can: !reason && enough };
+  return { it, step, costText, reason, can: !reason && enough, questMat: Object.keys(cost).find(k => questNeedsMat(k)) };
 }
 export function doService(tid, svId) {
   const sv = SERVICES[tid].find(x => x.id === svId), st = serviceState(sv); if (!st.can) return null;

@@ -1,9 +1,7 @@
-import { CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MATS, MONSTERS, TUTORIAL, TRADERS, QUESTS } from './data.js';
+import { CFG, MATS, TUTORIAL, TRADERS } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
-import { fight } from './combat.js';
-import { makeItem } from './loot.js';
-import { pick, roll, chance } from './rng.js';
+import * as Game from './game.js';
 import * as UI from './ui.js';
 
 const app = document.getElementById('app'), tip = document.getElementById('tip');
@@ -17,7 +15,7 @@ function render() {
     fight: () => UI.viewFight(F), trips: UI.viewTrips, stats: UI.viewStats, talents: UI.viewTalents, crypt: UI.viewCrypts,
     traders: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewTrader(trader),
     npc: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewNpc(npc),
-    arena: () => UI.viewArena(rival ||= makeRival()), hero: UI.viewHero,
+    arena: () => UI.viewArena(rival ||= Game.makeRival()), hero: UI.viewHero,
   };
   if (view === 'fight' && !F) view = 'hero';
   tutCheck();
@@ -37,25 +35,33 @@ function tutCheck() {
   if (ok) { S.tut++; tutCheck(); }
 }
 
-// Gegnerischer "Verdammter" für die Grube
-function makeRival() {
-  const S = G.S, cls = pick(Object.keys(CLASSES)), c = CLASSES[cls], lvl = Math.max(1, S.lvl + roll(-1, 1));
-  const p = { name: pick(['Morgrim', 'Asha die Blasse', 'Kel Varn', 'Ysra', 'Brann', 'Oswin der Stumme', 'Mireth', 'Draven']), cls, lvl,
-    attrs: { str: 5, dex: 5, int: 5, con: 6, lck: 3 }, equip: {}, tal: {}, trophies: [] };
-  for (const k in p.attrs) p.attrs[k] += Math.round((lvl - 1) * (k === c.main ? 3 : k === 'con' ? 1.6 : 0.2));
-  for (let i = 0; i < lvl - 1; i++) { const t = TALENTS[cls][roll(0, 2)].nodes, n = t.find(x => (p.tal[x.id] || 0) < x.max); if (n) p.tal[n.id] = (p.tal[n.id] || 0) + 1; }
-  for (const s of ['weapon', 'chest', 'helm', 'boots']) p.equip[s] = makeItem(lvl, { slot: s, cls: c });
-  return p;
-}
-
-function startFight(A, B, back, onEnd) {
-  const r = fight(A, B);
-  F = { A, B, ...r, step: 0, back };
-  F.reward = onEnd(r.winner === 'a');
+// Ergebnis eines Spielzugs (aus game.js) anzeigen
+function showFight(res, back, extra = '') {
+  if (!res) return render();
+  const { A, B, r, win, rew } = res;
+  F = { A, B, ...r, step: 0, back, reward: (win ? rewText(rew) : loseText(res)) + extra };
   view = 'fight'; G.save();
   clearInterval(fightTimer);
   fightTimer = setInterval(() => { F.step++; if (F.step >= F.log.length) { clearInterval(fightTimer); render(); } else fightStep(); }, 380);
   render();
+}
+function loseText(res) {
+  if (res.rew.honor) return `${res.rew.honor} Ehre`;
+  if (res.crypt) return 'Die Krypta behält dich. Diesmal. Dein Fortschritt bleibt.';
+  return 'Die Asche spuckt dich wieder aus.';
+}
+function rewText(w) {
+  const L = [];
+  if (w.gold || w.xp) L.push(`+${w.gold} Gold${w.xp ? ` · +${w.xp} EP` : ''}${w.honor ? ` · +${w.honor} Ehre` : ''}`);
+  else if (w.honor) L.push(`+${w.honor} Ehre`);
+  for (const [k, n] of w.mats) L.push(`${MATS[k]} ×${n}`);
+  if (w.item) L.push(`Beute: <span class="r-${w.item.rarity}">${w.item.name}</span>${w.item.soldFull ? ' <i class="dim">(Beutel voll – verkauft)</i>' : ''}`);
+  if (w.omen) L.push('<b class="gold">Das Omen hat sich erfüllt.</b>');
+  if (w.trophy) L.push(`<b class="r-legendary">Trophäe: ${w.trophy.name}</b>`);
+  if (w.shard) L.push(`<b class="gold">Glockensplitter ${w.shard}/4</b>`);
+  if (w.diffUp) L.push(`<b class="hot">${w.diffUp} erwacht.</b>`);
+  if (w.up) L.push(`<b class="hot">Stufe ${G.S.lvl}! +${w.up * CFG.attrPerLevel} Attributpunkte, +${w.up} Talentpunkt</b>`);
+  return L.join('<br>');
 }
 
 // Kampf-Schritt ohne Neuaufbau: nur Log-Zeile, Lebensbalken und Treffer-Effekt ändern (Bilder bleiben stehen)
@@ -70,15 +76,6 @@ function fightStep() {
     const hit = (id === 'fA' && l.who === 'b') || (id === 'fB' && l.who === 'a');
     el.classList.remove('hit'); if (hit) { void el.offsetWidth; el.classList.add('hit'); }
   }
-}
-
-const lootLine = it => it ? `<br>Beute: <span class="r-${it.rarity}">${it.name}</span>` : '';
-const lvlLine = up => up ? `<br><b class="hot">Stufe ${G.S.lvl}! +${up * CFG.attrPerLevel} Attributpunkte, +${up} Talentpunkt</b>` : '';
-function dropMat(m) { if (m.mat && chance(CFG.matChance)) { const n = m.boss ? 3 : 1; G.addMat(m.mat, n); return `<br>${MATS[m.mat]} ×${n}`; } return ''; }
-function dropItem(lvl, p, minRarity = 0) {
-  if (!chance(p)) return null;
-  const it = makeItem(lvl, { luck: G.stats().lck, cls: CLASSES[G.S.cls], minRarity });
-  return G.addToBag(it) ? it : (G.S.gold += it.value, { ...it, name: it.name + ' (Beutel voll – verkauft)' });
 }
 
 const actions = {
@@ -105,64 +102,13 @@ const actions = {
   tutskip: () => { G.S.tut = 99; render(); },
   service: d => { const it = G.doService(d.t, d.s); if (!it) return alert('Nicht möglich.'); hideTip(); render();
     setTimeout(() => alert(`${it.name}${it.up ? ' +' + it.up : ''} – erledigt.`), 50); },
-  champ: d => {
-    const S = G.S, q = Q.current(d.t); if (!q?.champ || Date.now() < S.arenaTs) return;
-    const c = q.champ, cl = CLASSES[c.cls], lvl = S.lvl + c.lvlAdd;
-    const p = { name: c.name, cls: c.cls, lvl, attrs: { str: 5, dex: 5, int: 5, con: 6, lck: 3 }, equip: {}, tal: {}, trophies: [] };
-    for (const k in p.attrs) p.attrs[k] += Math.round((lvl - 1) * (k === cl.main ? 3.4 : k === 'con' ? 2 : 0.3));
-    for (let i = 0; i < lvl - 1; i++) { const t = TALENTS[c.cls][i % 3].nodes, n = t.find(x => (p.tal[x.id] || 0) < x.max); if (n) p.tal[n.id] = (p.tal[n.id] || 0) + 1; }
-    for (const s of ['weapon', 'chest', 'helm', 'boots', 'gloves']) p.equip[s] = makeItem(lvl, { slot: s, cls: cl, minRarity: 2 });
-    S.arenaTs = Date.now() + 60000;
-    startFight(G.stats(), G.stats(p), 'npc', win => {
-      if (!win) { S.deaths++; return `${c.name} lässt dich im Sand liegen.`; }
-      S.wins++; S.honor += 25; Q.event({ type: 'champ', tid: d.t }); G.journal(`${c.name} ist gefallen.`); return '+25 Ehre. Die Menge tobt.';
-    });
-  },
+  champ: d => showFight(Game.champFight(d.t), 'npc'),
   trip: d => { if (G.startTrip(d.id)) render(); },
   rush: () => { const S = G.S; if (S.gold >= 1) { S.gold -= 1; S.active.end = Date.now(); } render(); },
-  resolve: () => {
-    const S = G.S, a = S.active, l = LOCATIONS.find(x => x.id === a.loc);
-    const om = G.omenFor(l.id), od = om && !om.done ? om.def : null;
-    const m = G.makeMonster(G.locLvl(l), a.diff * (od?.diff || 1), MONSTERS.find(x => x.name === a.mob));
-    if (od?.diff) m.name = 'Fürst: ' + m.name;
-    startFight(G.stats(), m, 'trips', win => {
-      S.active = null;
-      if (!win) { S.deaths++; G.journal(`${m.name} in ${l.name} hat mich zerrissen.`); return 'Die Asche spuckt dich wieder aus.'; }
-      S.wins++; Q.event({ type: 'kill', mob: a.mob, loc: l.id });
-      const r = G.tripReward(l, a.diff, a.sec);
-      if (od) { r.gold = Math.round(r.gold * (od.gold || 1)); r.xp = Math.round(r.xp * (od.xp || 1)); }
-      S.gold += r.gold; const up = G.gainXp(r.xp);
-      let mat = dropMat(m); if (od?.mats && m.mat) { G.addMat(m.mat, 2); mat += `<br>Omen: ${MATS[m.mat]} ×2`; }
-      const it = od?.loot ? dropItem(m.lvl, 1, od.loot) : dropItem(m.lvl, CFG.lootChance);
-      let omenTxt = '';
-      if (od && G.fulfillOmen()) { Q.event({ type: 'omen' }); omenTxt = '<br><b class="gold">Das Omen hat sich erfüllt.</b>'; G.journal(`Das Omen über ${l.name} hat sich erfüllt.`); }
-      else G.journal(`${m.name} in ${l.name} erschlagen.`);
-      return `+${r.gold} Gold · +${r.xp} EP${mat}${lootLine(it)}${omenTxt}${lvlLine(up)}`;
-    });
-  },
-  crypt: d => {
-    const S = G.S, c = CRYPTS.find(x => x.id === d.id); if (!c || Date.now() < S.crypt.cd) return;
-    const m = G.cryptEnemy(c), boss = !!m.boss;
-    S.crypt.cd = Date.now() + CFG.cryptCdSec * 1000;
-    startFight(G.stats(), m, 'crypt', win => {
-      if (!win) { S.deaths++; G.journal(`${m.name} in ${c.name} hat mich niedergestreckt.`); return 'Die Krypta behält dich. Diesmal.'; }
-      S.wins++; Q.event({ type: 'kill', mob: m.name }); if (boss) Q.event({ type: 'boss', crypt: c.id });
-      const r = G.cryptWin(c), gold = Math.round((10 + m.lvl * 5) * (boss ? 4 : 1)), xp = Math.round((25 + m.lvl * 14) * (boss ? 3 : 1.2));
-      S.gold += gold; const up = G.gainXp(xp);
-      const mat = dropMat(m), it = dropItem(m.lvl, boss ? 1 : 0.35, boss ? 3 : 2);
-      G.journal(boss ? `${m.name} ist gefallen. ${c.name} schweigt.` : `${m.name} in ${c.name} erschlagen.`);
-      return `+${gold} Gold · +${xp} EP${mat}${lootLine(it)}${lvlLine(up)}${r.trophy ? `<br><b class="r-legendary">Trophäe: ${r.trophy.name}</b>` : ''}${r.shard ? `<br><b class="gold">Glockensplitter ${r.shard}/4</b>` : ''}${r.diffUp ? `<br><b class="hot">${r.diffUp} erwacht.</b>` : ''}`;
-    });
-  },
-  rival: () => { rival = makeRival(); render(); },
-  arena: () => {
-    const S = G.S; if (Date.now() < S.arenaTs) return;
-    const R = rival; rival = null; S.arenaTs = Date.now() + 60000;
-    startFight(G.stats(), G.stats(R), 'arena', win => {
-      if (win) { S.gold += R.lvl * 3; S.honor += 10; S.wins++; Q.event({ type: 'arena' }); G.journal(`${R.name} in der Grube besiegt.`); return `+${R.lvl * 3} Gold · +10 Ehre`; }
-      S.honor = Math.max(0, S.honor - 5); S.deaths++; return '−5 Ehre';
-    });
-  },
+  resolve: () => showFight(Game.resolveTrip(), 'trips'),
+  crypt: d => showFight(Game.cryptFight(d.id), 'crypt'),
+  rival: () => { rival = Game.makeRival(); render(); },
+  arena: () => { const R = rival; const res = Game.arenaFight(R); if (res) rival = null; showFight(res, 'arena'); },
   noop: () => {},
   skip: () => { F.step = F.log.length; clearInterval(fightTimer); render(); },
 };

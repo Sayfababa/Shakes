@@ -1,6 +1,6 @@
 // Händler-Questketten. DOM-frei. Fortschritt zählt nur, solange die Quest aktiv ist.
 import { QUESTS, TRADERS, MATS, LOCATIONS, CRYPTS, SLOTS, RARITIES, CLASSES, GIVERS, NPCS } from './data.js';
-import { S, loyalty, removeFromBag, addToBag, gainXp, cryptFloor, journal } from './state.js';
+import { S, setQuestMatCheck, loyalty, removeFromBag, addToBag, gainXp, cryptFloor, journal } from './state.js';
 const giverName = id => (TRADERS[id] || NPCS[id]).name;
 import { makeItem } from './loot.js';
 
@@ -35,7 +35,8 @@ export function objectives(tid) {
     else if (o.mat) { label = `Bring: ${MATS[o.mat]}`; cur = Math.min(n, S.mats[o.mat] || 0); }
     else if (o.give) { label = `Bring: ${SLOTS[o.give]} (${RARITIES[o.rar].name} oder besser)`; cur = giveItem(o) ? 1 : 0; }
     else if (o.floor) { const c = CRYPTS.find(c => c.id === o.floor); label = `${c.name}: Ebene ${o.n}`; cur = Math.min(n, cryptFloor(c)); }
-    else if (o.boss) { const c = CRYPTS.find(c => c.id === o.boss); label = `Bezwinge: ${c.boss.name}`; cur = pr[i] || 0; }
+    // Boss zählt auch, wenn er schon vor der Quest besiegt wurde (sonst wäre die Quest unlösbar – Krypten bleiben geräumt)
+    else if (o.boss) { const c = CRYPTS.find(c => c.id === o.boss); label = `Bezwinge: ${c.boss.name}`; cur = (pr[i] || S.trophies.some(t => t.key.startsWith(c.id + ':'))) ? 1 : 0; }
     else if (o.arena) { label = 'Siege in der Grube'; cur = pr[i] || 0; }
     else if (o.honor) { label = 'Ehre in der Grube'; cur = Math.min(o.honor, S.honor); }
     else if (o.clear) { const c = CRYPTS.find(c => c.id === o.clear); label = `Räume: ${c.name}`; cur = cryptFloor(c) >= 5 ? 1 : 0; n = 1; }
@@ -69,3 +70,6 @@ export function complete(tid, choiceId) {
   journal(`${giverName(tid)}: „${q.title}“ erledigt.`);
   return { q, gold: r.gold, xp: r.xp, rep: r.rep, item, up, perks, choice, loyaltyUp: TRADERS[tid] ? loyalty(tid) > before : false };
 }
+
+// Dienste sollen warnen, wenn sie Material verbrauchen, das ein offener Auftrag braucht
+setQuestMatCheck(k => GIVERS.some(t => available(t) && current(t).obj.some(o => o.mat === k)));

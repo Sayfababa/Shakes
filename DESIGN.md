@@ -32,6 +32,14 @@ Aufträge (Gold, EP, Beute) → stärker werden (Punkte, Talente, Ausrüstung) �
 | Splitter öffnen Endgebiet | 4 Glockensplitter → „Die Glocke“, Boss trägt dein Gesicht, Entscheidung am Ende | Dragon Quest VII – Fragmente öffnen Land ([GG](https://gamegene.app/library/records/claims/e1853a66-fde0-4d18-88a6-4d555db86584)) |
 | Tutorial | 8 kurze Schritte, rücken automatisch vor, überspringbar | – |
 
+## Test-Erkenntnisse (Bot, 14–21 simulierte Tage Dauerspiel)
+- Grube war Gold-Endlosquelle (1 Kampf/Minute, kein Preis) → kostet jetzt 4 Glut, 5 Min. Pause.
+- Softlock: Boss-Quests unlösbar, wenn Boss vorher schon fiel → zählt jetzt rückwirkend.
+- Dienste fraßen Quest-Material → Warnung „für Auftrag!“.
+- Ein Stufenaufstieg ohne verteilte Punkte machte den Startort tödlich → Gegner wachsen nur halb mit, Hinweis „Verteile deine Punkte!“.
+- Tempo jetzt: Stufe ~8 nach Tag 1, ~15 nach Tag 6, alle 4 Splitter ~Tag 8–10, Finale ~Tag 18 (bei Dauerspiel; echte Spieler deutlich langsamer).
+- Offen: Streifzüge werden praktisch nie verloren → Risiko/Ertrag (z. B. wählbare „gefährliche Spur“ mit mehr Beute) fehlt noch.
+
 ## Offen / Ideen
 - Kopfgelder pro Ort, zufällig aus dem Ortskontext erzeugt (Caves of Qud).
 - Ortsbilder für Streifzug-Karten; Bild für „Die Kette“.
