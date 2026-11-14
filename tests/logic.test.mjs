@@ -16,7 +16,7 @@ test('Daten: jedes Monster, jeder Boss hat ein Bild', async () => {
   const fs = await import('node:fs');
   for (const g of [...D.MONSTERS.map(m => m.glyph), ...D.CRYPTS.map(c => c.boss.glyph).filter(g => g !== 'self')])
     assert.ok(fs.existsSync(`assets/monsters/${g}.jpg`), `fehlt: ${g}`);
-  for (const b of D.BASES) assert.ok(fs.existsSync(`assets/items/${b.art}.webp`), `Item-Bild fehlt: ${b.art}`);
+  for (const b of D.BASES) for (const a of [b.art, ...(b.vars || [])]) assert.ok(fs.existsSync(`assets/items/${a}.webp`), `Item-Bild fehlt: ${a}`);
   for (const sp of Object.values(D.SPELLS).flat()) assert.ok(fs.existsSync(`assets/spells/${sp.id}.webp`), `Zauber-Bild fehlt: ${sp.id}`);
 });
 
@@ -307,4 +307,12 @@ test('Zauber nutzen alle Werte: Lebensraub, Krit, Gift, Henker, Glocke', () => {
     if (k >= 0 && f.log.slice(k + 1).some(l => l.t.includes('Gift zerfrisst'))) poison = true; }
   assert.ok(leech, 'Zauber heilt nicht über Lebensraub'); assert.ok(crit, 'Zauber trifft nie kritisch');
   assert.ok(toll, 'Zauber zählt nicht für die Glocke'); assert.ok(poison, 'Zauber vergiftet nicht');
+});
+
+test('Höhere Grundgegenstände erst ab ihrer Stufe; Bild-Varianten gehören zur Basis', () => {
+  fresh(); const hi = D.BASES.filter(b => b.minLvl);
+  for (let i = 0; i < 3000; i++) { const it = makeItem(10, { minRarity: 1 }); const b = D.BASES.find(x => x.name === it.base);
+    assert.ok(!b.minLvl || 10 >= b.minLvl, `${b.name} auf Stufe 10`); assert.ok([b.art, ...(b.vars || [])].includes(it.art), `fremdes Bild ${it.art}`); }
+  const seen = new Set(); for (let i = 0; i < 6000; i++) seen.add(makeItem(30, { minRarity: 1 }).base);
+  for (const b of hi) assert.ok(seen.has(b.name), `${b.name} kommt auf Stufe 30 nie vor`);
 });

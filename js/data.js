@@ -23,19 +23,28 @@ export const SLOTS = { helm: 'Helm', chest: 'Brust', gloves: 'Handschuhe', boots
 
 // Item-Basen. w×h = Größe im Inventar-Raster (Diablo-Stil).
 export const BASES = [
-  { slot: 'helm', name: 'Kappe', armor: 3, w: 2, h: 2, art: 'cap' }, { slot: 'helm', name: 'Eisenhelm', armor: 6, w: 2, h: 2, art: 'helm' }, { slot: 'helm', name: 'Totenmaske', armor: 9, w: 2, h: 2, art: 'mask' },
-  { slot: 'chest', name: 'Lederwams', armor: 8, w: 2, h: 3, art: 'leather' }, { slot: 'chest', name: 'Kettenhemd', armor: 14, w: 2, h: 3, art: 'mail' }, { slot: 'chest', name: 'Plattenpanzer', armor: 22, w: 2, h: 3, art: 'plate' },
-  { slot: 'gloves', name: 'Lederhandschuhe', armor: 2, w: 2, h: 2, art: 'gloves' }, { slot: 'gloves', name: 'Panzerhandschuhe', armor: 5, w: 2, h: 2, art: 'gauntlets' },
-  { slot: 'boots', name: 'Stiefel', armor: 2, w: 2, h: 2, art: 'boots' }, { slot: 'boots', name: 'Kriegsstiefel', armor: 5, w: 2, h: 2, art: 'greaves' },
-  { slot: 'belt', name: 'Schärpe', armor: 1, w: 2, h: 1, art: 'sash' }, { slot: 'belt', name: 'Plattengürtel', armor: 4, w: 2, h: 1, art: 'belt' },
-  { slot: 'offhand', name: 'Rundschild', armor: 7, w: 2, h: 2, art: 'buckler' }, { slot: 'offhand', name: 'Turmschild', armor: 12, w: 2, h: 3, art: 'tower' },
-  { slot: 'amulet', name: 'Amulett', w: 1, h: 1, art: 'amulet' }, { slot: 'ring', name: 'Ring', w: 1, h: 1, art: 'ring' },
-  { slot: 'weapon', kind: 'axe', name: 'Beil', dmg: [3, 8], w: 2, h: 3, art: 'hatchet' }, { slot: 'weapon', kind: 'axe', name: 'Kriegsaxt', dmg: [6, 14], w: 2, h: 3, art: 'waraxe' },
-  { slot: 'weapon', kind: 'sword', name: 'Kurzschwert', dmg: [3, 7], w: 1, h: 3, art: 'sword' }, { slot: 'weapon', kind: 'sword', name: 'Bastardschwert', dmg: [6, 12], w: 1, h: 4, art: 'longsword' },
-  { slot: 'weapon', kind: 'dagger', name: 'Dolch', dmg: [2, 6], w: 1, h: 2, art: 'dagger' }, { slot: 'weapon', kind: 'dagger', name: 'Klauenklinge', dmg: [4, 10], w: 1, h: 3, art: 'claw' },
-  { slot: 'weapon', kind: 'bow', name: 'Kurzbogen', dmg: [3, 8], w: 2, h: 3, art: 'bow' }, { slot: 'weapon', kind: 'bow', name: 'Langbogen', dmg: [5, 12], w: 2, h: 4, art: 'longbow' },
-  { slot: 'weapon', kind: 'staff', name: 'Stab', dmg: [4, 9], w: 1, h: 4, art: 'staff' }, { slot: 'weapon', kind: 'staff', name: 'Runenstab', dmg: [5, 12], w: 1, h: 4, art: 'runestaff' },
-  { slot: 'weapon', kind: 'wand', name: 'Knochenstab', dmg: [4, 8], w: 1, h: 2, art: 'wand' }, { slot: 'weapon', kind: 'wand', name: 'Grabszepter', dmg: [5, 11], w: 1, h: 3, art: 'scepter' },
+  { slot: 'helm', name: 'Kappe', armor: 3, w: 2, h: 2, art: 'cap', vars: ['cap_a', 'cap_b'] }, { slot: 'helm', name: 'Eisenhelm', armor: 6, w: 2, h: 2, art: 'helm', vars: ['helm_a', 'helm_b'] }, { slot: 'helm', name: 'Totenmaske', armor: 9, w: 2, h: 2, art: 'mask', vars: ['mask_a', 'mask_b'] },
+  { slot: 'chest', name: 'Lederwams', armor: 8, w: 2, h: 3, art: 'leather', vars: ['leather_a', 'leather_b'] }, { slot: 'chest', name: 'Kettenhemd', armor: 14, w: 2, h: 3, art: 'mail' }, { slot: 'chest', name: 'Plattenpanzer', armor: 22, w: 2, h: 3, art: 'plate', vars: ['plate_b'] },
+  { slot: 'gloves', name: 'Lederhandschuhe', armor: 2, w: 2, h: 2, art: 'gloves', vars: ['gloves_a', 'gloves_b'] }, { slot: 'gloves', name: 'Panzerhandschuhe', armor: 5, w: 2, h: 2, art: 'gauntlets', vars: ['gauntlets_a', 'gauntlets_b'] },
+  { slot: 'boots', name: 'Stiefel', armor: 2, w: 2, h: 2, art: 'boots', vars: ['boots_a', 'boots_b'] }, { slot: 'boots', name: 'Kriegsstiefel', armor: 5, w: 2, h: 2, art: 'greaves', vars: ['greaves_a', 'greaves_b'] },
+  { slot: 'belt', name: 'Schärpe', armor: 1, w: 2, h: 1, art: 'sash', vars: ['sash_a', 'sash_b'] }, { slot: 'belt', name: 'Plattengürtel', armor: 4, w: 2, h: 1, art: 'belt', vars: ['belt_a', 'belt_b'] },
+  { slot: 'offhand', name: 'Rundschild', armor: 7, w: 2, h: 2, art: 'buckler', vars: ['buckler_a', 'buckler_b'] }, { slot: 'offhand', name: 'Turmschild', armor: 12, w: 2, h: 3, art: 'tower', vars: ['tower_a', 'tower_b'] },
+  { slot: 'amulet', name: 'Amulett', w: 1, h: 1, art: 'amulet', vars: ['amulet_a', 'amulet_b'] }, { slot: 'ring', name: 'Ring', w: 1, h: 1, art: 'ring', vars: ['ring_a', 'ring_b'] },
+  { slot: 'weapon', kind: 'axe', name: 'Beil', dmg: [3, 8], w: 2, h: 3, art: 'hatchet', vars: ['hatchet_a'] }, { slot: 'weapon', kind: 'axe', name: 'Kriegsaxt', dmg: [6, 14], w: 2, h: 3, art: 'waraxe' },
+  { slot: 'weapon', kind: 'sword', name: 'Kurzschwert', dmg: [3, 7], w: 1, h: 3, art: 'sword', vars: ['sword_a'] }, { slot: 'weapon', kind: 'sword', name: 'Bastardschwert', dmg: [6, 12], w: 1, h: 4, art: 'longsword' },
+  { slot: 'weapon', kind: 'dagger', name: 'Dolch', dmg: [2, 6], w: 1, h: 2, art: 'dagger' }, { slot: 'weapon', kind: 'dagger', name: 'Klauenklinge', dmg: [4, 10], w: 1, h: 3, art: 'claw', vars: ['claw_a'] },
+  { slot: 'weapon', kind: 'bow', name: 'Kurzbogen', dmg: [3, 8], w: 2, h: 3, art: 'bow', vars: ['bow_a'] }, { slot: 'weapon', kind: 'bow', name: 'Langbogen', dmg: [5, 12], w: 2, h: 4, art: 'longbow' },
+  { slot: 'weapon', kind: 'staff', name: 'Stab', dmg: [4, 9], w: 1, h: 4, art: 'staff', vars: ['staff_a'] }, { slot: 'weapon', kind: 'staff', name: 'Runenstab', dmg: [5, 12], w: 1, h: 4, art: 'runestaff' },
+  { slot: 'weapon', kind: 'wand', name: 'Knochenstab', dmg: [4, 8], w: 1, h: 2, art: 'wand', vars: ['wand_a'] }, { slot: 'weapon', kind: 'wand', name: 'Grabszepter', dmg: [5, 11], w: 1, h: 3, art: 'scepter' },
+  // Höhere Grundgegenstände (wie "Exceptional" in D2): erst ab Gegenstandsstufe minLvl, stärkere Grundwerte
+  { slot: 'helm', name: 'Dornenhelm', armor: 13, w: 2, h: 2, art: 'spikehelm', minLvl: 14 }, { slot: 'helm', name: 'Gehörnter Helm', armor: 17, w: 2, h: 2, art: 'hornhelm', minLvl: 24 },
+  { slot: 'chest', name: 'Dornenpanzer', armor: 30, w: 2, h: 3, art: 'spikeplate', minLvl: 18 },
+  { slot: 'weapon', kind: 'axe', name: 'Henkersaxt', dmg: [9, 20], w: 2, h: 3, art: 'doubleaxe', minLvl: 16 },
+  { slot: 'weapon', kind: 'sword', name: 'Runenklinge', dmg: [9, 18], w: 1, h: 4, art: 'runeblade', minLvl: 16 },
+  { slot: 'weapon', kind: 'dagger', name: 'Sichelklinge', dmg: [6, 15], w: 1, h: 3, art: 'sickle', minLvl: 16 },
+  { slot: 'weapon', kind: 'bow', name: 'Reflexbogen', dmg: [8, 18], w: 2, h: 4, art: 'recurve', minLvl: 16 },
+  { slot: 'weapon', kind: 'staff', name: 'Sternenstab', dmg: [8, 18], w: 1, h: 4, art: 'starstaff', minLvl: 16 },
+  { slot: 'weapon', kind: 'wand', name: 'Blutszepter', dmg: [8, 17], w: 1, h: 3, art: 'bloodscepter', minLvl: 16 },
 ];
 export const INV_W = 10, INV_H = 4;
 

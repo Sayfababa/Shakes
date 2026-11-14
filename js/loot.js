@@ -12,7 +12,8 @@ export const tierRange = (stat, ilvl, t) => { const a = AFFIXES.find(x => x.stat
 
 // Erzeugt ein Item für Stufe `lvl`. luck verschiebt Seltenheiten nach oben.
 export function makeItem(lvl, { luck = 0, slot, slots, cls, minRarity = 0 } = {}) {
-  let pool = slot ? BASES.filter(b => b.slot === slot) : slots ? BASES.filter(b => slots.includes(b.slot)) : BASES;
+  const okLvl = b => !b.minLvl || lvl >= b.minLvl;   // höhere Grundgegenstände erst ab ihrer Stufe
+  let pool = (slot ? BASES.filter(b => b.slot === slot) : slots ? BASES.filter(b => slots.includes(b.slot)) : BASES).filter(okLvl);
   if (cls && rand() < 0.6) pool = pool.filter(b => b.slot !== 'weapon' || b.kind === cls.weapon);
   let base = pick(pool.length ? pool : BASES);
   const boost = 1 + Math.min(luck, 200) / 100;
@@ -24,9 +25,9 @@ export function makeItem(lvl, { luck = 0, slot, slots, cls, minRarity = 0 } = {}
   const ilvl = Math.max(1, lvl + roll(-1, 1));
   // Einzigartige: feste Basis, feste Boni und Sonderbonus
   const uniq = rar.id === 'legendary' && rand() < UNIQUE_CHANCE ? pickUnique(pool) : null;
-  if (uniq) base = [...BASES].reverse().find(b => b.slot === uniq.slot && (!uniq.kind || b.kind === uniq.kind)) || base;
+  if (uniq) base = [...BASES].reverse().find(b => b.slot === uniq.slot && (!uniq.kind || b.kind === uniq.kind) && okLvl(b)) || base;
   const scale = (1 + ilvl * 0.18) * rar.mult;
-  const it = { id: uid(), slot: base.slot, kind: base.kind, base: base.name, art: base.art, w: base.w, h: base.h, rarity: rar.id, lvl: ilvl, mods: {}, tiers: {} };
+  const it = { id: uid(), slot: base.slot, kind: base.kind, base: base.name, art: artOf(base, rar), w: base.w, h: base.h, rarity: rar.id, lvl: ilvl, mods: {}, tiers: {} };
   if (base.armor) it.armor = Math.round(base.armor * scale);
   if (base.dmg) it.dmg = [Math.round(base.dmg[0] * scale), Math.round(base.dmg[1] * scale)];
   let chosen = [];
@@ -45,6 +46,13 @@ export function makeItem(lvl, { luck = 0, slot, slots, cls, minRarity = 0 } = {}
   if (CRAFT.glut[rar.id] && !it.unique) it.glut = it.glutMax = CRAFT.glut[rar.id] + roll(0, CRAFT.glutRand);
   it.value = itemValue(it, rar);
   return it;
+}
+
+// Bild-Variante: gewöhnliche meist das Grundbild, seltene/legendäre meist eine der prächtigeren Varianten
+function artOf(base, rar) {
+  const v = base.vars || []; if (!v.length) return base.art;
+  const fancy = rar.id === 'rare' || rar.id === 'legendary' ? 0.8 : rar.id === 'magic' ? 0.5 : 0.25;
+  return rand() < fancy ? pick(v) : base.art;
 }
 
 function pickUnique(pool) {

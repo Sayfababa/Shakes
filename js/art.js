@@ -1,3 +1,4 @@
+import { BASES } from './data.js';
 // Handgezeichnete Item-Grafiken als SVG. 1 Rasterzelle = 20 Einheiten.
 // Farbverläufe (Metall, Holz, Leder, Gold, Knochen) liegen einmalig in index.html (#defs).
 const G = { m: 'url(#gMetal)', md: 'url(#gMetalDark)', w: 'url(#gWood)', l: 'url(#gLeather)', g: 'url(#gGold)', b: 'url(#gBone)', c: 'url(#gCloth)' };
@@ -64,8 +65,7 @@ const ART = {
 };
 
 // Gemalte Item-Bilder (assets/items/<art>.webp). Fehlt eins, wird das SVG gezeichnet.
-const PAINTED = new Set(['cap', 'helm', 'mask', 'leather', 'mail', 'plate', 'gloves', 'gauntlets', 'boots', 'greaves', 'sash', 'belt', 'buckler', 'tower', 'amulet', 'ring',
-  'hatchet', 'waraxe', 'sword', 'longsword', 'dagger', 'claw', 'bow', 'longbow', 'staff', 'runestaff', 'wand', 'scepter']);
+const PAINTED = new Set(BASES.flatMap(b => [b.art, ...(b.vars || [])]));   // alle Grundbilder + Varianten
 export function itemArt(it) {
   if (PAINTED.has(it.art)) return `<img class="iart" src="assets/items/${it.art}.webp" alt="" draggable="false">`;
   const w = (it.w || 1) * 20, h = (it.h || 1) * 20, f = ART[it.art] || ART.ring;
