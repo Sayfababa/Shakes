@@ -181,7 +181,7 @@ function startForge() {
 }
 function nextZone() {
   FG.center = 0.25 + Math.random() * 0.5; FG.t0 = performance.now(); FG.offset = Math.random();
-  const bar = document.querySelector('.fbar'); if (!bar) return;
+  const bar = document.querySelector('.iron'); if (!bar) return;
   bar.style.setProperty('--cz', FG.center);
   FORGE.zones.forEach(([w], i) => bar.querySelector('.z' + (3 - i)).style.setProperty('--w', w * 2));
 }
@@ -192,7 +192,12 @@ function forgeHit() {
   FG.hits.push(pts);
   const pip = document.querySelector(`.pips i[data-i="${FG.hits.length - 1}"]`); if (pip) pip.className = 'p' + pts;
   const call = document.querySelector('.fcall'); if (call) { call.textContent = z ? z[2] + '!' : 'Daneben'; call.className = 'fcall p' + pts; void call.offsetWidth; call.classList.add('pop'); }
-  document.querySelector('.anvil')?.classList.remove('clang'); void document.querySelector('.anvil')?.offsetWidth; document.querySelector('.anvil')?.classList.add('clang');
+  const sc = document.querySelector('.scene'); if (sc) { sc.classList.remove('clang'); void sc.offsetWidth; sc.classList.add('clang'); }
+  // Funken am Einschlag – mehr und heller, je besser der Schlag
+  const sp = document.querySelector('.sparks');
+  if (sp) for (let i = 0; i < 4 + pts * 6; i++) { const f = document.createElement('i'); f.className = 'p' + pts;
+    f.style.left = (14.6 + p * 71) + '%'; f.style.setProperty('--x', (Math.random() * 2 - 1) * (30 + pts * 25) + 'px'); f.style.setProperty('--y', -(20 + Math.random() * (30 + pts * 30)) + 'px');
+    sp.appendChild(f); setTimeout(() => f.remove(), 700); }
   if (FG.hits.length < FORGE.hits) return nextZone();
   const score = FG.hits.reduce((a, b) => a + b, 0); stopForge();
   const pw = G.power(); setTimeout(() => { forgeRes = G.forge(forgeSel.slot, forgeSel.mat, score); render(); if (forgeRes) toast(pw); }, 500);

@@ -383,33 +383,50 @@ img.sic { object-fit: cover; padding: 0; background: #000; width: 48px; height: 
 .pwrap { position: relative; }
 @media (max-height: 720px) { .sb { width: 24px; height: 24px; } }
 
-/* --- Schmiede --- */
-.chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
-.chip { padding: 4px 3px; display: flex; flex-direction: column; align-items: center; line-height: 1.1; min-width: 0; }
-.chip b { font-size: .7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; } .chip small { font-size: .62rem; color: var(--dim); font-family: 'Alegreya'; }
-.chip.on { box-shadow: inset 0 0 0 1px var(--gold-hi), 0 0 8px rgba(226,192,122,.3); color: var(--gold-hi); }
+/* --- Schmiede (gemalte Szene; das glühende Eisen ist die Schlag-Leiste) --- */
+.forge > .panel { flex: none; } .forge > .smithy { flex: 1; display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+.scene { position: relative; flex: none; aspect-ratio: 1200 / 400; border: 1px solid #000; box-shadow: inset 0 0 0 1px #3a2a1a, 0 0 0 1px #000; overflow: hidden; }
+.scene > img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.scene::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 40px 10px #000; pointer-events: none; }
+.iron { --cz: .5; position: absolute; left: 14.6%; width: 71%; top: 45.5%; height: 6.5%; }
+.fz { position: absolute; top: 0; bottom: 0; left: calc((var(--cz) - var(--w, .1) / 2) * 100%); width: calc(var(--w, .1) * 100%); border-radius: 2px; mix-blend-mode: screen; }
+.z1 { --w: .4; background: radial-gradient(ellipse at center, rgba(255,150,40,.55), rgba(255,120,20,0) 70%); }
+.z2 { --w: .2; background: radial-gradient(ellipse at center, rgba(255,210,90,.85), rgba(255,170,40,0) 75%); }
+.z3 { --w: .07; background: radial-gradient(ellipse at center, #fffbe8, rgba(255,240,180,.6) 60%, rgba(255,220,120,0)); box-shadow: 0 0 14px 4px rgba(255,230,150,.7); }
+.fmark { position: absolute; top: -260%; bottom: -60%; width: 7%; transform: translateX(-50%);
+  background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,.75) 70%, rgba(0,0,0,.9)); filter: blur(2px); }
+.fmark::after { content: ''; position: absolute; left: 50%; bottom: 60%; width: 2px; height: 90%; transform: translateX(-50%); background: linear-gradient(transparent, rgba(255,240,200,.85)); }
+.sparks { position: absolute; inset: 0; pointer-events: none; }
+.sparks i { position: absolute; top: 47%; width: 3px; height: 3px; border-radius: 50%; background: #ffcf6a; box-shadow: 0 0 4px 1px #ff9a20; animation: spark .7s ease-out forwards; }
+.sparks i.p3 { background: #fff8e0; box-shadow: 0 0 6px 2px #ffd070; } .sparks i.p0 { background: #8a3a12; box-shadow: none; }
+@keyframes spark { 0% { transform: translate(0, 0); opacity: 1; } 100% { transform: translate(var(--x), var(--y)); opacity: 0; } }
+.scene.clang > img { animation: shake .2s; }
+.pips { position: absolute; left: 0; right: 0; bottom: 6%; display: flex; justify-content: center; gap: 8px; z-index: 2; }
+.pips i { width: 11px; height: 11px; border: 1px solid #000; box-shadow: inset 0 0 0 1px #5a4428; background: rgba(12,10,8,.8); transform: rotate(45deg); }
+.pips i.p3 { background: #ffd070; box-shadow: 0 0 8px #ffb040; } .pips i.p2 { background: #e07a20; } .pips i.p1 { background: #8a3a12; } .pips i.p0 { background: #2a1a14; box-shadow: inset 0 0 0 1px var(--blood-hi); }
+.fcall { position: absolute; left: 0; right: 0; top: 8%; text-align: center; font-family: 'Grenze Gotisch'; font-size: 1.6rem; opacity: 0; z-index: 2; text-shadow: 0 2px 0 #000, 0 0 8px #000; }
+.fcall.pop { animation: fcall .7s ease-out forwards; } .fcall.p3 { color: #fff1c0; } .fcall.p2 { color: #ffb050; } .fcall.p1 { color: #c07a3a; } .fcall.p0 { color: var(--blood-hi); }
+@keyframes fcall { 0% { opacity: 0; transform: scale(.7); } 20% { opacity: 1; transform: scale(1.15); } 100% { opacity: 0; transform: translateY(-8px); } }
+.fhint { margin: 0; flex: 1; min-height: 0; overflow: hidden; } .smithy .big-btn, .smithy > button { flex: none; }
+.mtiles { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; }
+.mtile { position: relative; padding: 2px 0 1px; display: flex; flex-direction: column; align-items: center; line-height: 1; min-width: 0; background: #07080b; }
+.mtile img { width: 100%; max-width: 40px; aspect-ratio: 1; object-fit: contain; filter: drop-shadow(0 1px 1px #000); }
+.mtile b { position: absolute; top: 1px; right: 3px; font-size: .68rem; color: var(--gold-hi); text-shadow: 0 1px 0 #000, 0 0 3px #000; }
+.mtile small { font-size: .5rem; font-family: 'Alegreya SC'; color: var(--dim); white-space: nowrap; overflow: hidden; max-width: 100%; }
+.mtile:disabled img { filter: grayscale(.8) brightness(.5); } .mtile .qm { position: absolute; top: 0; left: 3px; font-style: normal; color: var(--blood-hi); font-weight: 700; font-size: .75rem; }
+.mtile.on { box-shadow: inset 0 0 0 1px var(--gold-hi), 0 0 8px rgba(226,192,122,.35); }
+.msel { margin: 4px 0 0; }
 .fslots { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
-.fslot { position: relative; width: 42px; height: 42px; padding: 3px; background: #07080b; border: 1px solid #000; box-shadow: inset 0 0 0 1px #2a2620; cursor: pointer; }
+.fslot { position: relative; width: 40px; height: 40px; padding: 3px; background: #07080b; border: 1px solid #000; box-shadow: inset 0 0 0 1px #2a2620; cursor: pointer; }
 .fslot svg, .fslot img { width: 100%; height: 100%; display: block; object-fit: contain; }
 .fslot.on { box-shadow: inset 0 0 0 1px var(--gold-hi), 0 0 8px rgba(226,192,122,.35); } .fslot.full { opacity: .4; }
 .fslot i { position: absolute; right: 1px; bottom: 0; font-style: normal; font-size: .58rem; color: var(--gold-hi); text-shadow: 0 1px 0 #000; }
-.forgeplay { display: flex; flex-direction: column; justify-content: space-between; gap: 6px; }
-.anvil { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 8px; min-height: 0; }
-.fbar { --cz: .5; position: relative; height: 34px; background: linear-gradient(90deg, #1a0d08, #2a130a 50%, #1a0d08); border: 1px solid #000; box-shadow: inset 0 0 0 1px #3a2a1a, inset 0 0 18px #000; }
-.fz { position: absolute; top: 0; bottom: 0; left: calc((var(--cz) - var(--w, .1) / 2) * 100%); width: calc(var(--w, .1) * 100%); }
-.z1 { --w: .4; background: rgba(160,70,20,.35); } .z2 { --w: .2; background: rgba(230,120,30,.5); } .z3 { --w: .07; background: rgba(255,220,120,.85); box-shadow: 0 0 12px #ffb040; }
-.fmark { position: absolute; top: -5px; bottom: -5px; width: 4px; margin-left: -2px; background: #f4ecd8; box-shadow: 0 0 8px #fff, 0 0 2px #000; }
-.pips { display: flex; justify-content: center; gap: 8px; } .pips i { width: 14px; height: 14px; border: 1px solid #000; box-shadow: inset 0 0 0 1px #3a3024; background: #0c0a08; transform: rotate(45deg); }
-.pips i.p3 { background: #ffd070; box-shadow: 0 0 8px #ffb040; } .pips i.p2 { background: #e07a20; } .pips i.p1 { background: #8a3a12; } .pips i.p0 { background: #2a1a14; box-shadow: inset 0 0 0 1px var(--blood); }
-.fcall { text-align: center; font-family: 'Grenze Gotisch'; font-size: 1.5rem; height: 1.6rem; opacity: 0; }
-.fcall.pop { animation: fcall .7s ease-out forwards; } .fcall.p3 { color: #ffd070; } .fcall.p2 { color: #e8a050; } .fcall.p1 { color: #b06a3a; } .fcall.p0 { color: var(--blood-hi); }
-@keyframes fcall { 0% { opacity: 0; transform: scale(.7); } 20% { opacity: 1; transform: scale(1.15); } 100% { opacity: 0; transform: translateY(-8px); } }
-.anvil.clang .fbar { animation: shake .2s; }
-.forgeres { text-align: center; display: flex; flex-direction: column; justify-content: center; } .forgeres h2 { justify-content: center; font-size: 1.8rem; }
-.runestone { margin: 4px auto; width: 64px; height: 64px; display: grid; place-items: center; font-size: 2.4rem; color: #ffd070; text-shadow: 0 0 14px #ff9a30;
-  background: radial-gradient(circle, #3a2a1c, #0c0907 70%); border: 1px solid #000; box-shadow: inset 0 0 0 1px #5a4428, 0 0 22px rgba(255,150,50,.25); }
-.rune { color: #e8a050; }
+.forgeres { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; } .forgeres h2 { justify-content: center; font-size: 1.8rem; width: 100%; }
+.runeimg { width: 110px; height: 110px; object-fit: contain; filter: drop-shadow(0 0 10px rgba(255,160,60,.35)); animation: runein .8s ease-out; }
+.runeimg.g16, .runeimg.g22 { filter: drop-shadow(0 0 18px rgba(255,210,120,.7)); }
+@keyframes runein { 0% { transform: scale(.4) rotate(-20deg); opacity: 0; } 60% { transform: scale(1.1); opacity: 1; } 100% { transform: none; } }
+.rune { color: #e8a050; } .tiprune { width: 16px; height: 16px; vertical-align: -3px; margin-right: 2px; }
+.mats span { display: inline-flex; align-items: center; gap: 1px; } .mats .matimg { width: 18px; height: 18px; margin: -2px 0; object-fit: contain; filter: drop-shadow(0 1px 1px #000); }
 .waiting .btns { display: flex; gap: 6px; } .waiting .btns button { flex: 1; }
-.anvil { flex: none; min-height: 84px; }
-.forgeplay > p { margin: 0; }
-@media (max-height: 720px) { .forge .speaker { display: none; } .chip { padding: 3px 2px; } }
+.forge .speaker { flex: none; }
+@media (max-height: 720px) { .forge .speaker { display: none; } }

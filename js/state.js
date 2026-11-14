@@ -302,10 +302,10 @@ export function forge(slot, mat, score) {
   const r = RUNES[mat], it = S.equip[slot], g = FORGE.grades.find(x => score >= x.min);
   const v = Math.max(1, Math.round(r.per * (CFG.affixBase + S.lvl * CFG.affixPerLvl) * g.q));
   S.mats[mat] -= FORGE.cost;
-  (it.runes ||= []).push({ stat: r.stat, v, name: r.name, grade: g.name });
+  (it.runes ||= []).push({ stat: r.stat, v, name: r.name, grade: g.name, mat });
   it.mods[r.stat] = (it.mods[r.stat] || 0) + v;
   journal(`${g.adj} ${r.name} in ${it.name} geschmiedet.`);
-  return { it, rune: r, v, grade: g, score };
+  return { it, rune: r, v, grade: g, score, mat };
 }
 
 // --- Eilen: kostet mit Restzeit und Stufe ---
