@@ -221,11 +221,11 @@ export const DIFFICULTIES = [
 ];
 export const CRYPTS = [
   { id: 'c1', name: 'Gruft der Wäscherinnen', lvl: 1, glyph: 'skull', floors: ['Knochenhund', 'Skelettkrieger', 'Wiedergänger', 'Grabräuber'],
-    boss: { name: 'Mutter Gerlinde, die Ertränkte', glyph: 'hood' }, trophy: { hpPct: 0.05 } },
+    boss: { name: 'Mutter Gerlinde, die Ertränkte', glyph: 'gerlinde' }, trophy: { hpPct: 0.05 } },
   { id: 'c2', name: 'Die Pestkapelle', lvl: 6, glyph: 'rat', floors: ['Pestratte', 'Verfaulter Ghul', 'Kultist der Glocke', 'Gehäuteter'],
-    boss: { name: 'Bruder Aldemar, der Verseuchte', glyph: 'ghoul' }, trophy: { dmgPct: 0.05 } },
+    boss: { name: 'Bruder Aldemar, der Verseuchte', glyph: 'aldemar' }, trophy: { dmgPct: 0.05 } },
   { id: 'c3', name: 'Das Schlachthaus', lvl: 12, glyph: 'ghoul', floors: ['Gehäuteter', 'Gefallener', 'Blutfürst', 'Höllenbrut'],
-    boss: { name: 'Der Metzger von Vhal', glyph: 'horn' }, trophy: { crit: 0.03 } },
+    boss: { name: 'Der Metzger von Vhal', glyph: 'butcher' }, trophy: { crit: 0.03 } },
   { id: 'c4', name: 'Turm der Glocke', lvl: 20, glyph: 'horn', floors: ['Kultist der Glocke', 'Sumpfhexe', 'Blutfürst', 'Höllenbrut'],
-    boss: { name: 'Der Glöckner', glyph: 'horn' }, trophy: { armorPct: 0.1, hpPct: 0.05 } },
+    boss: { name: 'Der Glöckner', glyph: 'bellringer' }, trophy: { armorPct: 0.1, hpPct: 0.05 } },
 ];

@@ -10,7 +10,10 @@ export const fmtT = s => `${Math.floor(s / 60)}:${String(Math.max(0, s % 60)).pa
 const pct = (a, b) => Math.max(0, Math.min(100, (a / b) * 100));
 const effLine = e => Object.entries(e).map(([k, v]) => `${EFFECT_NAMES[k]}${k === 'first' ? '' : ' +' + Math.round(v * 100) + '%'}`).join(', ');
 
-export const monsterArt = g => `<div class="portrait monster"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#070403"/>${MON[g] || MON.skull}</svg></div>`;
+// Gemalte Monster/Bosse in assets/monsters/<glyph>.jpg, sonst SVG-Silhouette
+const MON_IMG = new Set(['gerlinde', 'aldemar', 'butcher', 'bellringer']);
+export const monsterArt = g => MON_IMG.has(g) ? `<img class="portrait monster" src="assets/monsters/${g}.jpg" alt="">`
+  : `<div class="portrait monster"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#070403"/>${MON[g] || MON.skull}</svg></div>`;
 const npcArt = g => NPC_ART[g] ? `<div class="portrait npc"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#0a0705"/>${NPC_ART[g]}</svg></div>` : `<img class="portrait npc" src="assets/npcs/${g}.jpg" alt="">`;
 // Sprecher-Leiste: kleines Portrait + wechselnder Satz
 const say = id => { const n = NPCS[id], line = n.lines[Math.floor(Date.now() / 60000) % n.lines.length];
@@ -165,7 +168,7 @@ export function viewCrypts() {
     ${CRYPTS.map(c => { const f = cryptFloor(c), open = cryptOpen(c), done = f >= 5;
       const troph = S.trophies.some(t => t.key === c.id + ':' + S.crypt.diff);
       return `<section class="panel crypt ${!open ? 'locked' : ''} ${done ? 'done' : ''}" ${open && !done && !cd ? `data-action="crypt" data-id="${c.id}"` : ''}>
-        ${monsterArt(f === 4 || done ? c.boss.glyph : c.glyph)}
+        ${monsterArt(c.boss.glyph)}
         <div><h3>${c.name}</h3>
           <p class="small">${!open ? `Versiegelt bis Stufe ${c.lvl + d.lvlAdd - 2}` : done ? `${c.boss.name} ist gefallen.` : f === 4 ? `<span class="hot">${c.boss.name}</span>` : `Ebene ${f + 1}: ${c.floors[f]} · Stufe ${cryptLvl(c, f)}`}</p>
           <div class="floors">${[0, 1, 2, 3, 4].map(i => `<i class="${i < f ? 'on' : ''} ${i === 4 ? 'boss' : ''}"></i>`).join('')}</div>
