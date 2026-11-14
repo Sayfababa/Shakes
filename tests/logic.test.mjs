@@ -163,3 +163,10 @@ test('Kampfbewertung: souveräner Sieg gibt Bonus, Niederlage keine Bewertung', 
   assert.equal(Game.gradeOf({ winner: 'a', left: 0.1 }).bonus, 0);
   assert.equal(Game.gradeOf({ winner: 'b', left: 0 }), null);
 });
+
+test('Waffen: fremde Waffe schwächt Schaden und Zauber; Zaubertempo zählt', () => {
+  const S = fresh('sorceress'); const own = G.stats();
+  S.equip.weapon = { ...S.equip.weapon, kind: 'sword' }; const off = G.stats();
+  assert.ok(off.offWeapon && off.amp < own.amp && off.dmg[1] < own.dmg[1]);
+  S.equip.weapon = { ...S.equip.weapon, kind: 'staff', mods: { haste: 20 } }; assert.equal(G.stats().haste, 0.2);
+});

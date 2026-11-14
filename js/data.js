@@ -48,6 +48,7 @@ export const AFFIXES = [
   { stat: 'lck', per: 0.7, pre: 'Glücklicher', suf: 'der Fortuna' },
   { stat: 'armor', per: 1.5, pre: 'Gehärteter', suf: 'der Wacht' },
   { stat: 'dmg', per: 0.6, pre: 'Grausamer', suf: 'des Schlachters' },
+  { stat: 'haste', per: 0.4, pre: 'Rascher', suf: 'der Beschwörung' },   // Zaubertempo in %: Zauber laden schneller
 ];
 export const LEGEND_NAMES = ['Grabesruh', 'Aschenkuss', 'Der Letzte Psalm', 'Witwenmacher', 'Knochenkrone', 'Sünde von Vhal', 'Rabenschwur', 'Blutglocke'];
 
@@ -275,7 +276,8 @@ export const CFG = {
   lootChance: 0.55, critBase: 0.05,
   strArmor: 0.5,                      // Stärke gibt jeder Klasse Rüstung (je Punkt)
   spellK: 60,                         // Zauberkraft = 1 + Int / (Int + spellK)  (sättigt, max. ×2)
-  monHp: 1.3, monDmg: 1.1,                // Ausgleich für Zauber (Monster-Leben/-Schaden)
+  monHp: 1.3, monDmg: 1.1,
+  offWeapon: 0.7, offWeaponSpell: 0.6,  // fremde Waffe (nicht die der Klasse): Schaden ×0,7, Zauberkraft ×0,6                // Ausgleich für Zauber (Monster-Leben/-Schaden)
 };
 
 // --- Attribute: was bringt ein Punkt? (Text für Werte-Ansicht) ---
@@ -288,34 +290,34 @@ export const ATTR_INFO = {   // ohne "Schaden" – den bringt jeweils das Haupta
 //       shield (pct Leben als Schild) | dot (Gift: mult × Hieb je Runde) | buff (Schaden +v für den Kampf) | mark (hit, doppelt unter 50 %)
 export const SPELLS = {
   barbarian: [
-    { id: 'schrei', name: 'Kriegsschrei', lvl: 1, every: 4, kind: 'buff', v: 0.2, max: 0.4, text: 'Schaden +20 % bis Kampfende (bis +40 %)' },
-    { id: 'wirbel', name: 'Wirbelwind', lvl: 8, every: 5, kind: 'multi', hits: 3, mult: 0.7, text: '3 Hiebe zu je 70 %' },
-    { id: 'blutdurst', name: 'Blutdurst', lvl: 18, every: 6, kind: 'heal', pct: 0.15, text: 'heilt 15 % Leben' },
+    { id: 'schrei', fx: '#c0301e', name: 'Kriegsschrei', lvl: 1, every: 4, kind: 'buff', v: 0.2, max: 0.4, text: 'Schaden +20 % bis Kampfende (bis +40 %)' },
+    { id: 'wirbel', fx: '#c0301e', name: 'Wirbelwind', lvl: 8, every: 5, kind: 'multi', hits: 3, mult: 0.7, text: '3 Hiebe zu je 70 %' },
+    { id: 'blutdurst', fx: '#c0301e', name: 'Blutdurst', lvl: 18, every: 6, kind: 'heal', pct: 0.15, text: 'heilt 15 % Leben' },
   ],
   paladin: [
-    { id: 'schlag', name: 'Heiliger Schlag', lvl: 1, every: 3, kind: 'hit', mult: 1.6, text: '160 % Schaden, nicht blockbar' },
-    { id: 'gebet', name: 'Gebet', lvl: 8, every: 5, kind: 'heal', pct: 0.12, text: 'heilt 12 % Leben' },
-    { id: 'hammer', name: 'Gottes Hammer', lvl: 18, every: 6, kind: 'stun', mult: 2.2, text: '220 % Schaden und betäubt' },
+    { id: 'schlag', fx: '#e2c07a', name: 'Heiliger Schlag', lvl: 1, every: 3, kind: 'hit', mult: 1.6, text: '160 % Schaden, nicht blockbar' },
+    { id: 'gebet', fx: '#e2c07a', name: 'Gebet', lvl: 8, every: 5, kind: 'heal', pct: 0.12, text: 'heilt 12 % Leben' },
+    { id: 'hammer', fx: '#e2c07a', name: 'Gottes Hammer', lvl: 18, every: 6, kind: 'stun', mult: 2.2, text: '220 % Schaden und betäubt' },
   ],
   assassin: [
-    { id: 'schatten', name: 'Schattenstich', lvl: 1, every: 3, kind: 'hit', mult: 1.7, text: '170 % Schaden, nicht blockbar' },
-    { id: 'giftklinge', name: 'Giftklinge', lvl: 8, every: 4, kind: 'dot', mult: 0.35, text: 'Gift: 35 % eines Hiebs je Runde' },
-    { id: 'mal', name: 'Todesmal', lvl: 18, every: 5, kind: 'mark', mult: 1.6, text: '160 %, doppelt gegen Verwundete' },
+    { id: 'schatten', fx: '#9a5ad8', name: 'Schattenstich', lvl: 1, every: 3, kind: 'hit', mult: 1.7, text: '170 % Schaden, nicht blockbar' },
+    { id: 'giftklinge', fx: '#7fd13a', name: 'Giftklinge', lvl: 8, every: 4, kind: 'dot', mult: 0.35, text: 'Gift: 35 % eines Hiebs je Runde' },
+    { id: 'mal', fx: '#9a5ad8', name: 'Todesmal', lvl: 18, every: 5, kind: 'mark', mult: 1.6, text: '160 %, doppelt gegen Verwundete' },
   ],
   huntress: [
-    { id: 'gezielt', name: 'Gezielter Schuss', lvl: 1, every: 3, kind: 'hit', mult: 1.6, text: '160 % Schaden, nicht blockbar' },
-    { id: 'hagel', name: 'Pfeilhagel', lvl: 8, every: 5, kind: 'multi', hits: 4, mult: 0.5, text: '4 Pfeile zu je 50 %' },
-    { id: 'falle', name: 'Fangeisen', lvl: 18, every: 6, kind: 'stun', mult: 1.4, text: '140 % Schaden und betäubt' },
+    { id: 'gezielt', fx: '#c9a060', name: 'Gezielter Schuss', lvl: 1, every: 3, kind: 'hit', mult: 1.6, text: '160 % Schaden, nicht blockbar' },
+    { id: 'hagel', fx: '#a8b090', name: 'Pfeilhagel', lvl: 8, every: 5, kind: 'multi', hits: 4, mult: 0.5, text: '4 Pfeile zu je 50 %' },
+    { id: 'falle', fx: '#a0703a', name: 'Fangeisen', lvl: 18, every: 6, kind: 'stun', mult: 1.4, text: '140 % Schaden und betäubt' },
   ],
   sorceress: [
-    { id: 'feuerball', name: 'Feuerball', lvl: 1, every: 3, kind: 'hit', mult: 1.7, text: '170 % Schaden, nicht blockbar' },
-    { id: 'frost', name: 'Frostnova', lvl: 8, every: 5, kind: 'stun', mult: 1.2, text: '120 % Schaden und betäubt' },
-    { id: 'meteor', name: 'Meteor', lvl: 18, every: 7, kind: 'hit', mult: 3.5, text: '350 % Schaden' },
+    { id: 'feuerball', fx: '#ff7a1a', name: 'Feuerball', lvl: 1, every: 3, kind: 'hit', mult: 1.7, text: '170 % Schaden, nicht blockbar' },
+    { id: 'frost', fx: '#9fd8ff', name: 'Frostnova', lvl: 8, every: 5, kind: 'stun', mult: 1.2, text: '120 % Schaden und betäubt' },
+    { id: 'meteor', fx: '#ff5a10', name: 'Meteor', lvl: 18, every: 7, kind: 'hit', mult: 3.5, text: '350 % Schaden' },
   ],
   witch: [
-    { id: 'speer', name: 'Knochenspeer', lvl: 1, every: 3, kind: 'hit', mult: 1.6, text: '160 % Schaden, nicht blockbar' },
-    { id: 'seuche', name: 'Seuche', lvl: 8, every: 4, kind: 'dot', mult: 0.35, text: 'Gift: 35 % eines Hiebs je Runde' },
-    { id: 'wall', name: 'Knochenwall', lvl: 18, every: 6, kind: 'shield', pct: 0.2, text: 'Schild aus 20 % Leben' },
+    { id: 'speer', fx: '#7fd13a', name: 'Knochenspeer', lvl: 1, every: 3, kind: 'hit', mult: 1.6, text: '160 % Schaden, nicht blockbar' },
+    { id: 'seuche', fx: '#7fd13a', name: 'Seuche', lvl: 8, every: 4, kind: 'dot', mult: 0.35, text: 'Gift: 35 % eines Hiebs je Runde' },
+    { id: 'wall', fx: '#d8c8a0', name: 'Knochenwall', lvl: 18, every: 6, kind: 'shield', pct: 0.2, text: 'Schild aus 20 % Leben' },
   ],
 };
 
@@ -342,7 +344,7 @@ export const RANKS = [
 // dmgPct, hpPct, armorPct (Multiplikator), crit, evade, block, leech, bleed, rage, pen, regen, thorns, execute, first
 export const EFFECT_NAMES = { dmgPct: 'Schaden', hpPct: 'Leben', armorPct: 'Rüstung', crit: 'Krit-Chance', evade: 'Ausweichen',
   block: 'Blocken', leech: 'Lebensraub', bleed: 'Bluten bei Krit', rage: 'Raserei', pen: 'Rüstung ignorieren', regen: 'Regeneration/Runde',
-  thorns: 'Dornen', execute: 'Schaden gg. Sterbende', first: 'Erstschlag', poison: 'Gift', toll: 'Betäuben' };
+  thorns: 'Dornen', execute: 'Schaden gg. Sterbende', first: 'Erstschlag', poison: 'Gift', toll: 'Betäuben', haste: 'Zaubertempo' };
 
 // Talentbaum je Klasse: 3 Pfade × 3 Stufen. Stufe n braucht 1 Rang im Talent davor + Charakterstufe TIER_LVL[n].
 export const TIER_LVL = [2, 8, 16];

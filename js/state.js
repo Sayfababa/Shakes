@@ -90,9 +90,11 @@ export function stats(p = S) {
     for (const [k, v] of Object.entries(it.mods)) k === 'dmg' ? st.dmgBonus += v : st[k] = (st[k] || 0) + v;
   }
   const c = CLASSES[p.cls], w = p.equip.weapon, e = effects(p);
-  const base = w?.dmg || [1, 3], dm = 1 + (e.dmgPct || 0);
+  const fit = !w || w.kind === c.weapon;          // Klassenwaffe? Fremde Waffen schwächen Hieb und Zauber
+  const base = w?.dmg || [1, 3], dm = (1 + (e.dmgPct || 0)) * (fit ? 1 : CFG.offWeapon);
   return { ...e, ...st, name: p.name, cls: p.cls, lvl: p.lvl, main: c.main,
-    spells: SPELLS[p.cls].filter(s => p.lvl >= s.lvl), amp: 1 + st.int / (st.int + CFG.spellK),
+    spells: SPELLS[p.cls].filter(s => p.lvl >= s.lvl), amp: (1 + st.int / (st.int + CFG.spellK)) * (fit ? 1 : CFG.offWeaponSpell), offWeapon: !fit,
+    haste: (e.haste || 0) + (st.haste || 0) / 100,
     armor: Math.round((st.armor + st.str * CFG.strArmor) * (1 + (e.armorPct || 0))),
     dmg: [Math.round((base[0] + st.dmgBonus) * dm), Math.round((base[1] + st.dmgBonus) * dm)],
     hp: Math.round(st.con * c.hp * (CFG.hpBase + p.lvl * CFG.hpPerLvl) * (1 + (e.hpPct || 0))) };
@@ -123,8 +125,9 @@ export function power(A = stats()) {
     const sd = strike * A.amp * (1 - red) * hit;
     const v = s.kind === 'multi' ? sd * s.mult * s.hits : s.kind === 'dot' ? sd * s.mult * 3 : s.kind === 'buff' ? dpt * s.v * 2
       : s.kind === 'heal' || s.kind === 'shield' ? 0 : sd * s.mult * (s.kind === 'mark' ? 1.4 : s.kind === 'stun' ? 1.5 : 1);
-    dpt += (v - dpt) / s.every;
-    if (s.kind === 'heal' || s.kind === 'shield') heal += A.hp * s.pct * A.amp / s.every;
+    const ev = s.every / (1 + (A.haste || 0));
+    dpt += (v - dpt) / ev;
+    if (s.kind === 'heal' || s.kind === 'shield') heal += A.hp * s.pct * A.amp / ev;
   }
   const taken = eDmg * (1 - Math.min(0.6, A.armor / (A.armor + 20 + L * 8))) * (1 - Math.min(0.5, A.dex / (A.dex + en * 3 + 40) + (A.evade || 0))) * (1 - Math.min(0.5, A.block || 0));
   const ehp = A.hp / (taken * Math.max(0.3, 1 - heal * 0.6 / Math.max(1, taken))) * eDmg;   // Leben, umgerechnet in "wie viele Gegner-Hiebe halte ich aus"

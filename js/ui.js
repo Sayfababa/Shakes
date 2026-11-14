@@ -48,7 +48,9 @@ export function itemTip(it, cmp) {
   const L = [`<div class="n r-${it.rarity}">${it.name}${it.up ? ` +${it.up}` : ''}</div><div class="sub2">${rarName(it.rarity)} · ${SLOTS[it.slot]} · Stufe ${it.lvl}</div>`];
   if (it.dmg) L.push(`Schaden <b>${it.dmg[0]}–${it.dmg[1]}</b>`);
   if (it.armor) L.push(`Rüstung <b>${it.armor}</b>`);
-  for (const [k, v] of Object.entries(it.mods)) L.push(`<span class="m">+${v} ${k === 'armor' ? 'Rüstung' : k === 'dmg' ? 'Schaden' : ATTRS[k]}</span>`);
+  for (const [k, v] of Object.entries(it.mods)) L.push(`<span class="m">+${v}${k === 'haste' ? ' % Zaubertempo' : ' ' + (k === 'armor' ? 'Rüstung' : k === 'dmg' ? 'Schaden' : ATTRS[k])}</span>`);
+  if (it.slot === 'weapon') { const ck = CLASSES[S.cls].weapon; L.push(it.kind === ck ? `<span class="gold">Waffe deiner Klasse</span>`
+    : `<span class="down">Fremde Waffe: Schaden −${Math.round((1 - CFG.offWeapon) * 100)} %, Zauber −${Math.round((1 - CFG.offWeaponSpell) * 100)} %</span>`); }
   L.push(`<span class="sub2">${it.price ? 'Preis' : 'Wert'}: ${it.price ?? it.value} Gold</span>`);
   if (it.slot && !Object.values(S.equip).includes(it)) {
     const p = powerWith(it), a = stats(), b = p.st, g = (p.then - p.now) / Math.max(1, p.now);
@@ -146,11 +148,11 @@ export function viewStats() {
 // Zauber: wirken im Kampf von selbst
 export function viewSpells() {
   const st = stats();
-  return `<div class="col"><section class="panel"><h2>Zauber <span class="h2r">Zauberkraft ×${st.amp.toFixed(2).replace('.', ',')}</span><button class="tiny" data-action="go" data-v="hero">Zurück</button></h2>
-    <p class="small">Wirken im Kampf von selbst statt eines Hiebs. Wachsen mit deinem Schaden; <b>Intelligenz</b> verstärkt sie.</p></section>
+  return `<div class="col"><section class="panel"><h2>Zauber <span class="h2r">Zauberkraft ×${st.amp.toFixed(2).replace('.', ',')}${st.haste ? ` · Tempo +${Math.round(st.haste * 100)} %` : ''}</span><button class="tiny" data-action="go" data-v="hero">Zurück</button></h2>
+    <p class="small">Laden im Kampf auf und wirken von selbst. Stärker durch Schaden und <b>Intelligenz</b>, schneller durch <b>Zaubertempo</b> (Gegenstände). Nur mit der Waffe deiner Klasse voll.</p>${st.offWeapon ? '<p class="small down">Du trägst eine fremde Waffe – Zauber geschwächt.</p>' : ''}</section>
     ${SPELLS[S.cls].map(sp => { const on = S.lvl >= sp.lvl;
       return `<section class="panel spell ${on ? '' : 'locked'}"><img class="sic" src="assets/spells/${sp.id}.webp" alt="">
-        <div><h3>${sp.name} <span class="h2r">${on ? `jeder ${sp.every}. Zug` : `ab Stufe ${sp.lvl}`}</span></h3><p class="small">${sp.text}</p></div></section>`; }).join('')}
+        <div><h3>${sp.name} <span class="h2r">${on ? `alle ${(sp.every / (1 + st.haste)).toFixed(1).replace('.0', '').replace('.', ',')} Züge` : `ab Stufe ${sp.lvl}`}</span></h3><p class="small">${sp.text}</p></div></section>`; }).join('')}
     <section class="panel grow"><h2>Kampfbewertung <span class="h2r">je stärker, desto mehr Lohn</span></h2>${GRADES_TXT()}</section></div>`;
 }
 const GRADES_TXT = () => GRADES.map(g => `<div class="stat small"><span class="g-${g.id}">${g.name}</span><span>${g.min ? `≥ ${Math.round(g.min * 100)} % Leben` : 'sonst'} → ${g.bonus ? `+${Math.round(g.bonus * 100)} % Gold${g.id === 'dom' ? ', mehr Beute' : ''}` : 'kein Bonus'}</span></div>`).join('');
@@ -295,17 +297,18 @@ function fightSummary(F) {
   return `<div class="fsum">${g ? `<b class="g-${g.id}">${g.name}</b>${g.bonus ? ` · +${Math.round(g.bonus * 100)} % Gold` : ''} · ` : ''}${Math.round((F.left || 0) * 100)} % Leben übrig${sp ? `<br><span class="dim">Zauber: ${sp}</span>` : ''}</div>`;
 }
 export function viewFight(F) {
-  const side = (f, hp, max, hit, id) => `<div class="fighter" id="${id}"><div class="pwrap">${f.cls ? `<img class="portrait" src="${P(f.cls)}" alt="">` : monsterArt(f.glyph)}</div>
-    <div class="nm">${f.name}</div><div class="bar"><i style="width:${pct(hp, max)}%"></i></div><div class="hp">${Math.max(0, hp)} / ${max}</div></div>`;
+  const side = (f, hp, max, hit, id, ch) => `<div class="fighter" id="${id}"><div class="pwrap">${f.cls ? `<img class="portrait" src="${P(f.cls)}" alt="">` : monsterArt(f.glyph)}</div>
+    <div class="nm">${f.name}</div><div class="bar"><i style="width:${pct(hp, max)}%"></i></div><div class="hp">${Math.max(0, hp)} / ${max}</div>
+    ${f.spells?.length ? `<div class="sbar">${f.spells.map((sp, i) => `<div class="sb" data-i="${i}" title="${sp.name}" style="--c:${ch?.[i] ?? 0}"><img src="assets/spells/${sp.id}.webp" alt=""><i></i></div>`).join('')}</div>` : ''}</div>`;
   const shown = F.log.slice(0, F.step), last = shown[shown.length - 1] || {};
   const hpA = last.hpA ?? F.hpA, hpB = last.hpB ?? F.hpB, done = F.step >= F.log.length;
   return `<div class="panel fightwrap"><div class="fight">
-    ${side(F.A, hpA, F.hpA, last.who === 'b', 'fA')}
+    ${side(F.A, hpA, F.hpA, last.who === 'b', 'fA', last.cA)}
     <div><div class="log" id="log">${shown.map(l => `<div class="${l.who} ${l.crit ? 'crit' : ''} ${l.spell ? 'spell' : ''}">${l.t}</div>`).join('')}</div>
       ${done ? `<div class="result ${F.winner === 'a' ? 'win' : 'lose'}">${F.winner === 'a' ? 'Sieg' : 'Gefallen'}</div>${fightSummary(F)}
         <div class="loot-drop">${F.reward || ''}</div>${F.back === 'trips' && S.haul ? haulActions() : `<button class="red" data-action="go" data-v="${F.back}">Weiter</button>`}`
         : `<button data-action="skip">Überspringen</button>`}</div>
-    ${side(F.B, hpB, F.hpB, last.who === 'a', 'fB')}
+    ${side(F.B, hpB, F.hpB, last.who === 'a', 'fB', last.cB)}
   </div></div>`;
 }
 

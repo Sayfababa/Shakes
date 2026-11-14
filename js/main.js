@@ -43,8 +43,9 @@ function showFight(res, back, extra = '') {
   const { A, B, r, win, rew } = res;
   F = { A, B, ...r, step: 0, back, reward: (win ? (res.haul ? haulRewText(res) : rewText(rew)) : loseText(res)) + extra };
   view = 'fight'; G.save();
-  clearInterval(fightTimer);
-  fightTimer = setInterval(() => { F.step++; if (F.step >= F.log.length) { clearInterval(fightTimer); render(); } else fightStep(); }, 380);
+  clearTimeout(fightTimer);
+  const tick = () => { F.step++; if (F.step >= F.log.length) return render(); fightStep(); fightTimer = setTimeout(tick, F.log[F.step - 1]?.spell ? 750 : 380); };
+  fightTimer = setTimeout(tick, 380);
   render();
 }
 function haulRewText(res) {
@@ -84,13 +85,34 @@ function rewText(w) {
   return L.join('<br>');
 }
 
+// Zauber sichtbar machen: Symbol leuchtet in der Leiste, Name über dem Wirker, Geschoss fliegt zum Ziel, Einschlag in Zauberfarbe
+function spellFx(l) {
+  const me = document.getElementById(l.who === 'a' ? 'fA' : 'fB'), foe = document.getElementById(l.who === 'a' ? 'fB' : 'fA'), fight = document.querySelector('.fight');
+  const F0 = l.who === 'a' ? F.A : F.B, sp = F0.spells?.find(x => x.id === l.sid); if (!me || !sp) return;
+  const i = F0.spells.indexOf(sp), sb = me.querySelector(`.sb[data-i="${i}"]`);
+  if (sb) { sb.classList.remove('cast'); void sb.offsetWidth; sb.classList.add('cast'); }
+  const n = document.createElement('span'); n.className = 'spellname'; n.style.setProperty('--fx', sp.fx); n.innerHTML = `<span>${sp.name}</span>`;
+  me.querySelector('.pwrap')?.appendChild(n); setTimeout(() => n.remove(), 1100);
+  const self = ['heal', 'shield', 'buff'].includes(sp.kind), tgt = (self ? me : foe).querySelector('.pwrap');
+  const boom = () => { if (!tgt) return; const b = document.createElement('span'); b.className = `burst ${self ? 'self' : ''}`; b.style.setProperty('--fx', sp.fx);
+    b.innerHTML = `<img src="assets/spells/${sp.id}.webp" alt="">`; tgt.appendChild(b); setTimeout(() => b.remove(), 700); };
+  const miss = !self && !l.dmg && sp.kind !== 'dot';   // ausgewichen: Geschoss fliegt, kein Einschlag
+  if (self || !fight || !tgt) return boom();
+  const a = me.querySelector('.pwrap').getBoundingClientRect(), z = tgt.getBoundingClientRect(), f = fight.getBoundingClientRect();
+  const p = document.createElement('img'); p.className = 'proj'; p.src = `assets/spells/${sp.id}.webp`; p.style.setProperty('--fx', sp.fx);
+  p.style.left = (a.left + a.width / 2 - f.left - 22) + 'px'; p.style.top = (a.top + a.height / 2 - f.top - 22) + 'px';
+  p.style.setProperty('--dx', (z.left - a.left) + 'px'); p.style.setProperty('--dy', (z.top - a.top) + 'px');
+  fight.appendChild(p); setTimeout(() => { p.remove(); if (!miss) boom(); }, 320);
+}
+
 // Kampf-Schritt ohne Neuaufbau: nur Log-Zeile, Lebensbalken und Treffer-Effekt ändern (Bilder bleiben stehen)
 function fightStep() {
   const l = F.log[F.step - 1], log = document.getElementById('log'); if (!l || !log) return render();
   const row = document.createElement('div'); row.className = `${l.who} ${l.crit ? 'crit' : ''} ${l.spell ? 'spell' : ''}`; row.textContent = l.t;
   log.appendChild(row); log.scrollTop = log.scrollHeight;
-  if (l.spell) { const c = document.querySelector(`#${l.who === 'a' ? 'fA' : 'fB'} .pwrap`);
-    if (c) { const n = document.createElement('span'); n.className = 'spellname'; n.innerHTML = `${l.sid ? `<img src="assets/spells/${l.sid}.webp" alt="">` : ''}<span>${l.spell}</span>`; c.appendChild(n); setTimeout(() => n.remove(), 1100); } }
+  // Ladebalken der Zauber
+  for (const [id, ch] of [['fA', l.cA], ['fB', l.cB]]) (ch || []).forEach((v, i) => { const b = document.querySelector(`#${id} .sb[data-i="${i}"]`); if (b) b.style.setProperty('--c', v); });
+  if (l.spell) spellFx(l);
   for (const [id, hp, max] of [['fA', l.hpA, F.hpA], ['fB', l.hpB, F.hpB]]) {
     const el = document.getElementById(id); if (!el) continue;
     el.querySelector('.bar i').style.width = Math.max(0, Math.min(100, hp / max * 100)) + '%';
@@ -107,7 +129,7 @@ const actions = {
   create: () => { const n = document.getElementById('nm').value.trim() || 'Namenloser'; G.newChar(n, pickCls);
     G.journal(`${n} erwacht im Grab. Drei Gestalten warten am Friedhofstor.`); view = 'traders'; render(); },
   wipe: () => { if (confirm('Charakter wirklich vernichten?')) { G.wipe(); pickCls = null; render(); } },
-  go: d => { view = d.v; turnin = null; if (d.v === 'npc') npc = d.n || npc; if (view !== 'fight') { F = null; clearInterval(fightTimer); } render(); },
+  go: d => { view = d.v; turnin = null; if (d.v === 'npc') npc = d.n || npc; if (view !== 'fight') { F = null; clearTimeout(fightTimer); } render(); },
   attr: d => { G.addAttr(d.k); render(); },
   learn: d => { if (G.learn(+d.b, +d.t)) render(); },
   respec: () => { const c = G.respecCost(); if (confirm(c ? `Für ${c} Gold alle Attribute und Talente zurücksetzen?` : 'Attribute und Talente zurücksetzen? (einmalig gratis)')) { G.respec(); render(); } },
@@ -129,7 +151,7 @@ const actions = {
   champ: d => showFight(Game.champFight(d.t), 'npc'),
   trip: d => { tripLoc = d.id; view = 'trippick'; render(); },
   tripgo: d => { if (G.startTrip(d.id, d.tr)) { view = 'trips'; render(); } },
-  bank: () => { const h = Game.bank(); view = 'trips'; F = null; clearInterval(fightTimer);
+  bank: () => { const h = Game.bank(); view = 'trips'; F = null; clearTimeout(fightTimer);
     if (h?.up) G.journal(`Stufe ${G.S.lvl} erreicht.`); if (h) G.journal(`Heimgekehrt mit ${h.gold} Gold${h.items.length ? ` und ${h.items.length} Fundstück${h.items.length > 1 ? 'en' : ''}` : ''}.`); render(); },
   delve: () => showFight(Game.delve(), 'trips'),
   rush: () => { const S = G.S, c = G.rushCost(); if (S.active && S.gold >= c) { S.gold -= c; S.active.end = Date.now(); } render(); },
@@ -139,7 +161,7 @@ const actions = {
   rival: () => { rival = Game.makeRival(); render(); },
   arena: () => { const R = rival; const res = Game.arenaFight(R); if (res) rival = null; showFight(res, 'arena'); },
   noop: () => {},
-  skip: () => { F.step = F.log.length; clearInterval(fightTimer); render(); },
+  skip: () => { F.step = F.log.length; clearTimeout(fightTimer); render(); },
 };
 
 // --- Eingabe ---

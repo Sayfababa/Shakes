@@ -8,10 +8,11 @@ import { roll, chance, rand } from './rng.js';
 const MAX_ROUNDS = 50;
 
 export function fight(A, B) {
-  const a = { ...A, cur: A.hp, side: 'a', turn: 0, buff: 1, shield: 0 }, b = { ...B, cur: B.hp, side: 'b', turn: 0, buff: 1, shield: 0 };
+  const a = { ...A, cur: A.hp, side: 'a', turn: 0, buff: 1, shield: 0, ch: [] }, b = { ...B, cur: B.hp, side: 'b', turn: 0, buff: 1, shield: 0, ch: [] };
+  const chg = f => (f.spells || []).map((x, i) => Math.min(1, Math.round((f.ch[i] || 0) / x.every * 100) / 100));
   const cast = [];
   const log = [];
-  const say = (who, t, extra = {}) => log.push({ who, t, hpA: Math.max(0, Math.round(a.cur)), hpB: Math.max(0, Math.round(b.cur)), ...extra });
+  const say = (who, t, extra = {}) => log.push({ who, t, hpA: Math.max(0, Math.round(a.cur)), hpB: Math.max(0, Math.round(b.cur)), cA: chg(a), cB: chg(b), ...extra });
   const ini = f => (f.first ? 1000 : 0) + f.dex + roll(0, 10);
   let atk = ini(a) >= ini(b) ? a : b, def = atk === a ? b : a;
 
@@ -19,8 +20,10 @@ export function fight(A, B) {
     if (atk.regen && atk.cur < atk.hp) { const h = Math.round(atk.hp * atk.regen); atk.cur = Math.min(atk.hp, atk.cur + h); say(atk.side, `${atk.name} regeneriert ${h}.`); }
     if (atk.stunned) { atk.stunned = false; say(def.side, `${atk.name} ist betäubt und taumelt.`); [atk, def] = [def, atk]; continue; }
     atk.turn++;
-    const sp = (atk.spells || []).filter(x => atk.turn % x.every === 0).pop();
-    if (sp) spell(atk, def, sp); else strike(atk, def);
+    // Zauber laden pro eigenem Zug um 1 (+ Zaubertempo); der stärkste geladene wird gewirkt
+    const sps = atk.spells || []; let sp = null;
+    sps.forEach((x, i) => { atk.ch[i] = (atk.ch[i] || 0) + 1 + (atk.haste || 0); if (atk.ch[i] >= x.every) sp = i; });
+    if (sp !== null) { atk.ch[sp] -= sps[sp].every; spell(atk, def, sps[sp]); } else strike(atk, def);
     if (atk.rage && def.cur > 0 && atk.cur < atk.hp / 2 && chance(atk.rage)) { say(atk.side, `${atk.name} rast vor Wut!`); strike(atk, def); }
     if (def.bleedDmg && def.cur > 0) { def.cur -= def.bleedDmg; say(atk.side, `${def.name} blutet (${def.bleedDmg}).`); }
     if (def.poisonDmg && def.cur > 0) { def.cur -= def.poisonDmg; say(atk.side, `Gift zerfrisst ${def.name} (${def.poisonDmg}).`); }
