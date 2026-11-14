@@ -170,3 +170,11 @@ test('Waffen: fremde Waffe schwächt Schaden und Zauber; Zaubertempo zählt', ()
   assert.ok(off.offWeapon && off.amp < own.amp && off.dmg[1] < own.dmg[1]);
   S.equip.weapon = { ...S.equip.weapon, kind: 'staff', mods: { haste: 20 } }; assert.equal(G.stats().haste, 0.2);
 });
+
+test('Schmiede: Rune kostet Material, gibt Wert nach Güte, Plätze begrenzt', () => {
+  const S = fresh(); S.mats.zahn = 10; const before = S.equip.weapon.mods.dmg || 0;
+  const r = G.forge('weapon', 'zahn', 15); assert.ok(r); assert.equal(S.mats.zahn, 8); assert.equal(S.equip.weapon.mods.dmg, before + r.v);
+  const weak = G.forge('weapon', 'zahn', 0); assert.ok(weak.v < r.v, 'perfekte Schläge müssen mehr geben');
+  assert.equal(G.forge('weapon', 'zahn', 15), null, 'nur ' + D.FORGE.maxRunes + ' Runen je Teil');
+  assert.equal(G.forge('chest', 'zahn', 15), null, 'leerer Platz');
+});

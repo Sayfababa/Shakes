@@ -57,6 +57,20 @@ export const MATS = {
   zahn: 'Ghulzahn', staub: 'Knochenstaub', schwanz: 'Pestrattenschwanz', siegel: 'Kultistensiegel',
   blutstein: 'Blutstein', haar: 'Hexenhaar', asche: 'Höllenasche', leinen: 'Grableinen',
 };
+// --- Schmiede (Halvar): Minispiel für die Wartezeit. Material bestimmt die Rune, Treffer die Güte. ---
+export const RUNES = {
+  zahn: { stat: 'dmg', name: 'Fangrune', per: 0.6 },        leinen: { stat: 'armor', name: 'Leinenrune', per: 1.5 },
+  staub: { stat: 'int', name: 'Staubrune', per: 1 },        schwanz: { stat: 'lck', name: 'Rattenrune', per: 0.7 },
+  siegel: { stat: 'haste', name: 'Siegelrune', per: 0.4 },  blutstein: { stat: 'str', name: 'Blutrune', per: 1 },
+  haar: { stat: 'dex', name: 'Hexenrune', per: 1 },         asche: { stat: 'con', name: 'Aschenrune', per: 1 },
+};
+export const FORGE = {
+  cost: 2, hits: 5, maxRunes: 2,                        // Material je Versuch, Schläge, Runen je Gegenstand
+  speed: [0.9, 1.15, 1.4, 1.7, 2.0],                    // Durchläufe pro Sekunde, je Schlag schneller
+  zones: [[0.035, 3, 'Perfekt'], [0.1, 2, 'Gut'], [0.2, 1, 'Ordentlich']],   // Abstand zur Mitte → Punkte
+  grades: [{ min: 15, name: 'Makellos', adj: 'Makellose', q: 2.2 }, { min: 12, name: 'Meisterhaft', adj: 'Meisterhafte', q: 1.6 }, { min: 7, name: 'Solide', adj: 'Solide', q: 1 }, { min: 0, name: 'Grob', adj: 'Grobe', q: 0.5 }],
+};
+
 export const MONSTERS = [
   { name: 'Verfaulter Ghul', glyph: 'ghul', mat: 'zahn' }, { name: 'Gefallener', glyph: 'fallen', mat: 'asche' },
   { name: 'Skelettkrieger', glyph: 'skelett', mat: 'staub' }, { name: 'Grabräuber', glyph: 'grabraeuber', mat: 'leinen' },

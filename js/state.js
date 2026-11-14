@@ -1,4 +1,4 @@
-import { SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS } from './data.js';
+import { RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS } from './data.js';
 import { makeItem } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
@@ -283,6 +283,30 @@ export function fulfillOmen() { if (!S.omen.done) { S.omen.done = true; S.omens+
 // Wird dieses Material gerade für einen offenen Auftrag gebraucht? (Warnung bei Diensten)
 let questNeedsMat = () => false;
 export const setQuestMatCheck = f => { questNeedsMat = f; };
+
+// --- Schmiede: Runen einschmieden (Minispiel in der UI, hier nur die Regeln) ---
+export const forgeTargets = () => Object.entries(S.equip).filter(([, it]) => it).map(([slot, it]) => ({ slot, it, free: FORGE.maxRunes - (it.runes?.length || 0) }));
+export function canForge(slot, mat) {
+  const it = S.equip[slot];
+  if (!it) return 'Kein Gegenstand angelegt.';
+  if ((it.runes?.length || 0) >= FORGE.maxRunes) return 'Alle Runenplätze belegt.';
+  if (!RUNES[mat]) return 'Unbekanntes Material.';
+  if ((S.mats[mat] || 0) < FORGE.cost) return `Zu wenig ${mat}.`;
+  return null;
+}
+export const forgeQuestMat = mat => questNeedsMat(mat);
+// score: Summe der Schlag-Punkte (0 .. hits×3)
+export function forge(slot, mat, score) {
+  if (canForge(slot, mat)) return null;
+  score = Math.max(0, Math.min(FORGE.hits * 3, Math.round(score)));
+  const r = RUNES[mat], it = S.equip[slot], g = FORGE.grades.find(x => score >= x.min);
+  const v = Math.max(1, Math.round(r.per * (CFG.affixBase + S.lvl * CFG.affixPerLvl) * g.q));
+  S.mats[mat] -= FORGE.cost;
+  (it.runes ||= []).push({ stat: r.stat, v, name: r.name, grade: g.name });
+  it.mods[r.stat] = (it.mods[r.stat] || 0) + v;
+  journal(`${g.adj} ${r.name} in ${it.name} geschmiedet.`);
+  return { it, rune: r, v, grade: g, score };
+}
 
 // --- Eilen: kostet mit Restzeit und Stufe ---
 export const rushCost = () => !S.active ? 0 : Math.max(1, Math.ceil(Math.max(0, S.active.end - now()) / 20000) * Math.ceil(1 + S.lvl / CFG.rushPerLvl));

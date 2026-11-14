@@ -1,10 +1,11 @@
-import { CFG, MATS, TUTORIAL, TRADERS } from './data.js';
+import { CFG, MATS, TUTORIAL, TRADERS, FORGE } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import * as Game from './game.js';
 import * as UI from './ui.js';
 
 const app = document.getElementById('app'), tip = document.getElementById('tip');
+let forgeSel = { mat: null, slot: null }, forgeRes = null, FG = null;
 let tripLoc = null, view = 'hero', pickCls = null, F = null, rival = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
 
 function render() {
@@ -16,6 +17,7 @@ function render() {
     traders: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewTrader(trader),
     trippick: () => UI.viewTripPick(tripLoc),
     bounties: UI.viewBounties,
+    forge: () => UI.viewForge(forgeSel, forgeRes),
     npc: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewNpc(npc),
     arena: () => UI.viewArena(rival ||= Game.makeRival()), hero: UI.viewHero,
   };
@@ -129,7 +131,7 @@ const actions = {
   create: () => { const n = document.getElementById('nm').value.trim() || 'Namenloser'; G.newChar(n, pickCls);
     G.journal(`${n} erwacht im Grab. Drei Gestalten warten am Friedhofstor.`); view = 'traders'; render(); },
   wipe: () => { if (confirm('Charakter wirklich vernichten?')) { G.wipe(); pickCls = null; render(); } },
-  go: d => { view = d.v; turnin = null; if (d.v === 'npc') npc = d.n || npc; if (view !== 'fight') { F = null; clearTimeout(fightTimer); } render(); },
+  go: d => { view = d.v; turnin = null; if (d.v === 'forge') { forgeRes = null; stopForge(); } if (d.v === 'npc') npc = d.n || npc; if (view !== 'fight') { F = null; clearTimeout(fightTimer); } render(); },
   attr: d => { G.addAttr(d.k); render(); },
   learn: d => { if (G.learn(+d.b, +d.t)) render(); },
   respec: () => { const c = G.respecCost(); if (confirm(c ? `Für ${c} Gold alle Attribute und Talente zurücksetzen?` : 'Attribute und Talente zurücksetzen? (einmalig gratis)')) { G.respec(); render(); } },
@@ -160,9 +162,41 @@ const actions = {
   crypt: d => showFight(Game.cryptFight(d.id), 'crypt'),
   rival: () => { rival = Game.makeRival(); render(); },
   arena: () => { const R = rival; const res = Game.arenaFight(R); if (res) rival = null; showFight(res, 'arena'); },
+  forgemat: d => { forgeSel.mat = d.m; render(); },
+  forgeslot: d => { forgeSel.slot = d.s; render(); },
+  forgeagain: () => { forgeRes = null; render(); },
+  forgestart: () => startForge(),
+  forgehit: () => forgeHit(),
   noop: () => {},
   skip: () => { F.step = F.log.length; clearTimeout(fightTimer); render(); },
 };
+
+// --- Schmiede-Minispiel: Glut-Marke pendelt, im richtigen Moment schlagen (DOM-Patch, kein Render pro Bild) ---
+function stopForge() { if (FG) cancelAnimationFrame(FG.raf); FG = null; }
+function startForge() {
+  if (G.canForge(forgeSel.slot, forgeSel.mat)) return;
+  const btn = document.getElementById('forgebtn'); if (!btn) return;
+  btn.textContent = 'Schlag!'; btn.dataset.action = 'forgehit';
+  FG = { hits: [], t0: performance.now(), center: 0.5, raf: 0 }; nextZone(); loop();
+}
+function nextZone() {
+  FG.center = 0.25 + Math.random() * 0.5; FG.t0 = performance.now(); FG.offset = Math.random();
+  const bar = document.querySelector('.fbar'); if (!bar) return;
+  bar.style.setProperty('--cz', FG.center);
+  FORGE.zones.forEach(([w], i) => bar.querySelector('.z' + (3 - i)).style.setProperty('--w', w * 2));
+}
+const markPos = () => { const ph = (((performance.now() - FG.t0) / 1000) * FORGE.speed[FG.hits.length] + FG.offset) % 2; return ph < 1 ? ph : 2 - ph; };
+function loop() { if (!FG) return; const m = document.querySelector('.fmark'); if (!m) return stopForge(); m.style.left = (markPos() * 100) + '%'; FG.raf = requestAnimationFrame(loop); }
+function forgeHit() {
+  if (!FG) return; const p = markPos(), d = Math.abs(p - FG.center), z = FORGE.zones.find(([w]) => d <= w), pts = z ? z[1] : 0;
+  FG.hits.push(pts);
+  const pip = document.querySelector(`.pips i[data-i="${FG.hits.length - 1}"]`); if (pip) pip.className = 'p' + pts;
+  const call = document.querySelector('.fcall'); if (call) { call.textContent = z ? z[2] + '!' : 'Daneben'; call.className = 'fcall p' + pts; void call.offsetWidth; call.classList.add('pop'); }
+  document.querySelector('.anvil')?.classList.remove('clang'); void document.querySelector('.anvil')?.offsetWidth; document.querySelector('.anvil')?.classList.add('clang');
+  if (FG.hits.length < FORGE.hits) return nextZone();
+  const score = FG.hits.reduce((a, b) => a + b, 0); stopForge();
+  const pw = G.power(); setTimeout(() => { forgeRes = G.forge(forgeSel.slot, forgeSel.mat, score); render(); if (forgeRes) toast(pw); }, 500);
+}
 
 // --- Eingabe ---
 const TOUCH = matchMedia('(hover: none)').matches;

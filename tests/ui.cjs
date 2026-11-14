@@ -48,6 +48,13 @@ let failures = 0;
     await p.evaluate(() => { const s = JSON.parse(localStorage.aschenkrone_v1); s.lvl = 20; s.points = 25; localStorage.aschenkrone_v1 = JSON.stringify(s); });
     await p.reload(); await p.waitForTimeout(300); await tap('[data-v=hero]'); await tap('[data-v=stats]'); await chk('stats-points');
     await tap('[data-v=hero]'); await tap('[data-v=spells]'); await chk('spells20');
+    // Schmiede: Material + Teil wählen, 5 Schläge, Ergebnis
+    await p.evaluate(() => { const s = JSON.parse(localStorage.aschenkrone_v1); s.mats.zahn = 6; localStorage.aschenkrone_v1 = JSON.stringify(s); });
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=traders]'); await tap('[data-t=halvar]'); await tap('[data-v=forge]');
+    await tap('[data-m=zahn]'); await tap('[data-s=weapon]'); await chk('forge'); await tap('[data-action=forgestart]');
+    for (let i = 0; i < 5; i++) { await p.waitForTimeout(260); await tap('[data-action=forgehit]'); if (!i) await p.screenshot({ path: `${OUT}/${tag}-forgeplay.png` }); }
+    await p.waitForTimeout(700); await chk('forgeres');
+    if (!(await p.$('.forgeres'))) { failures++; console.log(`FEHLER ${tag}: Schmieden ohne Ergebnis`); }
     if (errs.length) { failures++; console.log(`FEHLER ${tag} JS:`, errs); }
     await c.close();
   }

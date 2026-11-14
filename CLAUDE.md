@@ -35,7 +35,7 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 
 ## Mobile / PWA
 - Wird primär am Handy als Homescreen-App getestet: https://sayfababa.github.io/Shakes/ (Pages vom Arbeits-Branch).
-- **Kein Scrollen**: App-Layout = HUD oben, `<main>` (overflow hidden), Tabs unten. `#app` ist `position: fixed; inset: 0` – **nicht** 100dvh/100vh (iOS-Homescreen-App rechnet die zu kurz, unten blieb ein Streifen frei). Jede Ansicht muss auf iPhone SE (375×667) und iPhone 13 passen – mit Playwright prüfen (Elemente unter main-Unterkante zählen). Nur Kampflog darf intern scrollen.
+- **Kein Scrollen**: App-Layout = HUD oben, `<main>` (overflow hidden), Tabs unten. `#app` ist `position: fixed; inset: 0` – **nicht** 100dvh/100vh; als Homescreen-App setzt `fitApp()` in main.js die Höhe auf `screen.height` (iOS meldet den Viewport dort zu kurz, unten blieb ~100 pt frei). Jede Ansicht muss auf iPhone SE (375×667) und iPhone 13 passen – mit Playwright prüfen (Elemente unter main-Unterkante zählen). Nur Kampflog darf intern scrollen.
 - `manifest.json` + `sw.js` (network-first, damit Updates sofort ankommen). Alle Pfade relativ (Pages-Unterordner!).
 - Touch: Item-Tap öffnet Detail-Popup mit Aktionen (`showTouchTip` in main.js), kein Hover/Rechtsklick voraussetzen.
 
@@ -61,6 +61,7 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - **Kampfkraft** (`power()`, `powerWith(item)`, `powerAttr(k)` in state.js): eine Zahl, deterministisch gegen Gegner eigener Stufe. Grundlage für Item-Vergleich (Tooltip-Box, grünes ▲ an Beutel/Laden, Toast nach Anlegen) und „+N“ an den Attribut-Knöpfen. Neue Effekte dort mit einrechnen.
 - **Zauber** (`SPELLS` in data.js, `spell()` in combat.js): 3 je Klasse (Stufe 1/8/18), Symbole `assets/spells/<id>.webp` (aus 2 KI-Sheets, Prompt in assets/reference/spell_prompt.md), wirken automatisch jeden n-ten eigenen Zug statt eines Hiebs. Stärke × Zauberkraft (`amp` = 1 + Int/(Int+spellK)) → Intelligenz lohnt für alle. Ausgleich über `CFG.monHp/monDmg`.
 - **Zauber im Kampf**: laden pro Zug (`ch`, +`haste` = Zaubertempo, Affix `haste` in %), Log trägt Ladestand `cA/cB` → Leiste `.sbar` unter dem Lebensbalken; `spellFx()` in main.js: Geschoss (`.proj`) + Einschlag (`.burst`) in Zauberfarbe `fx`. Zauber-Schritte laufen langsamer (750 ms).
+- **Schmiede** (Wartezeit-Beschäftigung, bei Halvar + „Zur Schmiede“ im Warte-Bildschirm): `RUNES`/`FORGE` in data.js, `forge(slot, mat, score)` in state.js (Rune → `it.runes` + `it.mods`, max. `FORGE.maxRunes` je Teil). Minispiel in main.js (`startForge`/`forgeHit`, rAF-Schleife, nur DOM-Patch). Kostet Material, keine Glut. Vorbild-Gedanke (GameGene): Berry Bury Berry – im Warte-/Idle-Kreislauf eine Handlung selbst ausführen lassen.
 - **Klassenwaffe**: fremde Waffenart → Schaden ×`offWeapon`, Zauberkraft ×`offWeaponSpell` (Tooltip sagt es, Kampfkraft rechnet es ein).
 - **Attribute** haben für jede Klasse einen Zweck (`ATTR_INFO`): Stärke → Rüstung (`strArmor`), Int → Zauber, Haupt → Schaden.
 - **Kampfbewertung** (`GRADES`, `gradeOf()` in game.js): Restleben → Überlegen/Sicher/Knapp, Bonus auf Gold + Beute-Chance (nicht EP, sonst kippt das Tempo).

@@ -1,6 +1,6 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
-import { GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
-import { power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
+import { RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
+import { forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
 import { gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance } from './game.js';
@@ -49,6 +49,7 @@ export function itemTip(it, cmp) {
   if (it.dmg) L.push(`Schaden <b>${it.dmg[0]}–${it.dmg[1]}</b>`);
   if (it.armor) L.push(`Rüstung <b>${it.armor}</b>`);
   for (const [k, v] of Object.entries(it.mods)) L.push(`<span class="m">+${v}${k === 'haste' ? ' % Zaubertempo' : ' ' + (k === 'armor' ? 'Rüstung' : k === 'dmg' ? 'Schaden' : ATTRS[k])}</span>`);
+  if (it.runes?.length || it.slot) { const rn = it.runes || []; if (rn.length) L.push(`<span class="rune">Runen ${rn.length}/${FORGE.maxRunes}: ${rn.map(r => r.name).join(', ')}</span>`); }
   if (it.slot === 'weapon') { const ck = CLASSES[S.cls].weapon; L.push(it.kind === ck ? `<span class="gold">Waffe deiner Klasse</span>`
     : `<span class="down">Fremde Waffe: Schaden −${Math.round((1 - CFG.offWeapon) * 100)} %, Zauber −${Math.round((1 - CFG.offWeaponSpell) * 100)} %</span>`); }
   L.push(`<span class="sub2">${it.price ? 'Preis' : 'Wert'}: ${it.price ?? it.value} Gold</span>`);
@@ -73,7 +74,7 @@ export function hud(tut = '') {
 }
 export function navBar(view) {
   const tabs = [['hero', 'Held'], ['trips', 'Streifzug'], ['traders', 'Händler'], ['crypt', 'Krypta'], ['arena', 'Grube']];
-  const map = { stats: 'hero', talents: 'hero', spells: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips' };
+  const map = { forge: 'traders', stats: 'hero', talents: 'hero', spells: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips' };
   // Nur echte Handlungsaufforderungen markieren – ein Dauer-Punkt auf jedem Tab sagt nichts mehr
   const badge = { hero: S.points + talentPoints() > 0, traders: Object.keys(TRADERS).some(canComplete), arena: canComplete('vargo'),
     crypt: canComplete('ilse'), trips: !!S.haul || canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) || (!!S.active && Date.now() >= S.active.end) };
@@ -174,7 +175,7 @@ export function viewTrips() {
     const a = S.active, l = LOCATIONS.find(x => x.id === a.loc), left = Math.ceil((a.end - Date.now()) / 1000);
     return `<div class="col"><section class="panel waiting"><h2>${l.name}</h2><p class="lore">${l.text}</p>
       <div class="waitmob">${monsterArt(MONSTERS.find(m => m.name === a.mob).glyph)}</div><p class="dim">Du folgst einer Spur: <b>${a.mob}</b>.</p>
-      ${left > 0 ? `<div class="big" data-until="${a.end}">${fmtT(left)}</div><button data-action="rush" ${S.gold < rushCost() ? 'disabled' : ''}>Eilen · ${rushCost()} Gold</button>`
+      ${left > 0 ? `<div class="big" data-until="${a.end}">${fmtT(left)}</div><div class="btns"><button data-action="rush" ${S.gold < rushCost() ? 'disabled' : ''}>Eilen · ${rushCost()} Gold</button><button class="red" data-action="go" data-v="forge">Zur Schmiede</button></div>`
                  : `<button class="red big-btn" data-action="resolve">Stellen</button>`}</section>
       ${say('prophet')}<section class="panel grow journal"><h2>Tagebuch</h2>${S.journal.slice(0, 6).map(j => `<div>${j.t}</div>`).join('')}</section></div>`;
   }
@@ -259,7 +260,7 @@ export function viewTrader(tid) {
         <div class="loyal"><span>Treue <b>${LOYALTY[L]}</b></span><div class="bar rep"><i style="width:${L + 1 < t.need.length ? pct(st.rep - t.need[L], t.need[L + 1] - t.need[L]) : 100}%"></i></div><small>${next}</small></div></div>
     </section>
     ${note}
-    <section class="panel services">${(SERVICES[tid] || []).map(sv => { const st = serviceState(sv);
+    <section class="panel services">${tid === 'halvar' ? `<button class="svc red" data-action="go" data-v="forge"><b>Schmiede</b><small>Runen einschmieden</small></button>` : ''}${(SERVICES[tid] || []).map(sv => { const st = serviceState(sv);
       return `<button class="svc" data-action="service" data-t="${tid}" data-s="${sv.id}" ${st.can ? '' : 'disabled'}>
         <b>${sv.name}${sv.max && st.it ? ` +${st.step}` : ''}</b><small>${st.reason || st.costText}${st.questMat && !st.reason ? ` <i class="hot">– ${MATS[st.questMat]} für Auftrag!</i>` : ''}</small></button>`; }).join('')}</section>
     <section class="panel shop"><div class="invhead"><span>Ware</span><small class="dim">bessere Ware mit höherer Treue</small></div>
@@ -329,3 +330,24 @@ export function tutorial(step) {
   const t = TUTORIAL[step]; if (!t) return '';
   return `<div class="tut"><div class="tutin"><b>${step + 1}/${TUTORIAL.length}</b> ${t.text}</div><button class="tiny" data-action="tutskip">Überspringen</button></div>`;
 }
+
+// --- Schmiede: Runen einschmieden (Minispiel) ---
+const STAT_NAME = k => k === 'dmg' ? 'Schaden' : k === 'armor' ? 'Rüstung' : k === 'haste' ? '% Zaubertempo' : ATTRS[k];
+export function viewForge(sel, res) {
+  const tg = forgeTargets(), err = canForge(sel.slot, sel.mat), r = RUNES[sel.mat];
+  const range = r ? [0.5, 2.2].map(q => Math.max(1, Math.round(r.per * (CFG.affixBase + S.lvl * CFG.affixPerLvl) * q))) : null;
+  if (res) return `<div class="col forge">${npcSay('halvar', res.grade.q >= 1.6 ? 'Hörst du das? So klingt guter Stahl.' : res.grade.q >= 1 ? 'Brauchbar. Das hält.' : 'Grob. Aber besser als nichts.')}
+    <section class="panel grow forgeres"><h2>${res.grade.name}</h2><div class="runestone">ᚱ</div>
+      <p class="big">${res.rune.name}: <b class="up">+${res.v} ${STAT_NAME(res.rune.stat)}</b></p><p>in <span class="r-${res.it.rarity}">${res.it.name}</span> · ${res.score}/${FORGE.hits * 3} Punkte</p>
+      <p class="dim small">Runenplätze: ${res.it.runes.length}/${FORGE.maxRunes}</p></section>
+    <div class="btns"><button data-action="forgeagain">Noch einmal</button><button class="red" data-action="${S.active ? 'go" data-v="trips' : 'trader" data-t="halvar'}">${S.active ? 'Zum Streifzug' : 'Zurück'}</button></div></div>`;
+  return `<div class="col forge">${npcSay('halvar', 'Zwei Brocken Material, fünf Schläge. Triff die Glut in der Mitte – dann hält die Rune.')}
+    <section class="panel"><h2>Material <span class="h2r">je ${FORGE.cost}</span></h2><div class="chips">${Object.entries(RUNES).map(([k, x]) => { const n = S.mats[k] || 0;
+      return `<button class="chip ${sel.mat === k ? 'on' : ''}" data-action="forgemat" data-m="${k}" ${n < FORGE.cost ? 'disabled' : ''}><b>${MATS[k]} ${n}</b><small>${STAT_NAME(x.stat).replace('% ', '')}${forgeQuestMat(k) ? ' · <i class="hot">Auftrag!</i>' : ''}</small></button>`; }).join('')}</div></section>
+    <section class="panel"><h2>Gegenstand <span class="h2r">${FORGE.maxRunes} Runen je Teil</span></h2><div class="fslots">${tg.map(t => `<div class="fslot r-${t.it.rarity} ${sel.slot === t.slot ? 'on' : ''} ${t.free ? '' : 'full'}" data-action="forgeslot" data-s="${t.slot}">${itemArt(t.it)}<i>${FORGE.maxRunes - t.free}/${FORGE.maxRunes}</i></div>`).join('')}</div></section>
+    <section class="panel grow forgeplay" id="forgeplay">${r && sel.slot ? `<p class="small">${r.name} auf <b>${S.equip[sel.slot]?.name || ''}</b>: <span class="up">+${range[0]} bis +${range[1]} ${STAT_NAME(r.stat)}</span></p>` : '<p class="dim small">Wähle Material und Gegenstand.</p>'}
+      <div class="anvil"><div class="fbar"><div class="fz z1"></div><div class="fz z2"></div><div class="fz z3"></div><div class="fmark"></div></div>
+      <div class="pips">${Array.from({ length: FORGE.hits }, (_, i) => `<i data-i="${i}"></i>`).join('')}</div><div class="fcall"></div></div>
+      ${err ? `<button disabled>${sel.mat && sel.slot ? err : 'Schmieden'}</button>` : `<button class="red big-btn" id="forgebtn" data-action="forgestart">Ans Feuer</button>`}</section></div>`;
+}
+const npcSay = (id, line) => `<section class="panel speaker">${npcArt(TRADERS[id].glyph)}<div><b>${TRADERS[id].name}</b> <span class="h2r">Schmiede</span><p class="lore">„${line}“</p></div></section>`;
