@@ -35,6 +35,13 @@ let failures = 0;
     for (const v of ['trips', 'hero', 'stats', 'talents', 'crypt', 'arena']) { await tap('[data-v=hero]'); await tap(`[data-v=${v}]`); await chk(v); }
     await tap('[data-v=traders]'); for (const t of ['halvar', 'ysolde', 'kaspar']) { await tap(`[data-t=${t}]`); await chk(t); }
     if (await tap('[data-action=turnin]')) await chk('turnin');
+    // Regression: Kaufen über das Touch-Fenster muss funktionieren (früher schloss 'mouseleave' das Fenster)
+    await p.evaluate(() => { const s = JSON.parse(localStorage.aschenkrone_v1); s.gold = 9999; localStorage.aschenkrone_v1 = JSON.stringify(s); });
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=traders]'); await tap('[data-t=kaspar]');
+    const g0 = await p.evaluate(() => JSON.parse(localStorage.aschenkrone_v1).gold);
+    if (await tap('.sitem')) { await p.waitForTimeout(150); await tap('#tip button[data-action=buy]'); await p.waitForTimeout(200);
+      const g1 = await p.evaluate(() => JSON.parse(localStorage.aschenkrone_v1).gold);
+      if (g1 >= g0) { failures++; console.log(`FEHLER ${tag}: Kaufen per Touch hat nichts gekauft`); } }
     for (const [tab, n] of [['crypt', 'ilse'], ['arena', 'vargo'], ['trips', 'prophet']]) { await tap(`[data-v=${tab}]`); await tap('.speaker'); await chk(n); }
     await tap('[data-v=hero]'); if (await tap('.cellitem')) await chk('itemtip');
     if (errs.length) { failures++; console.log(`FEHLER ${tag} JS:`, errs); }

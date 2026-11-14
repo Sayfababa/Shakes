@@ -163,14 +163,15 @@ function findItem(id) {
 }
 function hideTip() { tip.hidden = true; tip.className = ''; }
 app.addEventListener('mousemove', e => {
-  if (TOUCH) return;
+  if (TOUCH || tip.className === 'touch') return;   // offenes Touch-Fenster nie durch Mausbewegung schließen
   const el = e.target.closest('[data-tip]'); if (!el) return hideTip();
   const it = findItem(el.dataset.tip); if (!it) return hideTip();
   tip.innerHTML = UI.itemTip(it, compareTo(it)); tip.hidden = false;
   tip.style.left = Math.min(e.clientX + 16, innerWidth - tip.offsetWidth - 8) + 'px';
   tip.style.top = Math.min(e.clientY + 16, innerHeight - tip.offsetHeight - 8) + 'px';
 });
-app.addEventListener('mouseleave', hideTip);
+// Beim Wechsel von der Seite ins Item-Fenster feuert 'mouseleave' (auch bei Touch!) – das Fenster mit Knöpfen darf dabei nicht zugehen
+app.addEventListener('mouseleave', () => { if (tip.className !== 'touch') hideTip(); });
 
 // Countdown-Takt: nur die Zahlen ändern; bei 0 einmal neu zeichnen
 setInterval(() => {
