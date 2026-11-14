@@ -480,3 +480,41 @@ img.sic { object-fit: cover; padding: 0; background: #000; width: 48px; height: 
 .trips.many .trip { padding: 6px 8px; }
 @media (max-height: 760px) { .trips.many .mobpics { display: none; } }
 .trips.many .tripinfo { font-size: .66rem; }
+
+/* ===== UI-Kit (SpriteCook, assets/ui/): ruhige, matte Rahmen statt CSS-Verläufe. 9-Slice über border-image. ===== */
+.panel { background: none; border: 0; box-shadow: 0 3px 8px rgba(0,0,0,.6);
+  border-image: url('../assets/ui/panel.webp') 30 fill / 12px stretch; }
+.panel.speaker, .panel.trip, .panel.crypt { border-image: url('../assets/ui/panel_s.webp') 22 fill / 10px stretch; }
+/* Quest-Zettel und Tutorial: dunkles Pergament, wenig Kontrast */
+.note { background: none; color: #cdbd9c; box-shadow: 0 3px 10px rgba(0,0,0,.55);
+  border-image: url('../assets/ui/parchment.webp') 24 fill / 12px stretch; }
+.note h4 { color: #c9a25e; } .note p { color: #bfae8c; }
+.note li::before { border-color: #8a7556; } .note li.ok { color: #9ab070; } .note li.ok::before { background: #6a8a40; border-color: #6a8a40; }
+.note .rew { color: #a8936c; border-top-color: rgba(200,170,120,.18); }
+.tut { color: #cdbd9c; background: none; box-shadow: 0 4px 12px rgba(0,0,0,.6); border-image: url('../assets/ui/parchment.webp') 24 fill / 10px stretch; }
+.tut b { color: #d08a5a; }
+/* Knöpfe */
+button { background: none; border: 0; box-shadow: none; border-image: url('../assets/ui/btn_iron.webp') 14 fill / 7px stretch; }
+button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14 fill / 7px stretch; }
+/* Tabs */
+.tabs a, .subtabs a { background: none; border: 0; box-shadow: none; border-image: url('../assets/ui/tab.webp') 16 fill / 8px stretch; }
+.tabs a.on, .subtabs a.on { background: none; box-shadow: none; border-image: url('../assets/ui/tab_on.webp') 16 fill / 8px stretch; }
+.badge::after { width: 9px; height: 9px; transform: none; border-radius: 50%; background: url('../assets/ui/marker.webp') center / contain no-repeat; box-shadow: 0 0 5px rgba(160,30,20,.6); }
+/* Münze */
+.coin { width: 16px; height: 16px; background: url('../assets/ui/coin.webp') center / contain no-repeat; box-shadow: none; border-radius: 0; }
+/* Glut-Kugel: dunkles Glas, Glut füllt von unten, Ring obenauf */
+.orb { background: radial-gradient(circle, #120b07 55%, #070504); box-shadow: none; overflow: visible; width: 42px; height: 42px; }
+.orb::before { content: ''; position: absolute; inset: 7%; left: 7%; top: 7%; width: auto; height: auto; border-radius: 50%;
+  background: url('../assets/ui/orb_fill.webp') center / cover; clip-path: inset(calc(100% - var(--f)) 0 0 0); }
+.orb::after { content: ''; position: absolute; inset: -4%; background: url('../assets/ui/orb_ring.webp') center / contain no-repeat; pointer-events: none; }
+.orb b { z-index: 2; font-size: .74rem; color: #f0e2c8; }
+/* Balken: Schiene + Füllung aus dem Kit */
+.bar { background: url('../assets/ui/track.webp') center / 100% 100%; border: 0; box-shadow: none; height: 8px; }
+.bar > i { background: url('../assets/ui/fill_red.webp') left center / 100% 100%; inset: 2px; right: auto; }
+.bar.xp > i { background: url('../assets/ui/fill_gold.webp') left center / 100% 100%; }
+.bar.rep > i { background: url('../assets/ui/fill_gold.webp') left center / 100% 100%; filter: saturate(.6) brightness(.8); }
+.bar.glut > i { background: url('../assets/ui/fill_red.webp') left center / 100% 100%; filter: hue-rotate(20deg) saturate(1.2); }
+/* Item-Felder */
+.eslot, .sitem, .fslot { background-color: #07080b; border: 0; box-shadow: inset 0 0 10px #000; border-image: url('../assets/ui/slot.webp') 16 / 6px stretch; }   /* ohne fill: Seltenheits-Tönung bleibt sichtbar */
+/* Tooltip */
+#tip { background: none; border: 0; border-image: url('../assets/ui/tooltip.webp') 22 fill / 10px stretch; }
