@@ -180,8 +180,16 @@ input { background: #000; color: var(--text); border: 1px solid var(--edge); pad
 .fight > div:nth-child(2) { display: flex; flex-direction: column; min-height: 0; gap: 4px; }
 .fighter .nm { font-family: 'Grenze Gotisch'; text-align: center; margin: 4px 0 2px; color: var(--gold); font-size: 1rem; }
 .fighter .hp { font-size: .7rem; text-align: center; color: var(--dim); font-family: 'Alegreya SC'; }
-.fighter.hit .portrait { animation: hit .25s; }
-@keyframes hit { 0% { filter: brightness(1.8) sepia(1) hue-rotate(-40deg) saturate(5); transform: translateX(4px); } 100% { filter: none; } }
+.pwrap { position: relative; }
+.pwrap::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, rgba(160,10,0,.0), rgba(160,10,0,.55)); opacity: 0; }
+.fighter.hit .pwrap::after { animation: hitflash .3s ease-out; } .fighter.hit .pwrap { animation: shake .22s; }
+.fighter.crit .pwrap::after { animation: hitflash .45s ease-out; }
+@keyframes hitflash { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes shake { 0%, 100% { transform: none; } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+.dmgnum { position: absolute; top: 40%; transform: translateX(-50%); font-family: 'Grenze Gotisch'; font-weight: 700; font-size: 1.3rem; color: #e8d6b0;
+  text-shadow: 0 2px 0 #000, 0 0 6px #000; pointer-events: none; animation: dmgfloat .9s ease-out forwards; }
+.dmgnum.crit { color: #ff5a3a; font-size: 1.8rem; }
+@keyframes dmgfloat { 0% { opacity: 0; transform: translate(-50%, 6px) scale(.8); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.1); } 100% { opacity: 0; transform: translate(-50%, -38px) scale(1); } }
 .log { flex: 1; min-height: 0; overflow-y: auto; font-size: .82rem; background: #07080b; box-shadow: inset 0 0 0 1px #2a2620; padding: 6px 8px; }
 .log div { padding: 1px 0; } .log .a { color: var(--text); } .log .b { color: #b08070; } .log .crit { color: var(--blood-hi); font-weight: 700; }
 .result { text-align: center; font-family: 'Grenze Gotisch'; font-size: 1.8rem; line-height: 1; }
@@ -275,3 +283,32 @@ img.portrait.monster { object-fit: cover; }
 .trips { grid-auto-rows: minmax(0, 1fr); }
 @media (max-height: 720px) { .trip.locked h3 { font-size: .9rem; } .trip.locked .mobs { font-size: .66rem; } .trip { padding: 5px 8px; } }
 .col > .trips { flex: 1; min-height: 0; }
+
+/* ===== UX-Review (Diablo-Linie) ===== */
+/* HUD: Gold mit Münze, Glut als Kugel (wie die Orbs in Diablo), Erfahrung als dünne Linie */
+.res { align-items: center; gap: 8px; } .res .lvl { margin-left: 6px; }
+.coin { width: 13px; height: 13px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #f5dc94, #b08a3e 55%, #5a4214); box-shadow: 0 0 0 1px #000; display: inline-block; }
+.orb { position: relative; width: 38px; height: 38px; border-radius: 50%; overflow: hidden; margin-left: 6px; flex: none;
+  background: linear-gradient(to top, #c2410f 0, #e8742a calc(var(--f) * .9), #1a0a04 var(--f), #0a0503 100%);
+  box-shadow: 0 0 0 1px #000, 0 0 0 3px #4a3c2c, 0 0 0 4px #000, inset 0 -4px 10px rgba(0,0,0,.6), inset 0 6px 8px rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; }
+.orb::before { content: ''; position: absolute; left: 22%; top: 12%; width: 34%; height: 22%; border-radius: 50%; background: rgba(255,240,220,.22); }
+.orb b { position: relative; font-family: 'Alegreya SC'; font-size: .78rem; color: #fff; text-shadow: 0 1px 2px #000; }
+.xpline { display: flex; align-items: center; gap: 8px; margin-top: 5px; } .xpline .bar { flex: 1; height: 5px; }
+.xpline small { font-family: 'Alegreya SC'; font-size: .66rem; color: var(--dim); white-space: nowrap; }
+/* Lesbarkeit: nichts unter ~11px */
+.tabs a { font-size: .72rem; } .tripinfo, .omentag, .threat, .svc small { font-size: .72rem; } .h2r { font-size: .74rem; }
+.loyal { font-size: .74rem; } .floors i { height: 7px; }
+/* Unentdeckte Orte nur als Zeile (Wegpunkte zeigt man erst, wenn man sie kennt) */
+.trips { grid-auto-rows: auto; align-content: start; } .unknown { font-size: .76rem; color: var(--dim); font-style: italic; flex: none !important; margin: 2px 4px; }
+.unknown i { font-style: normal; font-family: 'Alegreya SC'; font-size: .7rem; }
+/* gesperrte Krypten kompakt */
+.crypt.locked { grid-template-columns: 12% 1fr; padding: 4px 8px; flex: 0 1 auto; } .crypt.locked .floors, .crypt.locked .dim.small { display: none; }
+.crypt.locked h3 { font-size: .92rem; } .crypt.locked p { margin: 0; }
+/* Tagebuch füllt freien Platz in der Heldenansicht, nur auf hohen Bildschirmen */
+.herojournal { display: none; } @media (min-height: 780px) { .herojournal { display: block; } }
+/* Talente: gesperrt besser lesbar */
+.tal.locked { opacity: .55; }
+.col > .trips { flex: 0 1 auto; }
+.crypt { flex: 0 1 auto; } .crypt:not(.locked) { grid-template-columns: 24% 1fr; }
+.herojournal { display: block; } @media (max-height: 600px) { .herojournal { display: none; } }
+.tripsjournal { flex: 1 1 0; min-height: 0; } @media (max-height: 600px) { .tripsjournal { display: none; } }

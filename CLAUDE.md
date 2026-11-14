@@ -67,3 +67,8 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - **Kein unfairer Verlust**: Gefahr vor jedem Kampf anzeigen (Streifzug-Karte, Krypta-Ebene), Boss-Besonderheit vorher nennen.
 - **Schwierigkeit durch Muster, nicht nur Zahlen**: jeder Boss hat eine eigene Mechanik (`boss.mech`).
 - **Zeit des Spielers respektieren**: keine Softlocks (Boss-Ziele zählen rückwirkend), Gegner wachsen nur halb mit (`locLvl`).
+
+## UI-Regeln (aus UX-REVIEW.md)
+- Tab-Punkte nur für echte Handlungen (siehe `badge` in navBar), nie als Dauerzustand.
+- Treffer-Feedback: Schadenszahl + kurzer Rand-Schatten/Wackeln, Portrait nie einfärben.
+- Gesperrtes klein halten (Orte als Zeile, Krypten kompakt). Schrift nie unter ~11px.

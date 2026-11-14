@@ -43,6 +43,6 @@ export function fight(A, B) {
     if (x.poison) y.poisonDmg = Math.min(Math.round(y.hp * 0.08), (y.poisonDmg || 0) + Math.max(1, Math.round(d * x.poison)));
     if (x.toll && (x.hits = (x.hits || 0) + 1) % 3 === 0) { y.stunned = true; t += ' Die Glocke dröhnt!'; }
     if (y.thorns && y.cur > 0) { const r = Math.round(d * y.thorns); x.cur -= r; if (r) t += ` Dornen: ${r}.`; }
-    say(x.side, t, { crit });
+    say(x.side, t, { crit, dmg: d });
   }
 }

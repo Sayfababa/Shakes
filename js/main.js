@@ -84,7 +84,9 @@ function fightStep() {
     el.querySelector('.bar i').style.width = Math.max(0, Math.min(100, hp / max * 100)) + '%';
     el.querySelector('.hp').textContent = `${Math.max(0, hp)} / ${max}`;
     const hit = (id === 'fA' && l.who === 'b') || (id === 'fB' && l.who === 'a');
-    el.classList.remove('hit'); if (hit) { void el.offsetWidth; el.classList.add('hit'); }
+    el.classList.remove('hit', 'crit'); if (hit) { void el.offsetWidth; el.classList.add('hit'); if (l.crit) el.classList.add('crit');
+      if (l.dmg) { const n = document.createElement('span'); n.className = 'dmgnum' + (l.crit ? ' crit' : ''); n.textContent = l.dmg;
+        n.style.left = (35 + Math.random() * 30) + '%'; el.querySelector('.pwrap')?.appendChild(n); setTimeout(() => n.remove(), 900); } }
   }
 }
 

@@ -59,16 +59,16 @@ const itemEl = (it, act) => `<div class="item r-${it.rarity}" data-tip="${it.id}
 export function hud(tut = '') {
   return `<header class="hud">
     <div class="hud-row"><span class="ttl">Aschenkrone</span>
-      <span class="res"><span>Gold <b>${S.gold}</b></span><span>Stufe <b>${S.lvl}</b></span></span></div>
-    ${tut || `<div class="hud-row bars">
-      <div><small>Erfahrung</small><div class="bar xp"><i style="width:${pct(S.xp, xpNeed(S.lvl))}%"></i></div></div>
-      <div><small>Glut ${S.glut}</small><div class="bar glut"><i style="width:${pct(S.glut, CFG.maxGlut)}%"></i></div></div>
-    </div>`}</header>`;
+      <span class="res"><span class="coin"></span><b>${S.gold}</b><span class="lvl">Stufe <b>${S.lvl}</b></span>
+      <span class="orb" style="--f:${pct(S.glut, CFG.maxGlut)}%" title="Glut"><b>${S.glut}</b></span></span></div>
+    ${tut || `<div class="xpline"><div class="bar xp"><i style="width:${pct(S.xp, xpNeed(S.lvl))}%"></i></div><small>${S.xp} / ${xpNeed(S.lvl)} EP</small></div>`}</header>`;
 }
 export function navBar(view) {
   const tabs = [['hero', 'Held'], ['trips', 'Streifzug'], ['traders', 'Händler'], ['crypt', 'Krypta'], ['arena', 'Grube']];
   const map = { stats: 'hero', talents: 'hero', npc: 'trips' };
-  const badge = { hero: S.points + talentPoints() > 0, crypt: Date.now() >= S.crypt.cd, traders: Object.keys(TRADERS).some(canComplete), arena: canComplete('vargo'), trips: !S.active || Date.now() >= S.active.end };
+  // Nur echte Handlungsaufforderungen markieren – ein Dauer-Punkt auf jedem Tab sagt nichts mehr
+  const badge = { hero: S.points + talentPoints() > 0, traders: Object.keys(TRADERS).some(canComplete), arena: canComplete('vargo'),
+    crypt: canComplete('ilse'), trips: !!S.haul || canComplete('prophet') || (!!S.active && Date.now() >= S.active.end) };
   const on = map[view] || view;
   return `<nav class="tabs">${tabs.map(([k, n]) => `<a class="${on === k ? 'on' : ''} ${badge[k] ? 'badge' : ''}" data-action="go" data-v="${k}">${n}</a>`).join('')}</nav>`;
 }
@@ -107,6 +107,7 @@ export function viewHero() {
       </div>
       <div class="mats">${mats.length ? mats.map(([k, n]) => `<span>${MATS[k]} <b>${n}</b></span>`).join('') : '<span class="dim">Keine Materialien. Monster lassen sie fallen.</span>'}</div>
     </section>
+    <section class="panel grow journal herojournal"><h2>Tagebuch</h2>${S.journal.slice(0, 8).map(j => `<div>${j.t}</div>`).join('')}</section>
   </div>`;
 }
 
@@ -148,7 +149,8 @@ export function viewTrips() {
       ${say('prophet')}<section class="panel grow journal"><h2>Tagebuch</h2>${S.journal.slice(0, 6).map(j => `<div>${j.t}</div>`).join('')}</section></div>`;
   }
   const o = omen();
-  return `<div class="col">${S.haul ? haulPanel() : say('prophet', omenLine())}<div class="trips">${LOCATIONS.map(l => { const open = locOpen(l), r = tripReward(l, 1, (l.sec[0] + l.sec[1]) / 2);
+  const openLocs = LOCATIONS.filter(locOpen), nextLoc = LOCATIONS.find(l => !locOpen(l)), later = LOCATIONS.filter(l => !locOpen(l) && l !== nextLoc);
+  return `<div class="col">${S.haul ? haulPanel() : say('prophet', omenLine())}<div class="trips">${[...openLocs, ...(nextLoc ? [nextLoc] : [])].map(l => { const open = locOpen(l), r = tripReward(l, 1, (l.sec[0] + l.sec[1]) / 2);
     const isOmen = open && S.lvl >= 3 && o.loc === l.id && !o.done;
     const wanted = new Set(Object.keys(TRADERS).filter(available).flatMap(t => current(t).obj.filter(o => o.at === l.id || l.mobs.includes(o.kill)).map(() => t)));
     return `<section class="panel trip ${open ? '' : 'locked'} ${isOmen ? 'omen' : ''} ${S.glut < l.glut ? 'tired' : ''}" ${open ? `data-action="trip" data-id="${l.id}"` : ''}>
@@ -156,7 +158,8 @@ export function viewTrips() {
       <h3>${l.name}${open && wanted.size ? '<span class="qmark" title="Auftrag">!</span>' : ''}</h3><p class="lore small">${l.text}</p>
       ${open ? `<div class="mobpics">${l.mobs.map(n => monsterArt(MONSTERS.find(m => m.name === n).glyph)).join('')}</div>
       <div class="tripinfo">${threat(tripChance(l))}${S.points && tripChance(l) < 0.65 ? '<span class="threat t-high">Verteile deine Punkte!</span>' : ''}<span>Stufe ${locLvl(l)}</span><span>${fmtT(l.sec[0])}–${fmtT(l.sec[1])}</span><span>${l.glut} Glut</span><span>~${r.gold} Gold</span></div>` : `<div class="mobs">Erst ab Stufe ${l.lvl}</div>`}
-    </section>`; }).join('')}</div></div>`;
+    </section>`; }).join('')}</div>${later.length ? `<p class="unknown">Noch unentdeckt: ${later.map(l => `${l.name} <i>(Stufe ${l.lvl})</i>`).join(' · ')}</p>` : ''}
+    <section class="panel journal tripsjournal"><h2>Tagebuch</h2>${S.journal.slice(0, 8).map(j => `<div>${j.t}</div>`).join('')}</section></div>`;
 }
 
 // Ungesicherte Beute: Heimkehren oder tiefer gehen
@@ -245,7 +248,7 @@ export function viewArena(rival) {
 }
 
 export function viewFight(F) {
-  const side = (f, hp, max, hit, id) => `<div class="fighter ${hit ? 'hit' : ''}" id="${id}">${f.cls ? `<img class="portrait" src="${P(f.cls)}" alt="">` : monsterArt(f.glyph)}
+  const side = (f, hp, max, hit, id) => `<div class="fighter" id="${id}"><div class="pwrap">${f.cls ? `<img class="portrait" src="${P(f.cls)}" alt="">` : monsterArt(f.glyph)}</div>
     <div class="nm">${f.name}</div><div class="bar"><i style="width:${pct(hp, max)}%"></i></div><div class="hp">${Math.max(0, hp)} / ${max}</div></div>`;
   const shown = F.log.slice(0, F.step), last = shown[shown.length - 1] || {};
   const hpA = last.hpA ?? F.hpA, hpB = last.hpB ?? F.hpB, done = F.step >= F.log.length;
