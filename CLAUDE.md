@@ -59,6 +59,7 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 
 ## Tests (vor jedem Push: `sh tests/run.sh`)
 - `tests/logic.test.mjs` – node:test, Logik & Daten-Konsistenz (Quest-Ziele, Bilder, Migration, Softlocks).
+- `tests/personas.mjs [tage]` – Optimist/Realist/Pessimist spielen in echten Sitzungen ohne Schummeln; Auswertung in BOT-REVIEW.md.
 - `tests/bot.mjs [klasse] [tage]` – Bot spielt mit simulierter Uhr und zeigt Tempo pro Tag (Stufe, Quests, Splitter, Niederlagen). Für Balance-Fragen benutzen.
 - `tests/ui.cjs` – Playwright auf iPhone SE + 13: alle Ansichten, JS-Fehler, nichts ragt heraus. Screenshots in `tests/out/` (nicht committen).
 - Neue Features: Logik in game.js/state.js (DOM-frei), dann Test ergänzen.
