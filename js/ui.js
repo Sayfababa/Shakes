@@ -95,7 +95,7 @@ export function viewChar() {
     </div>
     <div class="frame"><h2>Ausrüstung</h2>
       <div class="equip">${eq.map(s => slotBox(S.equip[s], { action: `data-action="unequip" data-s="${s}"`, label: lbl[s] || SLOTS[s] })).join('')}</div>
-      <h2>Beutel <small class="muted">(${S.bag.length}/20) – Klick: anlegen · Rechtsklick: verkaufen</small></h2>
+      <h2>Beutel <small class="muted">(${S.bag.length}/20) – Antippen für Details</small></h2>
       <div class="bag">${S.bag.map(it => slotBox(it, { action: `data-action="equip" data-id="${it.id}"` })).join('') || '<span class="muted">Leer.</span>'}</div>
       <h2 style="margin-top:16px">Tagebuch</h2>
       <div class="journal">${S.journal.slice(0, 8).map(j => `<div>${j.t}</div>`).join('') || '<div class="muted">Noch keine Einträge.</div>'}</div>

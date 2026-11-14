@@ -27,3 +27,8 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - Neue Features: erst Daten, dann Logik, dann UI. Kleine Commits.
 - Save-Format ändern ⇒ `SAVE_VERSION` in state.js erhöhen + Migration.
 - Schnelltest Logik: `node --input-type=module -e "import('./js/combat.js')..."`
+
+## Mobile / PWA
+- Wird primär am Handy als Homescreen-App getestet (GitHub Pages). Jede UI-Änderung auch bei 390px Breite prüfen.
+- `manifest.json` + `sw.js` (network-first, damit Updates sofort ankommen). Alle Pfade relativ (Pages-Unterordner!).
+- Touch: Item-Tap öffnet Detail-Popup mit Aktionen (`showTouchTip` in main.js), kein Hover/Rechtsklick voraussetzen.

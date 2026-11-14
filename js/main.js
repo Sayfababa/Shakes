@@ -84,13 +84,33 @@ const actions = {
       S.honor = Math.max(0, S.honor - 5); S.deaths++; return '−5 Ehre';
     });
   },
+  noop: () => {},
   skip: () => { F.step = F.log.length; clearInterval(fightTimer); render(); },
 };
 
-app.addEventListener('click', e => {
-  const el = e.target.closest('[data-action]'); if (!el) return;
+const TOUCH = matchMedia('(hover: none)').matches;
+const ACT_LABEL = { equip: 'Anlegen', unequip: 'Ablegen', buy: 'Kaufen', sell: 'Verkaufen' };
+function onClick(e) {
+  const el = e.target.closest('[data-action]');
+  if (!el) { if (!e.target.closest('#tip')) hideTip(); return; }
+  // Touch: Item-Tap öffnet erst Details mit Aktionen
+  if (TOUCH && el.dataset.tip && !el.closest('#tip')) return showTouchTip(el);
+  hideTip();
   actions[el.dataset.action]?.(el.dataset);
-});
+}
+document.addEventListener('click', onClick);
+function showTouchTip(el) {
+  const it = findItem(el.dataset.tip); if (!it) return;
+  const d = el.dataset, a = d.action, attrs = Object.entries(d).filter(([k]) => k !== 'tip' && k !== 'price')
+    .map(([k, v]) => `data-${k}="${v}"`).join(' ');
+  const S = G.S, slot = it.slot === 'ring' ? 'ring1' : it.slot, inEquip = Object.values(S.equip).includes(it);
+  let btns = `<button ${attrs}>${ACT_LABEL[a] || 'OK'}</button>`;
+  if (a === 'equip') btns += `<button class="red" data-action="sell" data-id="${it.id}">Verkaufen (${it.value})</button>`;
+  tip.innerHTML = UI.itemTip(it, inEquip ? null : S.equip[slot]) + `<div class="act">${btns}<button data-action="noop">Zurück</button></div>`;
+  tip.className = 'touch'; tip.hidden = false;
+  tip.style.left = Math.max(8, (innerWidth - tip.offsetWidth) / 2) + 'px';
+  tip.style.top = Math.max(8, (innerHeight - tip.offsetHeight) / 2) + 'px';
+}
 // Rechtsklick im Beutel = verkaufen
 app.addEventListener('contextmenu', e => {
   const el = e.target.closest('[data-action="equip"]'); if (!el) return;
@@ -103,8 +123,9 @@ function findItem(id) {
   const S = G.S; if (!S) return null;
   return [...S.bag, ...S.shop, ...Object.values(S.equip).filter(Boolean), ...(rival ? Object.values(rival.equip) : [])].find(x => x.id === id);
 }
-function hideTip() { tip.hidden = true; }
+function hideTip() { tip.hidden = true; tip.className = ''; }
 app.addEventListener('mousemove', e => {
+  if (TOUCH) return;
   const el = e.target.closest('[data-tip]'); if (!el) return hideTip();
   const it = findItem(el.dataset.tip); if (!it) return hideTip();
   const S = G.S, slot = it.slot === 'ring' ? 'ring1' : it.slot;
