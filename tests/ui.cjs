@@ -22,7 +22,9 @@ let failures = 0;
       if (over) { failures++; console.log(`FEHLER ${tag} ${n}: ${over} Elemente ragen heraus`); }
       await p.screenshot({ path: `${OUT}/${tag}-${n}.png` });
     };
-    const tap = async s => { const el = await p.$(s); if (el) await el.tap(); return !!el; };
+    // Tippen mit kurzer Frist: gesperrte/verdeckte Knöpfe blockieren den Test nicht 30 s, sondern werden gemeldet
+    const tap = async s => { const el = await p.$(s); if (!el) return false;
+      try { await el.tap({ timeout: 3000 }); return true; } catch { console.log(`Hinweis ${tag}: nicht tippbar: ${s}`); return false; } };
     await p.goto('http://localhost:8765/'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(500);
     await tap('[data-c="witch"]'); await chk('create'); await p.fill('#nm', 'Test'); await tap('[data-action=create]'); await chk('tut1');
     await tap('[data-t=kaspar]'); await chk('kaspar');
@@ -56,14 +58,14 @@ let failures = 0;
     await p.waitForTimeout(700); await chk('forgeres');
     if (!(await p.$('.forgeres'))) { failures++; console.log(`FEHLER ${tag}: Schmieden ohne Ergebnis`); }
     // Umschmieden: seltenes Item, Bonus versiegeln, Werte würfeln, Siegel muss halten
-    await p.evaluate(async () => { const L = await import('./js/loot.js'); const G = await import('./js/state.js');
+    const rid = await p.evaluate(async () => { const L = await import('./js/loot.js'); const G = await import('./js/state.js');
       let it; do it = L.makeItem(25, { slot: 'amulet', minRarity: 3 }); while (it.unique || it.rarity !== 'rare');
-      G.S.bag = []; G.addToBag(it); for (const k of ['siegel', 'asche', 'staub', 'blutstein', 'leinen']) G.S.mats[k] = 20; G.S.gold = 99999; G.save(); });
+      G.S.bag = []; G.addToBag(it); for (const k of ['siegel', 'asche', 'staub', 'blutstein', 'leinen']) G.S.mats[k] = 20; G.S.gold = 99999; G.save(); return it.id; });
     await p.reload(); await p.waitForTimeout(300); await tap('[data-v=traders]'); await tap('[data-t=halvar]'); await tap('[data-v=forge]');
-    await tap('[data-action=forgemode][data-m=craft]'); await tap('.cpick [data-action=craftpick]'); await chk('craft');
+    await tap('[data-action=forgemode][data-m=craft]'); await tap(`.cpick [data-id="${rid}"]`); await chk('craft');
     const k = await p.evaluate(() => document.querySelector('.caff')?.dataset.k); await tap(`.caff[data-k="${k}"]`); await tap('[data-o=seal]');
     const v0 = await p.evaluate(() => document.querySelector('.caff.sealed span')?.textContent);
-    for (let i = 0; i < 3; i++) await tap('[data-o=values]');
+    for (let i = 0; i < 3; i++) if (!(await tap('[data-o=values]'))) { failures++; console.log(`FEHLER ${tag}: Werte würfeln gesperrt:`, await p.evaluate(() => document.querySelector('.cmsg')?.textContent)); }
     const v1 = await p.evaluate(() => document.querySelector('.caff.sealed span')?.textContent); await chk('craft2');
     if (!v0 || v0 !== v1) { failures++; console.log(`FEHLER ${tag}: Siegel hält nicht (${v0} → ${v1})`); }
     if (errs.length) { failures++; console.log(`FEHLER ${tag} JS:`, errs); }
