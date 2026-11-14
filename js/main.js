@@ -41,8 +41,22 @@ function startFight(A, B, back, onEnd) {
   F.reward = onEnd(r.winner === 'a');
   view = 'fight'; G.save();
   clearInterval(fightTimer);
-  fightTimer = setInterval(() => { F.step++; if (F.step >= F.log.length) clearInterval(fightTimer); render(); }, 380);
+  fightTimer = setInterval(() => { F.step++; if (F.step >= F.log.length) { clearInterval(fightTimer); render(); } else fightStep(); }, 380);
   render();
+}
+
+// Kampf-Schritt ohne Neuaufbau: nur Log-Zeile, Lebensbalken und Treffer-Effekt ändern (Bilder bleiben stehen)
+function fightStep() {
+  const l = F.log[F.step - 1], log = document.getElementById('log'); if (!l || !log) return render();
+  const row = document.createElement('div'); row.className = `${l.who} ${l.crit ? 'crit' : ''}`; row.textContent = l.t;
+  log.appendChild(row); log.scrollTop = log.scrollHeight;
+  for (const [id, hp, max] of [['fA', l.hpA, F.hpA], ['fB', l.hpB, F.hpB]]) {
+    const el = document.getElementById(id); if (!el) continue;
+    el.querySelector('.bar i').style.width = Math.max(0, Math.min(100, hp / max * 100)) + '%';
+    el.querySelector('.hp').textContent = `${Math.max(0, hp)} / ${max}`;
+    const hit = (id === 'fA' && l.who === 'b') || (id === 'fB' && l.who === 'a');
+    el.classList.remove('hit'); if (hit) { void el.offsetWidth; el.classList.add('hit'); }
+  }
 }
 
 const lootLine = it => it ? `<br>Beute: <span class="r-${it.rarity}">${it.name}</span>` : '';
@@ -159,10 +173,14 @@ app.addEventListener('mousemove', e => {
 });
 app.addEventListener('mouseleave', hideTip);
 
-// Countdown-Takt
+// Countdown-Takt: nur die Zahlen ändern; bei 0 einmal neu zeichnen
 setInterval(() => {
-  const S = G.S; if (!S || !tip.hidden) return;
-  if ((view === 'trips' && S.active) || (view === 'crypt' && Date.now() < S.crypt.cd + 1000) || (view === 'arena' && Date.now() < S.arenaTs + 1000)) render();
+  if (!G.S || !tip.hidden) return;
+  for (const el of document.querySelectorAll('[data-until]')) {
+    const left = Math.ceil((+el.dataset.until - Date.now()) / 1000);
+    if (left <= 0) return render();
+    el.textContent = UI.fmtT(left);
+  }
 }, 1000);
 
 G.load(); render();

@@ -123,7 +123,7 @@ export function viewTrips() {
     const a = S.active, l = LOCATIONS.find(x => x.id === a.loc), left = Math.ceil((a.end - Date.now()) / 1000);
     return `<div class="col"><section class="panel waiting"><h2>${l.name}</h2><p class="lore">${l.text}</p>
       <div class="waitmob">${monsterArt(MONSTERS.find(m => m.name === a.mob).glyph)}</div><p class="dim">Du folgst einer Spur: <b>${a.mob}</b>.</p>
-      ${left > 0 ? `<div class="big">${fmtT(left)}</div><button data-action="rush" ${S.gold < 1 ? 'disabled' : ''}>Eilen · 1 Gold</button>`
+      ${left > 0 ? `<div class="big" data-until="${a.end}">${fmtT(left)}</div><button data-action="rush" ${S.gold < 1 ? 'disabled' : ''}>Eilen · 1 Gold</button>`
                  : `<button class="red big-btn" data-action="resolve">Stellen</button>`}</section>
       ${say('prophet')}<section class="panel grow journal"><h2>Tagebuch</h2>${S.journal.slice(0, 6).map(j => `<div>${j.t}</div>`).join('')}</section></div>`;
   }
@@ -164,7 +164,7 @@ export function viewTrader(tid) {
 // --- Krypten ---
 export function viewCrypts() {
   const d = DIFFICULTIES[S.crypt.diff], cd = Math.max(0, Math.ceil((S.crypt.cd - Date.now()) / 1000));
-  return `<div class="col">${say('ilse')}<section class="panel"><h2>Die Krypten <span class="h2r">${d.name} · ${cd ? `Erholung ${fmtT(cd)}` : 'bereit'}</span></h2></section>
+  return `<div class="col">${say('ilse')}<section class="panel"><h2>Die Krypten <span class="h2r">${d.name} · ${cd ? `Erholung <span data-until="${S.crypt.cd}">${fmtT(cd)}</span>` : 'bereit'}</span></h2></section>
     ${CRYPTS.map(c => { const f = cryptFloor(c), open = cryptOpen(c), done = f >= 5;
       const troph = S.trophies.some(t => t.key === c.id + ':' + S.crypt.diff);
       return `<section class="panel crypt ${!open ? 'locked' : ''} ${done ? 'done' : ''}" ${open && !done && !cd ? `data-action="crypt" data-id="${c.id}"` : ''}>
@@ -181,22 +181,22 @@ export function viewArena(rival) {
     <h2>${rival.name}</h2><p class="dim">${CLASSES[rival.cls].name} · Stufe ${rival.lvl}</p>
     
     <p class="small">Sieg: ${rival.lvl * 3} Gold, 10 Ehre · Niederlage: 5 Ehre · Deine Ehre: <b>${S.honor}</b></p>
-    <div class="btns"><button class="red" data-action="arena" ${cd ? 'disabled' : ''}>${cd ? `Erschöpft ${fmtT(cd)}` : 'Herausfordern'}</button>
+    <div class="btns"><button class="red" data-action="arena" ${cd ? 'disabled' : ''}>${cd ? `Erschöpft <span data-until="${S.arenaTs}">${fmtT(cd)}</span>` : 'Herausfordern'}</button>
     <button data-action="rival">Anderer Gegner</button></div></section></div>`;
 }
 
 export function viewFight(F) {
-  const side = (f, hp, max, hit) => `<div class="fighter ${hit ? 'hit' : ''}">${f.cls ? `<img class="portrait" src="${P(f.cls)}" alt="">` : monsterArt(f.glyph)}
+  const side = (f, hp, max, hit, id) => `<div class="fighter ${hit ? 'hit' : ''}" id="${id}">${f.cls ? `<img class="portrait" src="${P(f.cls)}" alt="">` : monsterArt(f.glyph)}
     <div class="nm">${f.name}</div><div class="bar"><i style="width:${pct(hp, max)}%"></i></div><div class="hp">${Math.max(0, hp)} / ${max}</div></div>`;
   const shown = F.log.slice(0, F.step), last = shown[shown.length - 1] || {};
   const hpA = last.hpA ?? F.hpA, hpB = last.hpB ?? F.hpB, done = F.step >= F.log.length;
   return `<div class="panel fightwrap"><div class="fight">
-    ${side(F.A, hpA, F.hpA, last.who === 'b')}
+    ${side(F.A, hpA, F.hpA, last.who === 'b', 'fA')}
     <div><div class="log" id="log">${shown.map(l => `<div class="${l.who} ${l.crit ? 'crit' : ''}">${l.t}</div>`).join('')}</div>
       ${done ? `<div class="result ${F.winner === 'a' ? 'win' : 'lose'}">${F.winner === 'a' ? 'Sieg' : 'Gefallen'}</div>
         <div class="loot-drop">${F.reward || ''}</div><button class="red" data-action="go" data-v="${F.back}">Weiter</button>`
         : `<button data-action="skip">Überspringen</button>`}</div>
-    ${side(F.B, hpB, F.hpB, last.who === 'a')}
+    ${side(F.B, hpB, F.hpB, last.who === 'a', 'fB')}
   </div></div>`;
 }
 
