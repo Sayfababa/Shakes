@@ -149,11 +149,11 @@ export function viewSpells() {
   return `<div class="col"><section class="panel"><h2>Zauber <span class="h2r">Zauberkraft ×${st.amp.toFixed(2).replace('.', ',')}</span><button class="tiny" data-action="go" data-v="hero">Zurück</button></h2>
     <p class="small">Wirken im Kampf von selbst statt eines Hiebs. Wachsen mit deinem Schaden; <b>Intelligenz</b> verstärkt sie.</p></section>
     ${SPELLS[S.cls].map(sp => { const on = S.lvl >= sp.lvl;
-      return `<section class="panel spell ${on ? '' : 'locked'}"><div class="sic">${sp.name.split(' ').map(w => w[0]).join('').slice(0, 2)}</div>
+      return `<section class="panel spell ${on ? '' : 'locked'}"><img class="sic" src="assets/spells/${sp.id}.webp" alt="">
         <div><h3>${sp.name} <span class="h2r">${on ? `jeder ${sp.every}. Zug` : `ab Stufe ${sp.lvl}`}</span></h3><p class="small">${sp.text}</p></div></section>`; }).join('')}
     <section class="panel grow"><h2>Kampfbewertung <span class="h2r">je stärker, desto mehr Lohn</span></h2>${GRADES_TXT()}</section></div>`;
 }
-const GRADES_TXT = () => GRADES.map(g => `<div class="stat small"><span class="g-${g.id}">${g.name}</span><span>${g.min ? `≥ ${Math.round(g.min * 100)} % Leben` : 'knapp'} → ${g.bonus ? `+${Math.round(g.bonus * 100)} % Gold${g.id === 'dom' ? ', mehr Beute' : ''}` : 'kein Bonus'}</span></div>`).join('');
+const GRADES_TXT = () => GRADES.map(g => `<div class="stat small"><span class="g-${g.id}">${g.name}</span><span>${g.min ? `≥ ${Math.round(g.min * 100)} % Leben` : 'sonst'} → ${g.bonus ? `+${Math.round(g.bonus * 100)} % Gold${g.id === 'dom' ? ', mehr Beute' : ''}` : 'kein Bonus'}</span></div>`).join('');
 
 export function viewTalents() {
   const tp = talentPoints();

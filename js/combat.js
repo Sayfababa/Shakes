@@ -35,7 +35,7 @@ export function fight(A, B) {
   function spell(x, y, s) {
     const amp = x.amp || 1, red = 1 - Math.min(0.6, y.armor / (y.armor + 20 + x.lvl * 8)) * (1 - Math.min(0.9, x.pen || 0));
     const dmgKind = !['heal', 'shield', 'buff'].includes(s.kind);
-    if (dmgKind && chance(Math.min(0.5, y.dex / (y.dex + x.dex * 3 + 40) + (y.evade || 0)))) return say(x.side, `${x.name} wirkt ${s.name} – ${y.name} weicht aus.`, { spell: s.name });
+    if (dmgKind && chance(Math.min(0.5, y.dex / (y.dex + x.dex * 3 + 40) + (y.evade || 0)))) return say(x.side, `${x.name} wirkt ${s.name} – ${y.name} weicht aus.`, { spell: s.name, sid: s.id });
     const dmgOf = m => Math.max(1, Math.round(base(x) * m * amp * red));
     let t = `${x.name} wirkt ${s.name}`, d = 0;
     if (s.kind === 'hit' || s.kind === 'stun' || s.kind === 'mark') {
@@ -54,7 +54,7 @@ export function fight(A, B) {
       x.buff = Math.min(1 + (s.max || 9), x.buff + s.v); t += `: Schaden +${Math.round((x.buff - 1) * 100)} %.`;
     }
     if (x.side === 'a') cast.push(s.name);
-    say(x.side, t, { spell: s.name, dmg: d || undefined });
+    say(x.side, t, { spell: s.name, sid: s.id, dmg: d || undefined });
   }
 
   function strike(x, y) {

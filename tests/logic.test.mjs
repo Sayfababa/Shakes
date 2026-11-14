@@ -17,6 +17,7 @@ test('Daten: jedes Monster, jeder Boss hat ein Bild', async () => {
   for (const g of [...D.MONSTERS.map(m => m.glyph), ...D.CRYPTS.map(c => c.boss.glyph).filter(g => g !== 'self')])
     assert.ok(fs.existsSync(`assets/monsters/${g}.jpg`), `fehlt: ${g}`);
   for (const b of D.BASES) assert.ok(fs.existsSync(`assets/items/${b.art}.webp`), `Item-Bild fehlt: ${b.art}`);
+  for (const sp of Object.values(D.SPELLS).flat()) assert.ok(fs.existsSync(`assets/spells/${sp.id}.webp`), `Zauber-Bild fehlt: ${sp.id}`);
 });
 
 test('Daten: Quest-Ziele zeigen nur auf existierende Orte, Monster, Materialien, Krypten', () => {

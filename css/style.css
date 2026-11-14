@@ -356,3 +356,7 @@ img.portrait.monster { object-fit: cover; }
 @media (max-height: 720px) { .stat.attr small, .stat .av small { font-size: .62rem; } }
 .panel.spell > div:last-child { flex: 1; min-width: 0; } .panel.spell h3 { align-items: baseline; gap: 8px; }
 @media (max-height: 720px) { .panel.spell { padding-top: 6px; padding-bottom: 6px; } .sic { width: 32px; height: 32px; } }
+img.sic { object-fit: cover; padding: 0; background: #000; width: 48px; height: 48px; }
+@media (max-height: 720px) { img.sic { width: 40px; height: 40px; } }
+.spellname { display: flex; flex-direction: column; align-items: center; gap: 2px; top: 6%; }
+.spellname img { width: 46px; height: 46px; border: 1px solid #000; box-shadow: 0 0 0 1px #3a4280, 0 0 14px rgba(120,140,255,.45); }

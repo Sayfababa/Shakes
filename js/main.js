@@ -90,7 +90,7 @@ function fightStep() {
   const row = document.createElement('div'); row.className = `${l.who} ${l.crit ? 'crit' : ''} ${l.spell ? 'spell' : ''}`; row.textContent = l.t;
   log.appendChild(row); log.scrollTop = log.scrollHeight;
   if (l.spell) { const c = document.querySelector(`#${l.who === 'a' ? 'fA' : 'fB'} .pwrap`);
-    if (c) { const n = document.createElement('span'); n.className = 'spellname'; n.textContent = l.spell; c.appendChild(n); setTimeout(() => n.remove(), 1100); } }
+    if (c) { const n = document.createElement('span'); n.className = 'spellname'; n.innerHTML = `${l.sid ? `<img src="assets/spells/${l.sid}.webp" alt="">` : ''}<span>${l.spell}</span>`; c.appendChild(n); setTimeout(() => n.remove(), 1100); } }
   for (const [id, hp, max] of [['fA', l.hpA, F.hpA], ['fB', l.hpB, F.hpB]]) {
     const el = document.getElementById(id); if (!el) continue;
     el.querySelector('.bar i').style.width = Math.max(0, Math.min(100, hp / max * 100)) + '%';
