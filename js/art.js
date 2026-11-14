@@ -63,7 +63,10 @@ const ART = {
     <circle cx="10" cy="5.5" r="2.8" fill="${GEM[g]}" stroke="#000" stroke-width=".6"/><circle cx="9.3" cy="4.8" r=".8" fill="#fff" opacity=".6"/>`,
 };
 
+// Gemalte Item-Bilder (assets/items/<art>.webp). Fehlt eins, wird das SVG gezeichnet.
+const PAINTED = new Set(['cap', 'helm', 'mask', 'leather', 'mail', 'plate', 'gloves', 'gauntlets', 'boots', 'greaves', 'sash', 'belt', 'buckler', 'tower', 'amulet', 'ring']);
 export function itemArt(it) {
+  if (PAINTED.has(it.art)) return `<img class="iart" src="assets/items/${it.art}.webp" alt="" draggable="false">`;
   const w = (it.w || 1) * 20, h = (it.h || 1) * 20, f = ART[it.art] || ART.ring;
   return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">${f(it.rarity)}</svg>`;
 }

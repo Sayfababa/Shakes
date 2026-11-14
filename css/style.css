@@ -223,3 +223,7 @@ input { background: #000; color: var(--text); border: 1px solid var(--edge); pad
 .speaker { display: grid; grid-template-columns: calc(var(--u) * 2.4) 1fr; gap: 10px; align-items: center; flex: none !important; padding: 6px 8px; }
 .speaker b { font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.05rem; } .speaker .lore { margin: 1px 0 0; font-size: .8rem; line-height: 1.2; }
 .portrait.npc { border-color: #3a2e22; filter: contrast(1.05) saturate(.95); }
+
+/* Gemalte Item-Bilder */
+img.iart { width: 100%; height: 100%; object-fit: contain; display: block; filter: drop-shadow(0 2px 2px #000); pointer-events: none; }
+.eslot .ghost img.iart { filter: grayscale(1) brightness(1.4); }
