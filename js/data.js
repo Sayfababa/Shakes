@@ -60,9 +60,9 @@ export const MONSTERS = [
   { name: 'Verfaulter Ghul', glyph: 'ghul', mat: 'zahn' }, { name: 'Gefallener', glyph: 'fallen', mat: 'asche' },
   { name: 'Skelettkrieger', glyph: 'skelett', mat: 'staub' }, { name: 'Grabräuber', glyph: 'grabraeuber', mat: 'leinen' },
   { name: 'Pestratte', glyph: 'pestratte', mat: 'schwanz' }, { name: 'Kultist der Glocke', glyph: 'kultist', mat: 'siegel' },
-  { name: 'Blutfürst', glyph: 'horn', mat: 'blutstein' }, { name: 'Sumpfhexe', glyph: 'hood', mat: 'haar' },
-  { name: 'Knochenhund', glyph: 'skull', mat: 'staub' }, { name: 'Gehäuteter', glyph: 'ghoul', mat: 'blutstein' },
-  { name: 'Höllenbrut', glyph: 'horn', mat: 'asche' }, { name: 'Wiedergänger', glyph: 'skull', mat: 'leinen' },
+  { name: 'Blutfürst', glyph: 'blutfuerst', mat: 'blutstein' }, { name: 'Sumpfhexe', glyph: 'sumpfhexe', mat: 'haar' },
+  { name: 'Knochenhund', glyph: 'knochenhund', mat: 'staub' }, { name: 'Gehäuteter', glyph: 'gehaeuteter', mat: 'blutstein' },
+  { name: 'Höllenbrut', glyph: 'hoellenbrut', mat: 'asche' }, { name: 'Wiedergänger', glyph: 'wiedergaenger', mat: 'leinen' },
 ];
 
 // Streifzüge: Orte mit eigenen Monstern. Freigeschaltet über Stufe.

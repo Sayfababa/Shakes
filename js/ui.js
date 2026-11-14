@@ -11,7 +11,8 @@ const pct = (a, b) => Math.max(0, Math.min(100, (a / b) * 100));
 const effLine = e => Object.entries(e).map(([k, v]) => `${EFFECT_NAMES[k]}${k === 'first' ? '' : ' +' + Math.round(v * 100) + '%'}`).join(', ');
 
 // Gemalte Monster/Bosse in assets/monsters/<glyph>.jpg, sonst SVG-Silhouette
-const MON_IMG = new Set(['gerlinde', 'aldemar', 'butcher', 'bellringer', 'ghul', 'fallen', 'skelett', 'grabraeuber', 'pestratte', 'kultist']);
+const MON_IMG = new Set(['gerlinde', 'aldemar', 'butcher', 'bellringer', 'ghul', 'fallen', 'skelett', 'grabraeuber', 'pestratte', 'kultist',
+  'blutfuerst', 'sumpfhexe', 'knochenhund', 'gehaeuteter', 'hoellenbrut', 'wiedergaenger']);
 export const monsterArt = g => MON_IMG.has(g) ? `<img class="portrait monster" src="assets/monsters/${g}.jpg" alt="">`
   : `<div class="portrait monster"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#070403"/>${MON[g] || MON.skull}</svg></div>`;
 const npcArt = g => NPC_ART[g] ? `<div class="portrait npc"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#0a0705"/>${NPC_ART[g]}</svg></div>` : `<img class="portrait npc" src="assets/npcs/${g}.jpg" alt="">`;
