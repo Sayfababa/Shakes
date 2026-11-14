@@ -84,6 +84,7 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - **Zeit des Spielers respektieren**: keine Softlocks (Boss-Ziele zählen rückwirkend), Gegner wachsen nur halb mit (`locLvl`).
 
 ## UI-Regeln (aus UX-REVIEW.md)
+- Held: Name (und Titel) steht oben in der Kopfzeile, nicht unter dem Portrait. Ausrüstung symmetrisch: links Helm/Waffe/Handschuhe/Ring, rechts Amulett/Nebenhand/Stiefel/Ring, unter dem Portrait Brust + Gürtel. Portrait sitzt in `.pfill` (absolut) und richtet sich nach den Spalten – nie umgekehrt.
 - Tab-Punkte nur für echte Handlungen (siehe `badge` in navBar), nie als Dauerzustand.
 - Treffer-Feedback: Schadenszahl + kurzer Rand-Schatten/Wackeln, Portrait nie einfärben.
 - Gesperrtes klein halten (Orte als Zeile, Krypten kompakt). Schrift nie unter ~11px.

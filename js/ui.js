@@ -73,7 +73,7 @@ const itemEl = (it, act) => `<div class="item r-${it.rarity}" data-tip="${it.id}
 // --- Rahmen ---
 export function hud(tut = '') {
   return `<header class="hud">
-    <div class="hud-row"><span class="ttl">Aschenkrone</span>
+    <div class="hud-row"><span class="ttl">${S.name}${S.title ? ` <small>${S.title}</small>` : ''}</span>
       <span class="res"><span class="coin"></span><b>${S.gold}</b><span class="lvl">Stufe <b>${S.lvl}</b></span>
       <span class="orb" style="--f:${pct(S.glut, CFG.maxGlut)}%" title="Glut"><b>${S.glut}</b></span></span></div>
     ${tut || `<div class="xpline"><div class="bar xp"><i style="width:${pct(S.xp, xpNeed(S.lvl))}%"></i></div><small>${S.xp} / ${xpNeed(S.lvl)} EP</small></div>`}</header>`;
@@ -103,13 +103,9 @@ export function viewHero() {
   const mats = Object.entries(S.mats).filter(([, n]) => n > 0);
   return `<div class="hero">
     <section class="panel doll">
-      <div class="dcol">${slot('helm')}${slot('weapon')}${slot('gloves')}</div>
-      <div class="dmid">
-        <img class="portrait fr-${rk.frame}" src="${P(S.cls)}" alt="">
-        <div class="plate"><b>${S.name}</b><span>${rk.title} · ${CLASSES[S.cls].name}</span></div>
-        <div class="drow">${slot('ring1')}${slot('belt')}${slot('ring2')}</div>
-      </div>
-      <div class="dcol">${slot('amulet')}${slot('chest')}${slot('offhand')}${slot('boots')}</div>
+      <div class="dside">${slot('helm')}${slot('weapon')}${slot('gloves')}${slot('ring1')}</div>
+      <div class="dmid"><div class="pfill"><img class="portrait fr-${rk.frame}" src="${P(S.cls)}" alt="" title="${rk.title}"></div><div class="drow">${slot('chest')}${slot('belt')}</div></div>
+      <div class="dside">${slot('amulet')}${slot('offhand')}${slot('boots')}${slot('ring2')}</div>
     </section>
     <div class="herobar">
       <span class="kkline">Kampfkraft <b>${fmtN(power(st))}</b></span>
