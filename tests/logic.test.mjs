@@ -216,7 +216,7 @@ test('Nachhall: Zauber wirkt zweites Mal, nie in Schleife', () => {
 test('Neu weihen: behält Runen und Sonderbonus, Einzigartiges gesperrt, nie Einzigartiges als Ergebnis', () => {
   const S = fresh(); S.gold = 99999; S.mats.schwanz = 99; S.mats.zahn = 10;
   S.equip.amulet = makeItem(20, { slot: 'amulet', minRarity: 3 }); delete S.equip.amulet.unique; S.equip.amulet.fx = { crit: 0.06 }; S.equip.amulet.special = 'crit';
-  const r = G.forge('amulet', 'zahn', 15); assert.ok(r);
+  const r = G.forge('amulet', 'zahn', 15); assert.ok(r); S.equip.amulet.glut = S.equip.amulet.glutMax = 9999;
   for (let i = 0; i < 30; i++) { assert.ok(G.doService('ysolde', 'reroll')); const a = S.equip.amulet;
     assert.ok((a.mods.dmg || 0) >= r.v, 'Rune verloren'); assert.equal(a.special, 'crit'); assert.ok(!a.unique); }
   S.equip.amulet.unique = 'Blutglocke'; assert.equal(G.doService('ysolde', 'reroll'), null);
@@ -315,4 +315,17 @@ test('Höhere Grundgegenstände erst ab ihrer Stufe; Bild-Varianten gehören zur
     assert.ok(!b.minLvl || 10 >= b.minLvl, `${b.name} auf Stufe 10`); assert.ok([b.art, ...(b.vars || [])].includes(it.art), `fremdes Bild ${it.art}`); }
   const seen = new Set(); for (let i = 0; i < 6000; i++) seen.add(makeItem(30, { minRarity: 1 }).base);
   for (const b of hi) assert.ok(seen.has(b.name), `${b.name} kommt auf Stufe 30 nie vor`);
+});
+
+test('Neu weihen (Ysolde) respektiert das Siegel und verbraucht Schmiedeglut wie Umschmieden', () => {
+  const S = fresh(); S.gold = 1e7; S.mats.schwanz = 999; S.mats.siegel = 99;
+  let it; do it = makeItem(25, { slot: 'amulet', minRarity: 3 }); while (it.unique || it.rarity !== 'rare'); S.equip.amulet = it;
+  const k = Object.keys(G.baseMods(it))[0], v = G.baseMods(it)[k]; assert.ok(!G.craft(it.id, 'seal', k).err);
+  let n = 0; while (G.doService('ysolde', 'reroll')) { n++; assert.equal(G.baseMods(it)[k], v, 'Siegel gebrochen'); assert.ok(n < 50, 'endlos'); }
+  assert.ok(it.crafted, 'Glut muss irgendwann erschöpft sein'); assert.ok(n >= 3);
+});
+
+test('Name: kein HTML im Charakternamen', () => {
+  G.newChar('<img src=x onerror=alert(1)>Böse"', 'paladin'); assert.ok(!/[<>"]/.test(G.S.name)); assert.ok(G.S.name.length <= 16);
+  G.newChar('   ', 'paladin'); assert.equal(G.S.name, 'Namenloser');
 });

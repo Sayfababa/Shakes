@@ -43,11 +43,14 @@ function migrate(d) {
   if (d.v === 4) { d.haul = null; d.v = 5;
   }
   if (d.v === 5) { d.bounty = null; d.v = 6; }
+  d.name = cleanName(d.name);
   return d.v === SAVE_VERSION ? d : null;
 }
 
+// Name nur als reiner Text (landet im HTML, später auch bei anderen Spielern: Schmiedezeichen, Handel)
+export const cleanName = n => String(n ?? '').replace(/[<>&"'`\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16) || 'Namenloser';
 export function newChar(name, cls) {
-  const c = CLASSES[cls];
+  name = cleanName(name); const c = CLASSES[cls];
   S = { v: SAVE_VERSION, name, cls, lvl: 1, xp: 0, gold: 40, attrs: baseAttrs(cls), points: CFG.startPoints, tal: {}, respecs: 0,
     crypt: { diff: 0, prog: {}, cd: 0 }, trophies: [], traders: freshTraders(), mats: {}, omen: null, omens: 0, shards: [], tut: 0, title: null, haul: null, bounty: null,
     equip: {}, bag: [], glut: CFG.maxGlut, glutTs: now(), active: null,
@@ -67,7 +70,8 @@ export const talentPointsTotal = () => Math.max(0, S.lvl - 1);
 export const talentPointsSpent = () => Object.values(S.tal).reduce((a, b) => a + b, 0);
 export const talentPoints = () => talentPointsTotal() - talentPointsSpent();
 export function talentState(cls, branch, tier) {
-  const node = TALENTS[cls][branch].nodes[tier], r = S.tal[node.id] || 0;
+  const node = TALENTS[cls][branch]?.nodes[tier]; if (!node) return { node: null, r: 0, can: false, locked: true, needLvl: 99 };
+  const r = S.tal[node.id] || 0;
   const prev = tier === 0 || (S.tal[TALENTS[cls][branch].nodes[tier - 1].id] || 0) > 0;
   const lvlOk = S.lvl >= TIER_LVL[tier];
   return { node, r, can: prev && lvlOk && r < node.max && talentPoints() > 0, locked: !prev || !lvlOk, needLvl: TIER_LVL[tier] };
@@ -354,6 +358,20 @@ export function craftCheck(it, opId, stat) {
   if (opId === 'add' && keys.length >= AFFIXES.length) return 'Alle Boni schon vorhanden.';
   return null;
 }
+// Alle unversiegelten Boni neu (gleiche Anzahl), versiegelter bleibt – auch für Ysoldes „Neu weihen“
+function rerollUnsealed(it) {
+  const base = baseMods(it), tiers = { ...(it.tiers || {}) }, free = Object.keys(base).filter(k => k !== it.sealed);
+  for (const k of free) { delete base[k]; delete tiers[k]; }
+  for (const a of AFFIXES.filter(a => !(a.stat in base)).sort(() => rand() - 0.5).slice(0, free.length)) {
+    const T = rollTier(it.lvl); tiers[a.stat] = T.t; base[a.stat] = affixValue(a, it.lvl, T, it.rarity === 'legendary'); }
+  it.tiers = tiers; setBase(it, base); renameMagic(it);
+}
+// Schmiedeglut abziehen; reicht der Rest für nichts mehr → vollendet
+function spendGlut(it, n) {
+  ensureGlut(it); const cost = Math.min(it.glut, n + Math.floor(rand() * (CRAFT.glutJitter + 1))); it.glut -= cost;
+  if (it.glut < Math.min(...CRAFT.ops.map(o => o.glut))) { it.glut = 0; it.crafted = S.name; journal(`${it.name} ist vollendet. Mein Zeichen steht darauf.`); }
+  return cost;
+}
 export function craft(id, opId, stat) {
   const it = findAny(id), err = craftCheck(it, opId, stat); if (err) return { err };
   const op = CRAFT.ops.find(o => o.id === opId), legend = it.rarity === 'legendary';
@@ -368,10 +386,7 @@ export function craft(id, opId, stat) {
   else if (opId === 'remove') { const k = free[Math.floor(rand() * free.length)]; delete base[k]; delete tiers[k]; }
   it.tiers = tiers; setBase(it, base);
   S.mats[op.mat] -= op.n; S.gold -= gold;
-  const cost = Math.min(it.glut, op.glut + Math.floor(rand() * (CRAFT.glutJitter + 1)));
-  it.glut -= cost;
-  if (it.glut < Math.min(...CRAFT.ops.map(o => o.glut))) { it.glut = 0;   // Rest reicht für keinen Eingriff mehr → vollendet
-    it.crafted = S.name; journal(`${it.name} ist vollendet. Mein Zeichen steht darauf.`); }
+  const cost = spendGlut(it, op.glut);
   renameMagic(it); it.value = itemValue(it);
   return { it, op, cost };
 }
@@ -420,6 +435,7 @@ export function serviceState(sv) {
   if (sv.slot && !it) reason = 'Nichts angelegt';
   else if (sv.max && step >= sv.max) reason = 'Vollendet';
   else if (sv.id === 'reroll' && it.unique) reason = 'Einzigartiges lässt sich nicht neu weihen';
+  else if (sv.id === 'reroll' && (ensureGlut(it), it.crafted || it.glut < CRAFT.ops.find(o => o.id === 'chaos').glut)) reason = 'Schmiedeglut erschöpft';
   else if (sv.id === 'reroll' && !Object.keys(it.mods).length) reason = 'Keine Zauber';
   const enough = S.gold >= gold && Object.entries(cost).every(([k, n]) => (S.mats[k] || 0) >= n);
   return { it, step, costText, reason, can: !reason && enough, questMat: Object.keys(cost).find(k => questNeedsMat(k)) };
@@ -433,10 +449,8 @@ export function doService(tid, svId) {
   if (sv.max) { it.up = (it.up || 0) + 1; it.value = Math.round(it.value * 1.3); return it; }
   if (sv.id === 'reroll') {
     // Neue Boni gleicher Seltenheit; Sonderbonus und eingeschmiedete Runen bleiben erhalten
-    const minR = ['broken', 'normal', 'magic', 'rare', 'legendary'].indexOf(it.rarity);
-    let fresh; for (let i = 0; i < 20 && (!fresh || fresh.unique || fresh.rarity !== it.rarity); i++) fresh = makeItem(it.lvl, { slot: it.slot, minRarity: minR, luck: S.attrs.lck });
-    it.mods = { ...fresh.mods }; it.tiers = { ...fresh.tiers };
-    for (const r of it.runes || []) it.mods[r.stat] = (it.mods[r.stat] || 0) + r.v;
+    // Wie „Neu würfeln“ beim Umschmieden: versiegelter Bonus bleibt, kostet Schmiedeglut (sonst endloses Würfeln am Glut-Limit vorbei)
+    rerollUnsealed(it); spendGlut(it, CRAFT.ops.find(o => o.id === 'chaos').glut);
     it.value = itemValue(it); return it;
   }
   if (sv.id === 'gamble') {

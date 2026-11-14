@@ -186,14 +186,16 @@ export function viewTrips() {
   const openLocs = LOCATIONS.filter(locOpen), nextLoc = LOCATIONS.find(l => !locOpen(l)), later = LOCATIONS.filter(l => !locOpen(l) && l !== nextLoc);
   const bl = bounties(), bDone = bl.filter(b => b.claimed).length, bReady = bl.some(b => !b.claimed && b.prog >= b.n);
   const bbar = `<div class="bountybar ${bReady ? 'ready' : ''}" data-action="go" data-v="bounties"><span>Steckbriefe heute</span><b>${bDone}/3</b>${bReady ? '<i>Lohn abholen</i>' : ''}</div>`;
-  return `<div class="col">${S.haul ? haulPanel() : say('prophet', omenLine())}${bbar}<div class="trips">${[...openLocs, ...(nextLoc ? [nextLoc] : [])].map(l => { const open = locOpen(l), r = tripReward(l, 1, (l.sec[0] + l.sec[1]) / 2);
+  const cards = [...openLocs, ...(nextLoc ? [nextLoc] : [])];
+  const ptsHint = S.points && openLocs.some(l => tripChance(l) < 0.65) ? `<div class="ptsline" data-action="go" data-v="stats">${S.points} Punkte frei – verteile sie, dann sinkt die Gefahr</div>` : '';
+  return `<div class="col">${S.haul ? haulPanel() : say('prophet', omenLine())}${bbar}${ptsHint}<div class="trips ${cards.length > 4 ? 'many' : ''}">${cards.map(l => { const open = locOpen(l), r = tripReward(l, 1, (l.sec[0] + l.sec[1]) / 2);
     const isOmen = open && S.lvl >= 3 && o.loc === l.id && !o.done;
     const wanted = new Set(Object.keys(TRADERS).filter(available).flatMap(t => current(t).obj.filter(o => o.at === l.id || l.mobs.includes(o.kill)).map(() => t)));
     return `<section class="panel trip ${open ? '' : 'locked'} ${isOmen ? 'omen' : ''} ${S.glut < l.glut ? 'tired' : ''}" ${open ? `data-action="trip" data-id="${l.id}"` : ''}>
       ${isOmen ? `<span class="omentag">Omen: ${o.def.short}</span>` : ''}
       <h3>${l.name}${open && wanted.size ? '<span class="qmark" title="Auftrag">!</span>' : ''}</h3><p class="lore small">${l.text}</p>
       ${open ? `<div class="mobpics">${l.mobs.map(n => monsterArt(MONSTERS.find(m => m.name === n).glyph)).join('')}</div>
-      <div class="tripinfo">${threat(tripChance(l))}${S.points && tripChance(l) < 0.65 ? '<span class="threat t-high">Verteile deine Punkte!</span>' : ''}<span>Stufe ${locLvl(l)}</span><span>${fmtT(l.sec[0])}–${fmtT(l.sec[1])}</span><span>${l.glut} Glut</span><span>~${r.gold} Gold</span></div>` : `<div class="mobs">Erst ab Stufe ${l.lvl}</div>`}
+      <div class="tripinfo">${threat(tripChance(l))}<span>Stufe ${locLvl(l)}</span><span>${fmtT(l.sec[0])}–${fmtT(l.sec[1])}</span><span>${l.glut} Glut</span><span>~${r.gold} Gold</span></div>` : `<div class="mobs">Erst ab Stufe ${l.lvl}</div>`}
     </section>`; }).join('')}</div>${later.length ? `<p class="unknown">Noch unentdeckt: ${later.map(l => `${l.name} <i>(Stufe ${l.lvl})</i>`).join(' · ')}</p>` : ''}
     <section class="panel journal tripsjournal"><h2>Tagebuch</h2>${S.journal.slice(0, 8).map(j => `<div>${j.t}</div>`).join('')}</section></div>`;
 }

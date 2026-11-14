@@ -474,3 +474,9 @@ img.sic { object-fit: cover; padding: 0; background: #000; width: 48px; height: 
 .shoprow { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .sitem { min-width: 0; overflow: hidden; }
 .sitem img.iart, .sitem svg { position: absolute; left: 3px; top: 3px; width: calc(100% - 6px); height: calc(100% - 17px); }
+/* Viele Orte offen (spät im Spiel): Karten kompakt, damit Stufe/Zeit/Lohn sichtbar bleiben */
+.ptsline { flex: none !important; font-family: 'Alegreya SC'; font-size: .72rem; color: var(--blood-hi); text-align: center; cursor: pointer; padding: 2px 0; }
+.trips.many .trip h3 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .98rem; }
+.trips.many .trip { padding: 6px 8px; }
+@media (max-height: 760px) { .trips.many .mobpics { display: none; } }
+.trips.many .tripinfo { font-size: .66rem; }
