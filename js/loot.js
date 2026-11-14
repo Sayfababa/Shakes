@@ -2,12 +2,12 @@ import { BASES, RARITIES, AFFIXES, LEGEND_NAMES } from './data.js';
 import { roll, pick, weighted, uid, rand } from './rng.js';
 
 // Erzeugt ein Item für Stufe `lvl`. luck verschiebt Seltenheiten nach oben.
-export function makeItem(lvl, { luck = 0, slot, cls } = {}) {
+export function makeItem(lvl, { luck = 0, slot, cls, minRarity = 0 } = {}) {
   let pool = slot ? BASES.filter(b => b.slot === slot) : BASES;
   if (cls && rand() < 0.6) pool = pool.filter(b => b.slot !== 'weapon' || b.kind === cls.weapon) ;
   const base = pick(pool.length ? pool : BASES);
   const boost = 1 + Math.min(luck, 200) / 100;
-  const rar = weighted(RARITIES.map(r => ({ ...r, w: r.id === 'normal' || r.id === 'broken' ? r.w : r.w * boost })));
+  const rar = weighted(RARITIES.map((r, i) => ({ ...r, w: i < minRarity ? 0 : r.id === 'normal' || r.id === 'broken' ? r.w : r.w * boost })));
   const ilvl = Math.max(1, lvl + roll(-1, 1));
   const scale = (1 + ilvl * 0.18) * rar.mult;
   const it = { id: uid(), slot: base.slot, kind: base.kind, base: base.name, rarity: rar.id, lvl: ilvl, mods: {} };

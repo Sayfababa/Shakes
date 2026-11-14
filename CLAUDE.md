@@ -17,7 +17,7 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - `js/rng.js`     – Zufall (seedbar), `pick`, `roll`, `chance`.
 - `js/state.js`   – Spielstand, Save/Load (localStorage, Key `aschenkrone_v1`), abgeleitete Werte (`stats()`).
 - `js/loot.js`    – Item-Erzeugung (Seltenheit, Affixe, Wert).
-- `js/combat.js`  – reine Kampfsimulation: `fight(a, b) -> {winner, log}`. Kein DOM.
+- `js/combat.js`  – reine Kampfsimulation: `fight(a, b) -> {winner, log}`. Kein DOM. Effekte generisch (crit, evade, block, leech, bleed, rage, pen, regen, thorns, execute, first).
 - `js/ui.js`      – Rendering (Templates als Strings), Tooltips.
 - `js/main.js`    – Bootstrapping, Navigation, Event-Delegation (`data-action`).
 
@@ -33,3 +33,8 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - **Kein Scrollen**: App-Layout = HUD oben, `<main>` (100dvh, overflow hidden), Tabs unten. Jede Ansicht muss auf iPhone SE (375×667) und iPhone 13 passen – mit Playwright prüfen (Elemente unter main-Unterkante zählen). Nur Kampflog darf intern scrollen.
 - `manifest.json` + `sw.js` (network-first, damit Updates sofort ankommen). Alle Pfade relativ (Pages-Unterordner!).
 - Touch: Item-Tap öffnet Detail-Popup mit Aktionen (`showTouchTip` in main.js), kein Hover/Rechtsklick voraussetzen.
+
+## Progression (siehe DESIGN.md)
+- Attribute nur über Punkte (5/Stufe), Talente 1/Stufe (`TALENTS` in data.js), Läuterung kostet Gold.
+- Neue Boni immer als Effekt-Schlüssel ausdrücken (`EFFECT_NAMES`) → `effects()` in state.js summiert Klasse+Talente+Trophäen.
+- Balance-Änderungen mit Simulation prüfen (viele Builds × viele Kämpfe, nicht ein Wurf).

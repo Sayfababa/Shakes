@@ -1,6 +1,6 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
-import { CLASSES, ATTRS, SLOTS, RARITIES, CFG } from './data.js';
-import { S, stats, xpNeed, attrCost } from './state.js';
+import { CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES } from './data.js';
+import { S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl } from './state.js';
 
 const P = (cls) => `assets/portraits/${CLASSES[cls].portrait}.jpg`;
 const rarName = id => RARITIES.find(r => r.id === id)?.name || '';
@@ -69,8 +69,10 @@ export function hud() {
 }
 
 export function navBar(view) {
-  const tabs = [['char', 'Held'], ['quests', 'Aufträge'], ['shop', 'Schmied'], ['arena', 'Grube']];
-  return `<nav class="tabs">${tabs.map(([k, n]) => `<a class="${view === k ? 'on' : ''}" data-action="go" data-v="${k}">${n}</a>`).join('')}</nav>`;
+  const tabs = [['char', 'Held'], ['quests', 'Aufträge'], ['crypt', 'Krypta'], ['shop', 'Schmied'], ['arena', 'Grube']];
+  const badge = { char: S.points + talentPoints() > 0, crypt: Date.now() >= S.crypt.cd };
+  const on = view === 'talents' ? 'char' : view;
+  return `<nav class="tabs">${tabs.map(([k, n]) => `<a class="${on === k ? 'on' : ''} ${badge[k] ? 'badge' : ''}" data-action="go" data-v="${k}">${n}</a>`).join('')}</nav>`;
 }
 
 export function viewCreate(sel) {
@@ -81,22 +83,54 @@ export function viewCreate(sel) {
   <div class="cname"><input id="nm" maxlength="16" placeholder="Name des Verdammten"><button class="red" data-action="create">Erwachen</button></div>` : '<p class="sub">Wähle dein Schicksal.</p>'}</div>`;
 }
 
+const effLine = e => Object.entries(e).map(([k, v]) => `${EFFECT_NAMES[k]} ${k === 'first' ? '' : '+' + Math.round(v * 100) + '%'}`).join(', ');
+
 export function viewChar() {
-  const st = stats(), c = CLASSES[S.cls];
+  const st = stats(), c = CLASSES[S.cls], rk = rank(), tp = talentPoints();
   const eq = ['helm', 'amulet', 'chest', 'ring1', 'weapon', 'gloves', 'belt', 'ring2', 'offhand', 'boots'];
   const lbl = { ring1: 'Ring', ring2: 'Ring' };
   return `<div class="char">
     <section class="frame head">
-      <img class="portrait" src="${P(S.cls)}" alt="">
-      <div class="attrs"><div class="who cinzel">${S.name} <small class="muted">${c.name}</small></div>
-        ${Object.entries(ATTRS).map(([k, n]) => `<div class="stat"><span>${n}${k === c.main ? ' ✦' : ''}</span><span><b>${st[k]}</b> <button data-action="attr" data-k="${k}" ${S.gold < attrCost(k) ? 'disabled' : ''}>+${attrCost(k)}</button></span></div>`).join('')}
+      <img class="portrait fr-${rk.frame}" src="${P(S.cls)}" alt="">
+      <div class="attrs"><div class="who cinzel">${S.name}<small>${rk.title} · ${c.name} · Stufe ${S.lvl}</small></div>
+        ${Object.entries(ATTRS).map(([k, n]) => `<div class="stat"><span>${n}${k === c.main ? ' ✦' : ''}</span><span><b>${st[k]}</b>${S.points ? ` <button data-action="attr" data-k="${k}">+</button>` : ''}</span></div>`).join('')}
+        <div class="pts">${S.points ? `<b>${S.points}</b> Attributpunkte` : ''}<button class="tiny ${tp ? 'red' : ''}" data-action="go" data-v="talents">Talente${tp ? ` (${tp})` : ''}</button></div>
       </div>
-      <div class="derived"><span>Leben <b>${st.hp}</b></span><span>Schaden <b>${st.dmg[0]}–${st.dmg[1]}</b></span><span>Rüstung <b>${st.armor}</b></span><span>S/T <b>${S.wins}/${S.deaths}</b></span></div>
+      <div class="derived"><span>Leben <b>${st.hp}</b></span><span>Schaden <b>${st.dmg[0]}–${st.dmg[1]}</b></span><span>Rüstung <b>${st.armor}</b></span><span>Trophäen <b>${S.trophies.length}</b></span></div>
     </section>
     <section class="frame"><div class="equip">${eq.map(s => slotBox(S.equip[s], { action: `data-action="unequip" data-s="${s}"`, label: lbl[s] || SLOTS[s] })).join('')}</div></section>
     <section class="frame grow"><h2>Beutel <small class="muted">${S.bag.length}/20</small><button class="tiny" data-action="wipe">Neu beginnen</button></h2>
       <div class="bag">${Array.from({ length: 20 }, (_, i) => S.bag[i] ? slotBox(S.bag[i], { action: `data-action="equip" data-id="${S.bag[i].id}"` }) : '<div class="slot"></div>').join('')}</div></section>
   </div>`;
+}
+
+export function viewTalents() {
+  const tp = talentPoints(), rc = respecCost();
+  return `<div class="col"><section class="frame"><h2>Talente – ${CLASSES[S.cls].name} <small class="muted">${tp} Punkte</small>
+      <button class="tiny" data-action="respec" ${S.gold < rc ? 'disabled' : ''}>Läutern ${rc ? rc + 'g' : '(gratis)'}</button></h2>
+      <p class="muted quote">Ein Punkt je Stufe. Läutern setzt Attribute und Talente zurück – das erste Mal gratis, danach teuer.</p></section>
+    <div class="tree">${TALENTS[S.cls].map((br, bi) => `<section class="frame branch"><h3 class="cinzel">${br.name}</h3>
+      ${br.nodes.map((_, ti) => { const t = talentState(S.cls, bi, ti);
+        return `<div class="tal ${t.r ? 'has' : ''} ${t.locked ? 'locked' : ''} ${t.can ? 'can' : ''}" data-action="learn" data-b="${bi}" data-t="${ti}">
+          <div class="tn">${t.node.name}</div><div class="tr">${t.locked && S.lvl < t.needLvl ? `ab Stufe ${t.needLvl}` : `${t.r}/${t.node.max}`}</div>
+          <div class="td">${t.node.desc}</div>
+          <div class="te">${effLine(t.node.eff)}${t.node.max > 1 ? ' je Rang' : ''}</div></div>`; }).join('<div class="link"></div>')}
+    </section>`).join('')}</div></div>`;
+}
+
+export function viewCrypts() {
+  const d = DIFFICULTIES[S.crypt.diff], cd = Math.max(0, Math.ceil((S.crypt.cd - Date.now()) / 1000));
+  return `<div class="col"><section class="frame"><h2>Die Krypten <small class="muted">${d.name}</small>
+      <span class="tiny-txt">${cd ? `Erholung ${fmtT(cd)}` : 'Bereit'}</span></h2>
+      <p class="muted quote">5 Ebenen, am Ende ein Boss. Jeder erste Bosssieg bringt eine dauerhafte Trophäe. Alle Krypten bezwungen: nächste Schwierigkeit.</p></section>
+    ${CRYPTS.map(c => { const f = cryptFloor(c), open = cryptOpen(c), done = f >= 5;
+      const troph = S.trophies.some(t => t.key === c.id + ':' + S.crypt.diff);
+      return `<section class="frame crypt ${!open ? 'locked' : ''} ${done ? 'done' : ''}" ${open && !done && !cd ? `data-action="crypt" data-id="${c.id}"` : ''}>
+        ${monsterArt(f === 4 || done ? c.boss.glyph : c.glyph)}
+        <div class="qtxt"><h3 class="cinzel">${c.name}</h3>
+          <p>${!open ? `Versiegelt bis Stufe ${c.lvl + d.lvlAdd - 2}` : done ? `${c.boss.name} ist gefallen.` : f === 4 ? `<span class="down">Boss: ${c.boss.name}</span>` : `Ebene ${f + 1}: ${c.floors[f]} (Stufe ${cryptLvl(c, f)})`}</p>
+          <div class="floors">${[0, 1, 2, 3, 4].map(i => `<i class="${i < f ? 'on' : ''} ${i === 4 ? 'boss' : ''}"></i>`).join('')}</div>
+          <div class="muted tiny-txt">Trophäe: ${effLine(c.trophy)} ${troph ? '✓' : ''}</div></div></section>`; }).join('')}</div>`;
 }
 
 export function viewQuests() {

@@ -1,20 +1,29 @@
-import { BASES, CLASSES, CFG, MONSTERS, PLACES, QUEST_VERBS, ATTRS } from './data.js';
+import { BASES, CLASSES, CFG, MONSTERS, PLACES, QUEST_VERBS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES } from './data.js';
 import { makeItem } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 export let S = null; // aktueller Spielstand
 
 export const now = () => Date.now();
-export function load() { try { const d = JSON.parse(localStorage.getItem(KEY)); if (d?.v === SAVE_VERSION) S = d; } catch {} return S; }
+export function load() { try { const d = JSON.parse(localStorage.getItem(KEY)); if (d) S = migrate(d); } catch {} return S; }
+
+const baseAttrs = cls => { const a = { str: 5, dex: 5, int: 5, con: 6, lck: 3 }; a[CLASSES[cls].main] = 10; return a; };
+function migrate(d) {
+  if (d.v === 1) { // v1: Attribute mit Gold gekauft -> v2: Punkte
+    d.attrs = baseAttrs(d.cls); d.points = CFG.startPoints + (d.lvl - 1) * CFG.attrPerLevel; delete d.bought;
+    d.tal = {}; d.respecs = 0; d.crypt = { diff: 0, prog: {}, cd: 0 }; d.trophies = []; d.v = 2;
+  }
+  return d.v === SAVE_VERSION ? d : null;
+}
 export function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} }
 export function wipe() { try { localStorage.removeItem(KEY); } catch {} S = null; }
 
 export function newChar(name, cls) {
   const c = CLASSES[cls];
-  const attrs = { str: 5, dex: 5, int: 5, con: 6, lck: 3 }; attrs[c.main] = 10;
-  S = { v: SAVE_VERSION, name, cls, lvl: 1, xp: 0, gold: 40, attrs, bought: { str: 0, dex: 0, int: 0, con: 0, lck: 0 },
+  S = { v: SAVE_VERSION, name, cls, lvl: 1, xp: 0, gold: 40, attrs: baseAttrs(cls), points: CFG.startPoints, tal: {}, respecs: 0,
+    crypt: { diff: 0, prog: {}, cd: 0 }, trophies: [],
     equip: {}, bag: [], glut: CFG.maxGlut, glutTs: now(), quests: [], active: null, shop: [], shopTs: 0,
     journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0 };
   const wb = BASES.find(b => b.kind === c.weapon);
@@ -24,7 +33,34 @@ export function newChar(name, cls) {
 }
 
 export const xpNeed = l => Math.round(80 * l ** 1.6);
-export const attrCost = k => Math.round(CFG.attrBaseCost * CFG.attrCostGrowth ** S.bought[k]);
+
+// --- Fortschritt: Punkte, Talente, Rang, Läuterung ---
+export const rank = (lvl = S.lvl) => [...RANKS].reverse().find(r => lvl >= r.lvl);
+export const talentPointsTotal = () => Math.max(0, S.lvl - 1);
+export const talentPointsSpent = () => Object.values(S.tal).reduce((a, b) => a + b, 0);
+export const talentPoints = () => talentPointsTotal() - talentPointsSpent();
+export function talentState(cls, branch, tier) {
+  const node = TALENTS[cls][branch].nodes[tier], r = S.tal[node.id] || 0;
+  const prev = tier === 0 || (S.tal[TALENTS[cls][branch].nodes[tier - 1].id] || 0) > 0;
+  const lvlOk = S.lvl >= TIER_LVL[tier];
+  return { node, r, can: prev && lvlOk && r < node.max && talentPoints() > 0, locked: !prev || !lvlOk, needLvl: TIER_LVL[tier] };
+}
+export function learn(branch, tier) { const t = talentState(S.cls, branch, tier); if (t.can) S.tal[t.node.id] = t.r + 1; return t.can; }
+export function addAttr(k) { if (S.points > 0) { S.attrs[k]++; S.points--; return true; } return false; }
+export const respecCost = () => S.respecs === 0 ? 0 : S.lvl * CFG.respecPerLvl;
+export function respec() {
+  const c = respecCost(); if (S.gold < c) return false;
+  S.gold -= c; S.respecs++; S.attrs = baseAttrs(S.cls); S.points = CFG.startPoints + (S.lvl - 1) * CFG.attrPerLevel; S.tal = {};
+  return true;
+}
+// Alle Effekte (Klasse + Talente + Trophäen) aufsummiert
+export function effects(p = S) {
+  const e = { ...CLASSES[p.cls].passive };
+  const add = (k, v) => e[k] = (e[k] || 0) + v;
+  for (const br of TALENTS[p.cls]) for (const n of br.nodes) { const r = p.tal?.[n.id] || 0; if (r) for (const [k, v] of Object.entries(n.eff)) add(k, v * r); }
+  for (const t of p.trophies || []) for (const [k, v] of Object.entries(t.eff)) add(k, v);
+  return e;
+}
 export const equipped = () => Object.values(S.equip).filter(Boolean);
 
 // Abgeleitete Kampfwerte des Spielers
@@ -35,19 +71,21 @@ export function stats(p = S) {
     st.armor += it.armor || 0;
     for (const [k, v] of Object.entries(it.mods)) k === 'dmg' ? st.dmgBonus += v : st[k] = (st[k] || 0) + v;
   }
-  const c = CLASSES[p.cls], w = p.equip.weapon;
-  const base = w?.dmg || [1, 3];
-  return { ...st, name: p.name, cls: p.cls, lvl: p.lvl, main: c.main,
-    dmg: [base[0] + st.dmgBonus, base[1] + st.dmgBonus], hp: Math.round(st.con * c.hp * (2 + p.lvl * 0.6)) };
+  const c = CLASSES[p.cls], w = p.equip.weapon, e = effects(p);
+  const base = w?.dmg || [1, 3], dm = 1 + (e.dmgPct || 0);
+  return { ...e, ...st, name: p.name, cls: p.cls, lvl: p.lvl, main: c.main,
+    armor: Math.round(st.armor * (1 + (e.armorPct || 0))),
+    dmg: [Math.round((base[0] + st.dmgBonus) * dm), Math.round((base[1] + st.dmgBonus) * dm)],
+    hp: Math.round(st.con * c.hp * (2 + p.lvl * 0.6) * (1 + (e.hpPct || 0))) };
 }
 
 // Monster skaliert auf Spielerstufe; diff 0.8 .. 1.3
 export function makeMonster(lvl, diff = 1, m = pick(MONSTERS)) {
-  const a = k => Math.round((3 + lvl * 2.2) * diff * (k === 'main' ? 1.4 : 0.8 + rand() * 0.4));
+  const a = k => Math.round((3 + lvl * 2.7) * diff * (k === 'main' ? 1.4 : 0.8 + rand() * 0.4));
   const main = pick(['str', 'dex', 'int']);
-  const mo = { name: m.name, glyph: m.glyph, lvl, main, str: a(), dex: a(), int: a(), con: a(), lck: a() * 0.5, armor: Math.round(lvl * 4 * diff) };
+  const mo = { name: m.name, glyph: m.glyph, lvl, main, str: a(), dex: a(), int: a(), con: a(), lck: a() * 0.5, armor: Math.round(lvl * 5 * diff) };
   mo[main] = a('main');
-  mo.dmg = [Math.round((2 + lvl * 1.5) * diff), Math.round((5 + lvl * 2.6) * diff)];
+  mo.dmg = [Math.round((2 + lvl * 1.7) * diff), Math.round((5 + lvl * 3) * diff)];
   mo.hp = Math.round(mo.con * 3.6 * (2 + lvl * 0.6));
   return mo;
 }
@@ -78,7 +116,7 @@ export function tickGlut() {
 
 export function gainXp(x) {
   S.xp += x; let up = 0;
-  while (S.xp >= xpNeed(S.lvl)) { S.xp -= xpNeed(S.lvl); S.lvl++; up++; }
+  while (S.xp >= xpNeed(S.lvl)) { S.xp -= xpNeed(S.lvl); S.lvl++; up++; S.points += CFG.attrPerLevel; }
   return up;
 }
 
@@ -96,4 +134,27 @@ export function equip(id) {
 export function unequip(slot) { if (S.equip[slot] && S.bag.length < 20) { S.bag.push(S.equip[slot]); S.equip[slot] = null; } }
 export function sell(id) { const i = S.bag.findIndex(x => x.id === id); if (i >= 0) { S.gold += S.bag[i].value; S.bag.splice(i, 1); } }
 export function journal(t) { S.journal.unshift({ t, ts: now() }); S.journal.length = Math.min(S.journal.length, 30); }
+
+// --- Krypten ---
+export const cryptLvl = (c, floor) => c.lvl + DIFFICULTIES[S.crypt.diff].lvlAdd + Math.floor(floor * 0.6);
+export const cryptFloor = c => S.crypt.prog[c.id] || 0;           // 0..5 (5 = Boss besiegt)
+export const cryptOpen = c => S.lvl >= c.lvl + DIFFICULTIES[S.crypt.diff].lvlAdd - 2;
+export function cryptEnemy(c) {
+  const f = cryptFloor(c), lvl = cryptLvl(c, f), boss = f === 4, d = DIFFICULTIES[S.crypt.diff];
+  const m = boss ? c.boss : MONSTERS.find(x => x.name === c.floors[f]) || c.floors[f];
+  const mo = makeMonster(lvl, (boss ? 1.25 : 1 + f * 0.05) * d.mult, m);
+  if (boss) { mo.hp = Math.round(mo.hp * 1.8); mo.boss = true; mo.rage = 0.2; mo.crit = 0.05; }
+  return mo;
+}
+// Sieg in Krypta -> Fortschritt; gibt { bossKilled, trophy, diffUp } zurück
+export function cryptWin(c) {
+  const f = cryptFloor(c); S.crypt.prog[c.id] = f + 1;
+  const out = { bossKilled: f === 4 };
+  if (out.bossKilled) {
+    const key = c.id + ':' + S.crypt.diff;
+    if (!S.trophies.some(t => t.key === key)) { out.trophy = { key, name: c.boss.name, diff: DIFFICULTIES[S.crypt.diff].name, eff: c.trophy }; S.trophies.push(out.trophy); }
+    if (CRYPTS.every(x => cryptFloor(x) >= 5) && S.crypt.diff < DIFFICULTIES.length - 1) { S.crypt.diff++; S.crypt.prog = {}; out.diffUp = DIFFICULTIES[S.crypt.diff].name; }
+  }
+  return out;
+}
 export { ATTRS };

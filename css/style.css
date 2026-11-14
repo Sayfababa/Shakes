@@ -150,3 +150,49 @@ input { background: #000; color: var(--text); border: 1px solid var(--iron-hi); 
   .stat button { padding: 2px 6px; } .equip { max-width: 330px; }
   .tabs a { padding: 9px 2px; } .frame { padding: 6px; }
 }
+
+/* --- Fortschritt --- */
+.tabs a { position: relative; font-size: .64rem; }
+.tabs a.badge::after { content: ''; position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; background: var(--blood-hi); box-shadow: 0 0 6px var(--blood-hi); }
+.char .who small { display: block; color: var(--dim); font-size: .66rem; letter-spacing: .03em; }
+.pts { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: .8rem; }
+.pts b { color: var(--blood-hi); }
+.stat button { min-width: 30px; padding: 2px 8px; font-size: .8rem; }
+.lvlup { color: var(--gold); }
+/* Portraitrahmen je Rang */
+.portrait.fr-iron { border-color: var(--iron-hi); }
+.portrait.fr-bronze { border-color: #8a5a2b; box-shadow: 0 0 0 1px #3a220f, 0 0 10px #4a2a10; }
+.portrait.fr-silver { border-color: #9a9a9a; box-shadow: 0 0 0 1px #333, 0 0 12px #555; }
+.portrait.fr-gold { border-color: var(--r-legendary); box-shadow: 0 0 0 1px #4a3a15, 0 0 14px #6a5520; }
+.portrait.fr-blood { border-color: var(--blood-hi); box-shadow: 0 0 0 1px #300, 0 0 18px #6a0d07; }
+/* Talente */
+.tree { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; flex: 1; min-height: 0; }
+.branch { display: flex; flex-direction: column; padding: 6px; }
+.branch h3 { margin: 0 0 6px; font-size: .78rem; color: var(--gold); text-align: center; }
+.tal { flex: 1; border: 1px solid #2c251d; background: #070504; padding: 5px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; text-align: center; min-height: 0; }
+.tal .tn { font-family: 'Cinzel'; font-size: .7rem; color: var(--text); }
+.tal .tr { font-family: 'Cinzel'; font-size: .8rem; color: var(--dim); }
+.tal .td { font-size: .7rem; color: var(--dim); font-style: italic; }
+.tal .te { font-size: .62rem; color: var(--r-magic); }
+.tal.has { border-color: #6a5520; } .tal.has .tr { color: var(--gold); }
+.tal.can { border-color: var(--blood-hi); box-shadow: inset 0 0 12px #3a0a05; }
+.tal.locked { opacity: .4; }
+.link { width: 2px; height: 8px; background: var(--iron); margin: 0 auto; flex: none; }
+/* Krypten */
+.crypt { display: grid; grid-template-columns: 22% 1fr; gap: 10px; align-items: center; cursor: pointer; flex: 1; min-height: 0; padding: 6px 8px; }
+.crypt .portrait { max-height: 100%; }
+.crypt.locked { opacity: .35; cursor: default; } .crypt.done { opacity: .7; }
+.crypt h3 { margin: 0; font-size: .85rem; color: var(--text); }
+.crypt p { font-size: .8rem; color: var(--dim); font-style: italic; margin: 2px 0; }
+.floors { display: flex; gap: 3px; margin: 3px 0; }
+.floors i { flex: 1; height: 6px; background: #000; border: 1px solid var(--iron); }
+.floors i.on { background: var(--gold); } .floors i.boss { flex: 1.6; border-color: var(--blood); } .floors i.boss.on { background: var(--blood-hi); }
+.tiny-txt { font-size: .62rem; margin-left: auto; color: var(--dim); font-family: 'IM Fell English'; }
+.tree { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.branch, .tal { min-width: 0; overflow: hidden; } .tal .te, .tal .td { overflow-wrap: anywhere; }
+.stat button { padding: 0 8px; line-height: 1.5; }
+@media (max-height: 720px) {
+  .char .attrs { font-size: .78rem; } .stat { padding: 0; } .char .who small { font-size: .6rem; }
+  .char .head { grid-template-columns: 28% 1fr; } .derived { font-size: .7rem; }
+  .tal .td { display: none; } .quote { display: none; }
+}
