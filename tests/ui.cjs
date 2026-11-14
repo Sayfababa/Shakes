@@ -10,16 +10,20 @@ let failures = 0;
 (async () => {
   await new Promise(r => setTimeout(r, 800));
   const b = await chromium.launch();
-  for (const dev of ['iPhone SE', 'iPhone 13']) {
+  for (const dev of ['iPhone SE', 'iPhone 13', 'iPhone 15 Pro Max']) {
     const c = await b.newContext({ ...devices[dev] }); const p = await c.newPage(); const errs = [];
     p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'error' && errs.push(m.text()));
-    const tag = dev.replace(' ', '');
+    const tag = dev.replace(/ /g, '');
     const chk = async n => {
       await p.waitForTimeout(120);
       const over = await p.evaluate(() => { const m = document.querySelector('main').getBoundingClientRect();
         return [...document.querySelectorAll('main *')].filter(e => { const r = e.getBoundingClientRect();
           return (r.bottom > m.bottom + 1 || r.right > m.right + 1) && !e.closest('.log, .journal, .note p'); }).length; });
       if (over) { failures++; console.log(`FEHLER ${tag} ${n}: ${over} Elemente ragen heraus`); }
+      // Item-Felder dürfen nie über ihr Panel hinausragen (Laden, Beutel, Figur, Schmiede)
+      const spill = await p.evaluate(() => [...document.querySelectorAll('.panel .sitem, .panel .cellitem, .panel .eslot, .panel .fslot, .panel .mtile')].filter(e => {
+        const r = e.getBoundingClientRect(), q = e.closest('.panel').getBoundingClientRect(); return r.bottom > q.bottom + 1 || r.right > q.right + 1 || r.left < q.left - 1 || r.top < q.top - 1; }).length);
+      if (spill) { failures++; console.log(`FEHLER ${tag} ${n}: ${spill} Item-Felder ragen über ihr Panel`); }
       await p.screenshot({ path: `${OUT}/${tag}-${n}.png` });
     };
     // Tippen mit kurzer Frist: gesperrte/verdeckte Knöpfe blockieren den Test nicht 30 s, sondern werden gemeldet

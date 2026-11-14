@@ -153,7 +153,7 @@ export function viewStats() {
 export function viewSpells() {
   const st = stats();
   return `<div class="col"><section class="panel"><h2>Zauber <span class="h2r">Zauberkraft ×${st.amp.toFixed(2).replace('.', ',')}${st.haste ? ` · Tempo +${Math.round(st.haste * 100)} %` : ''}</span><button class="tiny" data-action="go" data-v="hero">Zurück</button></h2>
-    <p class="small">Laden im Kampf auf und wirken von selbst. Nutzen <b>alle deine Werte</b> wie ein Hieb (Krit, Lebensraub, Gift …). Stärker durch <b>Intelligenz</b>, schneller durch <b>Zaubertempo</b>. Nur mit der Waffe deiner Klasse voll.</p>${st.offWeapon ? '<p class="small down">Du trägst eine fremde Waffe – Zauber geschwächt.</p>' : ''}</section>
+    <p class="small">Wirken von selbst und nutzen <b>alle deine Werte</b> wie ein Hieb. Stärker durch <b>Intelligenz</b>, schneller durch <b>Zaubertempo</b>.</p>${st.offWeapon ? '<p class="small down">Du trägst eine fremde Waffe – Zauber geschwächt.</p>' : ''}</section>
     ${SPELLS[S.cls].map(sp => { const on = S.lvl >= sp.lvl;
       return `<section class="panel spell ${on ? '' : 'locked'}"><img class="sic" src="assets/spells/${sp.id}.webp" alt="">
         <div><h3>${sp.name} <span class="h2r">${on ? `alle ${(sp.every / (1 + st.haste)).toFixed(1).replace('.0', '').replace('.', ',')} Züge` : `ab Stufe ${sp.lvl}`}</span></h3><p class="small">${sp.text}</p></div></section>`; }).join('')}
