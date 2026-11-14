@@ -38,7 +38,14 @@ Aufträge (Gold, EP, Beute) → stärker werden (Punkte, Talente, Ausrüstung) �
 - Dienste fraßen Quest-Material → Warnung „für Auftrag!“.
 - Ein Stufenaufstieg ohne verteilte Punkte machte den Startort tödlich → Gegner wachsen nur halb mit, Hinweis „Verteile deine Punkte!“.
 - Tempo jetzt: Stufe ~8 nach Tag 1, ~15 nach Tag 6, alle 4 Splitter ~Tag 8–10, Finale ~Tag 18 (bei Dauerspiel; echte Spieler deutlich langsamer).
-- Offen: Streifzüge werden praktisch nie verloren → Risiko/Ertrag (z. B. wählbare „gefährliche Spur“ mit mehr Beute) fehlt noch.
+- Risiko & Ertrag eingebaut (siehe unten). Erste Version war kaputt (Tiefer gehen kostenlos → Stufe 21 an Tag 1, 380k Gold) → jetzt kostet jede Tiefe Glut, auch EP sind erst daheim sicher.
+
+## Risiko & Ertrag (GameGene: [Risk and return](https://gamegene.app/joseki/risk-and-return))
+- **Spur wählen** (Vorbild TWEWY: Spieler wählt Schwierigkeit, schwerer = bessere Beute, [GG](https://gamegene.app/library/records/claims/0eaa36eb-38b1-4a55-afb9-c1471a415aad)):
+  leichte Spur (sicher, ×0.7), Spur (×1), blutige Spur (Gegner über deiner Stufe, ×1.6, magische Beute). Gefahr steht vor der Wahl (Informationen für eine echte Entscheidung).
+- **Tiefer gehen** (Vorbild Sea of Thieves: Schatz zählt erst im Hafen, [GG](https://gamegene.app/library/records/claims/dee0651a-df5e-43e3-9de4-065edd4ab5ce)):
+  nach dem Sieg ist Gold/EP/Beute „ungesichert“. Heimkehren sichert, Tiefer (kostet Glut, Gegner +2 Stufen/+12 %, Lohn +25 %, bis Tiefe 5) vermehrt – Niederlage kostet alles Ungesicherte.
+- Bot-Ergebnis: Tempo bleibt im Rahmen (Stufe ~20 nach 9 Tagen Dauerspiel), vorsichtiger Bot verliert nichts, riskanter Bot verliert gelegentlich Beute.
 
 ## Offen / Ideen
 - Kopfgelder pro Ort, zufällig aus dem Ortskontext erzeugt (Caves of Qud).

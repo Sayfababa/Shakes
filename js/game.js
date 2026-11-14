@@ -1,6 +1,6 @@
 // Spielzüge ohne DOM: Kampf ausführen, Belohnung anwenden, strukturiertes Ergebnis liefern.
 // main.js zeigt das Ergebnis an; tests/ spielen damit ganze Verläufe durch.
-import { CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS } from './data.js';
+import { CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import { fight } from './combat.js';
@@ -31,23 +31,61 @@ export function makeRival({ name, cls, lvl, rich = 0, minRarity = 0 } = {}) {
 }
 
 // --- Streifzug auflösen ---
+// Erfahrung gibt es sofort. Gold, Material und Items kommen in die ungesicherte Beute (S.haul):
+// Heimkehren sichert sie, Tiefer gehen vermehrt sie – eine Niederlage in der Tiefe kostet sie.
+const trackOf = id => TRACKS.find(t => t.id === id) || TRACKS[1];
+// Gegnerstufe einer Spur: blutige Spur misst sich an dir (nie unter deiner Stufe + 1), sonst am Ort
+const trackLvl = (l, tr, depth = 0) => Math.max(1, G.locLvl(l) + (tr.lvlAdd || 0), tr.atLeastPlayer ? G.S.lvl + tr.atLeastPlayer : 0) + DELVE.lvlPer * depth;
+function tripLoot(l, m, tr, depth, od, rew) {
+  const t = G.tripReward(l, 1, 45), mult = tr.rew * (1 + DELVE.rewPer * depth);
+  const gold = Math.round(t.gold * mult * (od?.gold || 1)), xp = Math.round(t.xp * mult * (od?.xp || 1));
+  rew.xp += xp; rew.gold += gold;
+  if (m.mat && chance(CFG.matChance)) rew.mats.push([m.mat, 1 + (depth >= 2 ? 1 : 0)]);
+  if (od?.mats && m.mat) rew.mats.push([m.mat, 2]);
+  const p = od?.loot ? 1 : Math.min(1, tr.loot + depth * 0.1), minR = Math.max(od?.loot || 0, tr.minRarity || 0, depth >= 3 ? 3 : depth >= 1 ? 2 : 0);
+  if (chance(p)) rew.item = makeItem(m.lvl, { luck: G.stats().lck + depth * 20, cls: CLASSES[G.S.cls], minRarity: minR });
+  G.haulAdd(rew.gold, rew.mats, rew.item, rew.xp);
+}
 export function resolveTrip() {
   const S = G.S, a = S.active; if (!a || now() < a.end) return null;
-  const l = LOCATIONS.find(x => x.id === a.loc), om = G.omenFor(l.id), od = om && !om.done ? om.def : null;
-  const m = G.makeMonster(G.locLvl(l), a.diff * (od?.diff || 1), MONSTERS.find(x => x.name === a.mob));
+  const l = LOCATIONS.find(x => x.id === a.loc), tr = trackOf(a.track), om = G.omenFor(l.id), od = om && !om.done ? om.def : null;
+  const m = G.makeMonster(trackLvl(l, tr), a.diff * (od?.diff || 1), MONSTERS.find(x => x.name === a.mob));
   if (od?.diff) m.name = 'Fürst: ' + m.name;
   const A = G.stats(), r = fight(A, m), win = r.winner === 'a', rew = newRew();
   S.active = null;
   if (!win) { S.deaths++; G.journal(`${m.name} in ${l.name} hat mich zerrissen.`); return { A, B: m, r, win, rew, place: l }; }
   S.wins++; Q.event({ type: 'kill', mob: a.mob, loc: l.id });
-  const t = G.tripReward(l, a.diff, a.sec);
-  pay(rew, Math.round(t.gold * (od?.gold || 1)), Math.round(t.xp * (od?.xp || 1)));
-  dropMat(m, rew); if (od?.mats && m.mat) { G.addMat(m.mat, 2); rew.mats.push([m.mat, 2]); }
-  dropItem(m.lvl, od?.loot ? 1 : CFG.lootChance, od?.loot || 0, rew);
+  S.haul = { loc: l.id, track: tr.id, depth: 0, gold: 0, mats: {}, items: [] };
+  tripLoot(l, m, tr, 0, od, rew);
   if (od && G.fulfillOmen()) { Q.event({ type: 'omen' }); rew.omen = true; G.journal(`Das Omen über ${l.name} hat sich erfüllt.`); }
   else G.journal(`${m.name} in ${l.name} erschlagen.`);
-  return { A, B: m, r, win, rew, place: l };
+  return { A, B: m, r, win, rew, place: l, haul: S.haul };
 }
+// Nächster Gegner in der Tiefe (für Gefahr-Anzeige und Kampf)
+function deepEnemy() {
+  const h = G.S.haul, l = LOCATIONS.find(x => x.id === h.loc), tr = trackOf(h.track), d = h.depth + 1;
+  const m = G.makeMonster(trackLvl(l, tr, d), tr.diff * (1 + DELVE.diffPer * d), MONSTERS.find(x => x.name === pick(l.mobs)));
+  m.name = `${m.name} (Tiefe ${d})`; return m;
+}
+const delveGlut = () => LOCATIONS.find(x => x.id === G.S.haul.loc).glut;
+export const canDelve = () => !!G.S.haul && G.S.haul.depth < DELVE.max && G.S.glut >= delveGlut();
+export const delveChance = () => winChance('delve:' + G.S.haul.loc + G.S.haul.track + G.S.haul.depth, deepEnemy);
+export function delve() {
+  const S = G.S, h = S.haul; if (!canDelve()) return null;
+  const l = LOCATIONS.find(x => x.id === h.loc), tr = trackOf(h.track), m = deepEnemy();
+  S.glut -= l.glut;
+  const A = G.stats(), r = fight(A, m), win = r.winner === 'a', rew = newRew();
+  if (!win) {
+    S.deaths++; const lost = { ...h }; S.haul = null;
+    G.journal(`In der Tiefe ${l.name}s verlor ich alles, was ich trug.`);
+    return { A, B: m, r, win, rew, place: l, lost };
+  }
+  S.wins++; h.depth++; Q.event({ type: 'kill', mob: m.name.replace(/ \(Tiefe \d\)$/, ''), loc: l.id });
+  tripLoot(l, m, tr, h.depth, null, rew);
+  G.journal(`Tiefe ${h.depth} in ${l.name} überlebt.`);
+  return { A, B: m, r, win, rew, place: l, haul: h };
+}
+export const bank = () => G.bankHaul();
 
 // --- Krypta-Kampf ---
 export function cryptFight(id) {
@@ -96,9 +134,9 @@ export function winChance(key, makeEnemy, n = 24) {
   const p = w / n; if (threatCache.size > 200) threatCache.clear(); threatCache.set(sig, p); return p;
 }
 const S_omen = () => G.S.omen?.day;
-export const tripChance = l => winChance('trip:' + l.id, () => {
+export const tripChance = (l, track = 'norm') => winChance('trip:' + l.id + track, () => {
   const om = G.omenFor(l.id), od = om && !om.done ? om.def : null;
-  return G.makeMonster(G.locLvl(l), [0.85, 1, 1, 1.2][roll(0, 3)] * (od?.diff || 1), MONSTERS.find(m => m.name === pick(l.mobs)));
+  return G.makeMonster(trackLvl(l, trackOf(track)), trackOf(track).diff * [0.92, 1, 1, 1.08][roll(0, 3)] * (od?.diff || 1), MONSTERS.find(m => m.name === pick(l.mobs)));
 });
 export const cryptChance = c => winChance('crypt:' + c.id + ':' + G.cryptFloor(c) + ':' + G.S.crypt.diff, () => G.cryptEnemy(c));
 export const threatLabel = p => p >= 0.9 ? ['gering', 'low'] : p >= 0.65 ? ['mäßig', 'mid'] : p >= 0.35 ? ['hoch', 'high'] : ['tödlich', 'deadly'];

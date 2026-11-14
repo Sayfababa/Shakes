@@ -1,9 +1,9 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
-import { MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL } from './data.js';
+import { MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE } from './data.js';
 import { S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
-import { tripChance, cryptChance, threatLabel } from './game.js';
+import { tripChance, cryptChance, threatLabel, canDelve, delveChance } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
 const P = cls => `assets/portraits/${CLASSES[cls].portrait}.jpg`;
@@ -148,7 +148,7 @@ export function viewTrips() {
       ${say('prophet')}<section class="panel grow journal"><h2>Tagebuch</h2>${S.journal.slice(0, 6).map(j => `<div>${j.t}</div>`).join('')}</section></div>`;
   }
   const o = omen();
-  return `<div class="col">${say('prophet', omenLine())}<div class="trips">${LOCATIONS.map(l => { const open = locOpen(l), r = tripReward(l, 1, (l.sec[0] + l.sec[1]) / 2);
+  return `<div class="col">${S.haul ? haulPanel() : say('prophet', omenLine())}<div class="trips">${LOCATIONS.map(l => { const open = locOpen(l), r = tripReward(l, 1, (l.sec[0] + l.sec[1]) / 2);
     const isOmen = open && S.lvl >= 3 && o.loc === l.id && !o.done;
     const wanted = new Set(Object.keys(TRADERS).filter(available).flatMap(t => current(t).obj.filter(o => o.at === l.id || l.mobs.includes(o.kill)).map(() => t)));
     return `<section class="panel trip ${open ? '' : 'locked'} ${isOmen ? 'omen' : ''} ${S.glut < l.glut ? 'tired' : ''}" ${open ? `data-action="trip" data-id="${l.id}"` : ''}>
@@ -157,6 +157,32 @@ export function viewTrips() {
       ${open ? `<div class="mobpics">${l.mobs.map(n => monsterArt(MONSTERS.find(m => m.name === n).glyph)).join('')}</div>
       <div class="tripinfo">${threat(tripChance(l))}${S.points && tripChance(l) < 0.65 ? '<span class="threat t-high">Verteile deine Punkte!</span>' : ''}<span>Stufe ${locLvl(l)}</span><span>${fmtT(l.sec[0])}–${fmtT(l.sec[1])}</span><span>${l.glut} Glut</span><span>~${r.gold} Gold</span></div>` : `<div class="mobs">Erst ab Stufe ${l.lvl}</div>`}
     </section>`; }).join('')}</div></div>`;
+}
+
+// Ungesicherte Beute: Heimkehren oder tiefer gehen
+const haulText = h => [h.gold ? `${h.gold} Gold` : '', h.xp ? `${h.xp} EP` : '', ...Object.entries(h.mats).map(([k, n]) => `${MATS[k]} ×${n}`), ...h.items.map(it => `<span class="r-${it.rarity}">${it.name}</span>`)].filter(Boolean).join(' · ') || 'nichts';
+export function haulActions() {
+  const h = S.haul; if (!h) return '';
+  const g = LOCATIONS.find(x => x.id === h.loc).glut;
+  const deeper = h.depth >= DELVE.max ? '' : `<button data-action="delve" ${canDelve() ? '' : 'disabled'}>Tiefer · ${g} Glut ${canDelve() ? threat(delveChance()) : '<span class="threat">zu wenig Glut</span>'}</button>`;
+  return `<div class="btns haulbtns"><button class="red" data-action="bank">Heimkehren</button>${deeper}</div>`;
+}
+function haulPanel() {
+  const h = S.haul, l = LOCATIONS.find(x => x.id === h.loc);
+  return `<section class="panel haul"><h2>Beute <span class="h2r">ungesichert · Tiefe ${h.depth}/${DELVE.max}</span></h2>
+    <p class="small">${haulText(h)}</p><p class="dim small hint">Erst daheim gehört sie dir. Fällst du in der Tiefe, ist alles verloren.</p>${haulActions()}</section>`;
+}
+
+// Spur wählen
+export function viewTripPick(id) {
+  const l = LOCATIONS.find(x => x.id === id);
+  return `<div class="col"><section class="panel"><h2>${l.name} <span class="h2r">${l.glut} Glut · ${fmtT(l.sec[0])}–${fmtT(l.sec[1])}</span></h2>
+      <p class="lore">${l.text}</p><div class="mobpics">${l.mobs.map(n => monsterArt(MONSTERS.find(m => m.name === n).glyph)).join('')}</div></section>
+    ${TRACKS.map(t => `<section class="panel track t-${t.id}" data-action="tripgo" data-id="${l.id}" data-tr="${t.id}">
+      <h3>${t.name}</h3><p class="small">${t.text}</p>
+      <div class="tripinfo">${threat(tripChance(l, t.id))}<span>Lohn ×${t.rew}</span><span>Beute ${Math.round(t.loot * 100)}%${t.minRarity ? ', magisch+' : ''}</span></div></section>`).join('')}
+    ${S.haul ? '<p class="dim small">Aufbrechen sichert deine ungesicherte Beute.</p>' : ''}
+    <button data-action="go" data-v="trips">Zurück</button></div>`;
 }
 
 // --- Figuren mit Questketten (Vargo, Ilse, Prophet) ---
@@ -227,7 +253,7 @@ export function viewFight(F) {
     ${side(F.A, hpA, F.hpA, last.who === 'b', 'fA')}
     <div><div class="log" id="log">${shown.map(l => `<div class="${l.who} ${l.crit ? 'crit' : ''}">${l.t}</div>`).join('')}</div>
       ${done ? `<div class="result ${F.winner === 'a' ? 'win' : 'lose'}">${F.winner === 'a' ? 'Sieg' : 'Gefallen'}</div>
-        <div class="loot-drop">${F.reward || ''}</div><button class="red" data-action="go" data-v="${F.back}">Weiter</button>`
+        <div class="loot-drop">${F.reward || ''}</div>${F.back === 'trips' && S.haul ? haulActions() : `<button class="red" data-action="go" data-v="${F.back}">Weiter</button>`}`
         : `<button data-action="skip">Überspringen</button>`}</div>
     ${side(F.B, hpB, F.hpB, last.who === 'a', 'fB')}
   </div></div>`;

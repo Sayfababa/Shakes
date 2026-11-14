@@ -26,8 +26,12 @@ let failures = 0;
     await p.goto('http://localhost:8765/'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(500);
     await tap('[data-c="witch"]'); await chk('create'); await p.fill('#nm', 'Test'); await tap('[data-action=create]'); await chk('tut1');
     await tap('[data-t=kaspar]'); await chk('kaspar');
-    for (let i = 0; i < 8; i++) { await tap('[data-v=trips]'); await tap('.trip[data-action=trip]'); if (!i) await chk('wait');
-      await tap('[data-action=rush]'); await tap('[data-action=resolve]'); if (!i) await chk('fight'); await tap('[data-action=skip]'); if (!i) await chk('result'); }
+    for (let i = 0; i < 8; i++) { await tap('[data-v=trips]'); if (await tap('[data-action=bank]')) await tap('[data-v=trips]');
+      await tap('.trip[data-action=trip]'); if (!i) await chk('trackpick'); await tap(`[data-tr=${i === 3 ? 'blood' : 'safe'}]`); if (!i) await chk('wait');
+      await tap('[data-action=rush]'); await tap('[data-action=resolve]'); if (!i) await chk('fight'); await tap('[data-action=skip]'); if (!i) await chk('result');
+      if (i === 1 && await tap('[data-action=delve]')) { await tap('[data-action=skip]'); await chk('delve'); }
+      if (i === 2) { await tap('[data-v=trips]'); await chk('haulpanel'); }
+      await tap('[data-action=bank]'); }
     for (const v of ['trips', 'hero', 'stats', 'talents', 'crypt', 'arena']) { await tap('[data-v=hero]'); await tap(`[data-v=${v}]`); await chk(v); }
     await tap('[data-v=traders]'); for (const t of ['halvar', 'ysolde', 'kaspar']) { await tap(`[data-t=${t}]`); await chk(t); }
     if (await tap('[data-action=turnin]')) await chk('turnin');

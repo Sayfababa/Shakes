@@ -50,17 +50,25 @@ function pickLocation() {
   return S.glut >= target.glut ? target.id : null;   // auf Glut warten statt billig zu farmen
 }
 
-export function run(cls = 'paladin', days = 7) {
+let RISK = 0.8;
+export function run(cls = 'paladin', days = 7, risk = 0.8) {
+  RISK = risk;
   clock = Date.UTC(2026, 0, 5, 8, 0, 0);
   G.newChar('Bot', cls); G.S.tut = 99;
-  const log = { quests: [], bought: 0, trips: 0, tripLoss: 0, crypt: 0, cryptLoss: 0, arena: 0, arenaLoss: 0, perDay: [] };
+  const log = { delves: 0, delveLoss: 0, lostGold: 0, tracks: { safe: 0, norm: 0, blood: 0 }, quests: [], bought: 0, trips: 0, tripLoss: 0, crypt: 0, cryptLoss: 0, arena: 0, arenaLoss: 0, perDay: [] };
   const end = clock + days * 86400000;
   let nextDay = clock + 86400000, rival = null;
   while (clock < end) {
     const S = G.S; G.tickGlut(); manage(log);
     let acted = false;
-    if (S.active && clock >= S.active.end) { const r = Game.resolveTrip(); log.trips++; if (!r.win) log.tripLoss++; acted = true; }
-    if (!S.active) { const id = pickLocation(); if (id && G.startTrip(id)) acted = true; }
+    if (S.active && clock >= S.active.end) { const r = Game.resolveTrip(); log.trips++; if (!r.win) log.tripLoss++; acted = true;
+      // Tiefer gehen, solange die Chance gut ist und noch wenig auf dem Spiel steht
+      while (r.win && Game.canDelve() && Game.delveChance() >= RISK) { const d = Game.delve(); log.delves++; if (!d.win) { log.delveLoss++; log.lostGold += d.lost.gold; break; } }
+      if (S.haul) Game.bank();
+    }
+    if (!S.active) { const id = pickLocation(); if (id) { const l = D.LOCATIONS.find(x => x.id === id);
+      const tr = Game.tripChance(l, 'blood') >= RISK ? 'blood' : Game.tripChance(l, 'norm') >= 0.75 ? 'norm' : 'safe'; log.tracks[tr]++;
+      if (G.startTrip(id, tr)) acted = true; } }
     if (clock >= S.crypt.cd) {
       const c = D.CRYPTS.find(c => G.cryptOpen(c) && G.cryptFloor(c) < 5 && Game.cryptChance(c) >= 0.4);
       if (c) { const r = Game.cryptFight(c.id); if (r) { log.crypt++; if (!r.win) log.cryptLoss++; acted = true; } }
@@ -86,12 +94,13 @@ export function run(cls = 'paladin', days = 7) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const [cls = 'paladin', days = 7, runs = 1] = process.argv.slice(2);
+  const [cls = 'paladin', days = 7, runs = 1, risk = 0.8] = process.argv.slice(2);
   for (let i = 0; i < +runs; i++) {
-    const { log, S } = run(cls, +days);
+    const { log, S } = run(cls, +days, +risk);
     console.log(`\n=== ${cls} · Lauf ${i + 1} ===`);
     console.table(log.perDay);
     console.log('Quests:', log.quests.join(' '));
+    console.log(`Spuren ${JSON.stringify(log.tracks)} · Tiefe ${log.delves} (−${log.delveLoss}, verloren ${log.lostGold} Gold)`);
     console.log(`Kämpfe: Streifzug ${log.trips} (−${log.tripLoss}) · Krypta ${log.crypt} (−${log.cryptLoss}) · Grube ${log.arena} (−${log.arenaLoss}) · gekauft ${log.bought} · Titel ${S.title || '-'}`);
   }
 }

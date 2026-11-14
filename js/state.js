@@ -1,9 +1,9 @@
-import { BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS } from './data.js';
+import { TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS } from './data.js';
 import { makeItem } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 export let S = null; // aktueller Spielstand
 
 export const now = () => Date.now();
@@ -32,13 +32,15 @@ function migrate(d) {
     for (const k of GIVERS) d.traders[k] ||= freshGiver();
     d.omen = null; d.omens = 0; d.shards = []; d.tut = 99; d.title = null; d.v = 4;
   }
+  if (d.v === 4) { d.haul = null; d.v = 5;
+  }
   return d.v === SAVE_VERSION ? d : null;
 }
 
 export function newChar(name, cls) {
   const c = CLASSES[cls];
   S = { v: SAVE_VERSION, name, cls, lvl: 1, xp: 0, gold: 40, attrs: baseAttrs(cls), points: CFG.startPoints, tal: {}, respecs: 0,
-    crypt: { diff: 0, prog: {}, cd: 0 }, trophies: [], traders: freshTraders(), mats: {}, omen: null, omens: 0, shards: [], tut: 0, title: null,
+    crypt: { diff: 0, prog: {}, cd: 0 }, trophies: [], traders: freshTraders(), mats: {}, omen: null, omens: 0, shards: [], tut: 0, title: null, haul: null,
     equip: {}, bag: [], glut: CFG.maxGlut, glutTs: now(), active: null,
     journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0 };
   const wb = BASES.find(b => b.kind === c.weapon);
@@ -109,11 +111,24 @@ export function makeMonster(lvl, diff = 1, m = pick(MONSTERS)) {
 export const locOpen = l => S.lvl >= l.lvl;
 // Gegner wachsen nur halb so schnell wie du mit (max. +8 über Ortsstufe) – ein Stufenaufstieg ohne verteilte Punkte darf nicht tödlich sein
 export const locLvl = l => Math.max(l.lvl, Math.min(l.lvl + Math.floor((S.lvl - l.lvl) / 2), l.lvl + 8));
-export function startTrip(id) {
-  const l = LOCATIONS.find(x => x.id === id); if (!l || !locOpen(l) || S.glut < l.glut || S.active) return false;
+export function startTrip(id, track = 'norm') {
+  const l = LOCATIONS.find(x => x.id === id), tr = TRACKS.find(t => t.id === track) || TRACKS[1];
+  if (!l || !locOpen(l) || S.glut < l.glut || S.active) return false;
+  if (S.haul) bankHaul();                          // ungesicherte Beute wird beim Aufbruch gesichert
   const sec = roll(...l.sec), mob = pick(l.mobs);
-  S.glut -= l.glut; S.active = { loc: id, mob, diff: [0.85, 1, 1, 1.2][roll(0, 3)], end: now() + sec * 1000, sec };
+  S.glut -= l.glut; S.active = { loc: id, mob, track: tr.id, diff: tr.diff * [0.92, 1, 1, 1.08][roll(0, 3)], end: now() + sec * 1000, sec };
   return true;
+}
+// --- Ungesicherte Beute (Tiefer gehen) ---
+export function haulAdd(gold, mats, item, xp = 0) {
+  S.haul.gold += gold; S.haul.xp = (S.haul.xp || 0) + xp; for (const [k, n] of mats) S.haul.mats[k] = (S.haul.mats[k] || 0) + n; if (item) S.haul.items.push(item);
+}
+export function bankHaul() {
+  const h = S.haul; if (!h) return null; S.haul = null;
+  S.gold += h.gold; for (const [k, n] of Object.entries(h.mats)) addMat(k, n);
+  const up = gainXp(h.xp || 0);
+  const sold = []; for (const it of h.items) if (!addToBag(it)) { S.gold += it.value; sold.push(it); }
+  return { ...h, sold, up };
 }
 export function tripReward(l, diff, sec) {
   const lv = locLvl(l), f = diff * (sec / 50);

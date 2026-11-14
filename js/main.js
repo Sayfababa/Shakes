@@ -5,7 +5,7 @@ import * as Game from './game.js';
 import * as UI from './ui.js';
 
 const app = document.getElementById('app'), tip = document.getElementById('tip');
-let view = 'hero', pickCls = null, F = null, rival = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
+let tripLoc = null, view = 'hero', pickCls = null, F = null, rival = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
 
 function render() {
   const S = G.S;
@@ -14,6 +14,7 @@ function render() {
   const views = {
     fight: () => UI.viewFight(F), trips: UI.viewTrips, stats: UI.viewStats, talents: UI.viewTalents, crypt: UI.viewCrypts,
     traders: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewTrader(trader),
+    trippick: () => UI.viewTripPick(tripLoc),
     npc: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewNpc(npc),
     arena: () => UI.viewArena(rival ||= Game.makeRival()), hero: UI.viewHero,
   };
@@ -39,13 +40,22 @@ function tutCheck() {
 function showFight(res, back, extra = '') {
   if (!res) return render();
   const { A, B, r, win, rew } = res;
-  F = { A, B, ...r, step: 0, back, reward: (win ? rewText(rew) : loseText(res)) + extra };
+  F = { A, B, ...r, step: 0, back, reward: (win ? (res.haul ? haulRewText(res) : rewText(rew)) : loseText(res)) + extra };
   view = 'fight'; G.save();
   clearInterval(fightTimer);
   fightTimer = setInterval(() => { F.step++; if (F.step >= F.log.length) { clearInterval(fightTimer); render(); } else fightStep(); }, 380);
   render();
 }
+function haulRewText(res) {
+  const w = res.rew, h = res.haul, L = [`Gefunden: ${w.gold} Gold · ${w.xp} EP`];
+  for (const [k, n] of w.mats) L.push(`${MATS[k]} ×${n}`);
+  if (w.item) L.push(`<span class="r-${w.item.rarity}">${w.item.name}</span>`);
+  if (w.omen) L.push('<b class="gold">Das Omen hat sich erfüllt.</b>');
+  L.push(`<i class="dim">Ungesichert (Tiefe ${h.depth}): ${h.gold} Gold, ${h.xp} EP${h.items.length ? `, ${h.items.length} Fundstück(e)` : ''}</i>`);
+  return L.join('<br>');
+}
 function loseText(res) {
+  if (res.lost) return `In der Tiefe verloren: ${res.lost.gold} Gold, ${res.lost.xp || 0} EP${res.lost.items.length ? ` und ${res.lost.items.length} Fundstück(e)` : ''}.`;
   if (res.rew.honor) return `${res.rew.honor} Ehre`;
   if (res.crypt) return 'Die Krypta behält dich. Diesmal. Dein Fortschritt bleibt.';
   return 'Die Asche spuckt dich wieder aus.';
@@ -103,7 +113,11 @@ const actions = {
   service: d => { const it = G.doService(d.t, d.s); if (!it) return alert('Nicht möglich.'); hideTip(); render();
     setTimeout(() => alert(`${it.name}${it.up ? ' +' + it.up : ''} – erledigt.`), 50); },
   champ: d => showFight(Game.champFight(d.t), 'npc'),
-  trip: d => { if (G.startTrip(d.id)) render(); },
+  trip: d => { tripLoc = d.id; view = 'trippick'; render(); },
+  tripgo: d => { if (G.startTrip(d.id, d.tr)) { view = 'trips'; render(); } },
+  bank: () => { const h = Game.bank(); view = 'trips'; F = null; clearInterval(fightTimer);
+    if (h?.up) G.journal(`Stufe ${G.S.lvl} erreicht.`); if (h) G.journal(`Heimgekehrt mit ${h.gold} Gold${h.items.length ? ` und ${h.items.length} Fundstück${h.items.length > 1 ? 'en' : ''}` : ''}.`); render(); },
+  delve: () => showFight(Game.delve(), 'trips'),
   rush: () => { const S = G.S; if (S.gold >= 1) { S.gold -= 1; S.active.end = Date.now(); } render(); },
   resolve: () => showFight(Game.resolveTrip(), 'trips'),
   crypt: d => showFight(Game.cryptFight(d.id), 'crypt'),

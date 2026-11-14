@@ -109,3 +109,23 @@ test('Speichern: v1-Spielstand wird bis zur aktuellen Version migriert', () => {
 test('Gefahr-Schätzung liegt zwischen 0 und 1', () => {
   fresh(); for (const l of D.LOCATIONS) { const p = Game.tripChance(l); assert.ok(p >= 0 && p <= 1); }
 });
+
+test('Streifzug: Beute ist ungesichert, Heimkehren sichert sie', () => {
+  const S = fresh(); S.lvl = 3; S.points = 15; while (S.points) G.addAttr('str');
+  let res; for (let i = 0; i < 20 && !res?.win; i++) { G.startTrip('friedhof', 'safe'); S.active.end = 0; res = Game.resolveTrip(); }
+  assert.ok(res.win && S.haul); const g = S.gold, h = S.haul.gold;
+  Game.bank(); assert.equal(S.gold, g + h); assert.equal(S.haul, null);
+});
+
+test('Tiefer gehen: Niederlage kostet die ungesicherte Beute, Erfahrung bleibt', () => {
+  const S = fresh(); S.haul = { loc: 'friedhof', track: 'blood', depth: 4, gold: 500, mats: {}, items: [] };
+  S.equip.weapon.dmg = [0, 0]; const g = S.gold, xp = S.xp;   // waffenlos -> verliert sicher
+  const r = Game.delve(); assert.ok(!r.win); assert.equal(S.haul, null); assert.equal(S.gold, g); assert.equal(S.xp, xp);
+});
+
+test('Spuren: blutige Spur ist gefährlicher als leichte', () => {
+  const S = fresh(); S.lvl = 5; const l = D.LOCATIONS[0];
+  const safe = Game.winChance('t-safe', () => G.makeMonster(G.locLvl(l), D.TRACKS[0].diff), 200);
+  const blood = Game.winChance('t-blood', () => G.makeMonster(G.locLvl(l), D.TRACKS[2].diff), 200);
+  assert.ok(safe > blood);
+});

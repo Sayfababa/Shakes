@@ -221,13 +221,24 @@ export const SERVICES = {
 export const TUTORIAL = [
   { tab: 'traders', when: 'view:traders', text: 'Du bist erwacht. Drei Gestalten warten am Friedhofstor. Tippe unten auf <b>Händler</b>.' },
   { tab: 'traders', when: 'view:kaspar', text: 'Jeder Händler hat Aufträge. Sieh dir <b>Bruder Kaspar</b> an – er will, dass du seinen Friedhof säuberst.' },
-  { tab: 'trips', when: 'active', text: 'Öffne <b>Streifzug</b> und wähle den <b>Friedhof</b>. Ein Streifzug kostet Glut und etwas Zeit.' },
-  { tab: 'trips', when: 'wins', text: 'Warte ab oder <b>eile</b> für 1 Gold. Dann tippe <b>Stellen</b> – der Kampf läuft von selbst.' },
+  { tab: 'trips', when: 'active', text: 'Öffne <b>Streifzug</b>, wähle den <b>Friedhof</b> und eine <b>Spur</b>. Die Gefahr steht dabei – die leichte Spur ist sicher.' },
+  { tab: 'trips', when: 'wins', text: 'Warte oder <b>eile</b> für 1 Gold, dann <b>Stellen</b>. Nach dem Sieg: <b>Heimkehren</b> sichert die Beute, <b>Tiefer</b> vermehrt sie – oder du verlierst sie.' },
   { tab: 'hero', when: 'spent', text: 'Beute landet im <b>Beutel</b>. Unter <b>Held</b> antippen und anlegen. Unter <b>Werte</b> verteilst du deine Punkte.' },
   { tab: 'traders', when: 'turnin', text: 'Erfülle den Auftrag und gib ihn beim Händler <b>ab</b>. Das bringt Ruf – mit Treue wird seine Ware besser.' },
   { tab: 'crypt', when: 'view:crypt', text: 'In den <b>Krypten</b> warten Bosse. Jeder bringt eine Trophäe und einen <b>Glockensplitter</b>.' },
   { tab: 'trips', when: 'view:npc', text: 'Der <b>Bettlerprophet</b> verkündet jeden Tag ein Omen. Tippe auf ihn, wenn du ihn siehst. Viel Glück, Verdammter.' },
 ];
+
+// --- Risiko & Ertrag bei Streifzügen ---
+// Spur wählen (Vorbild: selbst gewählte, schwerere Kämpfe geben bessere Beute)
+export const TRACKS = [
+  { id: 'safe', name: 'Leichte Spur', diff: 0.85, lvlAdd: -1, rew: 0.7, loot: 0.4, text: 'Sicher, aber mager.' },
+  { id: 'norm', name: 'Spur', diff: 1.0, lvlAdd: 0, rew: 1.0, loot: 0.55, text: 'Der übliche Weg.' },
+  { id: 'blood', name: 'Blutige Spur', diff: 1.3, lvlAdd: 4, atLeastPlayer: 2, rew: 1.6, loot: 0.9, minRarity: 2, text: 'Gegner über deiner Stufe. Mehr Lohn, magische Beute – wenn du überlebst.' },
+];
+// Tiefer gehen: Beute ist erst gesichert, wenn du heimkehrst (Vorbild: Schatz zählt erst im Hafen)
+// Jede Tiefe kostet die Glut des Ortes, Gegner +2 Stufen und +12 %, Lohn +25 %. Gold, Erfahrung und Beute erst daheim.
+export const DELVE = { max: 5, lvlPer: 2, diffPer: 0.12, rewPer: 0.25 };
 
 export const CFG = {
   maxGlut: 100, glutRegenMin: 6,      // 1 Glut pro x Minuten (Echtzeit)

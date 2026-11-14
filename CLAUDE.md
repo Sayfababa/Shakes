@@ -17,7 +17,7 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - Vanilla JS, **ES-Module**, kein Build-Step. Start: `python3 -m http.server` → http://localhost:8000
 - `js/data.js`    – reine Daten (Klassen, Monster, Item-Basen, Affixe). Keine Logik.
 - `js/rng.js`     – Zufall (seedbar), `pick`, `roll`, `chance`.
-- `js/state.js`   – Spielstand, Save/Load (localStorage, Key `aschenkrone_v1`, Version 4), Raster-Inventar, Händler-Treue, Streifzüge, abgeleitete Werte (`stats()`).
+- `js/state.js`   – Spielstand, Save/Load (localStorage, Key `aschenkrone_v1`, Version 5), Raster-Inventar, Händler-Treue, Streifzüge, abgeleitete Werte (`stats()`).
 - `js/loot.js`    – Item-Erzeugung (Seltenheit, Affixe, Wert).
 - `js/quests.js`  – Questketten aller Questgeber (`GIVERS`: 3 Händler + Vargo, Ilse, Prophet): Ziele, Fortschritt (`event()`), Abgabe (`complete(tid, choice)`). Segen (`rew.perk`) landen als Trophäe in `S.trophies`.
 - `js/art.js`     – SVG-Grafiken: Items, leere Slots, NPCs, Monster.
@@ -54,6 +54,7 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - **Dienste** (`SERVICES`): Schärfen (Halvar, Waffe), Verstärken (Kaspar, Brust), Neu weihen (Ysolde, Amulett), Bestellen (Halvar). Materialien haben damit einen festen Zweck.
 - **Glockensplitter**: erster Bosssieg in Krypta 1–4 → `S.shards`. 4 Splitter öffnen Krypta 5 „Die Glocke“, Boss „Der Kronenlose“ = eigenes Portrait (`glyph: 'self'`).
 - **Finale**: Prophet-Quest p5 hat `choice` → Titel (`S.title`) + Segen.
+- **Spuren & Tiefe** (`TRACKS`, `DELVE`; `resolveTrip`/`delve`/`bank` in game.js): Beute landet erst in `S.haul`, Heimkehren sichert. Save-Version 5.
 - **Tutorial** (`TUTORIAL`, `tutCheck()` in main.js): ersetzt im HUD die Balken, nie als Overlay über Buttons.
 
 ## Tests (vor jedem Push: `sh tests/run.sh`)
