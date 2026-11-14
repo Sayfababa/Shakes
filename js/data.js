@@ -52,6 +52,54 @@ export const AFFIXES = [
 ];
 export const LEGEND_NAMES = ['Grabesruh', 'Aschenkuss', 'Der Letzte Psalm', 'Witwenmacher', 'Knochenkrone', 'Sünde von Vhal', 'Rabenschwur', 'Blutglocke'];
 
+// --- Bonus-Stufen (wie Affix-Tiers): I ist die beste, gibt es erst auf hoher Gegenstandsstufe ---
+export const TIERS = [
+  { t: 1, name: 'I', mult: 1.55, w: 5, minLvl: 20 },
+  { t: 2, name: 'II', mult: 1.25, w: 12, minLvl: 12 },
+  { t: 3, name: 'III', mult: 1.0, w: 23, minLvl: 6 },
+  { t: 4, name: 'IV', mult: 0.8, w: 30, minLvl: 1 },
+  { t: 5, name: 'V', mult: 0.6, w: 30, minLvl: 1 },
+];
+
+// --- Sonderboni: selten, verändern den Kampf (Effekt-Schlüssel wie Talente). Höchstens einer je Item. ---
+export const SPECIALS = [
+  { id: 'leech', name: 'des Blutsaugers', eff: { leech: 0.06 } },
+  { id: 'toll', name: 'der Totenglocke', eff: { toll: 1 } },
+  { id: 'execute', name: 'des Henkers', eff: { execute: 0.3 } },
+  { id: 'thorns', name: 'der Dornen', eff: { thorns: 0.15 } },
+  { id: 'poison', name: 'des Giftmischers', eff: { poison: 0.08 } },
+  { id: 'rage', name: 'der Raserei', eff: { rage: 0.15 } },
+  { id: 'pen', name: 'des Durchbohrens', eff: { pen: 0.2 } },
+  { id: 'regen', name: 'des Wiedergängers', eff: { regen: 0.02 } },
+  { id: 'crit', name: 'der Schärfe', eff: { crit: 0.06 } },
+  { id: 'evade', name: 'des Schattens', eff: { evade: 0.05 } },
+  { id: 'block', name: 'des Bollwerks', eff: { block: 0.08 } },
+  { id: 'echo', name: 'des Nachhalls', eff: { echo: 0.15 } },
+  { id: 'ward', name: 'des Knochenwalls', eff: { ward: 0.12 } },
+];
+export const SPECIAL_CHANCE = { magic: 0.02, rare: 0.08, legendary: 0.3 };   // erst ab Gegenstandsstufe 8
+export const SPECIAL_MIN_LVL = 8;
+
+// --- Einzigartige Legendäre: fester Name, feste Eigenschaft, eigene Zeile Geschichte ---
+// mods: Bonus → Stufe (fester Tier); eff: fester Sonderbonus
+export const UNIQUES = [
+  { name: 'Witwenmacher', slot: 'weapon', kind: 'dagger', mods: { dex: 2, dmg: 2 }, eff: { crit: 0.1, bleed: 0.3 }, lore: 'Jede Kerbe ein Grab.' },
+  { name: 'Glockenbrecher', slot: 'weapon', kind: 'axe', mods: { str: 2, con: 3 }, eff: { toll: 1, rage: 0.1 }, lore: 'Sie läutete nie wieder.' },
+  { name: 'Der Letzte Psalm', slot: 'weapon', kind: 'sword', mods: { str: 2, armor: 2 }, eff: { regen: 0.03, block: 0.1 }, lore: 'Gesungen über einem offenen Grab.' },
+  { name: 'Aschenkuss', slot: 'weapon', kind: 'staff', mods: { int: 1, haste: 2 }, eff: { echo: 0.2 }, lore: 'Was sie berührt, brennt zweimal.' },
+  { name: 'Grabesruh', slot: 'weapon', kind: 'wand', mods: { int: 2, con: 2 }, eff: { leech: 0.12 }, lore: 'Die Toten schlafen nicht. Sie warten.' },
+  { name: 'Rabenschwur', slot: 'weapon', kind: 'bow', mods: { dex: 2, lck: 2 }, eff: { first: 1, crit: 0.08 }, lore: 'Der Rabe sieht zuerst.' },
+  { name: 'Knochenkrone', slot: 'helm', mods: { con: 2, int: 3 }, eff: { ward: 0.2 }, lore: 'Gewachsen aus dem Schädel ihres Trägers.' },
+  { name: 'Sünde von Vhal', slot: 'chest', mods: { armor: 1, con: 2 }, eff: { thorns: 0.25 }, lore: 'Getragen vom Metzger, bis er fiel.' },
+  { name: 'Blutglocke', slot: 'amulet', mods: { str: 2, haste: 2 }, eff: { rage: 0.25 }, lore: 'Sie schlägt mit deinem Herzen.' },
+  { name: 'Totengräbers Griff', slot: 'gloves', mods: { str: 2, dmg: 3 }, eff: { execute: 0.4 }, lore: 'Er hat nie jemanden lebendig begraben. Fast nie.' },
+  { name: 'Pfad der Asche', slot: 'boots', mods: { dex: 2, haste: 2 }, eff: { evade: 0.08 }, lore: 'Keine Spur bleibt zurück.' },
+  { name: 'Ring der Ertrunkenen', slot: 'ring', mods: { lck: 2, int: 3 }, eff: { poison: 0.1 }, lore: 'Aus Gerlindes Brunnen gefischt.' },
+  { name: 'Siegel des Kronenlosen', slot: 'ring', mods: { str: 3, dex: 3 }, eff: { pen: 0.3, crit: 0.05 }, lore: 'Die Krone fehlt. Die Macht nicht.' },
+  { name: 'Gürtel der Büßer', slot: 'belt', mods: { con: 1, armor: 3 }, eff: { hpPct: 0.15 }, lore: 'Jeder Knoten eine Sünde.' },
+];
+export const UNIQUE_CHANCE = 0.6;   // so viele Legendäre sind Einzigartige (sonst: zufällige Legendäre mit Namen)
+
 // Materialien: fallen von bestimmten Monstern, werden von Händlern verlangt.
 export const MATS = {
   zahn: 'Ghulzahn', staub: 'Knochenstaub', schwanz: 'Pestrattenschwanz', siegel: 'Kultistensiegel',
@@ -358,7 +406,7 @@ export const RANKS = [
 // dmgPct, hpPct, armorPct (Multiplikator), crit, evade, block, leech, bleed, rage, pen, regen, thorns, execute, first
 export const EFFECT_NAMES = { dmgPct: 'Schaden', hpPct: 'Leben', armorPct: 'Rüstung', crit: 'Krit-Chance', evade: 'Ausweichen',
   block: 'Blocken', leech: 'Lebensraub', bleed: 'Bluten bei Krit', rage: 'Raserei', pen: 'Rüstung ignorieren', regen: 'Regeneration/Runde',
-  thorns: 'Dornen', execute: 'Schaden gg. Sterbende', first: 'Erstschlag', poison: 'Gift', toll: 'Betäuben', haste: 'Zaubertempo' };
+  thorns: 'Dornen', execute: 'Schaden gg. Sterbende', first: 'Erstschlag', poison: 'Gift', toll: 'Betäuben', haste: 'Zaubertempo', echo: 'Zauber-Nachhall', ward: 'Knochenschild bei Kampfbeginn' };
 
 // Talentbaum je Klasse: 3 Pfade × 3 Stufen. Stufe n braucht 1 Rang im Talent davor + Charakterstufe TIER_LVL[n].
 export const TIER_LVL = [2, 8, 16];

@@ -11,6 +11,7 @@ export function fight(A, B) {
   const a = { ...A, cur: A.hp, side: 'a', turn: 0, buff: 1, shield: 0, ch: [] }, b = { ...B, cur: B.hp, side: 'b', turn: 0, buff: 1, shield: 0, ch: [] };
   const chg = f => (f.spells || []).map((x, i) => Math.min(1, Math.round((f.ch[i] || 0) / x.every * 100) / 100));
   const cast = [];
+  for (const f of [a, b]) if (f.ward) f.shield = Math.round(f.hp * f.ward);   // Knochenschild zu Beginn
   const log = [];
   const say = (who, t, extra = {}) => log.push({ who, t, hpA: Math.max(0, Math.round(a.cur)), hpB: Math.max(0, Math.round(b.cur)), cA: chg(a), cB: chg(b), ...extra });
   const ini = f => (f.first ? 1000 : 0) + f.dex + roll(0, 10);
@@ -58,6 +59,8 @@ export function fight(A, B) {
     }
     if (x.side === 'a') cast.push(s.name);
     say(x.side, t, { spell: s.name, sid: s.id, dmg: d || undefined });
+    // Nachhall: der Zauber wirkt ein zweites Mal (nie öfter)
+    if (x.echo && !x.echoing && y.cur > 0 && chance(x.echo)) { x.echoing = true; say(x.side, `${s.name} hallt nach!`, {}); spell(x, y, s); x.echoing = false; }
   }
 
   function strike(x, y) {

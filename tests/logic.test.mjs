@@ -178,3 +178,67 @@ test('Schmiede: Rune kostet Material, gibt Wert nach Güte, Plätze begrenzt', (
   assert.equal(G.forge('weapon', 'zahn', 15), null, 'nur ' + D.FORGE.maxRunes + ' Runen je Teil');
   assert.equal(G.forge('chest', 'zahn', 15), null, 'leerer Platz');
 });
+
+test('Bonus-Stufen: I/II erst ab hoher Gegenstandsstufe, Werte steigen mit der Stufe', () => {
+  fresh(); const low = [], high = [];
+  for (let i = 0; i < 1500; i++) { low.push(makeItem(5, { minRarity: 2 })); high.push(makeItem(30, { minRarity: 2 })); }
+  const tiers = l => l.flatMap(it => Object.values(it.tiers || {}));
+  assert.ok(!tiers(low).some(t => t <= 2), 'Stufe I/II auf Gegenstandsstufe 5');
+  assert.ok(tiers(high).includes(1), 'Stufe I kommt auf hoher Stufe nie vor');
+  for (const it of high) for (const [k, t] of Object.entries(it.tiers)) assert.ok(it.mods[k] >= 1 && t >= 1 && t <= 5);
+});
+
+test('Sonderboni und Einzigartige: selten, korrekt aufgebaut, wirken im Kampf', () => {
+  const S = fresh(); let sp = 0, un = 0, n = 4000;
+  for (let i = 0; i < n; i++) { const it = makeItem(25, { minRarity: 2, luck: 50 });
+    if (it.special) { sp++; assert.ok(it.fx && ['magic', 'rare', 'legendary'].includes(it.rarity)); }
+    if (it.unique) { un++; const u = D.UNIQUES.find(x => x.name === it.unique); assert.ok(u, it.unique);
+      assert.equal(it.slot, u.slot); if (u.kind) assert.equal(it.kind, u.kind); assert.deepEqual(it.fx, u.eff); assert.ok(it.lore); } }
+  assert.ok(sp > 0 && sp < n * 0.1, `Sonderboni ${sp}`); assert.ok(un > 0 && un < n * 0.05, `Einzigartige ${un}`);
+  for (let i = 0; i < 300; i++) assert.ok(!makeItem(6, { minRarity: 2 }).special, 'Sonderbonus unter Gegenstandsstufe 8');
+  // Effekt landet in den Werten, Knochenschild wirkt
+  S.equip.helm = { ...makeItem(20, { slot: 'helm' }), fx: { ward: 0.5 } };
+  assert.equal(G.stats().ward, 0.5);
+  const r = fight(G.stats(), G.makeMonster(1, 1)); assert.ok(r.log.length);
+  assert.ok(G.power() > G.power({ ...G.stats(), ward: 0 }), 'Kampfkraft muss Knochenschild einrechnen');
+  let shielded = false; for (let i = 0; i < 10; i++) { const f = fight(G.stats(), G.makeMonster(15, 1)); if (f.log.some(l => l.who === 'b' && l.hpA === G.stats().hp)) shielded = true; }
+  assert.ok(shielded, 'Schild fängt den ersten Treffer');
+});
+
+test('Nachhall: Zauber wirkt zweites Mal, nie in Schleife', () => {
+  const S = fresh('sorceress'); S.lvl = 20; S.equip.amulet = { ...makeItem(20, { slot: 'amulet' }), fx: { echo: 1 } };
+  let seen = false; for (let i = 0; i < 20 && !seen; i++) { const r = fight(G.stats(), G.makeMonster(3, 1));
+    seen = r.log.some(l => l.t.includes('hallt nach')); assert.ok(r.log.length < 400); }
+  assert.ok(seen);
+});
+
+test('Neu weihen: behält Runen und Sonderbonus, Einzigartiges gesperrt, nie Einzigartiges als Ergebnis', () => {
+  const S = fresh(); S.gold = 99999; S.mats.schwanz = 99; S.mats.zahn = 10;
+  S.equip.amulet = makeItem(20, { slot: 'amulet', minRarity: 3 }); delete S.equip.amulet.unique; S.equip.amulet.fx = { crit: 0.06 }; S.equip.amulet.special = 'crit';
+  const r = G.forge('amulet', 'zahn', 15); assert.ok(r);
+  for (let i = 0; i < 30; i++) { assert.ok(G.doService('ysolde', 'reroll')); const a = S.equip.amulet;
+    assert.ok((a.mods.dmg || 0) >= r.v, 'Rune verloren'); assert.equal(a.special, 'crit'); assert.ok(!a.unique); }
+  S.equip.amulet.unique = 'Blutglocke'; assert.equal(G.doService('ysolde', 'reroll'), null);
+});
+
+test('Siegel: unveränderter Spielstand ist sauber, von Hand geänderter wird markiert', () => {
+  const S = fresh(); G.save(); assert.ok(!G.load().tampered);
+  const d = JSON.parse(localStorage.getItem('aschenkrone_v1')); d.gold = 999999; localStorage.setItem('aschenkrone_v1', JSON.stringify(d));
+  assert.ok(G.load().tampered); G.save(); assert.ok(G.load().tampered, 'Markierung muss bleiben');
+});
+
+test('Wert: Einzigartige und Sonderboni sind mehr wert', () => {
+  fresh(); const items = Array.from({ length: 3000 }, () => makeItem(25, { minRarity: 3, luck: 100 }));
+  const avg = f => { const l = items.filter(f); return l.reduce((a, b) => a + b.value, 0) / Math.max(1, l.length); };
+  assert.ok(avg(i => i.unique) > avg(i => i.rarity === 'legendary' && !i.unique));
+  assert.ok(avg(i => i.special && i.rarity === 'rare') > avg(i => !i.special && i.rarity === 'rare'));
+});
+
+test('Keine Gold-Schleifen: Glücksgriff und Ladenware kosten mehr, als ihr Verkauf bringt', () => {
+  for (const L of [5, 20, 40]) {
+    const S = fresh(); S.lvl = L; S.attrs.lck = L * 3; let cost = 0, val = 0;
+    for (let i = 0; i < 600; i++) { S.gold = 1e9; S.bag = []; const g = S.gold; const it = G.doService('ysolde', 'gamble'); cost += g - S.gold; val += it.value; }
+    assert.ok(val < cost * 0.8, `Glücksgriff Stufe ${L}: Wert ${val} vs Kosten ${cost}`);
+    for (const t of Object.keys(D.TRADERS)) for (let k = 0; k < 4; k++) { S.traders[t].rep = [0, 200, 700, 1600][k]; S.traders[t].shop = []; for (const it of G.shopFor(t)) assert.ok(it.price > it.value, 'Laden unter Verkaufswert'); }
+  }
+});

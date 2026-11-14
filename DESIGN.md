@@ -61,3 +61,16 @@ Aufträge (Gold, EP, Beute) → stärker werden (Punkte, Talente, Ausrüstung) �
 - Runen & Sockel, unidentifizierte Items (Hexe), Sets.
 - Talent-Knoten mit echten Spielwechslern (z. B. „Kettenblitz“: zweiter Treffer), nicht nur Prozente.
 - Tagesziele / Glut-Rhythmus, Grube mit Rangliste.
+
+
+## Crafting & Handel (Fahrplan)
+Ziel: seltene, sehr starke Items, die wertvoll bleiben; Crafting mit Kontrolle (Siegel); später Handel zwischen Spielern.
+Quellen (GameGene): Dungeon Defenders – Name des Schmieds bleibt auf gehandelten Items (https://gamegene.app/library/records/claims/7737939f-9813-4ec8-a80d-095c4fd4be3c);
+Last Epoch – Handel und Selbstfinden als Fraktionswahl, beide belohnt (https://gamegene.app/library/records/claims/2a97e010-7b15-464b-a723-901743ed69de);
+Pillars of Eternity – Crafting nicht als Pflichtpflege (https://gamegene.app/library/records/trivia/d0c3cce6-ebec-4558-be1f-1f110c4c6f2f).
+Ohne GameGene-Beleg, aus Genre-Wissen: D2 (Uniques, Runen als Währung), PoE (Material = Geld, „Präfixe gesperrt“), Last Epoch (Schmiedepotenzial), D3/D4 (einen Bonus neu würfeln).
+
+1. **Erledigt:** Bonus-Stufen I–V, Sonderboni (13), Einzigartige (14), Wert nach Stufe/Sonderbonus, Siegel gegen Bearbeiten.
+2. Crafting: Kultistensiegel versiegelt einen Bonus, Höllenasche würfelt unversiegelte neu, Knochenstaub nur Werte, Blutstein fügt hinzu, Grableinen tilgt. Jedes Item hat Schmiedeglut (Budget) → kein perfektes Craften, Funde bleiben wertvoll. Schmiedezeichen (Name) auf fertigen Items.
+3. Basar mit NPC-Käufern (Preise, Gebühren, Item-Format für später).
+4. Server + Konten + echter Handel (Items serverseitig erzeugen; `S.tampered` → kein Handel).

@@ -430,3 +430,13 @@ img.sic { object-fit: cover; padding: 0; background: #000; width: 48px; height: 
 .waiting .btns { display: flex; gap: 6px; } .waiting .btns button { flex: 1; }
 .forge .speaker { flex: none; }
 @media (max-height: 720px) { .forge .speaker { display: none; } }
+
+/* iOS-Homescreen mit verkürztem Viewport: Home-Balken liegt außerhalb, kein extra Abstand */
+.shortvp .tabs { padding-bottom: 6px; }
+/* Bonus-Stufen, Sonderboni, Einzigartige */
+.tier { font-style: normal; font-family: 'Alegreya SC'; font-size: .66rem; color: var(--dim); margin-left: 2px; }
+.tier.t1 { color: #ff9a3a; text-shadow: 0 0 6px rgba(255,140,40,.5); } .tier.t2 { color: var(--gold-hi); }
+#tip .m.hi { color: #9a9aff; }
+#tip .special { color: #ff9a3a; font-weight: 700; }
+#tip .lore { color: #a08a68; font-style: italic; }
+.uniq-txt { color: #ff9a3a; text-shadow: 0 0 8px rgba(255,140,40,.6); }

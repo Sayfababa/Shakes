@@ -1,5 +1,5 @@
 import { RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS } from './data.js';
-import { makeItem } from './loot.js';
+import { makeItem, itemValue } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
@@ -7,9 +7,17 @@ export const SAVE_VERSION = 6;
 export let S = null; // aktueller Spielstand
 
 export const now = () => Date.now();
-export function load() { try { const d = JSON.parse(localStorage.getItem(KEY)); if (d) S = migrate(d); } catch { S = null; } return S; }
-export function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} }
-export function wipe() { try { localStorage.removeItem(KEY); } catch {} S = null; }
+// Siegel gegen Bearbeiten: Prüfsumme über den Spielstand. Wer die Datei von Hand ändert, wird dauerhaft als
+// "verändert" markiert (für späteren Handel gesperrt). Kein echter Schutz ohne Server – aber kein stilles Schummeln.
+const SIG = KEY + '_sig';
+export function sealOf(txt) { let h = 0x811c9dc5; const t = 'aschenkrone|' + txt; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(36); }
+export function load() {
+  try { const raw = localStorage.getItem(KEY), d = JSON.parse(raw), sig = localStorage.getItem(SIG);
+    if (d) { S = migrate(d); if (sig && sig !== sealOf(raw)) S.tampered = true; } } catch { S = null; }
+  return S;
+}
+export function save() { try { const txt = JSON.stringify(S); localStorage.setItem(KEY, txt); localStorage.setItem(SIG, sealOf(txt)); } catch {} }
+export function wipe() { try { localStorage.removeItem(KEY); localStorage.removeItem(SIG); } catch {} S = null; }
 
 const baseAttrs = cls => { const a = { str: 5, dex: 5, int: 5, con: 6, lck: 3 }; a[CLASSES[cls].main] = 10; return a; };
 const freshGiver = () => ({ rep: 0, q: 0, prog: [], shop: [], ts: 0 });
@@ -78,6 +86,7 @@ export function effects(p = S) {
   const add = (k, v) => e[k] = (e[k] || 0) + v;
   for (const br of TALENTS[p.cls]) for (const n of br.nodes) { const r = p.tal?.[n.id] || 0; if (r) for (const [k, v] of Object.entries(n.eff)) add(k, v * r); }
   for (const t of p.trophies || []) for (const [k, v] of Object.entries(t.eff)) add(k, v);
+  for (const it of Object.values(p.equip || {})) if (it?.fx) for (const [k, v] of Object.entries(it.fx)) add(k, v);   // Sonderboni und Einzigartige
   return e;
 }
 
@@ -126,11 +135,11 @@ export function power(A = stats()) {
     const v = s.kind === 'multi' ? sd * s.mult * s.hits : s.kind === 'dot' ? sd * s.mult * 3 : s.kind === 'buff' ? dpt * s.v * 2
       : s.kind === 'heal' || s.kind === 'shield' ? 0 : sd * s.mult * (s.kind === 'mark' ? 1.4 : s.kind === 'stun' ? 1.5 : 1);
     const ev = s.every / (1 + (A.haste || 0));
-    dpt += (v - dpt) / ev;
+    dpt += (v * (1 + (A.echo || 0)) - dpt) / ev;
     if (s.kind === 'heal' || s.kind === 'shield') heal += A.hp * s.pct * A.amp / ev;
   }
   const taken = eDmg * (1 - Math.min(0.6, A.armor / (A.armor + 20 + L * 8))) * (1 - Math.min(0.5, A.dex / (A.dex + en * 3 + 40) + (A.evade || 0))) * (1 - Math.min(0.5, A.block || 0));
-  const ehp = A.hp / (taken * Math.max(0.3, 1 - heal * 0.6 / Math.max(1, taken))) * eDmg;   // Leben, umgerechnet in "wie viele Gegner-Hiebe halte ich aus"
+  const ehp = A.hp * (1 + (A.ward || 0)) / (taken * Math.max(0.3, 1 - heal * 0.6 / Math.max(1, taken))) * eDmg;   // Leben, umgerechnet in "wie viele Gegner-Hiebe halte ich aus"
   return Math.round(Math.sqrt(Math.max(1, dpt) * ehp) * 20);
 }
 // Kampfkraft, wenn ein Item angelegt wäre (Ringe: ersetzt den schwächeren bzw. freien Platz)
@@ -351,6 +360,7 @@ export function serviceState(sv) {
   let reason = '';
   if (sv.slot && !it) reason = 'Nichts angelegt';
   else if (sv.max && step >= sv.max) reason = 'Vollendet';
+  else if (sv.id === 'reroll' && it.unique) reason = 'Einzigartiges lässt sich nicht neu weihen';
   else if (sv.id === 'reroll' && !Object.keys(it.mods).length) reason = 'Keine Zauber';
   const enough = S.gold >= gold && Object.entries(cost).every(([k, n]) => (S.mats[k] || 0) >= n);
   return { it, step, costText, reason, can: !reason && enough, questMat: Object.keys(cost).find(k => questNeedsMat(k)) };
@@ -363,8 +373,12 @@ export function doService(tid, svId) {
   if (sv.id === 'reinforce') { it.armor = Math.round(it.armor * (1 + sv.per)) + 1; }
   if (sv.max) { it.up = (it.up || 0) + 1; it.value = Math.round(it.value * 1.3); return it; }
   if (sv.id === 'reroll') {
-    const fresh = makeItem(it.lvl, { slot: it.slot, minRarity: ['broken', 'normal', 'magic', 'rare', 'legendary'].indexOf(it.rarity), luck: S.attrs.lck });
-    it.mods = fresh.mods; return it;
+    // Neue Boni gleicher Seltenheit; Sonderbonus und eingeschmiedete Runen bleiben erhalten
+    const minR = ['broken', 'normal', 'magic', 'rare', 'legendary'].indexOf(it.rarity);
+    let fresh; for (let i = 0; i < 20 && (!fresh || fresh.unique || fresh.rarity !== it.rarity); i++) fresh = makeItem(it.lvl, { slot: it.slot, minRarity: minR, luck: S.attrs.lck });
+    it.mods = { ...fresh.mods }; it.tiers = { ...fresh.tiers };
+    for (const r of it.runes || []) it.mods[r.stat] = (it.mods[r.stat] || 0) + r.v;
+    it.value = itemValue(it); return it;
   }
   if (sv.id === 'gamble') {
     const g = makeItem(S.lvl, { luck: S.attrs.lck, minRarity: 2 });   // meist magisch, selten mehr – wie das Glücksspiel in D2

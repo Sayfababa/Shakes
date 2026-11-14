@@ -1,5 +1,5 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
-import { RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
+import { TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
 import { forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
@@ -7,14 +7,14 @@ import { gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance } 
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
 const P = cls => `assets/portraits/${CLASSES[cls].portrait}.jpg`;
-const rarName = id => RARITIES.find(r => r.id === id)?.name || '';
+const rarName = (id, it) => it?.unique ? 'Einzigartig' : RARITIES.find(r => r.id === id)?.name || '';
 export const fmtT = s => `${Math.floor(s / 60)}:${String(Math.max(0, s % 60)).padStart(2, '0')}`;
 export const fmtN = n => n.toLocaleString('de-DE');
 // Kampfkraft-Änderung durch ein Item (in %), null wenn nicht vergleichbar
 export const itemGain = it => { if (!it?.slot || Object.values(S.equip).includes(it)) return null; const p = powerWith(it); return (p.then - p.now) / Math.max(1, p.now); };
 const gainTag = it => { const g = itemGain(it); return g > 0.01 ? `<i class="better" title="besser">▲</i>` : ''; };
 const pct = (a, b) => Math.max(0, Math.min(100, (a / b) * 100));
-const effLine = e => Object.entries(e).map(([k, v]) => `${EFFECT_NAMES[k]}${k === 'first' ? '' : ' +' + Math.round(v * 100) + '%'}`).join(', ');
+const effLine = e => Object.entries(e).map(([k, v]) => `${EFFECT_NAMES[k]}${k === 'first' || k === 'toll' ? '' : ' +' + Math.round(v * 100) + '%'}`).join(', ');
 
 // Gemalte Monster/Bosse in assets/monsters/<glyph>.jpg, sonst SVG-Silhouette
 const MON_IMG = new Set(['gerlinde', 'aldemar', 'butcher', 'bellringer', 'ghul', 'fallen', 'skelett', 'grabraeuber', 'pestratte', 'kultist',
@@ -45,10 +45,15 @@ function questNote(tid) {
 
 // --- Items ---
 export function itemTip(it, cmp) {
-  const L = [`<div class="n r-${it.rarity}">${it.name}${it.up ? ` +${it.up}` : ''}</div><div class="sub2">${rarName(it.rarity)} · ${SLOTS[it.slot]} · Stufe ${it.lvl}</div>`];
+  const L = [`<div class="n r-${it.rarity}">${it.name}${it.up ? ` +${it.up}` : ''}</div><div class="sub2">${rarName(it.rarity, it)} · ${SLOTS[it.slot]} · Stufe ${it.lvl}</div>`];
   if (it.dmg) L.push(`Schaden <b>${it.dmg[0]}–${it.dmg[1]}</b>`);
   if (it.armor) L.push(`Rüstung <b>${it.armor}</b>`);
-  for (const [k, v] of Object.entries(it.mods)) L.push(`<span class="m">+${v}${k === 'haste' ? ' % Zaubertempo' : ' ' + (k === 'armor' ? 'Rüstung' : k === 'dmg' ? 'Schaden' : ATTRS[k])}</span>`);
+  // Boni ohne Runen-Anteil, mit Stufe (I = beste)
+  const runeOf = k => (it.runes || []).filter(r => r.stat === k).reduce((a, r) => a + r.v, 0);
+  for (const [k, v] of Object.entries(it.mods)) { const b = v - runeOf(k); if (b <= 0) continue; const t = it.tiers?.[k];
+    L.push(`<span class="m ${t && t <= 2 ? 'hi' : ''}">+${b}${k === 'haste' ? ' % Zaubertempo' : ' ' + (k === 'armor' ? 'Rüstung' : k === 'dmg' ? 'Schaden' : ATTRS[k])}${t ? ` <i class="tier t${t}">${TIERS[t - 1].name}</i>` : ''}</span>`); }
+  if (it.fx) L.push(`<span class="special">${it.unique ? '' : '✦ '}${effLine(it.fx)}</span>`);
+  if (it.lore) L.push(`<span class="lore small">„${it.lore}“</span>`);
   if (it.runes?.length || it.slot) { const rn = it.runes || []; if (rn.length) L.push(`<span class="rune">Runen ${rn.length}/${FORGE.maxRunes}: ${rn.map(r => `${r.mat ? `<img class="tiprune" src="assets/forge/r_${r.mat}.webp" alt="">` : ''}${r.name} +${r.v}`).join(', ')}</span>`); }
   if (it.slot === 'weapon') { const ck = CLASSES[S.cls].weapon; L.push(it.kind === ck ? `<span class="gold">Waffe deiner Klasse</span>`
     : `<span class="down">Fremde Waffe: Schaden −${Math.round((1 - CFG.offWeapon) * 100)} %, Zauber −${Math.round((1 - CFG.offWeaponSpell) * 100)} %</span>`); }
@@ -139,7 +144,8 @@ export function viewStats() {
     <section class="panel"><h2>Kampf <span class="h2r">Kampfkraft <b>${fmtN(P0)}</b></span></h2>
       <div class="grid2"><div class="stat"><span>Leben</span><b>${fmtN(st.hp)}</b></div><div class="stat"><span>Schaden</span><b>${st.dmg[0]}–${st.dmg[1]}</b></div>
       <div class="stat"><span>Rüstung</span><b>${st.armor}</b></div><div class="stat"><span>Siege / Tode</span><b>${S.wins} / ${S.deaths}</b></div></div>
-      <p class="dim small">${effLine(Object.fromEntries(Object.entries(st).filter(([k]) => EFFECT_NAMES[k] && !['dmgPct', 'hpPct', 'armorPct'].includes(k))))}</p></section>
+      <p class="dim small">${effLine(Object.fromEntries(Object.entries(st).filter(([k]) => EFFECT_NAMES[k] && !['dmgPct', 'hpPct', 'armorPct'].includes(k))))}</p>
+      ${S.tampered ? '<p class="small down">Spielstand wurde von Hand verändert – für Handel gesperrt.</p>' : ''}</section>
     <section class="panel grow"><h2>Trophäen <span class="h2r">${S.trophies.length}</span></h2>
       ${S.trophies.map(t => `<div class="stat"><span>${t.name} <i class="dim">${t.diff}</i></span><span class="m small">${effLine(t.eff)}</span></div>`).join('') || '<p class="dim small">Besiege die Herren der Krypten.</p>'}</section>
     <div class="btns"><button data-action="go" data-v="hero">Zurück</button><button data-action="respec" ${S.gold < rc ? 'disabled' : ''}>Läutern ${rc ? rc : 'gratis'}</button><button class="dim" data-action="wipe">Neu</button></div>

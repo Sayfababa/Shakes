@@ -59,7 +59,8 @@ function haulRewText(res) {
   return L.join('<br>');
 }
 // "Oh, das ist viel besser!" – direkt bei der Beute zeigen
-function betterTxt(it) { const g = UI.itemGain(it); return g > 0.01 ? ` <b class="better-txt">▲ +${Math.round(g * 100)} % Kampfkraft</b>` : ''; }
+function betterTxt(it) { const g = UI.itemGain(it);
+  return (it.unique ? ' <b class="uniq-txt">Einzigartig!</b>' : it.special ? ' <b class="uniq-txt">✦</b>' : '') + (g > 0.01 ? ` <b class="better-txt">▲ +${Math.round(g * 100)} % Kampfkraft</b>` : ''); }
 // Kurze Einblendung nach dem Anlegen: alte → neue Kampfkraft
 function toast(before) {
   const after = G.power(), d = after - before; if (!d) return;
@@ -257,13 +258,16 @@ setInterval(() => {
   }
 }, 1000);
 
-// iOS-Homescreen-App: der Viewport ist dort zu kurz gemeldet (unten blieb ~100 pt frei, obwohl gezeichnet wird).
-// Dann die echte Bildschirmhöhe nehmen.
+// iOS-Homescreen-App: Höhe = was iOS wirklich zeichnet (inset 0). Ist der Viewport kürzer als der Bildschirm,
+// liegt der Home-Balken außerhalb – dann keinen Sicherheitsabstand unter den Tabs verschwenden.
 const STANDALONE = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
 function fitApp() {
-  if (!STANDALONE) return;
-  const portrait = innerHeight >= innerWidth, h = Math.max(innerHeight, portrait ? screen.height : screen.width);
-  app.style.bottom = 'auto'; app.style.height = h + 'px';
+  const portrait = innerHeight >= innerWidth, full = portrait ? screen.height : screen.width;
+  document.documentElement.classList.toggle('shortvp', full - innerHeight > 40);
 }
 addEventListener('resize', fitApp); addEventListener('orientationchange', () => setTimeout(fitApp, 300)); fitApp();
+// Anzeige-Info: Titel antippen zeigt die Maße (zum Fehlersuchen am Handy)
+document.addEventListener('click', e => { if (!e.target.closest('.hud .ttl')) return;
+  const cs = getComputedStyle(document.documentElement), t = document.querySelector('.tabs')?.getBoundingClientRect();
+  alert(`innen ${innerWidth}×${innerHeight} · Bildschirm ${screen.width}×${screen.height} · sichtbar ${Math.round(visualViewport?.height || 0)} · Tabs unten ${Math.round(t?.bottom || 0)} · ${STANDALONE ? 'App' : 'Browser'}`); });
 G.load(); render();
