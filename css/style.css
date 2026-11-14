@@ -1,198 +1,220 @@
-/* App-Layout: alles passt in einen Bildschirm (100dvh), kein Seiten-Scroll. */
+/* ASCHENKRONE – Stein, Leder, Pergament. Ein Bildschirm, kein Scrollen. */
 :root {
-  --bg: #0b0907; --iron: #3a332b; --iron-hi: #5c5246;
-  --text: #c9bba1; --dim: #7d705d; --gold: #b08a3e; --blood: #8a1c13; --blood-hi: #b3271a;
-  --r-broken: #7a7a7a; --r-normal: #d8d8d8; --r-magic: #6969ff; --r-rare: #ffff64; --r-legendary: #c7b377; --r-set: #00c400;
-  --gap: 8px;
+  --ink: #0a0806; --stone: #14100c; --edge: #3b2f22; --edge-hi: #6b5a44;
+  --text: #cdbd9c; --dim: #7f715b; --gold: #c09a55; --gold-hi: #e2c07a; --blood: #7d150d; --blood-hi: #c0301e;
+  --r-broken: #8a8a8a; --r-normal: #e0dccf; --r-magic: #7b7bff; --r-rare: #f2e05a; --r-legendary: #d0903e; --r-set: #2ec42e;
+  --gap: 7px; --u: clamp(21px, 3.85vh, 32px);
+  --noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --stonetex: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='s'><feTurbulence type='fractalNoise' baseFrequency='.035' numOctaves='4'/><feColorMatrix values='0 0 0 0 .09 0 0 0 0 .07 0 0 0 0 .05 0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23s)'/></svg>");
+  --rivets: radial-gradient(circle at 6px 6px, #8a7556 0 1.4px, #000 2px, transparent 2.6px), radial-gradient(circle at calc(100% - 6px) 6px, #8a7556 0 1.4px, #000 2px, transparent 2.6px),
+            radial-gradient(circle at 6px calc(100% - 6px), #8a7556 0 1.4px, #000 2px, transparent 2.6px), radial-gradient(circle at calc(100% - 6px) calc(100% - 6px), #8a7556 0 1.4px, #000 2px, transparent 2.6px);
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; overflow: hidden; background: #000; color: var(--text);
-  font: 15px/1.3 'IM Fell English', Georgia, serif; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
-body { background: radial-gradient(ellipse at 50% 30%, #1d1610 0%, #0b0907 60%, #000 100%); overscroll-behavior: none;
-  user-select: none; -webkit-user-select: none; }
-body::after { content: ''; position: fixed; inset: 0; pointer-events: none; box-shadow: inset 0 0 120px 30px #000; z-index: 0; }
-h1, h2, h3, .cinzel, button, nav a { font-family: 'Cinzel', serif; letter-spacing: .05em; }
-h1 { color: var(--gold); text-align: center; font-size: 1.9rem; margin: .2em 0 0; text-shadow: 0 2px 0 #000, 0 0 18px #5a1a0c; }
-h2 { color: var(--gold); font-size: .9rem; margin: 0 0 6px; border-bottom: 1px solid var(--iron); padding-bottom: 4px;
-  display: flex; align-items: center; gap: 6px; }
-h2 .tiny { margin-left: auto; }
-p { margin: 4px 0; }
-.sub { text-align: center; color: var(--dim); font-style: italic; margin: 4px 0 10px; }
-.muted { color: var(--dim); } .up { color: #4caf50; } .down { color: var(--blood-hi); }
+html, body { margin: 0; height: 100%; overflow: hidden; color: var(--text); background: #050403;
+  font: 15px/1.28 'Alegreya', Georgia, serif; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+body { background: var(--noise), var(--stonetex), radial-gradient(ellipse at 50% 20%, #241a12, #070504 70%); overscroll-behavior: none; user-select: none; -webkit-user-select: none; }
+body::after { content: ''; position: fixed; inset: 0; pointer-events: none; box-shadow: inset 0 0 140px 40px #000; z-index: 0; }
+h1, h2, h3, h4, .ttl { font-family: 'Grenze Gotisch', serif; font-weight: 700; letter-spacing: .02em; }
+h1 { color: var(--gold); text-align: center; font-size: 2.6rem; margin: .1em 0 0; text-shadow: 0 2px 0 #000, 0 0 22px #6a200c; }
+h2 { color: var(--gold); font-size: 1.15rem; margin: 0 0 5px; padding-bottom: 3px; display: flex; align-items: baseline; gap: 8px;
+  text-shadow: 0 1px 0 #000, 0 -1px 0 rgba(255,210,140,.08); border-bottom: 1px solid #000; box-shadow: 0 1px 0 #2e241a; }
+h3 { color: var(--text); font-size: 1rem; margin: 0; font-weight: 500; }
+.h2r { margin-left: auto; font-family: 'Alegreya SC'; font-size: .72rem; color: var(--dim); font-weight: 500; }
+p { margin: 3px 0; }
+.dim { color: var(--dim); } .small { font-size: .78rem; } .hot { color: var(--blood-hi); } .gold { color: var(--gold-hi); }
+.up { color: #5fae4c; } .down { color: var(--blood-hi); } .m { color: var(--r-magic); }
+.lore { font-style: italic; color: #a8987a; font-size: .86rem; }
+.sub { text-align: center; color: var(--dim); font-style: italic; margin: 2px 0 10px; }
 
-#app { height: 100dvh; max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; position: relative; z-index: 1;
-  padding: env(safe-area-inset-top) 10px 0; }
+#app { height: 100dvh; max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; position: relative; z-index: 1; padding: env(safe-area-inset-top) 10px 0; }
 main { flex: 1; min-height: 0; overflow: hidden; padding: var(--gap) 0; display: flex; flex-direction: column; }
 main > * { flex: 1; min-height: 0; }
-
-/* HUD oben */
-.hud { padding-top: 6px; }
-.hud-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.hud .ttl { color: var(--gold); font-size: 1.05rem; text-shadow: 0 0 10px #5a1a0c; }
-.res { display: flex; gap: 10px; font-family: 'Cinzel'; font-size: .75rem; } .res b { color: var(--gold); }
-.bars { margin-top: 4px; } .bars > div { flex: 1; } .bars small { font-size: .65rem; color: var(--dim); }
-.bar { height: 7px; background: #000; border: 1px solid var(--iron); position: relative; }
-.bar > i { position: absolute; inset: 0; right: auto; background: linear-gradient(#b3271a, #5a0d07); transition: width .25s; }
-.bar.xp > i { background: linear-gradient(#b08a3e, #5c4518); } .bar.glut > i { background: linear-gradient(#d0601a, #6a2306); }
-
-/* Tabs unten */
-.tabs { display: flex; gap: 4px; padding: 6px 0 calc(6px + env(safe-area-inset-bottom)); border-top: 1px solid var(--iron); }
-.tabs a { flex: 1; text-align: center; padding: 11px 2px; border: 1px solid var(--iron); background: #120e0a; color: var(--dim);
-  font-size: .72rem; text-transform: uppercase; cursor: pointer; }
-.tabs a.on { color: var(--gold); border-color: var(--gold); background: #22180f; }
-
-/* Bausteine */
-.frame { background: linear-gradient(#17120d, #100c09); border: 2px solid var(--iron); outline: 1px solid #000; outline-offset: -4px;
-  box-shadow: inset 0 0 20px #000, 0 2px 8px #000; padding: 8px; border-radius: 2px; min-height: 0; }
 .col { display: flex; flex-direction: column; gap: var(--gap); }
 .grow { flex: 1; min-height: 0; overflow: hidden; }
-.portrait { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border: 2px solid var(--iron-hi); outline: 2px solid #000;
-  filter: contrast(1.05) saturate(.9); background: #000; }
-button { background: linear-gradient(#3b2a1c, #22180f); color: var(--text); border: 1px solid #000; outline: 1px solid var(--iron-hi);
-  outline-offset: -3px; padding: 9px 12px; cursor: pointer; font-size: .78rem; text-transform: uppercase; border-radius: 1px; }
-button:hover:not(:disabled) { color: #fff; } button:disabled { opacity: .4; }
-button.red { background: linear-gradient(#7a1a10, #3b0b06); }
-button.tiny { padding: 4px 7px; font-size: .6rem; }
-input { background: #000; color: var(--text); border: 1px solid var(--iron-hi); padding: 9px; font: 16px 'IM Fell English', serif; width: 100%;
-  user-select: text; -webkit-user-select: text; }
-.stat { display: flex; justify-content: space-between; align-items: center; gap: 4px; border-bottom: 1px dotted #2a231b; padding: 1px 0; }
-.stat button { padding: 3px 6px; font-size: .62rem; min-width: 46px; }
 
-/* Slots */
-.slot { aspect-ratio: 1; background: #070504; border: 1px solid #2c251d; box-shadow: inset 0 0 10px #000; position: relative;
-  display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .5rem; text-align: center; color: #3f362c;
-  font-family: 'Cinzel'; overflow: hidden; min-width: 0; }
-.slot svg { width: 62%; height: 62%; }
-.slot.r-magic { box-shadow: inset 0 0 14px #1d1d55; } .slot.r-rare { box-shadow: inset 0 0 14px #46461a; }
-.slot.r-legendary { box-shadow: inset 0 0 16px #5a4b22; border-color: #5a4b22; }
-.slot .lv { position: absolute; bottom: 0; right: 2px; color: var(--dim); font-size: .55rem; }
-.slot.price::after { content: attr(data-price); position: absolute; top: 0; left: 2px; color: var(--gold); font-size: .58rem; }
+/* Panel: dunkles Leder auf Eisen, Nieten in den Ecken */
+.panel { position: relative; padding: 8px 10px; min-height: 0; background: var(--rivets), var(--noise), linear-gradient(#1a140f, #0f0b08);
+  border: 1px solid #000; box-shadow: inset 0 0 0 1px var(--edge), inset 0 0 0 2px #000, inset 0 0 0 3px #241c14, inset 0 0 24px #000, 0 3px 8px rgba(0,0,0,.8); }
+
+/* HUD */
+.hud { padding-top: 6px; }
+.hud-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.hud .ttl { color: var(--gold); font-size: 1.45rem; text-shadow: 0 2px 0 #000, 0 0 12px #5a1a0c; line-height: 1; }
+.res { display: flex; gap: 12px; font-family: 'Alegreya SC'; font-size: .82rem; } .res b { color: var(--gold-hi); }
+.bars { margin-top: 3px; gap: 12px; } .bars > div { flex: 1; } .bars small { font-family: 'Alegreya SC'; font-size: .62rem; color: var(--dim); }
+.bar { height: 7px; background: #000; border: 1px solid #000; box-shadow: 0 0 0 1px var(--edge); position: relative; }
+.bar > i { position: absolute; inset: 0; right: auto; background: linear-gradient(#d23a26, #6a0d06); transition: width .25s; }
+.bar.xp > i { background: linear-gradient(#d9b45e, #6a4c18); } .bar.glut > i { background: linear-gradient(#e8742a, #6e2405); } .bar.rep > i { background: linear-gradient(#9a8a5a, #4a3e1c); }
+
+/* Tabs: Steinplatten */
+.tabs { display: flex; gap: 3px; padding: 6px 0 calc(6px + env(safe-area-inset-bottom)); }
+.tabs a, .subtabs a { flex: 1; text-align: center; padding: 10px 2px; cursor: pointer; position: relative; color: var(--dim);
+  font-family: 'Alegreya SC'; font-weight: 700; font-size: .74rem; background: var(--noise), linear-gradient(#211a13, #110d0a);
+  border: 1px solid #000; box-shadow: inset 0 1px 0 rgba(255,220,160,.08), inset 0 -2px 0 rgba(0,0,0,.6); }
+.tabs a.on, .subtabs a.on { color: var(--gold-hi); background: var(--noise), linear-gradient(#3a2a1a, #1a120b); box-shadow: inset 0 0 0 1px #6b5229, inset 0 0 12px rgba(0,0,0,.7); }
+.badge::after { content: ''; position: absolute; top: 4px; right: 5px; width: 6px; height: 6px; transform: rotate(45deg); background: var(--blood-hi); box-shadow: 0 0 6px var(--blood-hi); }
+.subtabs { display: flex; gap: 3px; flex: none !important; } .subtabs a { padding: 7px 2px; font-size: .76rem; }
+
+/* Buttons: Steinkeil */
+button { font-family: 'Alegreya SC'; font-weight: 700; font-size: .82rem; color: #d6c39a; cursor: pointer; padding: 8px 12px; border-radius: 1px;
+  background: var(--noise), linear-gradient(#3a2e21, #1a130d); border: 1px solid #000;
+  box-shadow: inset 0 1px 0 rgba(255,220,160,.16), inset 0 -2px 0 rgba(0,0,0,.6), 0 1px 0 #2a2016; text-shadow: 0 1px 0 #000; }
+button:active { transform: translateY(1px); } button:disabled { opacity: .38; }
+button.red { color: #f0d8c0; background: var(--noise), linear-gradient(#8a1d10, #3e0904); }
+button.tiny { padding: 3px 8px; font-size: .68rem; }
+button.dim { color: var(--dim); }
+input { background: #000; color: var(--text); border: 1px solid var(--edge); padding: 9px; font: 16px 'Alegreya', serif; width: 100%; user-select: text; -webkit-user-select: text; }
+.btns { display: flex; gap: 6px; flex: none !important; } .btns button { flex: 1; }
+
+.portrait { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: #000; border: 2px solid #4a3c2c; outline: 1px solid #000; }
+.portrait.fr-bronze { border-color: #8a5a2b; box-shadow: 0 0 10px #4a2a10; } .portrait.fr-silver { border-color: #a0a0a0; box-shadow: 0 0 12px #555; }
+.portrait.fr-gold { border-color: var(--r-legendary); box-shadow: 0 0 14px #6a5520; } .portrait.fr-blood { border-color: var(--blood-hi); box-shadow: 0 0 18px #6a0d07; }
+.monster svg, .npc svg { width: 100%; height: 100%; display: block; }
+
 .r-broken { color: var(--r-broken); } .r-normal { color: var(--r-normal); } .r-magic { color: var(--r-magic); }
 .r-rare { color: var(--r-rare); } .r-legendary { color: var(--r-legendary); } .r-set { color: var(--r-set); }
-.equip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; max-width: 420px; margin: 0 auto; }
-.bag { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
-.bag.shop { grid-template-columns: repeat(6, 1fr); }
-@media (max-width: 600px) { .bag { grid-template-columns: repeat(7, 1fr); } }
 
-/* Held */
-.char { display: flex; flex-direction: column; gap: var(--gap); }
-.char .head { display: grid; grid-template-columns: 34% 1fr; gap: 8px; }
-.char .head .portrait { align-self: start; }
-.char .who { color: var(--gold); font-size: .85rem; margin-bottom: 2px; }
-.char .who small { font-size: .7rem; }
-.char .attrs { font-size: .85rem; }
-.derived { grid-column: 1 / -1; display: flex; justify-content: space-between; font-size: .78rem; color: var(--dim); }
-.derived b { color: var(--text); }
+/* --- Held: Ausrüstungsfigur --- */
+.hero { display: flex; flex-direction: column; gap: var(--gap); }
+.doll { display: grid; grid-template-columns: calc(var(--u) * 2) 1fr calc(var(--u) * 2); gap: 8px; align-items: start; flex: none !important; padding: 10px; }
+.dcol { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+.dmid { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.dmid .portrait { width: min(100%, calc(var(--u) * 6)); }
+.plate { text-align: center; line-height: 1.1; } .plate b { font-family: 'Grenze Gotisch'; font-size: 1.15rem; color: var(--gold); display: block; }
+.plate span { font-family: 'Alegreya SC'; font-size: .68rem; color: var(--dim); }
+.drow { display: flex; gap: 4px; align-items: center; }
+.eslot { position: relative; background: #07080b; border: 1px solid #000; box-shadow: inset 0 0 0 1px #2a2620, inset 0 0 10px #000; cursor: pointer; padding: 2px; }
+.eslot svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 1px 1px #000); }
+.eslot .ghost { display: block; width: 100%; height: 100%; opacity: .1; filter: grayscale(1); }
+.es-helm, .es-gloves, .es-boots { width: calc(var(--u) * 2); height: calc(var(--u) * 2); }
+.es-weapon { width: calc(var(--u) * 2); height: calc(var(--u) * 4); }
+.es-chest, .es-offhand { width: calc(var(--u) * 2); height: calc(var(--u) * 3); }
+.es-amulet, .es-ring1, .es-ring2 { width: var(--u); height: var(--u); }
+.es-belt { width: calc(var(--u) * 2); height: var(--u); }
+.eslot.r-magic, .cellitem.r-magic, .sitem.r-magic { background-color: rgba(50,50,170,.22); }
+.eslot.r-rare, .cellitem.r-rare, .sitem.r-rare { background-color: rgba(150,140,30,.2); }
+.eslot.r-legendary, .cellitem.r-legendary, .sitem.r-legendary { background-color: rgba(170,100,25,.26); }
+.eslot.r-broken, .cellitem.r-broken, .sitem.r-broken { background-color: rgba(120,20,15,.22); }
+.herobar { display: flex; align-items: center; gap: 10px; flex: none !important; font-size: .82rem; padding: 0 2px; }
+.herobar b { color: var(--gold-hi); } .herobar button { padding: 5px 9px; font-size: .74rem; } .herobar button:first-of-type { margin-left: auto; }
 
-/* Aufträge */
-.quest { display: grid; grid-template-columns: 30% 1fr; gap: 10px; cursor: pointer; flex: 1; align-items: center; min-height: 0; }
-.quest[aria-disabled] { opacity: .45; }
-.quest .portrait { max-height: 100%; }
-.quest h3 { margin: 0; color: var(--text); font-size: .9rem; }
-.quest p { font-style: italic; color: var(--dim); font-size: .85rem; }
-.quest .rw { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; font-family: 'Cinzel'; font-size: .7rem; }
-.quest .rw b { color: var(--gold); }
-.quest:active { border-color: var(--blood-hi); }
-.waiting { text-align: center; } .waiting .portrait { width: min(40%, 22vh); margin: 0 auto 6px; }
-.waiting .big { font-family: 'Cinzel'; font-size: 2rem; color: var(--gold); margin-bottom: 6px; }
-.journal div { padding: 2px 0; border-bottom: 1px dotted #2a231b; font-style: italic; font-size: .82rem; }
+/* --- Raster-Inventar --- */
+.invp { flex: none !important; padding: 7px 8px; }
+.invhead { display: flex; align-items: center; justify-content: space-between; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1rem; margin-bottom: 4px; }
+.inv { position: relative; width: 100%; aspect-ratio: calc(var(--w) / var(--h)); background-color: #07080b; border: 1px solid #000; box-shadow: 0 0 0 1px #2a2620;
+  background-image: linear-gradient(to right, #1b1d24 1px, transparent 1px), linear-gradient(to bottom, #1b1d24 1px, transparent 1px);
+  background-size: calc(100% / var(--w)) calc(100% / var(--h)); }
+.cellitem { position: absolute; padding: 2px; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0,0,0,.6); }
+.cellitem svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 1px 1px #000); }
+.mats { display: flex; flex-wrap: wrap; gap: 2px 12px; margin-top: 5px; font-size: .76rem; } .mats b { color: var(--gold-hi); }
 
-/* Grube */
+/* --- Werte & Talente --- */
+.stat { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 2px 0; border-bottom: 1px solid #000; box-shadow: 0 1px 0 #221a12; }
+.stat b { color: var(--gold-hi); } .stat button { padding: 1px 10px; font-size: .9rem; line-height: 1.3; margin-left: 6px; }
+.tree { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; flex: 1; min-height: 0; }
+.branch { display: flex; flex-direction: column; padding: 8px 6px; min-width: 0; }
+.branch h3 { font-family: 'Grenze Gotisch'; color: var(--gold); text-align: center; margin-bottom: 6px; font-size: 1.05rem; }
+.tal { flex: 1; min-height: 0; background: #07080b; border: 1px solid #000; box-shadow: inset 0 0 0 1px #2a2620; padding: 4px; cursor: pointer;
+  display: flex; flex-direction: column; justify-content: center; text-align: center; overflow: hidden; }
+.tal .tn { font-family: 'Alegreya SC'; font-weight: 700; font-size: .76rem; } .tal .tr { font-size: .82rem; color: var(--dim); }
+.tal .te { font-size: .66rem; color: var(--r-magic); overflow-wrap: anywhere; }
+.tal.has { box-shadow: inset 0 0 0 1px #7a5e2a, inset 0 0 14px rgba(160,110,30,.25); } .tal.has .tr { color: var(--gold-hi); }
+.tal.can { box-shadow: inset 0 0 0 1px var(--blood-hi), inset 0 0 14px rgba(190,40,20,.35); }
+.tal.locked { opacity: .35; }
+.link { width: 2px; height: 7px; background: #3b2f22; margin: 0 auto; flex: none; }
+
+/* --- Streifzüge --- */
+.trips { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: var(--gap); }
+.trip { cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; }
+.trip h3 { font-family: 'Grenze Gotisch'; font-size: 1.08rem; color: var(--gold); position: relative; padding-right: 16px; }
+.qmark { position: absolute; right: 0; top: -2px; color: var(--blood-hi); font-family: 'Grenze Gotisch'; font-size: 1.3rem; text-shadow: 0 0 8px var(--blood-hi); }
+.mobs { font-size: .74rem; color: #a8987a; font-style: italic; }
+.tripinfo { display: grid; grid-template-columns: 1fr 1fr; font-family: 'Alegreya SC'; font-size: .68rem; color: var(--dim); }
+.trip.locked { opacity: .35; cursor: default; } .trip.tired { opacity: .6; }
+.waiting { text-align: center; flex: none !important; } .waiting h2 { justify-content: center; }
+.waiting .big { font-family: 'Grenze Gotisch'; font-size: 2.6rem; color: var(--gold); line-height: 1.1; margin: 4px 0; }
+.big-btn { font-size: 1rem; padding: 12px 30px; margin: 8px 0; }
+.journal div { padding: 2px 0; border-bottom: 1px solid #000; box-shadow: 0 1px 0 #221a12; font-style: italic; font-size: .8rem; color: #a8987a; }
+
+/* --- Händler --- */
+.npcrow { display: grid; grid-template-columns: 26% 1fr; gap: 10px; align-items: center; flex: none !important; }
+.npcrow .portrait { border-color: #3a2e22; }
+.loyal { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: center; font-family: 'Alegreya SC'; font-size: .72rem; margin-top: 4px; }
+.loyal b { color: var(--gold-hi); font-size: .9rem; } .loyal small { grid-column: 1 / -1; color: var(--dim); }
+/* Pergament-Zettel */
+.note { flex: 0 1 auto; min-height: 0; overflow: hidden; position: relative; padding: 12px 16px 10px; color: #2b1c0f;
+  background: var(--noise), radial-gradient(ellipse at 30% 20%, #d4c094, #b39c6c 70%, #8a7246);
+  clip-path: polygon(0 2%, 4% 0, 12% 1.5%, 22% 0, 35% 1%, 48% 0, 60% 1.6%, 74% .3%, 86% 1.4%, 96% 0, 100% 3%, 99% 20%, 100% 45%, 98.6% 70%, 100% 96%, 94% 100%, 80% 98.5%, 64% 100%, 50% 98.8%, 34% 100%, 20% 98.6%, 6% 100%, 0 97%, 1.2% 70%, 0 40%, 1% 15%); }
+.note h4 { margin: 0 0 3px; color: #6a140a; font-size: 1.2rem; }
+.note p { font-style: italic; font-size: .86rem; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.note ul { list-style: none; margin: 6px 0 4px; padding: 0; font-size: .84rem; }
+.note li { padding: 1px 0 1px 16px; position: relative; } .note li::before { content: ''; position: absolute; left: 2px; top: .45em; width: 7px; height: 7px; border: 1px solid #3a2410; }
+.note li.ok { color: #3a5a1a; } .note li.ok::before { background: #3a5a1a; }
+.note li b { font-family: 'Alegreya SC'; }
+.note .rew { font-family: 'Alegreya SC'; font-size: .74rem; color: #4a2e14; border-top: 1px solid rgba(60,30,10,.35); padding-top: 4px; margin-top: 4px; }
+.note button { margin-top: 6px; }
+.note.sealed, .note.done { display: flex; flex-direction: column; justify-content: center; text-align: center; }
+.shop { flex: none !important; margin-top: auto; }
+.shoprow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.sitem { position: relative; aspect-ratio: 3 / 4; background: #07080b; border: 1px solid #000; box-shadow: inset 0 0 0 1px #2a2620; padding: 3px 3px 12px; cursor: pointer; }
+.sitem svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 1px 1px #000); }
+.price { position: absolute; bottom: 1px; left: 0; right: 0; text-align: center; font-family: 'Alegreya SC'; font-size: .66rem; color: var(--gold-hi); }
+.price.no { color: var(--blood-hi); }
+.turnin { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.turnin .portrait { width: 34%; }
+
+/* --- Krypten --- */
+.crypt { display: grid; grid-template-columns: 20% 1fr; gap: 10px; align-items: center; cursor: pointer; flex: 1; min-height: 0; }
+.crypt .portrait { max-height: 100%; } .crypt h3 { font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.05rem; }
+.crypt.locked { opacity: .33; cursor: default; } .crypt.done { opacity: .65; }
+.floors { display: flex; gap: 3px; margin: 3px 0; } .floors i { flex: 1; height: 6px; background: #000; box-shadow: 0 0 0 1px #3b2f22; }
+.floors i.on { background: var(--gold); } .floors i.boss { flex: 1.6; box-shadow: 0 0 0 1px var(--blood); } .floors i.boss.on { background: var(--blood-hi); }
+
+/* --- Grube --- */
 .arena { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.arena .portrait { width: min(60%, 46vh); } .arena h2 { justify-content: center; border: 0; margin-top: 8px; display: block; }
-.btns { display: flex; gap: 6px; margin-top: 8px; }
-.quote { font-size: .8rem; margin-bottom: 6px; }
+.arena .portrait { width: min(55%, 40vh); } .arena h2 { justify-content: center; border: 0; box-shadow: none; margin: 8px 0 0; font-size: 1.5rem; }
 
-/* Kampf */
+/* --- Kampf --- */
 .fightwrap { display: flex; flex-direction: column; }
 .fight { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 10px; flex: 1; min-height: 0; }
-.fight > div:nth-child(2) { display: flex; flex-direction: column; min-height: 0; }
-.fighter .nm { font-family: 'Cinzel'; text-align: center; margin: 4px 0 2px; color: var(--gold); font-size: .8rem; }
-.fighter .hp { font-size: .7rem; text-align: center; color: var(--dim); }
+.fight > div:nth-child(2) { display: flex; flex-direction: column; min-height: 0; gap: 4px; }
+.fighter .nm { font-family: 'Grenze Gotisch'; text-align: center; margin: 4px 0 2px; color: var(--gold); font-size: 1rem; }
+.fighter .hp { font-size: .7rem; text-align: center; color: var(--dim); font-family: 'Alegreya SC'; }
 .fighter.hit .portrait { animation: hit .25s; }
-@keyframes hit { 0% { filter: brightness(2) sepia(1) hue-rotate(-40deg) saturate(4); transform: translateX(4px); } 100% { filter: none; } }
-.log { flex: 1; min-height: 0; overflow-y: auto; font-size: .82rem; background: #070504; border: 1px solid #2c251d; padding: 6px; }
-.log div { padding: 1px 0; border-bottom: 1px solid #140f0b; } .log .a { color: var(--text); } .log .b { color: #a67c6a; }
-.log .crit { color: var(--blood-hi); font-weight: bold; }
-.result { text-align: center; font-family: 'Cinzel'; font-size: 1.2rem; margin: 6px 0 2px; }
-.result.win { color: var(--gold); } .result.lose { color: var(--blood-hi); }
-.loot-drop { text-align: center; margin: 2px 0 6px; font-size: .85rem; }
-.fight button { width: 100%; margin-top: 6px; }
+@keyframes hit { 0% { filter: brightness(1.8) sepia(1) hue-rotate(-40deg) saturate(5); transform: translateX(4px); } 100% { filter: none; } }
+.log { flex: 1; min-height: 0; overflow-y: auto; font-size: .82rem; background: #07080b; box-shadow: inset 0 0 0 1px #2a2620; padding: 6px 8px; }
+.log div { padding: 1px 0; } .log .a { color: var(--text); } .log .b { color: #b08070; } .log .crit { color: var(--blood-hi); font-weight: 700; }
+.result { text-align: center; font-family: 'Grenze Gotisch'; font-size: 1.8rem; line-height: 1; }
+.result.win { color: var(--gold); text-shadow: 0 0 14px #6a4a10; } .result.lose { color: var(--blood-hi); text-shadow: 0 0 14px #6a0d07; }
+.loot-drop { text-align: center; font-size: .84rem; }
+.fight button { width: 100%; }
 @media (max-width: 760px) {
   .fight { grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; }
   .fight > div:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
-  .fighter .portrait { width: 70%; margin: 0 auto; }
+  .fighter .portrait { width: 64%; margin: 0 auto; }
 }
-.monster svg { width: 100%; height: 100%; display: block; }
 
-/* Erstellung */
+/* --- Erstellung --- */
 .create { display: flex; flex-direction: column; justify-content: center; }
 .classes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 600px; margin: 0 auto; }
 @media (min-width: 900px) { .classes { grid-template-columns: repeat(6, 1fr); max-width: none; } }
-.cls { cursor: pointer; text-align: center; border: 2px solid transparent; padding: 3px; }
-.cls .portrait { filter: grayscale(.7) brightness(.6); transition: filter .2s; }
-.cls.on .portrait, .cls:hover .portrait { filter: none; } .cls.on { border-color: var(--gold); }
-.cls .cinzel { font-size: .72rem; margin-top: 3px; }
-.cdesc { text-align: center; margin: 10px 0 8px; font-size: .9rem; } .cdesc b { color: var(--gold); }
+.cls { cursor: pointer; text-align: center; padding: 3px; } .cls .portrait { filter: grayscale(.8) brightness(.55); transition: filter .2s; }
+.cls.on .portrait, .cls:hover .portrait { filter: none; } .cls.on .portrait { border-color: var(--gold); }
+.cls .lbl { font-family: 'Grenze Gotisch'; font-size: 1rem; color: var(--gold); margin-top: 2px; }
+.cdesc { text-align: center; margin: 10px 0 8px; font-size: .92rem; } .cdesc b { font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.1rem; }
 .cname { display: flex; gap: 6px; max-width: 420px; width: 100%; margin: 0 auto; }
 
-/* Tooltip / Touch-Dialog */
-#tip { position: fixed; z-index: 50; pointer-events: none; background: rgba(0,0,0,.95); border: 1px solid var(--iron-hi);
-  padding: 8px 12px; text-align: center; min-width: 180px; max-width: 280px; font-size: .88rem; }
-#tip .n { font-family: 'Cinzel'; } #tip .m { color: var(--r-magic); } #tip .cmp { font-size: .8rem; }
+/* --- Tooltip / Touch-Dialog --- */
+#tip { position: fixed; z-index: 50; pointer-events: none; text-align: center; min-width: 190px; max-width: 290px; padding: 9px 13px; font-size: .9rem;
+  background: rgba(4,3,2,.96); border: 1px solid #000; box-shadow: inset 0 0 0 1px #4a3c2c, 0 6px 20px #000; }
+#tip .n { font-family: 'Grenze Gotisch'; font-size: 1.15rem; } #tip .sub2 { color: var(--dim); font-size: .76rem; } #tip b { color: #fff; } #tip .cmp { font-size: .8rem; }
 #tip .act { display: none; margin-top: 10px; gap: 6px; flex-wrap: wrap; }
-#tip.touch { pointer-events: auto; width: min(92vw, 360px); max-width: none; padding: 14px; font-size: 1rem; box-shadow: 0 0 0 100vmax rgba(0,0,0,.65); }
+#tip.touch { pointer-events: auto; width: min(92vw, 360px); max-width: none; padding: 16px; font-size: 1rem; box-shadow: inset 0 0 0 1px #4a3c2c, 0 0 0 100vmax rgba(0,0,0,.7); }
 #tip.touch .act { display: flex; } #tip.touch .act button { flex: 1 1 auto; padding: 11px 8px; }
-/* Kleine Handys (iPhone SE etc.) */
-@media (max-height: 720px) {
-  .bag { grid-template-columns: repeat(10, 1fr); gap: 3px; }
-  .char .head { grid-template-columns: 30% 1fr; } .char .attrs { font-size: .8rem; }
-  .stat button { padding: 2px 6px; } .equip { max-width: 330px; }
-  .tabs a { padding: 9px 2px; } .frame { padding: 6px; }
-}
 
-/* --- Fortschritt --- */
-.tabs a { position: relative; font-size: .64rem; }
-.tabs a.badge::after { content: ''; position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; background: var(--blood-hi); box-shadow: 0 0 6px var(--blood-hi); }
-.char .who small { display: block; color: var(--dim); font-size: .66rem; letter-spacing: .03em; }
-.pts { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: .8rem; }
-.pts b { color: var(--blood-hi); }
-.stat button { min-width: 30px; padding: 2px 8px; font-size: .8rem; }
-.lvlup { color: var(--gold); }
-/* Portraitrahmen je Rang */
-.portrait.fr-iron { border-color: var(--iron-hi); }
-.portrait.fr-bronze { border-color: #8a5a2b; box-shadow: 0 0 0 1px #3a220f, 0 0 10px #4a2a10; }
-.portrait.fr-silver { border-color: #9a9a9a; box-shadow: 0 0 0 1px #333, 0 0 12px #555; }
-.portrait.fr-gold { border-color: var(--r-legendary); box-shadow: 0 0 0 1px #4a3a15, 0 0 14px #6a5520; }
-.portrait.fr-blood { border-color: var(--blood-hi); box-shadow: 0 0 0 1px #300, 0 0 18px #6a0d07; }
-/* Talente */
-.tree { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; flex: 1; min-height: 0; }
-.branch { display: flex; flex-direction: column; padding: 6px; }
-.branch h3 { margin: 0 0 6px; font-size: .78rem; color: var(--gold); text-align: center; }
-.tal { flex: 1; border: 1px solid #2c251d; background: #070504; padding: 5px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; text-align: center; min-height: 0; }
-.tal .tn { font-family: 'Cinzel'; font-size: .7rem; color: var(--text); }
-.tal .tr { font-family: 'Cinzel'; font-size: .8rem; color: var(--dim); }
-.tal .td { font-size: .7rem; color: var(--dim); font-style: italic; }
-.tal .te { font-size: .62rem; color: var(--r-magic); }
-.tal.has { border-color: #6a5520; } .tal.has .tr { color: var(--gold); }
-.tal.can { border-color: var(--blood-hi); box-shadow: inset 0 0 12px #3a0a05; }
-.tal.locked { opacity: .4; }
-.link { width: 2px; height: 8px; background: var(--iron); margin: 0 auto; flex: none; }
-/* Krypten */
-.crypt { display: grid; grid-template-columns: 22% 1fr; gap: 10px; align-items: center; cursor: pointer; flex: 1; min-height: 0; padding: 6px 8px; }
-.crypt .portrait { max-height: 100%; }
-.crypt.locked { opacity: .35; cursor: default; } .crypt.done { opacity: .7; }
-.crypt h3 { margin: 0; font-size: .85rem; color: var(--text); }
-.crypt p { font-size: .8rem; color: var(--dim); font-style: italic; margin: 2px 0; }
-.floors { display: flex; gap: 3px; margin: 3px 0; }
-.floors i { flex: 1; height: 6px; background: #000; border: 1px solid var(--iron); }
-.floors i.on { background: var(--gold); } .floors i.boss { flex: 1.6; border-color: var(--blood); } .floors i.boss.on { background: var(--blood-hi); }
-.tiny-txt { font-size: .62rem; margin-left: auto; color: var(--dim); font-family: 'IM Fell English'; }
-.tree { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.branch, .tal { min-width: 0; overflow: hidden; } .tal .te, .tal .td { overflow-wrap: anywhere; }
-.stat button { padding: 0 8px; line-height: 1.5; }
+/* Kleine Handys */
 @media (max-height: 720px) {
-  .char .attrs { font-size: .78rem; } .stat { padding: 0; } .char .who small { font-size: .6rem; }
-  .char .head { grid-template-columns: 28% 1fr; } .derived { font-size: .7rem; }
-  .tal .td { display: none; } .quote { display: none; }
+  .panel { padding: 6px 8px; } .tabs a { padding: 8px 2px; font-size: .68rem; }
+  .note p { -webkit-line-clamp: 3; } .lore { font-size: .8rem; }
+  .plate b { font-size: 1rem; } .herobar { font-size: .74rem; gap: 7px; }
 }

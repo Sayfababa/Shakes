@@ -1,34 +1,45 @@
-import { BASES, CLASSES, CFG, MONSTERS, PLACES, QUEST_VERBS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES } from './data.js';
+import { BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H } from './data.js';
 import { makeItem } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 export let S = null; // aktueller Spielstand
 
 export const now = () => Date.now();
-export function load() { try { const d = JSON.parse(localStorage.getItem(KEY)); if (d) S = migrate(d); } catch {} return S; }
+export function load() { try { const d = JSON.parse(localStorage.getItem(KEY)); if (d) S = migrate(d); } catch { S = null; } return S; }
+export function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} }
+export function wipe() { try { localStorage.removeItem(KEY); } catch {} S = null; }
 
 const baseAttrs = cls => { const a = { str: 5, dex: 5, int: 5, con: 6, lck: 3 }; a[CLASSES[cls].main] = 10; return a; };
+const freshTraders = () => Object.fromEntries(Object.keys(TRADERS).map(k => [k, { rep: 0, q: 0, prog: [], shop: [], ts: 0 }]));
+const baseOf = it => BASES.find(b => b.name === it.base) || { w: 1, h: 1, art: 'ring' };
+
 function migrate(d) {
-  if (d.v === 1) { // v1: Attribute mit Gold gekauft -> v2: Punkte
+  if (d.v === 1) {
     d.attrs = baseAttrs(d.cls); d.points = CFG.startPoints + (d.lvl - 1) * CFG.attrPerLevel; delete d.bought;
     d.tal = {}; d.respecs = 0; d.crypt = { diff: 0, prog: {}, cd: 0 }; d.trophies = []; d.v = 2;
   }
+  if (d.v === 2) { // v2 -> v3: Händler, Material, Raster-Inventar, Streifzüge
+    d.traders = freshTraders(); d.mats = {}; d.active = null; delete d.quests; delete d.shop; delete d.shopTs;
+    const items = [...d.bag, ...Object.values(d.equip).filter(Boolean)];
+    for (const it of items) { const b = baseOf(it); it.w = b.w; it.h = b.h; it.art = b.art; }
+    const bag = d.bag; d.bag = []; S = d; for (const it of bag) addToBag(it);
+    d.v = 3;
+  }
   return d.v === SAVE_VERSION ? d : null;
 }
-export function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} }
-export function wipe() { try { localStorage.removeItem(KEY); } catch {} S = null; }
 
 export function newChar(name, cls) {
   const c = CLASSES[cls];
   S = { v: SAVE_VERSION, name, cls, lvl: 1, xp: 0, gold: 40, attrs: baseAttrs(cls), points: CFG.startPoints, tal: {}, respecs: 0,
-    crypt: { diff: 0, prog: {}, cd: 0 }, trophies: [],
-    equip: {}, bag: [], glut: CFG.maxGlut, glutTs: now(), quests: [], active: null, shop: [], shopTs: 0,
+    crypt: { diff: 0, prog: {}, cd: 0 }, trophies: [], traders: freshTraders(), mats: {},
+    equip: {}, bag: [], glut: CFG.maxGlut, glutTs: now(), active: null,
     journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0 };
   const wb = BASES.find(b => b.kind === c.weapon);
-  S.equip.weapon = { id: 'start', slot: 'weapon', kind: wb.kind, base: wb.name, name: 'Rostige/r ' + wb.name, rarity: 'normal', lvl: 1, mods: {}, dmg: [...wb.dmg], value: 2 };
-  rollQuests(); rollShop(); save();
+  S.equip.weapon = { id: 'start', slot: 'weapon', kind: wb.kind, base: wb.name, art: wb.art, w: wb.w, h: wb.h, name: 'Rostige/r ' + wb.name,
+    rarity: 'normal', lvl: 1, mods: {}, dmg: [...wb.dmg], value: 2 };
+  save();
   return S;
 }
 
@@ -61,9 +72,8 @@ export function effects(p = S) {
   for (const t of p.trophies || []) for (const [k, v] of Object.entries(t.eff)) add(k, v);
   return e;
 }
-export const equipped = () => Object.values(S.equip).filter(Boolean);
 
-// Abgeleitete Kampfwerte des Spielers
+// Abgeleitete Kampfwerte
 export function stats(p = S) {
   const st = { ...p.attrs, armor: 0, dmgBonus: 0 };
   for (const it of Object.values(p.equip)) {
@@ -79,34 +89,46 @@ export function stats(p = S) {
     hp: Math.round(st.con * c.hp * (2 + p.lvl * 0.6) * (1 + (e.hpPct || 0))) };
 }
 
-// Monster skaliert auf Spielerstufe; diff 0.8 .. 1.3
+// Monster skaliert auf Stufe; diff 0.8 .. 1.3
 export function makeMonster(lvl, diff = 1, m = pick(MONSTERS)) {
   const a = k => Math.round((3 + lvl * 2.7) * diff * (k === 'main' ? 1.4 : 0.8 + rand() * 0.4));
   const main = pick(['str', 'dex', 'int']);
-  const mo = { name: m.name, glyph: m.glyph, lvl, main, str: a(), dex: a(), int: a(), con: a(), lck: a() * 0.5, armor: Math.round(lvl * 5 * diff) };
+  const mo = { name: m.name, glyph: m.glyph, mat: m.mat, lvl, main, str: a(), dex: a(), int: a(), con: a(), lck: a() * 0.5, armor: Math.round(lvl * 5 * diff) };
   mo[main] = a('main');
   mo.dmg = [Math.round((2 + lvl * 1.7) * diff), Math.round((5 + lvl * 3) * diff)];
   mo.hp = Math.round(mo.con * 3.6 * (2 + lvl * 0.6));
   return mo;
 }
 
-export function rollQuests() {
-  S.quests = Array.from({ length: CFG.questCount }, () => {
-    const diff = [0.8, 1, 1.25][roll(0, 2)];
-    const m = pick(MONSTERS), sec = roll(CFG.questMinSec, CFG.questMaxSec);
-    return { id: rand().toString(36).slice(2), diff, monster: m, sec, glut: Math.round(sec / 6),
-      title: `${pick(QUEST_VERBS)}: ${m.name}`, place: pick(PLACES),
-      gold: Math.round((5 + S.lvl * 4) * diff * (sec / 40)), xp: Math.round((20 + S.lvl * 12) * diff * (sec / 40)) };
-  });
+// --- Streifzüge ---
+export const locOpen = l => S.lvl >= l.lvl;
+export const locLvl = l => Math.max(l.lvl, Math.min(S.lvl, l.lvl + 8));   // Gegner wachsen bis +8 über Ortsstufe mit
+export function startTrip(id) {
+  const l = LOCATIONS.find(x => x.id === id); if (!l || !locOpen(l) || S.glut < l.glut || S.active) return false;
+  const sec = roll(...l.sec), mob = pick(l.mobs);
+  S.glut -= l.glut; S.active = { loc: id, mob, diff: [0.85, 1, 1, 1.2][roll(0, 3)], end: now() + sec * 1000, sec };
+  return true;
+}
+export function tripReward(l, diff, sec) {
+  const lv = locLvl(l), f = diff * (sec / 50);
+  return { gold: Math.round((6 + lv * 4) * f), xp: Math.round((20 + lv * 12) * f) };
 }
 
-export function rollShop() {
-  S.shop = Array.from({ length: CFG.shopSize }, () => {
-    const it = makeItem(S.lvl, { luck: S.attrs.lck, cls: CLASSES[S.cls] });
-    it.price = it.value * 4; return it;
-  });
-  S.shopTs = now();
+// --- Händler ---
+export function loyalty(id) {
+  const t = TRADERS[id], st = S.traders[id]; let L = 0;
+  for (let i = 1; i < t.need.length; i++) if (st.rep >= t.need[i] && S.lvl >= t.lvl[i]) L = i;
+  return L;
 }
+export function rollShop(id) {
+  const t = TRADERS[id], L = loyalty(id);
+  S.traders[id].shop = Array.from({ length: CFG.shopSize }, () => {
+    const it = makeItem(S.lvl + L, { luck: S.attrs.lck + L * 25, slots: t.slots, cls: CLASSES[S.cls], minRarity: Math.min(3, L + (L ? 1 : 0)) });
+    it.price = Math.round(it.value * (4.5 - L * 0.4)); return it;
+  });
+  S.traders[id].ts = now();
+}
+export function shopFor(id) { const st = S.traders[id]; if (!st.shop.length || now() > st.ts + CFG.shopRefreshSec * 1000) rollShop(id); return st.shop; }
 
 export function tickGlut() {
   const per = CFG.glutRegenMin * 60000, n = Math.floor((now() - S.glutTs) / per);
@@ -119,20 +141,37 @@ export function gainXp(x) {
   while (S.xp >= xpNeed(S.lvl)) { S.xp -= xpNeed(S.lvl); S.lvl++; up++; S.points += CFG.attrPerLevel; }
   return up;
 }
+export function addMat(id, n = 1) { S.mats[id] = (S.mats[id] || 0) + n; }
 
-export function addToBag(it) { if (S.bag.length >= 20) return false; S.bag.push(it); return true; }
+// --- Raster-Inventar (INV_W × INV_H). Items haben x,y,w,h ---
+function fits(x, y, w, h, ignore) {
+  if (x < 0 || y < 0 || x + w > INV_W || y + h > INV_H) return false;
+  return !S.bag.some(o => o !== ignore && x < o.x + o.w && o.x < x + w && y < o.y + o.h && o.y < y + h);
+}
+export function findSpot(w, h) {
+  for (let x = 0; x < INV_W; x++) for (let y = 0; y < INV_H; y++) if (fits(x, y, w, h)) return { x, y };
+  return null;
+}
+export function addToBag(it) { const p = findSpot(it.w || 1, it.h || 1); if (!p) return false; Object.assign(it, p); S.bag.push(it); return true; }
+export const removeFromBag = id => { const i = S.bag.findIndex(x => x.id === id); return i < 0 ? null : S.bag.splice(i, 1)[0]; };
+// Neu sortieren: große Items zuerst
+export function sortBag() {
+  const items = S.bag.splice(0).sort((a, b) => b.w * b.h - a.w * a.h || b.h - a.h);
+  const rest = []; for (const it of items) if (!addToBag(it)) rest.push(it);
+  return rest;
+}
 
 export function equip(id) {
-  const i = S.bag.findIndex(x => x.id === id); if (i < 0) return;
-  const it = S.bag[i];
+  const it = S.bag.find(x => x.id === id); if (!it) return false;
   let slot = it.slot;
   if (slot === 'ring') slot = !S.equip.ring1 ? 'ring1' : !S.equip.ring2 ? 'ring2' : 'ring1';
-  S.bag.splice(i, 1);
-  if (S.equip[slot]) S.bag.push(S.equip[slot]);
-  S.equip[slot] = it;
+  removeFromBag(id);
+  const old = S.equip[slot]; S.equip[slot] = it;
+  if (old && !addToBag(old)) { S.equip[slot] = old; addToBag(it); return false; }  // kein Platz: rückgängig
+  return true;
 }
-export function unequip(slot) { if (S.equip[slot] && S.bag.length < 20) { S.bag.push(S.equip[slot]); S.equip[slot] = null; } }
-export function sell(id) { const i = S.bag.findIndex(x => x.id === id); if (i >= 0) { S.gold += S.bag[i].value; S.bag.splice(i, 1); } }
+export function unequip(slot) { const it = S.equip[slot]; if (it && addToBag(it)) S.equip[slot] = null; }
+export function sell(id) { const it = removeFromBag(id); if (it) S.gold += it.value; }
 export function journal(t) { S.journal.unshift({ t, ts: now() }); S.journal.length = Math.min(S.journal.length, 30); }
 
 // --- Krypten ---
@@ -141,12 +180,11 @@ export const cryptFloor = c => S.crypt.prog[c.id] || 0;           // 0..5 (5 = B
 export const cryptOpen = c => S.lvl >= c.lvl + DIFFICULTIES[S.crypt.diff].lvlAdd - 2;
 export function cryptEnemy(c) {
   const f = cryptFloor(c), lvl = cryptLvl(c, f), boss = f === 4, d = DIFFICULTIES[S.crypt.diff];
-  const m = boss ? c.boss : MONSTERS.find(x => x.name === c.floors[f]) || c.floors[f];
+  const m = boss ? c.boss : MONSTERS.find(x => x.name === c.floors[f]);
   const mo = makeMonster(lvl, (boss ? 1.25 : 1 + f * 0.05) * d.mult, m);
   if (boss) { mo.hp = Math.round(mo.hp * 1.8); mo.boss = true; mo.rage = 0.2; mo.crit = 0.05; }
   return mo;
 }
-// Sieg in Krypta -> Fortschritt; gibt { bossKilled, trophy, diffUp } zurück
 export function cryptWin(c) {
   const f = cryptFloor(c); S.crypt.prog[c.id] = f + 1;
   const out = { bossKilled: f === 4 };

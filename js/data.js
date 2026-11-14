@@ -21,22 +21,23 @@ export const RARITIES = [
 export const SLOTS = { helm: 'Helm', chest: 'Brust', gloves: 'Handschuhe', boots: 'Stiefel', belt: 'Gürtel',
   amulet: 'Amulett', ring: 'Ring', weapon: 'Waffe', offhand: 'Nebenhand' };
 
-// type: armor (Rüstungswert) | weapon (Schaden) | jewel (nur Affixe)
+// Item-Basen. w×h = Größe im Inventar-Raster (Diablo-Stil).
 export const BASES = [
-  { slot: 'helm', name: 'Kappe', armor: 3 }, { slot: 'helm', name: 'Eisenhelm', armor: 6 }, { slot: 'helm', name: 'Totenmaske', armor: 9 },
-  { slot: 'chest', name: 'Lederwams', armor: 8 }, { slot: 'chest', name: 'Kettenhemd', armor: 14 }, { slot: 'chest', name: 'Plattenpanzer', armor: 22 },
-  { slot: 'gloves', name: 'Lederhandschuhe', armor: 2 }, { slot: 'gloves', name: 'Panzerhandschuhe', armor: 5 },
-  { slot: 'boots', name: 'Stiefel', armor: 2 }, { slot: 'boots', name: 'Kriegsstiefel', armor: 5 },
-  { slot: 'belt', name: 'Schärpe', armor: 1 }, { slot: 'belt', name: 'Plattengürtel', armor: 4 },
-  { slot: 'offhand', name: 'Rundschild', armor: 7 }, { slot: 'offhand', name: 'Turmschild', armor: 12 },
-  { slot: 'amulet', name: 'Amulett' }, { slot: 'ring', name: 'Ring' },
-  { slot: 'weapon', kind: 'axe', name: 'Beil', dmg: [3, 8] }, { slot: 'weapon', kind: 'axe', name: 'Kriegsaxt', dmg: [6, 14] },
-  { slot: 'weapon', kind: 'sword', name: 'Kurzschwert', dmg: [3, 7] }, { slot: 'weapon', kind: 'sword', name: 'Bastardschwert', dmg: [6, 12] },
-  { slot: 'weapon', kind: 'dagger', name: 'Dolch', dmg: [2, 6] }, { slot: 'weapon', kind: 'dagger', name: 'Klauenklinge', dmg: [4, 10] },
-  { slot: 'weapon', kind: 'bow', name: 'Kurzbogen', dmg: [3, 8] }, { slot: 'weapon', kind: 'bow', name: 'Langbogen', dmg: [5, 12] },
-  { slot: 'weapon', kind: 'staff', name: 'Stab', dmg: [4, 9] }, { slot: 'weapon', kind: 'staff', name: 'Runenstab', dmg: [5, 12] },
-  { slot: 'weapon', kind: 'wand', name: 'Knochenstab', dmg: [4, 8] }, { slot: 'weapon', kind: 'wand', name: 'Grabszepter', dmg: [5, 11] },
+  { slot: 'helm', name: 'Kappe', armor: 3, w: 2, h: 2, art: 'cap' }, { slot: 'helm', name: 'Eisenhelm', armor: 6, w: 2, h: 2, art: 'helm' }, { slot: 'helm', name: 'Totenmaske', armor: 9, w: 2, h: 2, art: 'mask' },
+  { slot: 'chest', name: 'Lederwams', armor: 8, w: 2, h: 3, art: 'leather' }, { slot: 'chest', name: 'Kettenhemd', armor: 14, w: 2, h: 3, art: 'mail' }, { slot: 'chest', name: 'Plattenpanzer', armor: 22, w: 2, h: 3, art: 'plate' },
+  { slot: 'gloves', name: 'Lederhandschuhe', armor: 2, w: 2, h: 2, art: 'gloves' }, { slot: 'gloves', name: 'Panzerhandschuhe', armor: 5, w: 2, h: 2, art: 'gauntlets' },
+  { slot: 'boots', name: 'Stiefel', armor: 2, w: 2, h: 2, art: 'boots' }, { slot: 'boots', name: 'Kriegsstiefel', armor: 5, w: 2, h: 2, art: 'greaves' },
+  { slot: 'belt', name: 'Schärpe', armor: 1, w: 2, h: 1, art: 'sash' }, { slot: 'belt', name: 'Plattengürtel', armor: 4, w: 2, h: 1, art: 'belt' },
+  { slot: 'offhand', name: 'Rundschild', armor: 7, w: 2, h: 2, art: 'buckler' }, { slot: 'offhand', name: 'Turmschild', armor: 12, w: 2, h: 3, art: 'tower' },
+  { slot: 'amulet', name: 'Amulett', w: 1, h: 1, art: 'amulet' }, { slot: 'ring', name: 'Ring', w: 1, h: 1, art: 'ring' },
+  { slot: 'weapon', kind: 'axe', name: 'Beil', dmg: [3, 8], w: 2, h: 3, art: 'hatchet' }, { slot: 'weapon', kind: 'axe', name: 'Kriegsaxt', dmg: [6, 14], w: 2, h: 3, art: 'waraxe' },
+  { slot: 'weapon', kind: 'sword', name: 'Kurzschwert', dmg: [3, 7], w: 1, h: 3, art: 'sword' }, { slot: 'weapon', kind: 'sword', name: 'Bastardschwert', dmg: [6, 12], w: 1, h: 4, art: 'longsword' },
+  { slot: 'weapon', kind: 'dagger', name: 'Dolch', dmg: [2, 6], w: 1, h: 2, art: 'dagger' }, { slot: 'weapon', kind: 'dagger', name: 'Klauenklinge', dmg: [4, 10], w: 1, h: 3, art: 'claw' },
+  { slot: 'weapon', kind: 'bow', name: 'Kurzbogen', dmg: [3, 8], w: 2, h: 3, art: 'bow' }, { slot: 'weapon', kind: 'bow', name: 'Langbogen', dmg: [5, 12], w: 2, h: 4, art: 'longbow' },
+  { slot: 'weapon', kind: 'staff', name: 'Stab', dmg: [4, 9], w: 1, h: 4, art: 'staff' }, { slot: 'weapon', kind: 'staff', name: 'Runenstab', dmg: [5, 12], w: 1, h: 4, art: 'runestaff' },
+  { slot: 'weapon', kind: 'wand', name: 'Knochenstab', dmg: [4, 8], w: 1, h: 2, art: 'wand' }, { slot: 'weapon', kind: 'wand', name: 'Grabszepter', dmg: [5, 11], w: 1, h: 3, art: 'scepter' },
 ];
+export const INV_W = 10, INV_H = 4;
 
 // Affixe: stat, Wert pro Itemstufe, Präfix/Suffix-Namen
 export const AFFIXES = [
@@ -50,23 +51,105 @@ export const AFFIXES = [
 ];
 export const LEGEND_NAMES = ['Grabesruh', 'Aschenkuss', 'Der Letzte Psalm', 'Witwenmacher', 'Knochenkrone', 'Sünde von Vhal', 'Rabenschwur', 'Blutglocke'];
 
+// Materialien: fallen von bestimmten Monstern, werden von Händlern verlangt.
+export const MATS = {
+  zahn: 'Ghulzahn', staub: 'Knochenstaub', schwanz: 'Pestrattenschwanz', siegel: 'Kultistensiegel',
+  blutstein: 'Blutstein', haar: 'Hexenhaar', asche: 'Höllenasche', leinen: 'Grableinen',
+};
 export const MONSTERS = [
-  { name: 'Verfaulter Ghul', glyph: 'ghoul' }, { name: 'Gefallener', glyph: 'imp' }, { name: 'Skelettkrieger', glyph: 'skull' },
-  { name: 'Grabräuber', glyph: 'hood' }, { name: 'Pestratte', glyph: 'rat' }, { name: 'Kultist der Glocke', glyph: 'hood' },
-  { name: 'Blutfürst', glyph: 'horn' }, { name: 'Sumpfhexe', glyph: 'hood' }, { name: 'Knochenhund', glyph: 'skull' },
-  { name: 'Gehäuteter', glyph: 'ghoul' }, { name: 'Höllenbrut', glyph: 'horn' }, { name: 'Wiedergänger', glyph: 'skull' },
+  { name: 'Verfaulter Ghul', glyph: 'ghoul', mat: 'zahn' }, { name: 'Gefallener', glyph: 'imp', mat: 'asche' },
+  { name: 'Skelettkrieger', glyph: 'skull', mat: 'staub' }, { name: 'Grabräuber', glyph: 'hood', mat: 'leinen' },
+  { name: 'Pestratte', glyph: 'rat', mat: 'schwanz' }, { name: 'Kultist der Glocke', glyph: 'hood', mat: 'siegel' },
+  { name: 'Blutfürst', glyph: 'horn', mat: 'blutstein' }, { name: 'Sumpfhexe', glyph: 'hood', mat: 'haar' },
+  { name: 'Knochenhund', glyph: 'skull', mat: 'staub' }, { name: 'Gehäuteter', glyph: 'ghoul', mat: 'blutstein' },
+  { name: 'Höllenbrut', glyph: 'horn', mat: 'asche' }, { name: 'Wiedergänger', glyph: 'skull', mat: 'leinen' },
 ];
-export const PLACES = ['in den Katakomben', 'auf dem Friedhof von Vhal', 'im Moor der Gehenkten', 'in der eingestürzten Kapelle',
-  'im Schlachthaus', 'an der Alten Mühle', 'im Turm der Glocke', 'in den Gruben'];
-export const QUEST_VERBS = ['Vernichte', 'Jage', 'Banne', 'Erschlage', 'Treibe aus'];
+
+// Streifzüge: Orte mit eigenen Monstern. Freigeschaltet über Stufe.
+export const LOCATIONS = [
+  { id: 'friedhof', name: 'Friedhof von Vhal', lvl: 1, sec: [20, 45], glut: 5, mobs: ['Verfaulter Ghul', 'Grabräuber', 'Wiedergänger'],
+    text: 'Die Gräber sind offen. Nicht alle von außen.' },
+  { id: 'muehle', name: 'Die Alte Mühle', lvl: 3, sec: [30, 60], glut: 7, mobs: ['Pestratte', 'Verfaulter Ghul', 'Knochenhund'],
+    text: 'Das Mahlwerk dreht sich noch. Niemand weiß, wer es antreibt.' },
+  { id: 'katakomben', name: 'Katakomben', lvl: 6, sec: [40, 75], glut: 9, mobs: ['Skelettkrieger', 'Knochenhund', 'Wiedergänger'],
+    text: 'Knochen bis zur Decke, sortiert nach einer Ordnung, die kein Mensch erdacht hat.' },
+  { id: 'moor', name: 'Moor der Gehenkten', lvl: 10, sec: [45, 90], glut: 11, mobs: ['Sumpfhexe', 'Pestratte', 'Gehäuteter'],
+    text: 'An jedem Baum ein Strick. An manchem Strick noch einer.' },
+  { id: 'kapelle', name: 'Eingestürzte Kapelle', lvl: 15, sec: [60, 100], glut: 13, mobs: ['Kultist der Glocke', 'Gefallener', 'Wiedergänger'],
+    text: 'Die Kultisten beten noch. Nur nicht mehr zu Gott.' },
+  { id: 'gruben', name: 'Die Feuergruben', lvl: 22, sec: [70, 120], glut: 15, mobs: ['Höllenbrut', 'Blutfürst', 'Gefallener'],
+    text: 'Hier riecht die Luft nach Schwefel und alten Versprechen.' },
+];
+
+// --- Händler (Treue-Stufen wie bei Fraktions-Händlern) -------------------
+// Treue-Stufe n braucht rep >= need[n] und Spielerstufe >= lvl[n]. Höhere Treue = bessere Ware.
+export const TRADERS = {
+  halvar: { name: 'Halvar', role: 'Schmied', glyph: 'smith', slots: ['weapon', 'offhand'],
+    quote: 'Der Stahl ist alt. Er schneidet trotzdem. Wie ich.', need: [0, 120, 400, 1000], lvl: [1, 5, 12, 20] },
+  ysolde: { name: 'Mutter Ysolde', role: 'Kräuterhexe', glyph: 'crone', slots: ['amulet', 'ring', 'belt'],
+    quote: 'Bring mir, was die Toten nicht mehr brauchen, Kind.', need: [0, 120, 400, 1000], lvl: [1, 6, 14, 22] },
+  kaspar: { name: 'Bruder Kaspar', role: 'Totengräber', glyph: 'digger', slots: ['helm', 'chest', 'gloves', 'boots'],
+    quote: 'Ich grabe sie ein. Und manchmal wieder aus. Die Rüstung braucht keiner mehr.', need: [0, 120, 400, 1000], lvl: [1, 4, 10, 18] },
+};
+export const LOYALTY = ['I', 'II', 'III', 'IV'];
+
+// Questketten je Händler. Ziele: kill{mob,n} · at{loc,n} · mat{id,n} (wird abgegeben) · give{slot,rar} (Item wird abgegeben)
+//   floor{crypt,n} · boss{crypt} · arena{n} · lvl{n}
+export const QUESTS = {
+  halvar: [
+    { id: 'h1', title: 'Rost und Knochen', lvl: 1, text: 'Ghule fressen alles, sogar Eisen. Schlag ein paar tot und bring mir ihre Zähne – ich härte damit den Stahl.',
+      obj: [{ kill: 'Verfaulter Ghul', n: 3 }, { mat: 'zahn', n: 3 }], rew: { gold: 40, xp: 60, rep: 40 } },
+    { id: 'h2', title: 'Ein Schmied braucht Erz', lvl: 3, text: 'Die Mühle hat ein Eisengitter im Keller. Die Ratten haben es besetzt. Mach sie weg.',
+      obj: [{ at: 'muehle', n: 4 }], rew: { gold: 70, xp: 120, rep: 50, item: { slot: 'weapon', rar: 2 } } },
+    { id: 'h3', title: 'Prüfung der Klinge', lvl: 5, text: 'Bring mir eine magische Waffe. Ich will sehen, wer da draußen noch schmiedet.',
+      obj: [{ give: 'weapon', rar: 2 }], rew: { gold: 120, xp: 200, rep: 70 } },
+    { id: 'h4', title: 'Die Ertränkte', lvl: 6, text: 'Mutter Gerlinde hat meinen Lehrling in die Gruft geholt. Bring ihn nicht zurück. Bring sie um.',
+      obj: [{ boss: 'c1' }], rew: { gold: 200, xp: 350, rep: 120, item: { slot: 'offhand', rar: 3 } } },
+    { id: 'h5', title: 'Blut im Stahl', lvl: 10, text: 'Blutsteine. Fünf. Frag nicht, wozu.',
+      obj: [{ mat: 'blutstein', n: 5 }, { kill: 'Gehäuteter', n: 4 }], rew: { gold: 300, xp: 600, rep: 150 } },
+    { id: 'h6', title: 'Der Metzger', lvl: 14, text: 'Er trägt eine Klinge, die ich geschmiedet habe. Ich will sie zurück – an deiner Hand.',
+      obj: [{ boss: 'c3' }], rew: { gold: 600, xp: 1200, rep: 250, item: { slot: 'weapon', rar: 4 } } },
+    { id: 'h7', title: 'Feuer der Tiefe', lvl: 22, text: 'In den Feuergruben brennt eine Esse, heißer als meine. Hol mir ihre Asche.',
+      obj: [{ at: 'gruben', n: 6 }, { mat: 'asche', n: 8 }], rew: { gold: 1200, xp: 3000, rep: 400, item: { slot: 'weapon', rar: 4 } } },
+  ],
+  ysolde: [
+    { id: 'y1', title: 'Schwänze für den Kessel', lvl: 1, text: 'Pestrattenschwänze, Kind. Vier Stück. Die Suppe wird sonst dünn.',
+      obj: [{ mat: 'schwanz', n: 4 }], rew: { gold: 30, xp: 70, rep: 40, item: { slot: 'ring', rar: 2 } } },
+    { id: 'y2', title: 'Grableinen', lvl: 2, text: 'Die Toten tragen bessere Stoffe als die Lebenden. Bring mir welche.',
+      obj: [{ mat: 'leinen', n: 4 }, { at: 'friedhof', n: 5 }], rew: { gold: 60, xp: 120, rep: 50 } },
+    { id: 'y3', title: 'Was glänzt', lvl: 5, text: 'Ein Amulett mit Zauber darin. Ich will spüren, was es kann.',
+      obj: [{ give: 'amulet', rar: 2 }], rew: { gold: 150, xp: 220, rep: 80 } },
+    { id: 'y4', title: 'Haare einer Schwester', lvl: 10, text: 'Die Sumpfhexen waren einst meine Schülerinnen. Bring mir, was von ihnen übrig ist.',
+      obj: [{ kill: 'Sumpfhexe', n: 4 }, { mat: 'haar', n: 4 }], rew: { gold: 280, xp: 600, rep: 140, item: { slot: 'amulet', rar: 3 } } },
+    { id: 'y5', title: 'Der Verseuchte', lvl: 12, text: 'Bruder Aldemar trägt die Pest wie einen Mantel. Nimm sie ihm ab.',
+      obj: [{ boss: 'c2' }], rew: { gold: 400, xp: 900, rep: 200 } },
+    { id: 'y6', title: 'Stärker als der Tod', lvl: 16, text: 'Werd stärker, Kind. Ich kann dir nicht helfen, wenn du schwach bist.',
+      obj: [{ lvl: 18 }, { mat: 'siegel', n: 6 }], rew: { gold: 700, xp: 1500, rep: 300, item: { slot: 'ring', rar: 4 } } },
+  ],
+  kaspar: [
+    { id: 'k1', title: 'Unruhige Gräber', lvl: 1, text: 'Auf meinem Friedhof steht wieder einer auf. Leg ihn hin. Diesmal richtig.',
+      obj: [{ at: 'friedhof', n: 3 }], rew: { gold: 35, xp: 60, rep: 40, item: { slot: 'helm', rar: 1 } } },
+    { id: 'k2', title: 'Knochenstaub', lvl: 3, text: 'Ich streue ihn auf die Gräber. Hält die Hunde fern. Meistens.',
+      obj: [{ mat: 'staub', n: 5 }], rew: { gold: 60, xp: 130, rep: 50 } },
+    { id: 'k3', title: 'In die Gruft', lvl: 4, text: 'Steig in die Gruft der Wäscherinnen. Drei Ebenen tief. Erzähl mir, was du siehst.',
+      obj: [{ floor: 'c1', n: 3 }], rew: { gold: 100, xp: 200, rep: 70, item: { slot: 'chest', rar: 2 } } },
+    { id: 'k4', title: 'Blut im Sand', lvl: 6, text: 'In der Grube kämpfen sie um nichts. Kämpf um etwas. Gewinn dreimal.',
+      obj: [{ arena: 3 }], rew: { gold: 150, xp: 300, rep: 90 } },
+    { id: 'k5', title: 'Die Ordnung der Knochen', lvl: 8, text: 'Die Katakomben sind voll von Wiedergängern. Zu voll.',
+      obj: [{ kill: 'Wiedergänger', n: 5 }, { at: 'katakomben', n: 6 }], rew: { gold: 250, xp: 500, rep: 130, item: { slot: 'boots', rar: 3 } } },
+    { id: 'k6', title: 'Siegel der Glocke', lvl: 15, text: 'Die Kultisten tragen Siegel. Jedes ist ein Name, der nicht mehr begraben werden kann.',
+      obj: [{ kill: 'Kultist der Glocke', n: 6 }, { mat: 'siegel', n: 6 }], rew: { gold: 500, xp: 1300, rep: 220 } },
+    { id: 'k7', title: 'Der Glöckner', lvl: 22, text: 'Wenn die Glocke wieder schlägt, stehen alle auf. Alle. Bring ihn zum Schweigen.',
+      obj: [{ boss: 'c4' }], rew: { gold: 1500, xp: 4000, rep: 500, item: { slot: 'chest', rar: 4 } } },
+  ],
+};
 
 export const CFG = {
   maxGlut: 100, glutRegenMin: 6,      // 1 Glut pro x Minuten (Echtzeit)
-  questCount: 3, questMinSec: 20, questMaxSec: 90,  // Prototyp: kurze Zeiten
   attrPerLevel: 5, startPoints: 5,       // Attributpunkte pro Stufenaufstieg
   respecPerLvl: 30,                        // Läuterung: Gold je Stufe (erste gratis)
   cryptCdSec: 180,                         // Pause nach jedem Krypta-Kampf (Prototyp)
-  shopSize: 6, shopRefreshSec: 600,
+  shopSize: 6, shopRefreshSec: 600, matChance: 0.7,
   lootChance: 0.55, critBase: 0.05,
 };
 
