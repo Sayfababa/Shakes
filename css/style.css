@@ -526,3 +526,49 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .hq b { font-family: 'Alegreya SC'; font-size: .72rem; color: var(--gold-hi); }
 .hq.done .hqt { color: var(--gold-hi); } .hq.done b { color: #e05040; }
 @media (max-height: 600px) { .heroquests { display: none !important; } }
+
+/* ===== Hohe Bildschirme (große iPhones als App, ≥ 760 px): größer schreiben, größer tippen, Platz füllen.
+   Kleine Bildschirme (iPhone SE) bleiben unverändert. ===== */
+@media (min-height: 760px) {
+  html { font-size: clamp(16px, 2.1vh, 19px); }
+  :root { --gap: 9px; }
+  button { min-height: 42px; padding: 10px 14px; }
+  button.tiny { min-height: 32px; padding: 6px 10px; }
+  .tabs a { padding: 14px 2px; } .subtabs a { padding: 11px 2px; }
+  .panel { padding: 12px 14px; }
+  .col > .panel, .col > .note { flex-shrink: 0; }
+  /* Werte, Zauber: Zeilen luftiger, Liste füllt die Höhe */
+  .stat { padding: 7px 0; } .stat button { min-height: 36px; padding: 4px 14px; }
+  .panel.spell { padding: 14px; gap: 14px; } img.sic { width: 64px; height: 64px; }
+  .panel.spell h3 { font-size: 1.15rem; }
+  /* Talente füllen die Spalten */
+  .tal { padding: 8px 6px; } .tal .tn { font-size: .95rem; }
+  /* Spur-Wahl, Krypten: Karten teilen sich die Höhe */
+  .track { padding: 14px; } .track h3 { font-size: 1.25rem; }
+  .crypt { flex: 1 1 0 !important; min-height: 0; } .crypt h3 { font-size: 1.2rem; }
+  /* Händler: Zettel bekommt Platz, Dienste und Ware groß */
+  .trader .note { flex: 1 1 auto; } .note h4 { font-size: 1.35rem; } .note p { font-size: .95rem; -webkit-line-clamp: 6; } .note ul { font-size: .95rem; }
+  .services { padding: 10px 12px; } .svc { min-height: 56px; } .svc b { font-size: .86rem; } .svc small { font-size: .74rem; }
+  .shoprow { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .sitem { aspect-ratio: 4 / 3; } .price { font-size: .82rem; }
+  /* Schmiede und Umschmieden */
+  .mtile img { max-width: 52px; } .mtile b { font-size: .8rem; } .mtile small { font-size: .62rem; }
+  .fslot { width: 56px; height: 56px; } .fslots { gap: 8px; }
+  .craft .cpick .fslot { width: 52px; height: 52px; }
+  .craft .ccard { gap: 8px; } .cname { font-size: 1.35rem; } .caff { padding: 9px 10px; font-size: 1rem; }
+  .cops { gap: 6px; } .cop { min-height: 96px; padding: 8px 2px; } .cop img { width: 42px; height: 42px; } .cop b { font-size: .74rem; } .cop small { font-size: .62rem; }
+  .craft > .panel.grow { display: flex; flex-direction: column; justify-content: center; }
+  /* Grube und NPC */
+  .arena .portrait { width: min(70%, 40vh); } .arena h2 { font-size: 1.9rem; }
+  .speaker { grid-template-columns: calc(var(--u) * 3) 1fr; } .speaker .lore { font-size: .9rem; }
+  /* Held: Aufträge lesbar */
+  .hq { padding: 7px 2px; font-size: .92rem; } .hq .hqw { font-size: .74rem; }
+}
+@media (min-height: 760px) {
+  .craft > .panel:nth-of-type(2) { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; }
+  .trips.many .trip h3 { font-size: 1.05rem; }
+}
+@media (min-height: 760px) {
+  .trips.many .trip .lore { display: none; }               /* viele Orte: Flavortext weg, damit Titel/Gefahr/Lohn ganz sichtbar bleiben */
+  .craft > .panel:nth-of-type(2) { justify-content: flex-start; }
+}

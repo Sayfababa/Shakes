@@ -8,8 +8,8 @@ const issues = new Map(); const note = (k, v) => { if (!issues.has(k)) issues.se
 (async () => {
   await new Promise(r => setTimeout(r, 800));
   const b = await chromium.launch();
-  for (const dev of ['iPhone SE', 'iPhone 13', 'iPhone 15 Pro Max']) for (const stage of ['früh', 'spät']) {
-    const c = await b.newContext({ ...devices[dev] }); const p = await c.newPage(); const tag = `${dev}/${stage}`;
+  for (const dev of ['iPhone SE', 'iPhone 13', 'iPhone 15 Pro Max', 'App 430x867']) for (const stage of ['früh', 'spät']) {
+    const c = await b.newContext(dev === 'App 430x867' ? { ...devices['iPhone 15 Pro Max'], viewport: { width: 430, height: 867 } } : { ...devices[dev] }); const p = await c.newPage(); const tag = `${dev}/${stage}`;
     let last = '';
     p.on('pageerror', e => note(`JS-Fehler: ${e.message}`, `${tag} nach ${last}`));
     p.on('console', m => m.type() === 'error' && !/favicon|404/.test(m.text()) && note(`Konsole: ${m.text()}`, `${tag} nach ${last}`));
