@@ -1,5 +1,5 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
-import { CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
+import { GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
 import { craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
@@ -97,6 +97,15 @@ export function viewCreate(sel) {
 }
 
 // --- Held: Ausrüstungsfigur + Raster-Inventar ---
+// Aktive Aufträge aller Questgeber auf einen Blick – fertige zuerst, Tipp führt zum Auftraggeber
+function heroQuests() {
+  const rows = GIVERS.filter(available).map(t => { const q = current(t), o = objectives(t), done = canComplete(t);
+    const cur = o.reduce((a, x) => a + Math.min(x.cur, x.n), 0), n = o.reduce((a, x) => a + x.n, 0);
+    return { t, q, done, cur, n, who: (TRADERS[t] || NPCS[t]).name }; }).sort((a, b) => b.done - a.done || a.q.lvl - b.q.lvl);
+  return `<section class="panel grow heroquests"><h2>Aufträge <span class="h2r">${rows.filter(r => r.done).length ? `<b class="hot">${rows.filter(r => r.done).length}</b> fertig` : rows.length + ' offen'}</span></h2>
+    ${rows.map(r => `<div class="hq ${r.done ? 'done' : ''}" data-action="${TRADERS[r.t] ? 'trader' : 'npc'}" data-t="${r.t}" data-n="${r.t}">
+      <span class="hqw">${r.who}</span><span class="hqt">${r.q.title}</span><b>${r.done ? 'Abgeben' : `${r.cur}/${r.n}`}</b></div>`).join('') || '<p class="dim small">Keine offenen Aufträge.</p>'}</section>`;
+}
 export function viewHero() {
   const rk = rank(), st = stats(), pts = S.points + talentPoints();
   const slot = s => { const it = S.equip[s]; return `<div class="eslot es-${s} ${it ? 'r-' + it.rarity : ''}" ${it ? `data-tip="${it.id}" data-action="unequip" data-s="${s}"` : ''}>${it ? itemArt(it) : `<span class="ghost">${ghost(s)}</span>`}</div>`; };
@@ -119,7 +128,7 @@ export function viewHero() {
       </div>
       <div class="mats">${mats.length ? mats.map(([k, n]) => `<span title="${MATS[k]}">${matImg(k)}<b>${n}</b></span>`).join('') : '<span class="dim">Keine Materialien. Monster lassen sie fallen.</span>'}</div>
     </section>
-    <section class="panel grow journal herojournal"><h2>Tagebuch</h2>${S.journal.slice(0, 8).map(j => `<div>${j.t}</div>`).join('')}</section>
+    ${heroQuests()}
   </div>`;
 }
 
