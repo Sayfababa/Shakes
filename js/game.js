@@ -1,6 +1,6 @@
 // Spielzüge ohne DOM: Kampf ausführen, Belohnung anwenden, strukturiertes Ergebnis liefern.
 // main.js zeigt das Ergebnis an; tests/ spielen damit ganze Verläufe durch.
-import { CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE } from './data.js';
+import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import { fight } from './combat.js';
@@ -15,6 +15,8 @@ function dropItem(lvl, p, minRarity, rew) {
   const it = makeItem(lvl, { luck: G.stats().lck, cls: CLASSES[G.S.cls], minRarity });
   if (G.addToBag(it)) rew.item = it; else { G.S.gold += it.value; rew.item = { ...it, soldFull: true }; }
 }
+// Kampfbewertung nach Restleben: wer stärker ist, gewinnt souveräner – und bekommt mehr
+export const gradeOf = r => r.winner === 'a' ? GRADES.find(g => (r.left ?? 0) >= g.min) : null;
 const newRew = () => ({ gold: 0, xp: 0, up: 0, mats: [], item: null });
 function pay(rew, gold, xp) { rew.gold += gold; rew.xp += xp; G.S.gold += gold; rew.up += G.gainXp(xp); }
 
@@ -36,13 +38,13 @@ export function makeRival({ name, cls, lvl, rich = 0, minRarity = 0 } = {}) {
 const trackOf = id => TRACKS.find(t => t.id === id) || TRACKS[1];
 // Gegnerstufe einer Spur: blutige Spur misst sich an dir (nie unter deiner Stufe + 1), sonst am Ort
 const trackLvl = (l, tr, depth = 0) => Math.max(1, G.locLvl(l) + (tr.lvlAdd || 0), tr.atLeastPlayer ? G.S.lvl + tr.atLeastPlayer : 0) + DELVE.lvlPer * depth;
-function tripLoot(l, m, tr, depth, od, rew) {
+function tripLoot(l, m, tr, depth, od, rew, gb = 0) {
   const t = G.tripReward(l, 1, 45), mult = tr.rew * (1 + DELVE.rewPer * depth);
-  const gold = Math.round(t.gold * mult * (od?.gold || 1)), xp = Math.round(t.xp * mult * (od?.xp || 1));
+  const gold = Math.round(t.gold * mult * (1 + gb) * (od?.gold || 1)), xp = Math.round(t.xp * mult * (od?.xp || 1));
   rew.xp += xp; rew.gold += gold;
   if (m.mat && chance(CFG.matChance)) rew.mats.push([m.mat, 1 + (depth >= 2 ? 1 : 0)]);
   if (od?.mats && m.mat) rew.mats.push([m.mat, 2]);
-  const p = od?.loot ? 1 : Math.min(1, tr.loot + depth * 0.1), minR = Math.max(od?.loot || 0, tr.minRarity || 0, depth >= 3 ? 3 : depth >= 1 ? 2 : 0);
+  const p = od?.loot ? 1 : Math.min(1, tr.loot + depth * 0.1 + gb / 2), minR = Math.max(od?.loot || 0, tr.minRarity || 0, depth >= 3 ? 3 : depth >= 1 ? 2 : 0);
   if (chance(p)) rew.item = makeItem(m.lvl, { luck: G.stats().lck + depth * 20, cls: CLASSES[G.S.cls], minRarity: minR });
   G.haulAdd(rew.gold, rew.mats, rew.item, rew.xp);
 }
@@ -56,7 +58,7 @@ export function resolveTrip() {
   if (!win) { S.deaths++; G.journal(`${m.name} in ${l.name} hat mich zerrissen.`); return { A, B: m, r, win, rew, place: l }; }
   S.wins++; Q.event({ type: 'kill', mob: a.mob, loc: l.id }); G.bountyEvent({ type: 'kill', mob: a.mob }); G.bountyEvent({ type: 'trip', track: tr.id });
   S.haul = { loc: l.id, track: tr.id, depth: 0, gold: 0, mats: {}, items: [] };
-  tripLoot(l, m, tr, 0, od, rew);
+  rew.grade = gradeOf(r); tripLoot(l, m, tr, 0, od, rew, rew.grade.bonus);
   if (od && G.fulfillOmen()) { Q.event({ type: 'omen' }); rew.omen = true; G.journal(`Das Omen über ${l.name} hat sich erfüllt.`); }
   else G.journal(`${m.name} in ${l.name} erschlagen.`);
   return { A, B: m, r, win, rew, place: l, haul: S.haul };
@@ -81,7 +83,7 @@ export function delve() {
     return { A, B: m, r, win, rew, place: l, lost };
   }
   S.wins++; h.depth++; Q.event({ type: 'kill', mob: m.name.replace(/ \(Tiefe \d\)$/, ''), loc: l.id });
-  tripLoot(l, m, tr, h.depth, null, rew);
+  rew.grade = gradeOf(r); tripLoot(l, m, tr, h.depth, null, rew, rew.grade.bonus);
   G.journal(`Tiefe ${h.depth} in ${l.name} überlebt.`);
   return { A, B: m, r, win, rew, place: l, haul: h };
 }
@@ -96,8 +98,8 @@ export function cryptFight(id) {
   const A = G.stats(), r = fight(A, m), win = r.winner === 'a', rew = newRew();
   if (!win) { S.deaths++; G.journal(`${m.name} in ${c.name} hat mich niedergestreckt.`); return { A, B: m, r, win, rew, crypt: c }; }
   S.wins++; Q.event({ type: 'kill', mob: m.name }); if (boss) Q.event({ type: 'boss', crypt: c.id }); G.bountyEvent({ type: 'crypt' }); G.bountyEvent({ type: 'kill', mob: m.name });
-  Object.assign(rew, G.cryptWin(c));
-  pay(rew, Math.round((10 + m.lvl * 5) * (boss ? 4 : 1)), Math.round((25 + m.lvl * 14) * (boss ? 3 : 1.2)));
+  Object.assign(rew, G.cryptWin(c)); rew.grade = gradeOf(r); const gb = 1 + rew.grade.bonus;
+  pay(rew, Math.round((10 + m.lvl * 5) * (boss ? 4 : 1) * gb), Math.round((25 + m.lvl * 14) * (boss ? 3 : 1.2)));
   dropMat(m, rew); dropItem(m.lvl, boss ? 1 : 0.35, boss ? (['c1', 'c2'].includes(c.id) ? 2 : 3) : 1, rew);
   G.journal(boss ? `${m.name} ist gefallen. ${c.name} schweigt.` : `${m.name} in ${c.name} erschlagen.`);
   return { A, B: m, r, win, rew, crypt: c };
@@ -108,7 +110,7 @@ export function arenaFight(R) {
   const S = G.S; if (now() < S.arenaTs || !R || S.glut < CFG.arenaGlut) return null;
   S.arenaTs = now() + CFG.arenaCdSec * 1000; S.glut -= CFG.arenaGlut;
   const A = G.stats(), B = G.stats(R), r = fight(A, B), win = r.winner === 'a', rew = newRew();
-  if (win) { S.honor += 10; S.wins++; pay(rew, R.lvl * 3, 0); rew.honor = 10; Q.event({ type: 'arena' }); G.bountyEvent({ type: 'arena' }); G.journal(`${R.name} in der Grube besiegt.`); }
+  if (win) { S.honor += 10; S.wins++; rew.grade = gradeOf(r); pay(rew, Math.round(R.lvl * 3 * (1 + rew.grade.bonus)), 0); rew.honor = 10; Q.event({ type: 'arena' }); G.bountyEvent({ type: 'arena' }); G.journal(`${R.name} in der Grube besiegt.`); }
   else { S.honor = Math.max(0, S.honor - 5); rew.honor = -5; S.deaths++; }
   return { A, B, r, win, rew };
 }

@@ -143,3 +143,22 @@ test('Glücksgriff gibt ein mindestens magisches Item gegen Gold', () => {
 test('Eilen kostet mit Restzeit und Stufe mehr', () => {
   const S = fresh(); G.startTrip('friedhof', 'safe'); const c1 = G.rushCost(); S.lvl = 30; assert.ok(G.rushCost() > c1);
 });
+
+test('Zauber: werden im Kampf gewirkt, ab Stufe freigeschaltet', () => {
+  const S = fresh('sorceress'); assert.equal(G.stats().spells.length, 1); S.lvl = 20; assert.equal(G.stats().spells.length, 3);
+  let seen = false; for (let i = 0; i < 20 && !seen; i++) { const r = fight(G.stats(), G.makeMonster(3, 1)); seen = r.log.some(l => l.spell); assert.ok(r.left >= 0 && r.left <= 1); }
+  assert.ok(seen, 'kein Zauber im Log');
+});
+
+test('Kampfkraft: besseres Item, mehr Kampfkraft; Vergleich zeigt es vorher', () => {
+  const S = fresh(); const p0 = G.power();
+  const w = { ...S.equip.weapon, id: 'x', dmg: [S.equip.weapon.dmg[0] * 3, S.equip.weapon.dmg[1] * 3] };
+  const c = G.powerWith(w); assert.equal(c.now, p0); assert.ok(c.then > p0);
+  assert.ok(G.powerAttr(D.CLASSES[S.cls].main) > 0, 'Hauptattribut-Punkt muss Kampfkraft bringen');
+});
+
+test('Kampfbewertung: souveräner Sieg gibt Bonus, Niederlage keine Bewertung', () => {
+  assert.equal(Game.gradeOf({ winner: 'a', left: 0.9 }).id, 'dom');
+  assert.equal(Game.gradeOf({ winner: 'a', left: 0.1 }).bonus, 0);
+  assert.equal(Game.gradeOf({ winner: 'b', left: 0 }), null);
+});

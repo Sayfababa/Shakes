@@ -1,4 +1,4 @@
-import { BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS } from './data.js';
+import { SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS } from './data.js';
 import { makeItem } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
@@ -92,7 +92,8 @@ export function stats(p = S) {
   const c = CLASSES[p.cls], w = p.equip.weapon, e = effects(p);
   const base = w?.dmg || [1, 3], dm = 1 + (e.dmgPct || 0);
   return { ...e, ...st, name: p.name, cls: p.cls, lvl: p.lvl, main: c.main,
-    armor: Math.round(st.armor * (1 + (e.armorPct || 0))),
+    spells: SPELLS[p.cls].filter(s => p.lvl >= s.lvl), amp: 1 + st.int / (st.int + CFG.spellK),
+    armor: Math.round((st.armor + st.str * CFG.strArmor) * (1 + (e.armorPct || 0))),
     dmg: [Math.round((base[0] + st.dmgBonus) * dm), Math.round((base[1] + st.dmgBonus) * dm)],
     hp: Math.round(st.con * c.hp * (CFG.hpBase + p.lvl * CFG.hpPerLvl) * (1 + (e.hpPct || 0))) };
 }
@@ -103,10 +104,44 @@ export function makeMonster(lvl, diff = 1, m = pick(MONSTERS)) {
   const main = pick(['str', 'dex', 'int']);
   const mo = { name: m.name, glyph: m.glyph, mat: m.mat, lvl, main, str: a(), dex: a(), int: a(), con: a(), lck: a() * 0.5, armor: Math.round(lvl * 5 * diff) };
   mo[main] = a('main');
-  mo.dmg = [Math.round((2 + lvl * 1.7) * diff), Math.round((5 + lvl * 3) * diff)];
-  mo.hp = Math.round(mo.con * 3.6 * (CFG.hpBase + lvl * CFG.hpPerLvl));
+  mo.dmg = [Math.round((2 + lvl * 1.7) * diff * CFG.monDmg), Math.round((5 + lvl * 3) * diff * CFG.monDmg)];
+  mo.hp = Math.round(mo.con * 3.6 * (CFG.hpBase + lvl * CFG.hpPerLvl) * CFG.monHp);
   return mo;
 }
+
+// --- Kampfkraft: eine Zahl für "wie stark bin ich" (erwarteter Schaden × Haltbarkeit gegen einen Gegner deiner Stufe) ---
+// Ohne Zufall, damit Vergleiche (Item, Attributpunkt) stabil sind.
+export function power(A = stats()) {
+  const L = A.lvl, en = 3 + L * 2.7, eArmor = L * 5, eDmg = ((2 + L * 1.7) + (5 + L * 3)) / 2 * (1 + en * 1.4 / CFG.mainDiv);
+  const red = Math.min(0.6, eArmor / (eArmor + 20 + L * 8)) * (1 - Math.min(0.9, A.pen || 0));
+  const hit = 1 - Math.min(0.5, en / (en + A.dex * 3 + 40));
+  const crit = Math.min(0.6, CFG.critBase + A.lck / (A.lck + 100 + L * 5) + (A.crit || 0));
+  const strike = (A.dmg[0] + A.dmg[1]) / 2 * (1 + A[A.main] / CFG.mainDiv);
+  let dpt = strike * (1 - red) * hit * (1 + crit * (1 + (A.bleed || 0))) * (1 + (A.rage || 0) * 0.3 + (A.execute || 0) * 0.2 + (A.poison || 0));
+  let heal = (A.regen || 0) * A.hp + dpt * (A.leech || 0);
+  for (const s of A.spells || []) {
+    const sd = strike * A.amp * (1 - red) * hit;
+    const v = s.kind === 'multi' ? sd * s.mult * s.hits : s.kind === 'dot' ? sd * s.mult * 3 : s.kind === 'buff' ? dpt * s.v * 2
+      : s.kind === 'heal' || s.kind === 'shield' ? 0 : sd * s.mult * (s.kind === 'mark' ? 1.4 : s.kind === 'stun' ? 1.5 : 1);
+    dpt += (v - dpt) / s.every;
+    if (s.kind === 'heal' || s.kind === 'shield') heal += A.hp * s.pct * A.amp / s.every;
+  }
+  const taken = eDmg * (1 - Math.min(0.6, A.armor / (A.armor + 20 + L * 8))) * (1 - Math.min(0.5, A.dex / (A.dex + en * 3 + 40) + (A.evade || 0))) * (1 - Math.min(0.5, A.block || 0));
+  const ehp = A.hp / (taken * Math.max(0.3, 1 - heal * 0.6 / Math.max(1, taken))) * eDmg;   // Leben, umgerechnet in "wie viele Gegner-Hiebe halte ich aus"
+  return Math.round(Math.sqrt(Math.max(1, dpt) * ehp) * 20);
+}
+// Kampfkraft, wenn ein Item angelegt wäre (Ringe: ersetzt den schwächeren bzw. freien Platz)
+export function powerWith(it) {
+  let slot = it.slot;
+  if (slot === 'ring') {
+    if (!S.equip.ring1 || !S.equip.ring2) slot = !S.equip.ring1 ? 'ring1' : 'ring2';
+    else slot = powerSwap('ring1', it) >= powerSwap('ring2', it) ? 'ring1' : 'ring2';
+  }
+  return { now: power(), then: powerSwap(slot, it), old: S.equip[slot] || null, slot, st: stats({ ...S, equip: { ...S.equip, [slot]: it } }) };
+}
+const powerSwap = (slot, it) => power(stats({ ...S, equip: { ...S.equip, [slot]: it } }));
+// Was bringt ein Attributpunkt?
+export const powerAttr = k => power(stats({ ...S, attrs: { ...S.attrs, [k]: S.attrs[k] + 1 } })) - power();
 
 // --- Streifzüge ---
 export const locOpen = l => S.lvl >= l.lvl;
@@ -188,7 +223,7 @@ export function sortBag() {
 export function equip(id) {
   const it = S.bag.find(x => x.id === id); if (!it) return false;
   let slot = it.slot;
-  if (slot === 'ring') slot = !S.equip.ring1 ? 'ring1' : !S.equip.ring2 ? 'ring2' : 'ring1';
+  if (slot === 'ring') slot = powerWith(it).slot;
   removeFromBag(id);
   const old = S.equip[slot]; S.equip[slot] = it;
   if (old && !addToBag(old)) { S.equip[slot] = old; addToBag(it); return false; }  // kein Platz: rückgängig

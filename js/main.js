@@ -12,7 +12,7 @@ function render() {
   if (!S) { app.innerHTML = `<main>${UI.viewCreate(pickCls)}</main>`; return; }
   G.tickGlut();
   const views = {
-    fight: () => UI.viewFight(F), trips: UI.viewTrips, stats: UI.viewStats, talents: UI.viewTalents, crypt: UI.viewCrypts,
+    fight: () => UI.viewFight(F), trips: UI.viewTrips, stats: UI.viewStats, spells: UI.viewSpells, talents: UI.viewTalents, crypt: UI.viewCrypts,
     traders: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewTrader(trader),
     trippick: () => UI.viewTripPick(tripLoc),
     bounties: UI.viewBounties,
@@ -50,10 +50,19 @@ function showFight(res, back, extra = '') {
 function haulRewText(res) {
   const w = res.rew, h = res.haul, L = [`Gefunden: ${w.gold} Gold · ${w.xp} EP`];
   for (const [k, n] of w.mats) L.push(`${MATS[k]} ×${n}`);
-  if (w.item) L.push(`<span class="r-${w.item.rarity}">${w.item.name}</span>`);
+  if (w.item) L.push(`<span class="r-${w.item.rarity}">${w.item.name}</span>${betterTxt(w.item)}`);
   if (w.omen) L.push('<b class="gold">Das Omen hat sich erfüllt.</b>');
   L.push(`<i class="dim">Ungesichert (Tiefe ${h.depth}): ${h.gold} Gold, ${h.xp} EP${h.items.length ? `, ${h.items.length} Fundstück(e)` : ''}</i>`);
   return L.join('<br>');
+}
+// "Oh, das ist viel besser!" – direkt bei der Beute zeigen
+function betterTxt(it) { const g = UI.itemGain(it); return g > 0.01 ? ` <b class="better-txt">▲ +${Math.round(g * 100)} % Kampfkraft</b>` : ''; }
+// Kurze Einblendung nach dem Anlegen: alte → neue Kampfkraft
+function toast(before) {
+  const after = G.power(), d = after - before; if (!d) return;
+  const el = document.createElement('div'); el.className = 'toast ' + (d > 0 ? 'up' : 'down');
+  el.innerHTML = `Kampfkraft ${UI.fmtN(before)} → <b>${UI.fmtN(after)}</b> <span>${d > 0 ? '▲ +' : '▼ −'}${Math.abs(Math.round(d / Math.max(1, before) * 100))} %</span>`;
+  document.body.appendChild(el); setTimeout(() => el.remove(), 2200);
 }
 function loseText(res) {
   if (res.lost) return `In der Tiefe verloren: ${res.lost.gold} Gold, ${res.lost.xp || 0} EP${res.lost.items.length ? ` und ${res.lost.items.length} Fundstück(e)` : ''}.`;
@@ -66,7 +75,7 @@ function rewText(w) {
   if (w.gold || w.xp) L.push(`+${w.gold} Gold${w.xp ? ` · +${w.xp} EP` : ''}${w.honor ? ` · +${w.honor} Ehre` : ''}`);
   else if (w.honor) L.push(`+${w.honor} Ehre`);
   for (const [k, n] of w.mats) L.push(`${MATS[k]} ×${n}`);
-  if (w.item) L.push(`Beute: <span class="r-${w.item.rarity}">${w.item.name}</span>${w.item.soldFull ? ' <i class="dim">(Beutel voll – verkauft)</i>' : ''}`);
+  if (w.item) L.push(`Beute: <span class="r-${w.item.rarity}">${w.item.name}</span>${w.item.soldFull ? ' <i class="dim">(Beutel voll – verkauft)</i>' : betterTxt(w.item)}`);
   if (w.omen) L.push('<b class="gold">Das Omen hat sich erfüllt.</b>');
   if (w.trophy) L.push(`<b class="r-legendary">Trophäe: ${w.trophy.name}</b>`);
   if (w.shard) L.push(`<b class="gold">Glockensplitter ${w.shard}/4</b>`);
@@ -78,15 +87,17 @@ function rewText(w) {
 // Kampf-Schritt ohne Neuaufbau: nur Log-Zeile, Lebensbalken und Treffer-Effekt ändern (Bilder bleiben stehen)
 function fightStep() {
   const l = F.log[F.step - 1], log = document.getElementById('log'); if (!l || !log) return render();
-  const row = document.createElement('div'); row.className = `${l.who} ${l.crit ? 'crit' : ''}`; row.textContent = l.t;
+  const row = document.createElement('div'); row.className = `${l.who} ${l.crit ? 'crit' : ''} ${l.spell ? 'spell' : ''}`; row.textContent = l.t;
   log.appendChild(row); log.scrollTop = log.scrollHeight;
+  if (l.spell) { const c = document.querySelector(`#${l.who === 'a' ? 'fA' : 'fB'} .pwrap`);
+    if (c) { const n = document.createElement('span'); n.className = 'spellname'; n.textContent = l.spell; c.appendChild(n); setTimeout(() => n.remove(), 1100); } }
   for (const [id, hp, max] of [['fA', l.hpA, F.hpA], ['fB', l.hpB, F.hpB]]) {
     const el = document.getElementById(id); if (!el) continue;
     el.querySelector('.bar i').style.width = Math.max(0, Math.min(100, hp / max * 100)) + '%';
     el.querySelector('.hp').textContent = `${Math.max(0, hp)} / ${max}`;
     const hit = (id === 'fA' && l.who === 'b') || (id === 'fB' && l.who === 'a');
     el.classList.remove('hit', 'crit'); if (hit) { void el.offsetWidth; el.classList.add('hit'); if (l.crit) el.classList.add('crit');
-      if (l.dmg) { const n = document.createElement('span'); n.className = 'dmgnum' + (l.crit ? ' crit' : ''); n.textContent = l.dmg;
+      if (l.dmg) { const n = document.createElement('span'); n.className = 'dmgnum' + (l.crit ? ' crit' : '') + (l.spell ? ' sp' : ''); n.textContent = l.dmg;
         n.style.left = (35 + Math.random() * 30) + '%'; el.querySelector('.pwrap')?.appendChild(n); setTimeout(() => n.remove(), 900); } }
   }
 }
@@ -100,8 +111,8 @@ const actions = {
   attr: d => { G.addAttr(d.k); render(); },
   learn: d => { if (G.learn(+d.b, +d.t)) render(); },
   respec: () => { const c = G.respecCost(); if (confirm(c ? `Für ${c} Gold alle Attribute und Talente zurücksetzen?` : 'Attribute und Talente zurücksetzen? (einmalig gratis)')) { G.respec(); render(); } },
-  equip: d => { if (!G.equip(d.id)) alert('Kein Platz im Beutel.'); render(); },
-  unequip: d => { G.unequip(d.s); render(); },
+  equip: d => { const p = G.power(); if (!G.equip(d.id)) alert('Kein Platz im Beutel.'); render(); toast(p); },
+  unequip: d => { const p = G.power(); G.unequip(d.s); render(); toast(p); },
   sell: d => { G.sell(d.id); render(); },
   sort: () => { G.sortBag(); render(); },
   trader: d => { trader = d.t; turnin = null; view = 'traders'; render(); },

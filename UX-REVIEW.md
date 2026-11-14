@@ -23,3 +23,9 @@ fühlbares Feedback bei jedem Treffer, eine unverwechselbare Silhouette der Ober
 5. **Stufenaufstieg** als eigener kurzer Moment (Schriftzug „Neue Stufe“, Punkte-Hinweis pulsiert).
 6. **Ortsbilder** hinter den Streifzug-Karten (abgedunkelt) für mehr Atmosphäre.
 7. **Vergleich im Inventar**: bessere Items im Beutel dezent markieren (grüner Pfeil), wie D2-Mods es tun.
+
+## Nachtrag: Spieler-Feedback „Wozu skillen? Kein Glücksgefühl beim Gear? Kampf egal?“
+- Kampfkraft als eine Zahl (Held, Werte, Grube), Item-Fenster zeigt Kampfkraft vorher → nachher in %, plus Schaden/Leben/Rüstung-Differenz.
+- Grünes ▲ an jedem Item, das dich stärker macht (Beutel, Laden, Beute nach dem Kampf mit „+x % Kampfkraft“), Einblendung nach dem Anlegen.
+- Attribute erklären sich selbst: was sie tun, was sie gerade bewirken, und wie viel Kampfkraft der nächste Punkt bringt.
+- Zauber je Klasse im Auto-Kampf (blau im Log, Name schwebt über dem Portrait), Kampfbewertung belohnt souveräne Siege.

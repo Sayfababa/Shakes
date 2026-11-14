@@ -1,14 +1,18 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
-import { MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
-import { S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
+import { GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
+import { power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
-import { tripChance, cryptChance, threatLabel, canDelve, delveChance } from './game.js';
+import { gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
 const P = cls => `assets/portraits/${CLASSES[cls].portrait}.jpg`;
 const rarName = id => RARITIES.find(r => r.id === id)?.name || '';
 export const fmtT = s => `${Math.floor(s / 60)}:${String(Math.max(0, s % 60)).padStart(2, '0')}`;
+export const fmtN = n => n.toLocaleString('de-DE');
+// Kampfkraft-Änderung durch ein Item (in %), null wenn nicht vergleichbar
+export const itemGain = it => { if (!it?.slot || Object.values(S.equip).includes(it)) return null; const p = powerWith(it); return (p.then - p.now) / Math.max(1, p.now); };
+const gainTag = it => { const g = itemGain(it); return g > 0.01 ? `<i class="better" title="besser">▲</i>` : ''; };
 const pct = (a, b) => Math.max(0, Math.min(100, (a / b) * 100));
 const effLine = e => Object.entries(e).map(([k, v]) => `${EFFECT_NAMES[k]}${k === 'first' ? '' : ' +' + Math.round(v * 100) + '%'}`).join(', ');
 
@@ -46,14 +50,16 @@ export function itemTip(it, cmp) {
   if (it.armor) L.push(`Rüstung <b>${it.armor}</b>`);
   for (const [k, v] of Object.entries(it.mods)) L.push(`<span class="m">+${v} ${k === 'armor' ? 'Rüstung' : k === 'dmg' ? 'Schaden' : ATTRS[k]}</span>`);
   L.push(`<span class="sub2">${it.price ? 'Preis' : 'Wert'}: ${it.price ?? it.value} Gold</span>`);
-  if (cmp && cmp !== it) {
-    const sc = x => (x.dmg ? (x.dmg[0] + x.dmg[1]) : 0) + (x.armor || 0) + Object.values(x.mods).reduce((a, b) => a + b, 0) * 1.5;
-    const d = Math.round(sc(it) - sc(cmp));
-    L.push(`<span class="cmp ${d >= 0 ? 'up' : 'down'}">${d >= 0 ? 'Besser' : 'Schlechter'} als ${cmp.name}</span>`);
-  } else if (!cmp && it.slot) L.push('<span class="cmp up">Platz ist frei</span>');
-  return L[0] + L.slice(1).join('<br>');
+  if (it.slot && !Object.values(S.equip).includes(it)) {
+    const p = powerWith(it), a = stats(), b = p.st, g = (p.then - p.now) / Math.max(1, p.now);
+    const row = (n, x, y, f = v => fmtN(Math.round(v))) => { const d = y - x; return Math.abs(d) < 0.5 ? '' : `<span class="${d > 0 ? 'up' : 'down'}">${n} ${d > 0 ? '+' : '−'}${f(Math.abs(d))}</span>`; };
+    const diffs = [row('Schaden', (a.dmg[0] + a.dmg[1]) / 2, (b.dmg[0] + b.dmg[1]) / 2), row('Leben', a.hp, b.hp), row('Rüstung', a.armor, b.armor)].filter(Boolean);
+    L.push(`<div class="cmpbox ${g > 0.005 ? 'up' : g < -0.005 ? 'down' : ''}"><div class="kk">Kampfkraft ${fmtN(p.now)} → <b>${fmtN(p.then)}</b> <span>${g >= 0 ? '+' : '−'}${Math.abs(Math.round(g * 100))} %</span></div>`
+      + `<div class="sub2">${p.old ? 'statt ' + p.old.name : 'Platz ist frei'}</div>${diffs.length ? `<div class="dl">${diffs.join(' · ')}</div>` : ''}</div>`);
+  }
+  return L[0] + L.slice(1).map(x => x.startsWith('<div') ? x : x + '<br>').join('').replace(/<br>$/, '');
 }
-const itemEl = (it, act) => `<div class="item r-${it.rarity}" data-tip="${it.id}" ${act}>${itemArt(it)}</div>`;
+const itemEl = (it, act) => `<div class="item r-${it.rarity}" data-tip="${it.id}" ${act}>${itemArt(it)}${gainTag(it)}</div>`;
 
 // --- Rahmen ---
 export function hud(tut = '') {
@@ -65,7 +71,7 @@ export function hud(tut = '') {
 }
 export function navBar(view) {
   const tabs = [['hero', 'Held'], ['trips', 'Streifzug'], ['traders', 'Händler'], ['crypt', 'Krypta'], ['arena', 'Grube']];
-  const map = { stats: 'hero', talents: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips' };
+  const map = { stats: 'hero', talents: 'hero', spells: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips' };
   // Nur echte Handlungsaufforderungen markieren – ein Dauer-Punkt auf jedem Tab sagt nichts mehr
   const badge = { hero: S.points + talentPoints() > 0, traders: Object.keys(TRADERS).some(canComplete), arena: canComplete('vargo'),
     crypt: canComplete('ilse'), trips: !!S.haul || canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) || (!!S.active && Date.now() >= S.active.end) };
@@ -97,13 +103,14 @@ export function viewHero() {
       <div class="dcol">${slot('amulet')}${slot('chest')}${slot('offhand')}${slot('boots')}</div>
     </section>
     <div class="herobar">
-      <span>Leben <b>${st.hp}</b></span><span>Schaden <b>${st.dmg[0]}–${st.dmg[1]}</b></span><span>Rüstung <b>${st.armor}</b></span>
-      <button class="${pts ? 'red' : ''}" data-action="go" data-v="stats">Werte${S.points ? ' ·' + S.points : ''}</button>
+      <span class="kkline">Kampfkraft <b>${fmtN(power(st))}</b></span>
+      <button class="${S.points ? 'red' : ''}" data-action="go" data-v="stats">Werte${S.points ? ' ·' + S.points : ''}</button>
       <button class="${talentPoints() ? 'red' : ''}" data-action="go" data-v="talents">Talente${talentPoints() ? ' ·' + talentPoints() : ''}</button>
+      <button data-action="go" data-v="spells">Zauber</button>
     </div>
     <section class="panel invp"><div class="invhead"><span>Beutel</span><button class="tiny" data-action="sort">Ordnen</button></div>
       <div class="inv" style="--w:${INV_W};--h:${INV_H}">
-        ${S.bag.map(it => `<div class="cellitem r-${it.rarity}" style="left:${it.x / INV_W * 100}%;top:${it.y / INV_H * 100}%;width:${it.w / INV_W * 100}%;height:${it.h / INV_H * 100}%" data-tip="${it.id}" data-action="equip" data-id="${it.id}">${itemArt(it)}</div>`).join('')}
+        ${S.bag.map(it => `<div class="cellitem r-${it.rarity}" style="left:${it.x / INV_W * 100}%;top:${it.y / INV_H * 100}%;width:${it.w / INV_W * 100}%;height:${it.h / INV_H * 100}%" data-tip="${it.id}" data-action="equip" data-id="${it.id}">${itemArt(it)}${gainTag(it)}</div>`).join('')}
       </div>
       <div class="mats">${mats.length ? mats.map(([k, n]) => `<span>${MATS[k]} <b>${n}</b></span>`).join('') : '<span class="dim">Keine Materialien. Monster lassen sie fallen.</span>'}</div>
     </section>
@@ -111,21 +118,42 @@ export function viewHero() {
   </div>`;
 }
 
+// Was ein Attribut gerade bewirkt (gegen einen Gegner deiner Stufe)
+function attrNow(k, st) {
+  const L = st.lvl, en = 3 + L * 2.7, c = CLASSES[S.cls];
+  const main = k === c.main ? `Schaden ×${(1 + st[k] / CFG.mainDiv).toFixed(1).replace('.', ',')}` : '';
+  const v = { str: `${Math.round(st.str * CFG.strArmor)} Rüstung`, dex: `${Math.round(Math.min(0.5, st.dex / (st.dex + en * 3 + 40) + (st.evade || 0)) * 100)} % Ausweichen`,
+    int: `Zauber ×${st.amp.toFixed(2).replace('.', ',')}`, con: `${fmtN(st.hp)} Leben`, lck: `${Math.round(Math.min(0.6, CFG.critBase + st.lck / (st.lck + 100 + L * 5) + (st.crit || 0)) * 100)} % Krit` }[k];
+  return [main, v].filter(Boolean).join(' · ');
+}
 export function viewStats() {
-  const st = stats(), c = CLASSES[S.cls], rc = respecCost();
+  const st = stats(), c = CLASSES[S.cls], rc = respecCost(), P0 = power(st);
   return `<div class="col">
-    <section class="panel"><h2>Werte <span class="h2r">${S.points ? `<b class="hot">${S.points}</b> Punkte frei` : ''}</span></h2>
-      ${Object.entries(ATTRS).map(([k, n]) => `<div class="stat"><span>${n}${k === c.main ? ' <i class="dim">(Haupt)</i>' : ''}</span><span><b>${st[k]}</b>${S.points ? ` <button data-action="attr" data-k="${k}">+</button>` : ''}</span></div>`).join('')}
+    <section class="panel"><h2>Werte <span class="h2r">${S.points ? `<b class="hot">${S.points}</b> frei · <span class="up">grün</span> = Kampfkraft je Punkt` : `Kampfkraft <b>${fmtN(P0)}</b>`}</span></h2>
+      ${Object.entries(ATTRS).map(([k, n]) => `<div class="stat attr"><span><span class="an">${n}${k === c.main ? ' <i class="dim">(Haupt)</i>' : ''}</span><small>${k === c.main ? 'Schaden · ' : ''}${ATTR_INFO[k]}</small></span>
+        <span class="av"><small class="dim">${attrNow(k, st)}</small><b>${st[k]}</b>${S.points ? `<button data-action="attr" data-k="${k}">+<small class="up">${Math.max(0, powerAttr(k))}</small></button>` : ''}</span></div>`).join('')}
     </section>
-    <section class="panel"><h2>Kampf</h2>
-      <div class="stat"><span>Leben</span><b>${st.hp}</b></div><div class="stat"><span>Schaden</span><b>${st.dmg[0]}–${st.dmg[1]}</b></div>
-      <div class="stat"><span>Rüstung</span><b>${st.armor}</b></div><div class="stat"><span>Siege / Tode</span><b>${S.wins} / ${S.deaths}</b></div>
-      <p class="dim small">${effLine(Object.fromEntries(Object.entries(stats()).filter(([k]) => EFFECT_NAMES[k] && !['dmgPct', 'hpPct', 'armorPct'].includes(k))))}</p></section>
+    <section class="panel"><h2>Kampf <span class="h2r">Kampfkraft <b>${fmtN(P0)}</b></span></h2>
+      <div class="grid2"><div class="stat"><span>Leben</span><b>${fmtN(st.hp)}</b></div><div class="stat"><span>Schaden</span><b>${st.dmg[0]}–${st.dmg[1]}</b></div>
+      <div class="stat"><span>Rüstung</span><b>${st.armor}</b></div><div class="stat"><span>Siege / Tode</span><b>${S.wins} / ${S.deaths}</b></div></div>
+      <p class="dim small">${effLine(Object.fromEntries(Object.entries(st).filter(([k]) => EFFECT_NAMES[k] && !['dmgPct', 'hpPct', 'armorPct'].includes(k))))}</p></section>
     <section class="panel grow"><h2>Trophäen <span class="h2r">${S.trophies.length}</span></h2>
       ${S.trophies.map(t => `<div class="stat"><span>${t.name} <i class="dim">${t.diff}</i></span><span class="m small">${effLine(t.eff)}</span></div>`).join('') || '<p class="dim small">Besiege die Herren der Krypten.</p>'}</section>
-    <div class="btns"><button data-action="go" data-v="hero">Zurück</button><button data-action="respec" ${S.gold < rc ? 'disabled' : ''}>Läutern ${rc ? rc + ' Gold' : '(gratis)'}</button><button class="dim" data-action="wipe">Neu beginnen</button></div>
+    <div class="btns"><button data-action="go" data-v="hero">Zurück</button><button data-action="respec" ${S.gold < rc ? 'disabled' : ''}>Läutern ${rc ? rc : 'gratis'}</button><button class="dim" data-action="wipe">Neu</button></div>
   </div>`;
 }
+
+// Zauber: wirken im Kampf von selbst
+export function viewSpells() {
+  const st = stats();
+  return `<div class="col"><section class="panel"><h2>Zauber <span class="h2r">Zauberkraft ×${st.amp.toFixed(2).replace('.', ',')}</span><button class="tiny" data-action="go" data-v="hero">Zurück</button></h2>
+    <p class="small">Wirken im Kampf von selbst statt eines Hiebs. Wachsen mit deinem Schaden; <b>Intelligenz</b> verstärkt sie.</p></section>
+    ${SPELLS[S.cls].map(sp => { const on = S.lvl >= sp.lvl;
+      return `<section class="panel spell ${on ? '' : 'locked'}"><div class="sic">${sp.name.split(' ').map(w => w[0]).join('').slice(0, 2)}</div>
+        <div><h3>${sp.name} <span class="h2r">${on ? `jeder ${sp.every}. Zug` : `ab Stufe ${sp.lvl}`}</span></h3><p class="small">${sp.text}</p></div></section>`; }).join('')}
+    <section class="panel grow"><h2>Kampfbewertung <span class="h2r">je stärker, desto mehr Lohn</span></h2>${GRADES_TXT()}</section></div>`;
+}
+const GRADES_TXT = () => GRADES.map(g => `<div class="stat small"><span class="g-${g.id}">${g.name}</span><span>${g.min ? `≥ ${Math.round(g.min * 100)} % Leben` : 'knapp'} → ${g.bonus ? `+${Math.round(g.bonus * 100)} % Gold${g.id === 'dom' ? ', mehr Beute' : ''}` : 'kein Bonus'}</span></div>`).join('');
 
 export function viewTalents() {
   const tp = talentPoints();
@@ -233,7 +261,7 @@ export function viewTrader(tid) {
       return `<button class="svc" data-action="service" data-t="${tid}" data-s="${sv.id}" ${st.can ? '' : 'disabled'}>
         <b>${sv.name}${sv.max && st.it ? ` +${st.step}` : ''}</b><small>${st.reason || st.costText}${st.questMat && !st.reason ? ` <i class="hot">– ${MATS[st.questMat]} für Auftrag!</i>` : ''}</small></button>`; }).join('')}</section>
     <section class="panel shop"><div class="invhead"><span>Ware</span><small class="dim">bessere Ware mit höherer Treue</small></div>
-      <div class="shoprow">${shop.map(it => `<div class="sitem r-${it.rarity}" data-tip="${it.id}" data-action="buy" data-t="${tid}" data-id="${it.id}">${itemArt(it)}<span class="price ${S.gold < it.price ? 'no' : ''}">${it.price}</span></div>`).join('') || '<span class="dim">Ausverkauft.</span>'}</div></section>
+      <div class="shoprow">${shop.map(it => `<div class="sitem r-${it.rarity}" data-tip="${it.id}" data-action="buy" data-t="${tid}" data-id="${it.id}">${itemArt(it)}${gainTag(it)}<span class="price ${S.gold < it.price ? 'no' : ''}">${it.price}</span></div>`).join('') || '<span class="dim">Ausverkauft.</span>'}</div></section>
   </div>`;
 }
 
@@ -255,12 +283,17 @@ export function viewArena(rival) {
   const cd = Math.max(0, Math.ceil((S.arenaTs - Date.now()) / 1000));
   return `<div class="col">${say('vargo')}<section class="panel arena"><img class="portrait" src="${P(rival.cls)}" alt="">
     <h2>${rival.name}</h2><p class="dim">${CLASSES[rival.cls].name} · Stufe ${rival.lvl}</p>
-    
+    <p class="small">Kampfkraft: deine <b>${fmtN(power())}</b> · seine <b>${fmtN(power(stats(rival)))}</b></p>
     <p class="small">Sieg: ${rival.lvl * 3} Gold, 10 Ehre · Niederlage: 5 Ehre · Deine Ehre: <b>${S.honor}</b></p>
     <div class="btns"><button class="red" data-action="arena" ${cd || S.glut < CFG.arenaGlut ? 'disabled' : ''}>${cd ? `Erschöpft <span data-until="${S.arenaTs}">${fmtT(cd)}</span>` : `Herausfordern · ${CFG.arenaGlut} Glut`}</button>
     <button data-action="rival">Anderer Gegner</button></div></section></div>`;
 }
 
+function fightSummary(F) {
+  const g = gradeOf(F), n = {}; for (const c of F.cast || []) n[c] = (n[c] || 0) + 1;
+  const sp = Object.entries(n).map(([k, v]) => `${k} ×${v}`).join(', ');
+  return `<div class="fsum">${g ? `<b class="g-${g.id}">${g.name}</b>${g.bonus ? ` · +${Math.round(g.bonus * 100)} % Gold` : ''} · ` : ''}${Math.round((F.left || 0) * 100)} % Leben übrig${sp ? `<br><span class="dim">Zauber: ${sp}</span>` : ''}</div>`;
+}
 export function viewFight(F) {
   const side = (f, hp, max, hit, id) => `<div class="fighter" id="${id}"><div class="pwrap">${f.cls ? `<img class="portrait" src="${P(f.cls)}" alt="">` : monsterArt(f.glyph)}</div>
     <div class="nm">${f.name}</div><div class="bar"><i style="width:${pct(hp, max)}%"></i></div><div class="hp">${Math.max(0, hp)} / ${max}</div></div>`;
@@ -268,8 +301,8 @@ export function viewFight(F) {
   const hpA = last.hpA ?? F.hpA, hpB = last.hpB ?? F.hpB, done = F.step >= F.log.length;
   return `<div class="panel fightwrap"><div class="fight">
     ${side(F.A, hpA, F.hpA, last.who === 'b', 'fA')}
-    <div><div class="log" id="log">${shown.map(l => `<div class="${l.who} ${l.crit ? 'crit' : ''}">${l.t}</div>`).join('')}</div>
-      ${done ? `<div class="result ${F.winner === 'a' ? 'win' : 'lose'}">${F.winner === 'a' ? 'Sieg' : 'Gefallen'}</div>
+    <div><div class="log" id="log">${shown.map(l => `<div class="${l.who} ${l.crit ? 'crit' : ''} ${l.spell ? 'spell' : ''}">${l.t}</div>`).join('')}</div>
+      ${done ? `<div class="result ${F.winner === 'a' ? 'win' : 'lose'}">${F.winner === 'a' ? 'Sieg' : 'Gefallen'}</div>${fightSummary(F)}
         <div class="loot-drop">${F.reward || ''}</div>${F.back === 'trips' && S.haul ? haulActions() : `<button class="red" data-action="go" data-v="${F.back}">Weiter</button>`}`
         : `<button data-action="skip">Überspringen</button>`}</div>
     ${side(F.B, hpB, F.hpB, last.who === 'a', 'fB')}
