@@ -17,9 +17,9 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - Vanilla JS, **ES-Module**, kein Build-Step. Start: `python3 -m http.server` → http://localhost:8000
 - `js/data.js`    – reine Daten (Klassen, Monster, Item-Basen, Affixe). Keine Logik.
 - `js/rng.js`     – Zufall (seedbar), `pick`, `roll`, `chance`.
-- `js/state.js`   – Spielstand, Save/Load (localStorage, Key `aschenkrone_v1`, Version 3), Raster-Inventar, Händler-Treue, Streifzüge, abgeleitete Werte (`stats()`).
+- `js/state.js`   – Spielstand, Save/Load (localStorage, Key `aschenkrone_v1`, Version 4), Raster-Inventar, Händler-Treue, Streifzüge, abgeleitete Werte (`stats()`).
 - `js/loot.js`    – Item-Erzeugung (Seltenheit, Affixe, Wert).
-- `js/quests.js`  – Händler-Questketten: Ziele, Fortschritt (`event()`), Abgabe (`complete()`).
+- `js/quests.js`  – Questketten aller Questgeber (`GIVERS`: 3 Händler + Vargo, Ilse, Prophet): Ziele, Fortschritt (`event()`), Abgabe (`complete(tid, choice)`). Segen (`rew.perk`) landen als Trophäe in `S.trophies`.
 - `js/art.js`     – SVG-Grafiken: Items, leere Slots, NPCs, Monster.
 - `js/combat.js`  – reine Kampfsimulation: `fight(a, b) -> {winner, log}`. Kein DOM. Effekte generisch (crit, evade, block, leech, bleed, rage, pen, regen, thorns, execute, first).
 - `js/ui.js`      – Rendering (Templates als Strings), Tooltips.
@@ -47,3 +47,10 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - Kein Voll-Render im Sekundentakt: Countdowns als `data-until="<ts>"` markieren → Ticker in main.js ändert nur den Text, bei 0 einmal `render()`.
 - Kampf-Animation über `fightStep()` (DOM-Patch), Voll-Render nur am Ende.
 - Service Worker: Bilder stale-while-revalidate, Code network-first.
+
+## Systeme (Stand)
+- **Omen** (`OMENS`, `omen()` in state.js): täglich ein Ort + Effekt, deterministisch aus dem Datum. Erst ab Stufe 3 aktiv. Erster Sieg dort = erfüllt (`S.omens`).
+- **Dienste** (`SERVICES`): Schärfen (Halvar, Waffe), Verstärken (Kaspar, Brust), Neu weihen (Ysolde, Amulett), Bestellen (Halvar). Materialien haben damit einen festen Zweck.
+- **Glockensplitter**: erster Bosssieg in Krypta 1–4 → `S.shards`. 4 Splitter öffnen Krypta 5 „Die Glocke“, Boss „Der Kronenlose“ = eigenes Portrait (`glyph: 'self'`).
+- **Finale**: Prophet-Quest p5 hat `choice` → Titel (`S.title`) + Segen.
+- **Tutorial** (`TUTORIAL`, `tutCheck()` in main.js): ersetzt im HUD die Balken, nie als Overlay über Buttons.

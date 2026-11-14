@@ -234,3 +234,28 @@ img.iart { width: 100%; height: 100%; object-fit: contain; display: block; filte
 img.portrait.monster { object-fit: cover; }
 @media (max-height: 720px) { .trip:not(.locked) .lore { display: none; } }
 .trip { overflow: hidden; }
+
+/* --- Figuren, Omen, Dienste, Tutorial --- */
+.speaker { cursor: pointer; position: relative; } .speaker .qmark { position: absolute; right: 10px; top: 4px; }
+.trip.omen { box-shadow: inset 0 0 0 1px #8a6a2a, inset 0 0 22px rgba(170,120,30,.28), 0 3px 8px rgba(0,0,0,.8); }
+.omentag { font-family: 'Alegreya SC'; font-size: .62rem; color: var(--gold-hi); line-height: 1.1; }
+.shards { display: flex; gap: 5px; align-items: center; margin-top: 4px; }
+.shards i { width: 14px; height: 14px; transform: rotate(45deg); background: #000; box-shadow: 0 0 0 1px #5a4a2a; }
+.shards i.on { background: linear-gradient(135deg, #e2c07a, #6a4c18); box-shadow: 0 0 8px #8a6a2a; } .shards span { margin-left: 8px; }
+.crypthead { display: flex; justify-content: space-between; font-family: 'Alegreya SC'; font-size: .74rem; color: var(--dim); flex: none !important; padding: 0 4px; }
+.portrait.crownless { filter: grayscale(.7) sepia(.6) hue-rotate(-30deg) contrast(1.3) brightness(.7); transform: scaleX(-1); }
+.services { display: flex; gap: 6px; flex: none !important; padding: 6px 8px; }
+.svc { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 5px 4px; text-transform: none; }
+.svc b { font-size: .74rem; } .svc small { font-family: 'Alegreya'; font-weight: 400; font-size: .64rem; color: var(--dim); line-height: 1.1; }
+.tut { margin-top: 5px;
+  display: flex; gap: 8px; align-items: center; padding: 6px 10px; color: #2b1c0f; font-size: .8rem; line-height: 1.2;
+  background: var(--noise), linear-gradient(#d4c094, #a8915f); box-shadow: 0 0 0 1px #000, 0 6px 18px #000; }
+.tut b { color: #6a140a; } .tutin { flex: 1; } .tut button { flex: none; }
+@media (max-height: 720px) { .services { padding: 4px 6px; } .svc small { display: none; } .note p { -webkit-line-clamp: 2; } }
+@media (max-height: 720px) {
+  :root { --u: clamp(19px, 3.15vh, 32px); } .doll { padding: 6px 8px; } .mats { margin-top: 3px; }
+  .trip .lore { display: none; } .crypt .dim.small { display: none; }
+  .speaker { grid-template-columns: calc(var(--u) * 1.8) 1fr; padding: 4px 8px; } .speaker .lore { font-size: .74rem; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+}
+.herobar span, .herobar button { white-space: nowrap; }
+@media (max-width: 400px) { .herobar { gap: 6px; font-size: .72rem; } .herobar button { padding: 5px 7px; font-size: .68rem; } }

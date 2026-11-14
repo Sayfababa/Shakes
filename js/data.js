@@ -93,11 +93,13 @@ export const TRADERS = {
 };
 // Weitere Figuren (Portraits in assets/npcs/)
 export const NPCS = {
-  vargo: { name: 'Vargo', role: 'Grubenmeister', lines: ['Blut ist die einzige Münze, die hier zählt.', 'Steh wieder auf. Die Menge will mehr.', 'Ich hab Bessere als dich im Sand verscharrt.'] },
-  ilse: { name: 'Schwester Ilse', role: 'Kryptenwächterin', lines: ['Ich halte das Licht. Du hältst die Klinge.', 'Unten schläft nichts mehr. Geh trotzdem.', 'Ich bete für dich. Es hilft nicht oft.'] },
-  prophet: { name: 'Der Bettlerprophet', role: 'Seher', lines: ['Die Glocke schlägt dreimal. Beim dritten Mal stehst auch du nicht mehr auf.', 'Ich sehe dich, Kind der Asche. Ich sehe, was du wirst.', 'Gib mir Brot, und ich sage dir, wo du stirbst.', 'Der Kronenlose trägt dein Gesicht.'] },
+  vargo: { name: 'Vargo', role: 'Grubenmeister', glyph: 'vargo', lines: ['Blut ist die einzige Münze, die hier zählt.', 'Steh wieder auf. Die Menge will mehr.', 'Ich hab Bessere als dich im Sand verscharrt.'] },
+  ilse: { name: 'Schwester Ilse', role: 'Kryptenwächterin', glyph: 'ilse', lines: ['Ich halte das Licht. Du hältst die Klinge.', 'Unten schläft nichts mehr. Geh trotzdem.', 'Ich bete für dich. Es hilft nicht oft.'] },
+  prophet: { name: 'Der Bettlerprophet', role: 'Seher', glyph: 'prophet', lines: ['Die Glocke schlägt dreimal. Beim dritten Mal stehst auch du nicht mehr auf.', 'Ich sehe dich, Kind der Asche. Ich sehe, was du wirst.', 'Gib mir Brot, und ich sage dir, wo du stirbst.', 'Der Kronenlose trägt dein Gesicht.'] },
 };
 export const LOYALTY = ['I', 'II', 'III', 'IV'];
+// Alle, die Questketten haben (Händler + weitere Figuren)
+export const GIVERS = ['halvar', 'ysolde', 'kaspar', 'vargo', 'ilse', 'prophet'];
 
 // Questketten je Händler. Ziele: kill{mob,n} · at{loc,n} · mat{id,n} (wird abgegeben) · give{slot,rar} (Item wird abgegeben)
 //   floor{crypt,n} · boss{crypt} · arena{n} · lvl{n}
@@ -148,7 +150,84 @@ export const QUESTS = {
     { id: 'k7', title: 'Der Glöckner', lvl: 22, text: 'Wenn die Glocke wieder schlägt, stehen alle auf. Alle. Bring ihn zum Schweigen.',
       obj: [{ boss: 'c4' }], rew: { gold: 1500, xp: 4000, rep: 500, item: { slot: 'chest', rar: 4 } } },
   ],
+  // Neue Ziele: honor{n} · clear{crypt} · omen{n} · shards{n} · champ (Kampf gegen q.champ)
+  vargo: [
+    { id: 'v1', title: 'Frisches Fleisch', lvl: 2, text: 'Noch einer, der glaubt, er sei hart. Zeig es dem Sand. Dreimal.',
+      obj: [{ arena: 3 }], rew: { gold: 60, xp: 120, rep: 0 } },
+    { id: 'v2', title: 'Ein Name im Sand', lvl: 5, text: 'Die Menge kennt dich noch nicht. Hundert Ehre, dann reden wir.',
+      obj: [{ honor: 100 }], rew: { gold: 120, xp: 300, rep: 0, item: { slot: 'gloves', rar: 2 } } },
+    { id: 'v3', title: 'Alte Schulden', lvl: 12, text: 'Der Metzger hat mir einst ein Auge und einen Bruder genommen. Ich will, dass du ihm etwas nimmst. Alles.',
+      obj: [{ boss: 'c3' }, { honor: 250 }], rew: { gold: 500, xp: 1200, rep: 0 } },
+    { id: 'v4', title: 'Die Kette', lvl: 16, text: 'Mein alter Champion. Er hat nie verloren, weil er nie gestorben ist. Leg ihn in den Sand.',
+      obj: [{ champ: 1 }], champ: { name: 'Die Kette', cls: 'barbarian', lvlAdd: 3 },
+      rew: { gold: 900, xp: 2500, rep: 0, perk: { name: 'Champion der Grube', eff: { dmgPct: 0.06, first: 1 } } } },
+  ],
+  ilse: [
+    { id: 'i1', title: 'Das Licht halten', lvl: 2, text: 'Meine Schwestern stiegen in die Gruft und kamen nicht zurück. Steig hinab. Zwei Ebenen. Erzähl mir, was du siehst.',
+      obj: [{ floor: 'c1', n: 2 }], rew: { gold: 50, xp: 100, rep: 0 } },
+    { id: 'i2', title: 'Leinen für die Toten', lvl: 4, text: 'Sie sollen nicht nackt vor Gott stehen. Bring mir Grableinen.',
+      obj: [{ mat: 'leinen', n: 5 }], rew: { gold: 80, xp: 180, rep: 0, item: { slot: 'amulet', rar: 2 } } },
+    { id: 'i3', title: 'Die Ertränkte', lvl: 6, text: 'Gerlinde war die Älteste von uns. Erlöse sie. Und bring die Gruft zum Schweigen.',
+      obj: [{ clear: 'c1' }], rew: { gold: 200, xp: 450, rep: 0 } },
+    { id: 'i4', title: 'Verrat', lvl: 10, text: 'Bruder Aldemar hat uns an die Glocke verkauft. Ich will, dass er es bereut. Lange.',
+      obj: [{ boss: 'c2' }, { mat: 'schwanz', n: 6 }], rew: { gold: 400, xp: 1000, rep: 0 } },
+    { id: 'i5', title: 'Die Laterne', lvl: 14, text: 'Nimm meine Laterne. Sie hat meine Schwestern nicht gerettet. Vielleicht rettet sie dich.',
+      obj: [{ clear: 'c3' }], rew: { gold: 600, xp: 1800, rep: 0, perk: { name: 'Ilses Laterne', eff: { crit: 0.04, hpPct: 0.06 } } } },
+  ],
+  prophet: [
+    { id: 'p1', title: 'Das erste Omen', lvl: 3, text: 'Ich sehe Dinge, Kind. Morgen, heute, gestern. Geh dorthin, wo mein Omen fällt, und sieg.',
+      obj: [{ omen: 1 }], rew: { gold: 40, xp: 80, rep: 0 } },
+    { id: 'p2', title: 'Der erste Splitter', lvl: 3, text: 'Die Glocke zerbrach, als du starbst. Ihre Splitter liegen bei den Herren der Krypten. Hol mir einen.',
+      obj: [{ shards: 1 }, { omen: 2 }], rew: { gold: 150, xp: 400, rep: 0 } },
+    { id: 'p3', title: 'Was du warst', lvl: 10, text: 'Du warst kein Bauer, Kind. Du hast eine Krone getragen. Sammle weiter, und du wirst dich erinnern.',
+      obj: [{ shards: 2 }, { omen: 4 }], rew: { gold: 400, xp: 1200, rep: 0 } },
+    { id: 'p4', title: 'Die vier Splitter', lvl: 18, text: 'Vier Splitter. Vier Herren. Dann öffnet sich die Glocke – und darin wartet, wer du warst.',
+      obj: [{ shards: 4 }, { omen: 6 }], rew: { gold: 800, xp: 3000, rep: 0 } },
+    { id: 'p5', title: 'Der Kronenlose', lvl: 24, text: 'Er trägt dein Gesicht. Er trägt deine Krone. Fälle ihn. Dann entscheide, was aus der Glocke wird.',
+      obj: [{ boss: 'c5' }], rew: { gold: 2000, xp: 6000, rep: 0 },
+      choice: [
+        { id: 'break', label: 'Die Glocke zerbrechen', text: 'Die Glocke schweigt für immer. Die Toten schlafen.', title: 'Glockenbrecher', perk: { name: 'Glockenbrecher', eff: { dmgPct: 0.1, crit: 0.05 } } },
+        { id: 'crown', label: 'Die Krone nehmen', text: 'Du setzt sie auf. Sie passt. Sie hat immer gepasst.', title: 'Der Kronenlose', perk: { name: 'Krone der Asche', eff: { hpPct: 0.15, leech: 0.08 } } },
+      ] },
+  ],
 };
+
+// --- Tägliches Omen des Bettlerpropheten ---
+// Ein Ort pro Tag bekommt einen Effekt. Erster Sieg dort an diesem Tag = Omen erfüllt (zählt für die Questkette).
+export const OMENS = [
+  { id: 'elite', text: 'Ein Fürst der Toten erhebt sich. Wer ihn fällt, wird reich beschenkt.', short: 'Elite-Gegner, sichere seltene Beute', diff: 1.15, gold: 2, xp: 2, loot: 3 },
+  { id: 'harvest', text: 'Die Erde gibt heute doppelt, was sie nimmt.', short: 'Doppelte Materialien', mats: 2 },
+  { id: 'gold', text: 'Die Toten tragen heute Gold in den Taschen.', short: 'Doppeltes Gold', gold: 2 },
+  { id: 'wisdom', text: 'Wer heute dort kämpft, erinnert sich an mehr, als er weiß.', short: '+50% Erfahrung', xp: 1.5 },
+];
+
+// --- Dienste der Händler (Materialien haben einen festen Zweck) ---
+export const SERVICES = {
+  halvar: [
+    { id: 'sharpen', name: 'Waffe schärfen', slot: 'weapon', max: 5, per: 0.12, stat: 'dmg',
+      cost: [{ zahn: 2 }, { zahn: 4 }, { blutstein: 2 }, { blutstein: 4 }, { asche: 4 }], gold: [20, 60, 150, 350, 800] },
+    { id: 'order', name: 'Waffe bestellen', cost: [{ staub: 3 }], gold: [60], perLvl: 12 },
+  ],
+  kaspar: [
+    { id: 'reinforce', name: 'Rüstung verstärken', slot: 'chest', max: 5, per: 0.15, stat: 'armor',
+      cost: [{ leinen: 2 }, { leinen: 4 }, { staub: 4 }, { siegel: 3 }, { asche: 4 }], gold: [20, 60, 150, 350, 800] },
+  ],
+  ysolde: [
+    { id: 'reroll', name: 'Amulett neu weihen', slot: 'amulet', cost: [{ schwanz: 2 }], gold: [40], perLvl: 8 },
+  ],
+};
+
+// --- Tutorial: Schritte mit Bedingung (ausgewertet in main.js) ---
+export const TUTORIAL = [
+  { tab: 'traders', when: 'view:traders', text: 'Du bist erwacht. Drei Gestalten warten am Friedhofstor. Tippe unten auf <b>Händler</b>.' },
+  { tab: 'traders', when: 'view:kaspar', text: 'Jeder Händler hat Aufträge. Sieh dir <b>Bruder Kaspar</b> an – er will, dass du seinen Friedhof säuberst.' },
+  { tab: 'trips', when: 'active', text: 'Öffne <b>Streifzug</b> und wähle den <b>Friedhof</b>. Ein Streifzug kostet Glut und etwas Zeit.' },
+  { tab: 'trips', when: 'wins', text: 'Warte ab oder <b>eile</b> für 1 Gold. Dann tippe <b>Stellen</b> – der Kampf läuft von selbst.' },
+  { tab: 'hero', when: 'spent', text: 'Beute landet im <b>Beutel</b>. Unter <b>Held</b> antippen und anlegen. Unter <b>Werte</b> verteilst du deine Punkte.' },
+  { tab: 'traders', when: 'turnin', text: 'Erfülle den Auftrag und gib ihn beim Händler <b>ab</b>. Das bringt Ruf – mit Treue wird seine Ware besser.' },
+  { tab: 'crypt', when: 'view:crypt', text: 'In den <b>Krypten</b> warten Bosse. Jeder bringt eine Trophäe und einen <b>Glockensplitter</b>.' },
+  { tab: 'trips', when: 'view:npc', text: 'Der <b>Bettlerprophet</b> verkündet jeden Tag ein Omen. Tippe auf ihn, wenn du ihn siehst. Viel Glück, Verdammter.' },
+];
 
 export const CFG = {
   maxGlut: 100, glutRegenMin: 6,      // 1 Glut pro x Minuten (Echtzeit)
@@ -228,4 +307,8 @@ export const CRYPTS = [
     boss: { name: 'Der Metzger von Vhal', glyph: 'butcher' }, trophy: { crit: 0.03 } },
   { id: 'c4', name: 'Turm der Glocke', lvl: 20, glyph: 'horn', floors: ['Kultist der Glocke', 'Sumpfhexe', 'Blutfürst', 'Höllenbrut'],
     boss: { name: 'Der Glöckner', glyph: 'bellringer' }, trophy: { armorPct: 0.1, hpPct: 0.05 } },
+  { id: 'c5', name: 'Die Glocke', lvl: 26, shards: 4, floors: ['Kultist der Glocke', 'Wiedergänger', 'Blutfürst', 'Höllenbrut'],
+    boss: { name: 'Der Kronenlose', glyph: 'self' }, trophy: { dmgPct: 0.1, hpPct: 0.1 } },
 ];
+// Jeder erste Bosssieg (Krypta 1–4) bringt einen Glockensplitter. Vier öffnen "Die Glocke".
+export const SHARD_CRYPTS = ['c1', 'c2', 'c3', 'c4'];

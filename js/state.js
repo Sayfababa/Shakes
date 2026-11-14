@@ -1,9 +1,9 @@
-import { BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H } from './data.js';
+import { BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS } from './data.js';
 import { makeItem } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 export let S = null; // aktueller Spielstand
 
 export const now = () => Date.now();
@@ -12,7 +12,8 @@ export function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } c
 export function wipe() { try { localStorage.removeItem(KEY); } catch {} S = null; }
 
 const baseAttrs = cls => { const a = { str: 5, dex: 5, int: 5, con: 6, lck: 3 }; a[CLASSES[cls].main] = 10; return a; };
-const freshTraders = () => Object.fromEntries(Object.keys(TRADERS).map(k => [k, { rep: 0, q: 0, prog: [], shop: [], ts: 0 }]));
+const freshGiver = () => ({ rep: 0, q: 0, prog: [], shop: [], ts: 0 });
+const freshTraders = () => Object.fromEntries(GIVERS.map(k => [k, freshGiver()]));
 const baseOf = it => BASES.find(b => b.name === it.base) || { w: 1, h: 1, art: 'ring' };
 
 function migrate(d) {
@@ -27,13 +28,17 @@ function migrate(d) {
     const bag = d.bag; d.bag = []; S = d; for (const it of bag) addToBag(it);
     d.v = 3;
   }
+  if (d.v === 3) { // v3 -> v4: neue Questgeber, Omen, Splitter, Tutorial, Titel
+    for (const k of GIVERS) d.traders[k] ||= freshGiver();
+    d.omen = null; d.omens = 0; d.shards = []; d.tut = 99; d.title = null; d.v = 4;
+  }
   return d.v === SAVE_VERSION ? d : null;
 }
 
 export function newChar(name, cls) {
   const c = CLASSES[cls];
   S = { v: SAVE_VERSION, name, cls, lvl: 1, xp: 0, gold: 40, attrs: baseAttrs(cls), points: CFG.startPoints, tal: {}, respecs: 0,
-    crypt: { diff: 0, prog: {}, cd: 0 }, trophies: [], traders: freshTraders(), mats: {},
+    crypt: { diff: 0, prog: {}, cd: 0 }, trophies: [], traders: freshTraders(), mats: {}, omen: null, omens: 0, shards: [], tut: 0, title: null,
     equip: {}, bag: [], glut: CFG.maxGlut, glutTs: now(), active: null,
     journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0 };
   const wb = BASES.find(b => b.kind === c.weapon);
@@ -46,7 +51,7 @@ export function newChar(name, cls) {
 export const xpNeed = l => Math.round(80 * l ** 1.6);
 
 // --- Fortschritt: Punkte, Talente, Rang, Läuterung ---
-export const rank = (lvl = S.lvl) => [...RANKS].reverse().find(r => lvl >= r.lvl);
+export const rank = (lvl = S.lvl) => { const r = [...RANKS].reverse().find(r => lvl >= r.lvl); return S?.title ? { ...r, title: S.title } : r; };
 export const talentPointsTotal = () => Math.max(0, S.lvl - 1);
 export const talentPointsSpent = () => Object.values(S.tal).reduce((a, b) => a + b, 0);
 export const talentPoints = () => talentPointsTotal() - talentPointsSpent();
@@ -177,7 +182,7 @@ export function journal(t) { S.journal.unshift({ t, ts: now() }); S.journal.leng
 // --- Krypten ---
 export const cryptLvl = (c, floor) => c.lvl + DIFFICULTIES[S.crypt.diff].lvlAdd + Math.floor(floor * 0.6);
 export const cryptFloor = c => S.crypt.prog[c.id] || 0;           // 0..5 (5 = Boss besiegt)
-export const cryptOpen = c => S.lvl >= c.lvl + DIFFICULTIES[S.crypt.diff].lvlAdd - 2;
+export const cryptOpen = c => S.lvl >= c.lvl + DIFFICULTIES[S.crypt.diff].lvlAdd - 2 && (S.shards.length >= (c.shards || 0));
 export function cryptEnemy(c) {
   const f = cryptFloor(c), lvl = cryptLvl(c, f), boss = f === 4, d = DIFFICULTIES[S.crypt.diff];
   const m = boss ? c.boss : MONSTERS.find(x => x.name === c.floors[f]);
@@ -190,9 +195,59 @@ export function cryptWin(c) {
   const out = { bossKilled: f === 4 };
   if (out.bossKilled) {
     const key = c.id + ':' + S.crypt.diff;
+    if (SHARD_CRYPTS.includes(c.id) && !S.shards.includes(c.id)) { S.shards.push(c.id); out.shard = S.shards.length; }
     if (!S.trophies.some(t => t.key === key)) { out.trophy = { key, name: c.boss.name, diff: DIFFICULTIES[S.crypt.diff].name, eff: c.trophy }; S.trophies.push(out.trophy); }
     if (CRYPTS.every(x => cryptFloor(x) >= 5) && S.crypt.diff < DIFFICULTIES.length - 1) { S.crypt.diff++; S.crypt.prog = {}; out.diffUp = DIFFICULTIES[S.crypt.diff].name; }
   }
   return out;
+}
+
+// --- Tägliches Omen ---
+const dayNo = () => { const d = new Date(); return Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000); };
+export function omen() {
+  const day = dayNo();
+  if (!S.omen || S.omen.day !== day) {
+    const open = LOCATIONS.filter(locOpen), h = (day * 2654435761) >>> 0;
+    S.omen = { day, loc: open[h % open.length].id, type: OMENS[(h >>> 8) % OMENS.length].id, done: false };
+  }
+  return { ...S.omen, def: OMENS.find(o => o.id === S.omen.type), place: LOCATIONS.find(l => l.id === S.omen.loc) };
+}
+// Erster Sieg am Omen-Ort heute -> erfüllt. Gibt den Omen-Effekt zurück (oder null).
+// Während des Tutorials (und bis Stufe 3) keine Omen-Effekte – Neulinge sollen nicht an einem Elite-Gegner hängen bleiben.
+export function omenFor(locId) { if (S.lvl < 3) return null; const o = omen(); return o.loc === locId ? o : null; }
+export function fulfillOmen() { if (!S.omen.done) { S.omen.done = true; S.omens++; return true; } return false; }
+
+// --- Dienste (Schärfen, Verstärken, Bestellen, Neu weihen) ---
+const costOf = (sv, step) => sv.cost[Math.min(step, sv.cost.length - 1)];
+const goldOf = (sv, step) => (sv.gold[Math.min(step, sv.gold.length - 1)] || 0) + (sv.perLvl || 0) * S.lvl;
+export function serviceState(sv) {
+  const it = sv.slot ? S.equip[sv.slot] : null, step = sv.max ? (it?.up || 0) : 0;
+  const cost = costOf(sv, step), gold = goldOf(sv, step);
+  const costText = [...Object.entries(cost).map(([k, n]) => `${n}× ${MATS[k]}`), `${gold} Gold`].join(', ');
+  let reason = '';
+  if (sv.slot && !it) reason = 'Nichts angelegt';
+  else if (sv.max && step >= sv.max) reason = 'Vollendet';
+  else if (sv.id === 'reroll' && !Object.keys(it.mods).length) reason = 'Keine Zauber';
+  const enough = S.gold >= gold && Object.entries(cost).every(([k, n]) => (S.mats[k] || 0) >= n);
+  return { it, step, costText, reason, can: !reason && enough };
+}
+export function doService(tid, svId) {
+  const sv = SERVICES[tid].find(x => x.id === svId), st = serviceState(sv); if (!st.can) return null;
+  const cost = costOf(sv, st.step); S.gold -= goldOf(sv, st.step); for (const [k, n] of Object.entries(cost)) S.mats[k] -= n;
+  const it = st.it;
+  if (sv.id === 'sharpen') { it.dmg = it.dmg.map(v => Math.round(v * (1 + sv.per)) + 1); }
+  if (sv.id === 'reinforce') { it.armor = Math.round(it.armor * (1 + sv.per)) + 1; }
+  if (sv.max) { it.up = (it.up || 0) + 1; it.value = Math.round(it.value * 1.3); return it; }
+  if (sv.id === 'reroll') {
+    const fresh = makeItem(it.lvl, { slot: it.slot, minRarity: ['broken', 'normal', 'magic', 'rare', 'legendary'].indexOf(it.rarity), luck: S.attrs.lck });
+    it.mods = fresh.mods; return it;
+  }
+  if (sv.id === 'order') {
+    const w = makeItem(S.lvl + 1, { slot: 'weapon', cls: { weapon: CLASSES[S.cls].weapon }, minRarity: 2, luck: 40 });
+    if (w.kind !== CLASSES[S.cls].weapon) { const b = BASES.filter(x => x.kind === CLASSES[S.cls].weapon).pop(); Object.assign(w, { kind: b.kind, base: b.name, art: b.art, w: b.w, h: b.h, dmg: b.dmg.map(v => Math.round(v * (1 + S.lvl * 0.2))) }); }
+    if (!addToBag(w)) { S.gold += goldOf(sv, 0); for (const [k, n] of Object.entries(cost)) S.mats[k] += n; return null; }
+    return w;
+  }
+  return it;
 }
 export { ATTRS };

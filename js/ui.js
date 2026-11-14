@@ -1,6 +1,6 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
-import { MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H } from './data.js';
-import { S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor } from './state.js';
+import { MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL } from './data.js';
+import { S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
 
@@ -13,16 +13,33 @@ const effLine = e => Object.entries(e).map(([k, v]) => `${EFFECT_NAMES[k]}${k ==
 // Gemalte Monster/Bosse in assets/monsters/<glyph>.jpg, sonst SVG-Silhouette
 const MON_IMG = new Set(['gerlinde', 'aldemar', 'butcher', 'bellringer', 'ghul', 'fallen', 'skelett', 'grabraeuber', 'pestratte', 'kultist',
   'blutfuerst', 'sumpfhexe', 'knochenhund', 'gehaeuteter', 'hoellenbrut', 'wiedergaenger']);
-export const monsterArt = g => MON_IMG.has(g) ? `<img class="portrait monster" src="assets/monsters/${g}.jpg" alt="">`
+export const monsterArt = g => g === 'self' ? `<img class="portrait monster crownless" src="${P(S.cls)}" alt="">` : MON_IMG.has(g) ? `<img class="portrait monster" src="assets/monsters/${g}.jpg" alt="">`
   : `<div class="portrait monster"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#070403"/>${MON[g] || MON.skull}</svg></div>`;
 const npcArt = g => NPC_ART[g] ? `<div class="portrait npc"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#0a0705"/>${NPC_ART[g]}</svg></div>` : `<img class="portrait npc" src="assets/npcs/${g}.jpg" alt="">`;
 // Sprecher-Leiste: kleines Portrait + wechselnder Satz
-const say = id => { const n = NPCS[id], line = n.lines[Math.floor(Date.now() / 60000) % n.lines.length];
-  return `<section class="panel speaker">${npcArt(id)}<div><b>${n.name}</b> <span class="h2r">${n.role}</span><p class="lore">„${line}“</p></div></section>`; };
+const say = (id, line) => { const n = NPCS[id]; line ||= n.lines[Math.floor(Date.now() / 60000) % n.lines.length];
+  const mark = canComplete(id) ? '<span class="qmark">?</span>' : available(id) ? '<span class="qmark">!</span>' : '';
+  return `<section class="panel speaker" data-action="npc" data-n="${id}">${npcArt(id)}<div><b>${n.name}</b> <span class="h2r">${n.role}</span>${mark}<p class="lore">„${line}“</p></div></section>`; };
+const omenLine = () => { if (S.lvl < 3) return 'Ich sehe noch nichts für dich, Kind. Werde stärker – ab Stufe 3 spreche ich.'; const o = omen(); return `${o.place.name}: ${o.def.text}${o.done ? ' (erfüllt)' : ''}`; };
+
+// Quest-Zettel (für Händler und Figuren)
+function questNote(tid) {
+  const q = current(tid), objs = objectives(tid);
+  if (!q) return `<div class="note done"><p>„Du hast getan, worum ich dich bat. Mehr kann ich nicht verlangen.“</p></div>`;
+  if (!available(tid)) return `<div class="note sealed"><h4>${q.title}</h4><p>„Komm wieder, wenn du Stufe ${q.lvl} erreicht hast.“</p></div>`;
+  const r = q.rew, extra = [r.item ? `${SLOTS[r.item.slot]} (${RARITIES[r.item.rar].name})` : '', r.perk ? `Segen: ${r.perk.name}` : '', r.rep ? `${r.rep} Ruf` : ''].filter(Boolean);
+  const champOpen = q.champ && objs.some(o => !o.done) && Date.now() >= S.arenaTs;
+  return `<div class="note"><h4>${q.title}</h4><p>${q.text}</p>
+    <ul>${objs.map(o => `<li class="${o.done ? 'ok' : ''}">${o.label} <b>${o.cur}/${o.n}</b></li>`).join('')}</ul>
+    <div class="rew">Lohn: ${r.gold} Gold · ${r.xp} EP${extra.length ? ' · ' + extra.join(' · ') : ''}</div>
+    ${q.champ && objs.some(o => !o.done) ? `<button class="red" data-action="champ" data-t="${tid}" ${champOpen ? '' : 'disabled'}>Herausfordern: ${q.champ.name}</button>` : ''}
+    ${canComplete(tid) ? (q.choice ? `<div class="btns">${q.choice.map(c => `<button class="red" data-action="turnin" data-t="${tid}" data-c="${c.id}">${c.label}</button>`).join('')}</div>`
+      : `<button class="red" data-action="turnin" data-t="${tid}">Abgeben</button>`) : ''}</div>`;
+}
 
 // --- Items ---
 export function itemTip(it, cmp) {
-  const L = [`<div class="n r-${it.rarity}">${it.name}</div><div class="sub2">${rarName(it.rarity)} · ${SLOTS[it.slot]} · Stufe ${it.lvl}</div>`];
+  const L = [`<div class="n r-${it.rarity}">${it.name}${it.up ? ` +${it.up}` : ''}</div><div class="sub2">${rarName(it.rarity)} · ${SLOTS[it.slot]} · Stufe ${it.lvl}</div>`];
   if (it.dmg) L.push(`Schaden <b>${it.dmg[0]}–${it.dmg[1]}</b>`);
   if (it.armor) L.push(`Rüstung <b>${it.armor}</b>`);
   for (const [k, v] of Object.entries(it.mods)) L.push(`<span class="m">+${v} ${k === 'armor' ? 'Rüstung' : k === 'dmg' ? 'Schaden' : ATTRS[k]}</span>`);
@@ -37,19 +54,19 @@ export function itemTip(it, cmp) {
 const itemEl = (it, act) => `<div class="item r-${it.rarity}" data-tip="${it.id}" ${act}>${itemArt(it)}</div>`;
 
 // --- Rahmen ---
-export function hud() {
+export function hud(tut = '') {
   return `<header class="hud">
     <div class="hud-row"><span class="ttl">Aschenkrone</span>
       <span class="res"><span>Gold <b>${S.gold}</b></span><span>Stufe <b>${S.lvl}</b></span></span></div>
-    <div class="hud-row bars">
+    ${tut || `<div class="hud-row bars">
       <div><small>Erfahrung</small><div class="bar xp"><i style="width:${pct(S.xp, xpNeed(S.lvl))}%"></i></div></div>
       <div><small>Glut ${S.glut}</small><div class="bar glut"><i style="width:${pct(S.glut, CFG.maxGlut)}%"></i></div></div>
-    </div></header>`;
+    </div>`}</header>`;
 }
 export function navBar(view) {
   const tabs = [['hero', 'Held'], ['trips', 'Streifzug'], ['traders', 'Händler'], ['crypt', 'Krypta'], ['arena', 'Grube']];
-  const map = { stats: 'hero', talents: 'hero' };
-  const badge = { hero: S.points + talentPoints() > 0, crypt: Date.now() >= S.crypt.cd, traders: Object.keys(TRADERS).some(canComplete), trips: !S.active || Date.now() >= S.active.end };
+  const map = { stats: 'hero', talents: 'hero', npc: 'trips' };
+  const badge = { hero: S.points + talentPoints() > 0, crypt: Date.now() >= S.crypt.cd, traders: Object.keys(TRADERS).some(canComplete), arena: canComplete('vargo'), trips: !S.active || Date.now() >= S.active.end };
   const on = map[view] || view;
   return `<nav class="tabs">${tabs.map(([k, n]) => `<a class="${on === k ? 'on' : ''} ${badge[k] ? 'badge' : ''}" data-action="go" data-v="${k}">${n}</a>`).join('')}</nav>`;
 }
@@ -128,27 +145,37 @@ export function viewTrips() {
                  : `<button class="red big-btn" data-action="resolve">Stellen</button>`}</section>
       ${say('prophet')}<section class="panel grow journal"><h2>Tagebuch</h2>${S.journal.slice(0, 6).map(j => `<div>${j.t}</div>`).join('')}</section></div>`;
   }
-  return `<div class="trips">${LOCATIONS.map(l => { const open = locOpen(l), r = tripReward(l, 1, (l.sec[0] + l.sec[1]) / 2);
+  const o = omen();
+  return `<div class="col">${say('prophet', omenLine())}<div class="trips">${LOCATIONS.map(l => { const open = locOpen(l), r = tripReward(l, 1, (l.sec[0] + l.sec[1]) / 2);
+    const isOmen = open && S.lvl >= 3 && o.loc === l.id && !o.done;
     const wanted = new Set(Object.keys(TRADERS).filter(available).flatMap(t => current(t).obj.filter(o => o.at === l.id || l.mobs.includes(o.kill)).map(() => t)));
-    return `<section class="panel trip ${open ? '' : 'locked'} ${S.glut < l.glut ? 'tired' : ''}" ${open ? `data-action="trip" data-id="${l.id}"` : ''}>
+    return `<section class="panel trip ${open ? '' : 'locked'} ${isOmen ? 'omen' : ''} ${S.glut < l.glut ? 'tired' : ''}" ${open ? `data-action="trip" data-id="${l.id}"` : ''}>
+      ${isOmen ? `<span class="omentag">Omen: ${o.def.short}</span>` : ''}
       <h3>${l.name}${open && wanted.size ? '<span class="qmark" title="Auftrag">!</span>' : ''}</h3><p class="lore small">${l.text}</p>
       ${open ? `<div class="mobpics">${l.mobs.map(n => monsterArt(MONSTERS.find(m => m.name === n).glyph)).join('')}</div>
       <div class="tripinfo"><span>Stufe ${locLvl(l)}</span><span>${fmtT(l.sec[0])}–${fmtT(l.sec[1])}</span><span>${l.glut} Glut</span><span>~${r.gold} Gold</span></div>` : `<div class="mobs">Erst ab Stufe ${l.lvl}</div>`}
-    </section>`; }).join('')}</div>`;
+    </section>`; }).join('')}</div></div>`;
+}
+
+// --- Figuren mit Questketten (Vargo, Ilse, Prophet) ---
+export function viewNpc(id) {
+  const n = NPCS[id];
+  let extra = '';
+  if (id === 'prophet') { const o = omen();
+    extra = `<section class="panel"><h2>Omen des Tages <span class="h2r">${o.done ? 'erfüllt' : 'offen'} · ${S.omens} erfüllt</span></h2>
+      <p class="lore">„${o.def.text}“</p><p class="small">Ort: <b>${o.place.name}</b> · ${o.def.short}</p>
+      <div class="shards">${SHARD_CRYPTS.map(c => `<i class="${S.shards.includes(c) ? 'on' : ''}"></i>`).join('')}<span class="small dim">Glockensplitter ${S.shards.length}/4</span></div></section>`; }
+  if (id === 'vargo') extra = `<section class="panel"><p class="small">Deine Ehre: <b>${S.honor}</b> · Siege: <b>${S.wins}</b></p></section>`;
+  return `<div class="col trader"><section class="panel npcrow">${npcArt(id)}
+      <div><h2>${n.name} <span class="h2r">${n.role}</span></h2><p class="lore">„${n.lines[Math.floor(Date.now() / 60000) % n.lines.length]}“</p></div></section>
+    ${questNote(id)}${extra}<button data-action="go" data-v="${id === 'vargo' ? 'arena' : id === 'ilse' ? 'crypt' : 'trips'}">Zurück</button></div>`;
 }
 
 // --- Händler ---
 export function viewTrader(tid) {
   const t = TRADERS[tid], st = S.traders[tid], L = loyalty(tid), q = current(tid);
   const next = L + 1 < t.need.length ? `${st.rep}/${t.need[L + 1]} Ruf${S.lvl < t.lvl[L + 1] ? ` · Stufe ${t.lvl[L + 1]}` : ''}` : 'Höchste Treue';
-  const objs = objectives(tid);
-  let note;
-  if (!q) note = `<div class="note done"><p>„Du hast mehr getan als jeder andere. Komm wieder, wenn die Glocke erneut schlägt.“</p></div>`;
-  else if (!available(tid)) note = `<div class="note sealed"><h4>${q.title}</h4><p>„Komm wieder, wenn du Stufe ${q.lvl} erreicht hast. Vorher bist du mir keine Hilfe.“</p></div>`;
-  else note = `<div class="note"><h4>${q.title}</h4><p>${q.text}</p>
-    <ul>${objs.map(o => `<li class="${o.done ? 'ok' : ''}">${o.label} <b>${o.cur}/${o.n}</b></li>`).join('')}</ul>
-    <div class="rew">Lohn: ${q.rew.gold} Gold · ${q.rew.xp} EP · ${q.rew.rep} Ruf${q.rew.item ? ` · ${SLOTS[q.rew.item.slot]} (${RARITIES[q.rew.item.rar].name})` : ''}</div>
-    ${canComplete(tid) ? `<button class="red" data-action="turnin" data-t="${tid}">Abgeben</button>` : ''}</div>`;
+  const note = questNote(tid);
   const shop = shopFor(tid);
   return `<div class="col trader">
     <nav class="subtabs">${Object.entries(TRADERS).map(([k, x]) => `<a class="${k === tid ? 'on' : ''} ${canComplete(k) ? 'badge' : ''}" data-action="trader" data-t="${k}">${x.name}</a>`).join('')}</nav>
@@ -157,6 +184,9 @@ export function viewTrader(tid) {
         <div class="loyal"><span>Treue <b>${LOYALTY[L]}</b></span><div class="bar rep"><i style="width:${L + 1 < t.need.length ? pct(st.rep - t.need[L], t.need[L + 1] - t.need[L]) : 100}%"></i></div><small>${next}</small></div></div>
     </section>
     ${note}
+    <section class="panel services">${(SERVICES[tid] || []).map(sv => { const st = serviceState(sv);
+      return `<button class="svc" data-action="service" data-t="${tid}" data-s="${sv.id}" ${st.can ? '' : 'disabled'}>
+        <b>${sv.name}${sv.max && st.it ? ` +${st.step}` : ''}</b><small>${st.reason || st.costText}</small></button>`; }).join('')}</section>
     <section class="panel shop"><div class="invhead"><span>Ware</span><small class="dim">bessere Ware mit höherer Treue</small></div>
       <div class="shoprow">${shop.map(it => `<div class="sitem r-${it.rarity}" data-tip="${it.id}" data-action="buy" data-t="${tid}" data-id="${it.id}">${itemArt(it)}<span class="price ${S.gold < it.price ? 'no' : ''}">${it.price}</span></div>`).join('') || '<span class="dim">Ausverkauft.</span>'}</div></section>
   </div>`;
@@ -165,13 +195,13 @@ export function viewTrader(tid) {
 // --- Krypten ---
 export function viewCrypts() {
   const d = DIFFICULTIES[S.crypt.diff], cd = Math.max(0, Math.ceil((S.crypt.cd - Date.now()) / 1000));
-  return `<div class="col">${say('ilse')}<section class="panel"><h2>Die Krypten <span class="h2r">${d.name} · ${cd ? `Erholung <span data-until="${S.crypt.cd}">${fmtT(cd)}</span>` : 'bereit'}</span></h2></section>
+  return `<div class="col">${say('ilse')}<div class="crypthead"><span>Die Krypten · ${d.name}</span><span>${cd ? `Erholung <span data-until="${S.crypt.cd}">${fmtT(cd)}</span>` : 'bereit'}</span></div>
     ${CRYPTS.map(c => { const f = cryptFloor(c), open = cryptOpen(c), done = f >= 5;
       const troph = S.trophies.some(t => t.key === c.id + ':' + S.crypt.diff);
       return `<section class="panel crypt ${!open ? 'locked' : ''} ${done ? 'done' : ''}" ${open && !done && !cd ? `data-action="crypt" data-id="${c.id}"` : ''}>
         ${monsterArt(c.boss.glyph)}
         <div><h3>${c.name}</h3>
-          <p class="small">${!open ? `Versiegelt bis Stufe ${c.lvl + d.lvlAdd - 2}` : done ? `${c.boss.name} ist gefallen.` : f === 4 ? `<span class="hot">${c.boss.name}</span>` : `Ebene ${f + 1}: ${c.floors[f]} · Stufe ${cryptLvl(c, f)}`}</p>
+          <p class="small">${!open ? (c.shards && S.shards.length < c.shards ? `Versiegelt · Glockensplitter ${S.shards.length}/${c.shards}` : `Versiegelt bis Stufe ${c.lvl + d.lvlAdd - 2}`) : done ? `${c.boss.name} ist gefallen.` : f === 4 ? `<span class="hot">${c.boss.name}</span>` : `Ebene ${f + 1}: ${c.floors[f]} · Stufe ${cryptLvl(c, f)}`}</p>
           <div class="floors">${[0, 1, 2, 3, 4].map(i => `<i class="${i < f ? 'on' : ''} ${i === 4 ? 'boss' : ''}"></i>`).join('')}</div>
           <div class="dim small">Trophäe: ${effLine(c.trophy)}${troph ? ' · errungen' : ''}</div></div></section>`; }).join('')}</div>`;
 }
@@ -202,11 +232,19 @@ export function viewFight(F) {
 }
 
 export function viewTurnin(r, tid) {
-  return `<div class="col"><section class="panel turnin">${npcArt(TRADERS[tid].glyph)}<h2>${r.q.title}</h2>
-    <p class="lore">„Gut. Das hier ist deins.“ – ${TRADERS[tid].name}</p>
+  return `<div class="col"><section class="panel turnin">${npcArt(TRADERS[tid]?.glyph || tid)}<h2>${r.q.title}</h2>
+    <p class="lore">„Gut. Das hier ist deins.“ – ${(TRADERS[tid] || NPCS[tid]).name}</p>
     <p>${r.gold} Gold · ${r.xp} EP · ${r.rep} Ruf</p>
     ${r.item ? `<p>Erhalten: <span class="r-${r.item.rarity}">${r.item.name}</span>${r.item.sold ? ' <i class="dim">(Beutel voll, verkauft)</i>' : ''}</p>` : ''}
     ${r.up ? `<p class="hot">Stufe ${S.lvl}! ${r.up * CFG.attrPerLevel} Attributpunkte, ${r.up} Talentpunkt</p>` : ''}
     ${r.loyaltyUp ? `<p class="gold">Treue steigt auf ${LOYALTY[loyalty(tid)]}. Neue Ware.</p>` : ''}
-    <button class="red" data-action="trader" data-t="${tid}">Weiter</button></section></div>`;
+    ${r.choice ? `<p class="lore">${r.choice.text}</p><p class="gold">Du bist nun: ${r.choice.title}</p>` : ''}
+    ${r.perks.map(p => `<p class="r-legendary">Segen: ${p.name} (${effLine(p.eff)})</p>`).join('')}
+    <button class="red" data-action="${TRADERS[tid] ? 'trader' : 'npc'}" data-t="${tid}" data-n="${tid}">Weiter</button></section></div>`;
+}
+
+// Tutorial-Hinweis (schwebt über den Tabs, ändert das Layout nicht)
+export function tutorial(step) {
+  const t = TUTORIAL[step]; if (!t) return '';
+  return `<div class="tut"><div class="tutin"><b>${step + 1}/${TUTORIAL.length}</b> ${t.text}</div><button class="tiny" data-action="tutskip">Überspringen</button></div>`;
 }

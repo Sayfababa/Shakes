@@ -1,4 +1,4 @@
-import { CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MATS, MONSTERS } from './data.js';
+import { CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MATS, MONSTERS, TUTORIAL, TRADERS, QUESTS } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import { fight } from './combat.js';
@@ -7,7 +7,7 @@ import { pick, roll, chance } from './rng.js';
 import * as UI from './ui.js';
 
 const app = document.getElementById('app'), tip = document.getElementById('tip');
-let view = 'hero', pickCls = null, F = null, rival = null, fightTimer = null, trader = 'halvar', turnin = null;
+let view = 'hero', pickCls = null, F = null, rival = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
 
 function render() {
   const S = G.S;
@@ -15,13 +15,26 @@ function render() {
   G.tickGlut();
   const views = {
     fight: () => UI.viewFight(F), trips: UI.viewTrips, stats: UI.viewStats, talents: UI.viewTalents, crypt: UI.viewCrypts,
-    traders: () => turnin ? UI.viewTurnin(turnin, trader) : UI.viewTrader(trader),
+    traders: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewTrader(trader),
+    npc: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewNpc(npc),
     arena: () => UI.viewArena(rival ||= makeRival()), hero: UI.viewHero,
   };
   if (view === 'fight' && !F) view = 'hero';
-  app.innerHTML = UI.hud() + `<main>${(views[view] || views.hero)()}</main>` + UI.navBar(view === 'fight' ? F.back : view);
+  tutCheck();
+  app.innerHTML = UI.hud(view === 'fight' ? '' : UI.tutorial(S.tut)) + `<main>${(views[view] || views.hero)()}</main>` + UI.navBar(view === 'fight' ? F.back : view);
   const log = document.getElementById('log'); if (log) log.scrollTop = log.scrollHeight;
   G.save();
+}
+
+// Tutorial: nächster Schritt, sobald die Bedingung erfüllt ist
+function tutCheck() {
+  const S = G.S, t = TUTORIAL[S.tut]; if (!t) return;
+  const [k, v] = t.when.split(':');
+  const ok = k === 'view' ? (v === 'kaspar' ? view === 'traders' && trader === 'kaspar' : view === v)
+    : k === 'active' ? !!S.active || S.wins > 0 : k === 'wins' ? S.wins > 0
+    : k === 'spent' ? S.points < CFG.startPoints + (S.lvl - 1) * CFG.attrPerLevel || Object.keys(S.equip).length > 1
+    : k === 'turnin' ? Object.values(S.traders).some(t => t.q > 0) : false;
+  if (ok) { S.tut++; tutCheck(); }
 }
 
 // Gegnerischer "Verdammter" für die Grube
@@ -73,7 +86,7 @@ const actions = {
   create: () => { const n = document.getElementById('nm').value.trim() || 'Namenloser'; G.newChar(n, pickCls);
     G.journal(`${n} erwacht im Grab. Drei Gestalten warten am Friedhofstor.`); view = 'traders'; render(); },
   wipe: () => { if (confirm('Charakter wirklich vernichten?')) { G.wipe(); pickCls = null; render(); } },
-  go: d => { view = d.v; turnin = null; if (view !== 'fight') { F = null; clearInterval(fightTimer); } render(); },
+  go: d => { view = d.v; turnin = null; if (d.v === 'npc') npc = d.n || npc; if (view !== 'fight') { F = null; clearInterval(fightTimer); } render(); },
   attr: d => { G.addAttr(d.k); render(); },
   learn: d => { if (G.learn(+d.b, +d.t)) render(); },
   respec: () => { const c = G.respecCost(); if (confirm(c ? `Für ${c} Gold alle Attribute und Talente zurücksetzen?` : 'Attribute und Talente zurücksetzen? (einmalig gratis)')) { G.respec(); render(); } },
@@ -87,20 +100,44 @@ const actions = {
     const bought = { ...it }; delete bought.price;
     if (!G.addToBag(bought)) return alert('Kein Platz im Beutel.');
     S.gold -= it.price; shop.splice(i, 1); render(); },
-  turnin: d => { const r = Q.complete(d.t); if (r) { turnin = r; render(); } },
+  turnin: d => { const r = Q.complete(d.t, d.c); if (r) { turnin = r; turninBy = d.t; if (!TRADERS[d.t]) view = 'npc'; render(); } },
+  npc: d => { npc = d.n || d.t; turnin = null; view = 'npc'; render(); },
+  tutskip: () => { G.S.tut = 99; render(); },
+  service: d => { const it = G.doService(d.t, d.s); if (!it) return alert('Nicht möglich.'); hideTip(); render();
+    setTimeout(() => alert(`${it.name}${it.up ? ' +' + it.up : ''} – erledigt.`), 50); },
+  champ: d => {
+    const S = G.S, q = Q.current(d.t); if (!q?.champ || Date.now() < S.arenaTs) return;
+    const c = q.champ, cl = CLASSES[c.cls], lvl = S.lvl + c.lvlAdd;
+    const p = { name: c.name, cls: c.cls, lvl, attrs: { str: 5, dex: 5, int: 5, con: 6, lck: 3 }, equip: {}, tal: {}, trophies: [] };
+    for (const k in p.attrs) p.attrs[k] += Math.round((lvl - 1) * (k === cl.main ? 3.4 : k === 'con' ? 2 : 0.3));
+    for (let i = 0; i < lvl - 1; i++) { const t = TALENTS[c.cls][i % 3].nodes, n = t.find(x => (p.tal[x.id] || 0) < x.max); if (n) p.tal[n.id] = (p.tal[n.id] || 0) + 1; }
+    for (const s of ['weapon', 'chest', 'helm', 'boots', 'gloves']) p.equip[s] = makeItem(lvl, { slot: s, cls: cl, minRarity: 2 });
+    S.arenaTs = Date.now() + 60000;
+    startFight(G.stats(), G.stats(p), 'npc', win => {
+      if (!win) { S.deaths++; return `${c.name} lässt dich im Sand liegen.`; }
+      S.wins++; S.honor += 25; Q.event({ type: 'champ', tid: d.t }); G.journal(`${c.name} ist gefallen.`); return '+25 Ehre. Die Menge tobt.';
+    });
+  },
   trip: d => { if (G.startTrip(d.id)) render(); },
   rush: () => { const S = G.S; if (S.gold >= 1) { S.gold -= 1; S.active.end = Date.now(); } render(); },
   resolve: () => {
     const S = G.S, a = S.active, l = LOCATIONS.find(x => x.id === a.loc);
-    const m = G.makeMonster(G.locLvl(l), a.diff, MONSTERS.find(x => x.name === a.mob));
+    const om = G.omenFor(l.id), od = om && !om.done ? om.def : null;
+    const m = G.makeMonster(G.locLvl(l), a.diff * (od?.diff || 1), MONSTERS.find(x => x.name === a.mob));
+    if (od?.diff) m.name = 'Fürst: ' + m.name;
     startFight(G.stats(), m, 'trips', win => {
       S.active = null;
       if (!win) { S.deaths++; G.journal(`${m.name} in ${l.name} hat mich zerrissen.`); return 'Die Asche spuckt dich wieder aus.'; }
-      S.wins++; Q.event({ type: 'kill', mob: m.name, loc: l.id });
-      const r = G.tripReward(l, a.diff, a.sec); S.gold += r.gold; const up = G.gainXp(r.xp);
-      const mat = dropMat(m), it = dropItem(m.lvl, CFG.lootChance);
-      G.journal(`${m.name} in ${l.name} erschlagen.`);
-      return `+${r.gold} Gold · +${r.xp} EP${mat}${lootLine(it)}${lvlLine(up)}`;
+      S.wins++; Q.event({ type: 'kill', mob: a.mob, loc: l.id });
+      const r = G.tripReward(l, a.diff, a.sec);
+      if (od) { r.gold = Math.round(r.gold * (od.gold || 1)); r.xp = Math.round(r.xp * (od.xp || 1)); }
+      S.gold += r.gold; const up = G.gainXp(r.xp);
+      let mat = dropMat(m); if (od?.mats && m.mat) { G.addMat(m.mat, 2); mat += `<br>Omen: ${MATS[m.mat]} ×2`; }
+      const it = od?.loot ? dropItem(m.lvl, 1, od.loot) : dropItem(m.lvl, CFG.lootChance);
+      let omenTxt = '';
+      if (od && G.fulfillOmen()) { Q.event({ type: 'omen' }); omenTxt = '<br><b class="gold">Das Omen hat sich erfüllt.</b>'; G.journal(`Das Omen über ${l.name} hat sich erfüllt.`); }
+      else G.journal(`${m.name} in ${l.name} erschlagen.`);
+      return `+${r.gold} Gold · +${r.xp} EP${mat}${lootLine(it)}${omenTxt}${lvlLine(up)}`;
     });
   },
   crypt: d => {
@@ -114,7 +151,7 @@ const actions = {
       S.gold += gold; const up = G.gainXp(xp);
       const mat = dropMat(m), it = dropItem(m.lvl, boss ? 1 : 0.35, boss ? 3 : 2);
       G.journal(boss ? `${m.name} ist gefallen. ${c.name} schweigt.` : `${m.name} in ${c.name} erschlagen.`);
-      return `+${gold} Gold · +${xp} EP${mat}${lootLine(it)}${lvlLine(up)}${r.trophy ? `<br><b class="r-legendary">Trophäe: ${r.trophy.name}</b>` : ''}${r.diffUp ? `<br><b class="hot">${r.diffUp} erwacht.</b>` : ''}`;
+      return `+${gold} Gold · +${xp} EP${mat}${lootLine(it)}${lvlLine(up)}${r.trophy ? `<br><b class="r-legendary">Trophäe: ${r.trophy.name}</b>` : ''}${r.shard ? `<br><b class="gold">Glockensplitter ${r.shard}/4</b>` : ''}${r.diffUp ? `<br><b class="hot">${r.diffUp} erwacht.</b>` : ''}`;
     });
   },
   rival: () => { rival = makeRival(); render(); },
