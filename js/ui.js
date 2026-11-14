@@ -1,6 +1,6 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
-import { TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
-import { forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
+import { CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
+import { craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
 import { gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance } from './game.js';
@@ -54,6 +54,7 @@ export function itemTip(it, cmp) {
     L.push(`<span class="m ${t && t <= 2 ? 'hi' : ''}">+${b}${k === 'haste' ? ' % Zaubertempo' : ' ' + (k === 'armor' ? 'Rüstung' : k === 'dmg' ? 'Schaden' : ATTRS[k])}${t ? ` <i class="tier t${t}">${TIERS[t - 1].name}</i>` : ''}</span>`); }
   if (it.fx) L.push(`<span class="special">${it.unique ? '' : '✦ '}${effLine(it.fx)}</span>`);
   if (it.lore) L.push(`<span class="lore small">„${it.lore}“</span>`);
+  if (it.crafted) L.push(`<span class="gold small">Geschmiedet von ${it.crafted}</span>`); else if (it.glutMax) L.push(`<span class="sub2">Schmiedeglut ${it.glut}/${it.glutMax}${it.sealed ? ' · 1 Bonus versiegelt' : ''}</span>`);
   if (it.runes?.length || it.slot) { const rn = it.runes || []; if (rn.length) L.push(`<span class="rune">Runen ${rn.length}/${FORGE.maxRunes}: ${rn.map(r => `${r.mat ? `<img class="tiprune" src="assets/forge/r_${r.mat}.webp" alt="">` : ''}${r.name} +${r.v}`).join(', ')}</span>`); }
   if (it.slot === 'weapon') { const ck = CLASSES[S.cls].weapon; L.push(it.kind === ck ? `<span class="gold">Waffe deiner Klasse</span>`
     : `<span class="down">Fremde Waffe: Schaden −${Math.round((1 - CFG.offWeapon) * 100)} %, Zauber −${Math.round((1 - CFG.offWeaponSpell) * 100)} %</span>`); }
@@ -348,7 +349,8 @@ export function viewForge(sel, res) {
       <p class="big">${res.rune.name}: <b class="up">+${res.v} ${STAT_NAME(res.rune.stat)}</b></p><p>in <span class="r-${res.it.rarity}">${res.it.name}</span> · ${res.score}/${FORGE.hits * 3} Punkte</p>
       <p class="dim small">Runenplätze: ${res.it.runes.length}/${FORGE.maxRunes}</p></section>
     <div class="btns"><button data-action="forgeagain">Noch einmal</button><button class="red" data-action="${S.active ? 'go" data-v="trips' : 'trader" data-t="halvar'}">${S.active ? 'Zum Streifzug' : 'Zurück'}</button></div></div>`;
-  return `<div class="col forge">
+  if (sel.mode === 'craft') return viewCraft(sel);
+  return `<div class="col forge">${forgeTabs(sel)}
     <section class="panel smithy" id="forgeplay"><div class="scene"><img src="assets/forge/scene.jpg" alt="">
       <div class="iron"><div class="fz z1"></div><div class="fz z2"></div><div class="fz z3"></div><div class="fmark"></div></div><div class="sparks"></div>
       <div class="fcall"></div><div class="pips">${Array.from({ length: FORGE.hits }, (_, i) => `<i data-i="${i}"></i>`).join('')}</div></div>
@@ -360,3 +362,26 @@ export function viewForge(sel, res) {
     <section class="panel"><h2>Gegenstand <span class="h2r">${FORGE.maxRunes} Runen je Teil</span></h2><div class="fslots">${tg.map(t => `<div class="fslot r-${t.it.rarity} ${sel.slot === t.slot ? 'on' : ''} ${t.free ? '' : 'full'}" data-action="forgeslot" data-s="${t.slot}">${itemArt(t.it)}<i>${FORGE.maxRunes - t.free}/${FORGE.maxRunes}</i></div>`).join('')}</div></section></div>`;
 }
 const npcSay = (id, line) => `<section class="panel speaker">${npcArt(TRADERS[id].glyph)}<div><b>${TRADERS[id].name}</b> <span class="h2r">Schmiede</span><p class="lore">„${line}“</p></div></section>`;
+
+const forgeTabs = sel => `<nav class="subtabs"><a class="${sel.mode !== 'craft' ? 'on' : ''}" data-action="forgemode" data-m="rune">Runen</a><a class="${sel.mode === 'craft' ? 'on' : ''}" data-action="forgemode" data-m="craft">Umschmieden</a></nav>`;
+// --- Umschmieden (Crafting) ---
+function viewCraft(sel) {
+  const list = craftItems(), it = list.find(x => x.id === sel.item) || null;
+  if (it) craftCheck(it, 'values');   // legt bei alten Items die Glut fest
+  const card = !it ? '<p class="dim small">Wähle ein magisches, seltenes oder legendäres Item. Einzigartiges lässt sich nicht umschmieden.</p>' : (() => {
+    const base = baseMods(it), rows = Object.entries(base).map(([k, v]) => { const t = it.tiers?.[k] || 3, sealed = it.sealed === k, picked = sel.stat === k;
+      return `<div class="caff ${sealed ? 'sealed' : ''} ${picked ? 'on' : ''} ${sel.changed?.includes(k) ? 'new' : ''}" data-action="craftstat" data-k="${k}"><span>+${v} ${STAT_NAME(k)}</span><i class="tier t${t}">${TIERS[t - 1].name}</i>${sealed ? '<b class="seal">versiegelt</b>' : ''}</div>`; }).join('');
+    return `<div class="ccard"><div class="cname r-${it.rarity}">${it.name}</div>
+      <div class="cglut"><span>Schmiedeglut</span><div class="bar glutbar"><i style="width:${it.glutMax ? it.glut / it.glutMax * 100 : 0}%"></i></div><b>${it.glut}/${it.glutMax}</b></div>
+      <div class="caffs">${rows || '<span class="dim small">Keine eigenen Boni.</span>'}</div>
+      ${it.fx ? `<div class="small special-l">✦ ${effLine(it.fx)} <i class="dim">(bleibt)</i></div>` : ''}${it.runes?.length ? `<div class="small rune">${it.runes.map(r => r.name + ' +' + r.v).join(', ')} <i class="dim">(bleibt)</i></div>` : ''}
+      ${it.crafted ? `<div class="small gold">Vollendet von ${it.crafted}</div>` : ''}</div>`; })();
+  const ops = CRAFT.ops.map(op => { const err = it ? craftCheck(it, op.id, sel.stat) : 'Kein Item';
+    return `<button class="cop" data-action="craftop" data-o="${op.id}" ${err ? 'disabled' : ''} title="${op.text}">${matImg(op.mat)}<b>${op.name}</b><small>${MATS[op.mat]} ${S.mats[op.mat] || 0}/${op.n} · Glut ${op.glut}+</small></button>`; }).join('');
+  const why = it && CRAFT.ops.map(op => craftCheck(it, op.id, sel.stat)).find(e => e && !/Material|Bonus antippen/.test(e));
+  return `<div class="col forge craft">${forgeTabs(sel)}
+    <section class="panel"><div class="cpick">${list.map(x => `<div class="fslot r-${x.rarity} ${x.id === sel.item ? 'on' : ''} ${x.crafted ? 'full' : ''}" data-action="craftpick" data-id="${x.id}">${itemArt(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`).join('') || '<span class="dim small">Nichts zum Umschmieden. Magische Items fallen bei Monstern und Händlern.</span>'}</div></section>
+    <section class="panel grow">${card}</section>
+    <section class="panel"><div class="cops">${ops}</div>
+      <p class="small cmsg">${sel.msg || (it ? `Je Eingriff ${craftGold(it)} Gold · ${sel.stat ? `<b>${STAT_NAME(sel.stat)}</b> gewählt` : 'zum Versiegeln einen Bonus antippen'}${why ? ` · <span class="down">${why}</span>` : ''}` : 'Material bestimmt den Eingriff, Schmiedeglut wie oft.')}</p></section></div>`;
+}

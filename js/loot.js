@@ -1,4 +1,4 @@
-import { BASES, RARITIES, AFFIXES, LEGEND_NAMES, CFG, TIERS, SPECIALS, SPECIAL_CHANCE, SPECIAL_MIN_LVL, UNIQUES, UNIQUE_CHANCE } from './data.js';
+import { CRAFT, BASES, RARITIES, AFFIXES, LEGEND_NAMES, CFG, TIERS, SPECIALS, SPECIAL_CHANCE, SPECIAL_MIN_LVL, UNIQUES, UNIQUE_CHANCE } from './data.js';
 import { roll, pick, weighted, uid, rand } from './rng.js';
 
 // Bonus-Stufe würfeln: hohe Stufen (I, II) erst ab bestimmter Gegenstandsstufe
@@ -42,6 +42,7 @@ export function makeItem(lvl, { luck = 0, slot, slots, cls, minRarity = 0 } = {}
     if (sc && ilvl >= SPECIAL_MIN_LVL && rand() < sc) { const sp = pick(SPECIALS); it.fx = { ...sp.eff }; it.special = sp.id; }
     it.name = nameOf(it, base, chosen);
   }
+  if (CRAFT.glut[rar.id] && !it.unique) it.glut = it.glutMax = CRAFT.glut[rar.id] + roll(0, CRAFT.glutRand);
   it.value = itemValue(it, rar);
   return it;
 }
@@ -58,6 +59,9 @@ export function itemValue(it, rar = RARITIES.find(r => r.id === it.rarity)) {
   return Math.round((4 + it.lvl * 3) * rar.mult ** 3 * (1 + Object.keys(it.mods).length * 0.4 + tierBonus) * (it.special ? 2 : 1) * (it.unique ? 3 : 1));
 }
 
+export const renameMagic = it => { if (it.rarity !== 'magic') return; const st = Object.keys(it.tiers || {}); const aff = st.map(k => AFFIXES.find(a => a.stat === k)).filter(Boolean);
+  const sp = it.special ? SPECIALS.find(s => s.id === it.special) : null;
+  it.name = [aff[0]?.pre, it.base, sp ? null : aff[1]?.suf].filter(Boolean).join(' ') + (sp ? ' ' + sp.name : ''); };
 function nameOf(it, base, aff) {
   const sp = it.special ? SPECIALS.find(s => s.id === it.special) : null;
   let n;

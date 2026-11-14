@@ -55,6 +55,17 @@ let failures = 0;
     for (let i = 0; i < 5; i++) { await p.waitForTimeout(260); await tap('[data-action=forgehit]'); if (!i) await p.screenshot({ path: `${OUT}/${tag}-forgeplay.png` }); }
     await p.waitForTimeout(700); await chk('forgeres');
     if (!(await p.$('.forgeres'))) { failures++; console.log(`FEHLER ${tag}: Schmieden ohne Ergebnis`); }
+    // Umschmieden: seltenes Item, Bonus versiegeln, Werte würfeln, Siegel muss halten
+    await p.evaluate(async () => { const L = await import('./js/loot.js'); const G = await import('./js/state.js');
+      let it; do it = L.makeItem(25, { slot: 'amulet', minRarity: 3 }); while (it.unique || it.rarity !== 'rare');
+      G.S.bag = []; G.addToBag(it); for (const k of ['siegel', 'asche', 'staub', 'blutstein', 'leinen']) G.S.mats[k] = 20; G.S.gold = 99999; G.save(); });
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=traders]'); await tap('[data-t=halvar]'); await tap('[data-v=forge]');
+    await tap('[data-action=forgemode][data-m=craft]'); await tap('.cpick [data-action=craftpick]'); await chk('craft');
+    const k = await p.evaluate(() => document.querySelector('.caff')?.dataset.k); await tap(`.caff[data-k="${k}"]`); await tap('[data-o=seal]');
+    const v0 = await p.evaluate(() => document.querySelector('.caff.sealed span')?.textContent);
+    for (let i = 0; i < 3; i++) await tap('[data-o=values]');
+    const v1 = await p.evaluate(() => document.querySelector('.caff.sealed span')?.textContent); await chk('craft2');
+    if (!v0 || v0 !== v1) { failures++; console.log(`FEHLER ${tag}: Siegel hält nicht (${v0} → ${v1})`); }
     if (errs.length) { failures++; console.log(`FEHLER ${tag} JS:`, errs); }
     await c.close();
   }

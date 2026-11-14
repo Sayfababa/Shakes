@@ -71,6 +71,6 @@ Pillars of Eternity – Crafting nicht als Pflichtpflege (https://gamegene.app/l
 Ohne GameGene-Beleg, aus Genre-Wissen: D2 (Uniques, Runen als Währung), PoE (Material = Geld, „Präfixe gesperrt“), Last Epoch (Schmiedepotenzial), D3/D4 (einen Bonus neu würfeln).
 
 1. **Erledigt:** Bonus-Stufen I–V, Sonderboni (13), Einzigartige (14), Wert nach Stufe/Sonderbonus, Siegel gegen Bearbeiten.
-2. Crafting: Kultistensiegel versiegelt einen Bonus, Höllenasche würfelt unversiegelte neu, Knochenstaub nur Werte, Blutstein fügt hinzu, Grableinen tilgt. Jedes Item hat Schmiedeglut (Budget) → kein perfektes Craften, Funde bleiben wertvoll. Schmiedezeichen (Name) auf fertigen Items.
+2. **Erledigt:** Crafting: Kultistensiegel versiegelt einen Bonus, Höllenasche würfelt unversiegelte neu, Knochenstaub nur Werte, Blutstein fügt hinzu, Grableinen tilgt. Jedes Item hat Schmiedeglut (Budget) → kein perfektes Craften, Funde bleiben wertvoll. Schmiedezeichen (Name) auf fertigen Items.
 3. Basar mit NPC-Käufern (Preise, Gebühren, Item-Format für später).
 4. Server + Konten + echter Handel (Items serverseitig erzeugen; `S.tampered` → kein Handel).

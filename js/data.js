@@ -119,6 +119,22 @@ export const FORGE = {
   grades: [{ min: 15, name: 'Makellos', adj: 'Makellose', q: 2.2 }, { min: 12, name: 'Meisterhaft', adj: 'Meisterhafte', q: 1.6 }, { min: 7, name: 'Solide', adj: 'Solide', q: 1 }, { min: 0, name: 'Grob', adj: 'Grobe', q: 0.5 }],
 };
 
+// --- Umschmieden (Crafting, Schritt 2): Material = Werkzeug. Jeder Eingriff kostet Schmiedeglut des Items. ---
+// Ist die Glut aufgebraucht, ist das Item vollendet und trägt den Namen seines Schmieds.
+export const CRAFT = {
+  glut: { magic: 16, rare: 24, legendary: 30 }, glutRand: 6,      // Startglut je Seltenheit (+0..glutRand)
+  maxAff: { magic: 2, rare: 4, legendary: 5 },
+  gold: [10, 4], goldValue: 0.6,                                   // Gold = a + Gegenstandsstufe × b + Wert × goldValue
+  ops: [
+    { id: 'seal', name: 'Versiegeln', mat: 'siegel', n: 2, glut: 4, text: 'Ein Bonus bleibt bei allem Folgenden unverändert (einer je Item).' },
+    { id: 'chaos', name: 'Neu würfeln', mat: 'asche', n: 2, glut: 3, text: 'Alle unversiegelten Boni werden neu gewürfelt.' },
+    { id: 'values', name: 'Werte würfeln', mat: 'staub', n: 2, glut: 2, text: 'Gleiche Boni, neue Werte und Stufen.' },
+    { id: 'add', name: 'Hinzufügen', mat: 'blutstein', n: 2, glut: 5, text: 'Ein neuer Bonus, wenn Platz ist.' },
+    { id: 'remove', name: 'Tilgen', mat: 'leinen', n: 2, glut: 2, text: 'Ein zufälliger unversiegelter Bonus verschwindet.' },
+  ],
+  glutJitter: 2,                                                   // jeder Eingriff kostet zusätzlich 0..2 Glut (Unsicherheit wie Last Epoch)
+};
+
 export const MONSTERS = [
   { name: 'Verfaulter Ghul', glyph: 'ghul', mat: 'zahn' }, { name: 'Gefallener', glyph: 'fallen', mat: 'asche' },
   { name: 'Skelettkrieger', glyph: 'skelett', mat: 'staub' }, { name: 'Grabräuber', glyph: 'grabraeuber', mat: 'leinen' },

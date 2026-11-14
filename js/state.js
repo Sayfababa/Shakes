@@ -1,5 +1,5 @@
-import { RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS } from './data.js';
-import { makeItem, itemValue } from './loot.js';
+import { AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS } from './data.js';
+import { makeItem, itemValue, rollTier, affixValue, renameMagic } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
@@ -315,6 +315,63 @@ export function forge(slot, mat, score) {
   it.mods[r.stat] = (it.mods[r.stat] || 0) + v;
   journal(`${g.adj} ${r.name} in ${it.name} geschmiedet.`);
   return { it, rune: r, v, grade: g, score, mat };
+}
+
+// --- Umschmieden (Crafting): Regeln, DOM-frei. Runen und Sonderbonus bleiben immer unberührt. ---
+const runeSum = (it, k) => (it.runes || []).filter(r => r.stat === k).reduce((a, r) => a + r.v, 0);
+// Eigene Boni des Items (ohne Runen-Anteil)
+export function baseMods(it) { const b = {}; for (const [k, v] of Object.entries(it.mods)) { const x = v - runeSum(it, k); if (x > 0) b[k] = x; } return b; }
+function setBase(it, base) {
+  const mods = { ...base }; for (const r of it.runes || []) mods[r.stat] = (mods[r.stat] || 0) + r.v;
+  it.mods = mods; it.tiers = Object.fromEntries(Object.keys(base).map(k => [k, it.tiers?.[k] || 3]));
+}
+export const craftItems = () => [...Object.values(S.equip).filter(Boolean), ...S.bag].filter(it => CRAFT.glut[it.rarity] && !it.unique);
+const findAny = id => Object.values(S.equip).find(x => x?.id === id) || S.bag.find(x => x.id === id);
+// Glut alter Items (vor dem Crafting-System) einmalig festlegen – aus der ID, damit Neuladen nichts ändert
+function ensureGlut(it) {
+  if (it.glut != null || !CRAFT.glut[it.rarity] || it.unique) return;
+  let h = 0; for (const c of it.id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  it.glut = it.glutMax = CRAFT.glut[it.rarity] + h % (CRAFT.glutRand + 1);
+}
+export const craftGold = it => Math.round(CRAFT.gold[0] + it.lvl * CRAFT.gold[1] + it.value * CRAFT.goldValue);   // mit Wert: Craften+Verkaufen darf nie Gold bringen
+// Warum geht ein Eingriff nicht? null = möglich
+export function craftCheck(it, opId, stat) {
+  const op = CRAFT.ops.find(o => o.id === opId);
+  if (!it || !op) return 'Nichts gewählt.';
+  if (it.unique) return 'Einzigartiges lässt sich nicht umschmieden.';
+  if (!CRAFT.glut[it.rarity]) return 'Nur magische, seltene und legendäre Items.';
+  ensureGlut(it);
+  if (it.crafted) return `Vollendet von ${it.crafted}.`;
+  if (it.glut < op.glut) return 'Zu wenig Schmiedeglut.';
+  if ((S.mats[op.mat] || 0) < op.n) return 'Zu wenig Material.';
+  if (S.gold < craftGold(it)) return 'Zu wenig Gold.';
+  const base = baseMods(it), keys = Object.keys(base), free = keys.filter(k => k !== it.sealed);
+  if (opId === 'seal') { if (it.sealed) return 'Schon ein Bonus versiegelt.'; if (!stat || !base[stat]) return 'Bonus antippen, der bleiben soll.'; }
+  if ((opId === 'chaos' || opId === 'values' || opId === 'remove') && !free.length) return 'Kein unversiegelter Bonus.';
+  if (opId === 'add' && keys.length >= CRAFT.maxAff[it.rarity]) return 'Kein Platz für weitere Boni.';
+  if (opId === 'add' && keys.length >= AFFIXES.length) return 'Alle Boni schon vorhanden.';
+  return null;
+}
+export function craft(id, opId, stat) {
+  const it = findAny(id), err = craftCheck(it, opId, stat); if (err) return { err };
+  const op = CRAFT.ops.find(o => o.id === opId), legend = it.rarity === 'legendary';
+  const gold = craftGold(it), base = baseMods(it), tiers = { ...(it.tiers || {}) };
+  const roll1 = k => { const T = rollTier(it.lvl); tiers[k] = T.t; base[k] = affixValue(AFFIXES.find(a => a.stat === k), it.lvl, T, legend); };
+  const free = Object.keys(base).filter(k => k !== it.sealed);
+  if (opId === 'seal') it.sealed = stat;
+  else if (opId === 'chaos') { const n = free.length; for (const k of free) { delete base[k]; delete tiers[k]; }
+    const pool = AFFIXES.filter(a => !(a.stat in base)).sort(() => rand() - 0.5).slice(0, n); for (const a of pool) roll1(a.stat); }
+  else if (opId === 'values') for (const k of free) roll1(k);
+  else if (opId === 'add') { const pool = AFFIXES.filter(a => !(a.stat in base)); roll1(pool[Math.floor(rand() * pool.length)].stat); }
+  else if (opId === 'remove') { const k = free[Math.floor(rand() * free.length)]; delete base[k]; delete tiers[k]; }
+  it.tiers = tiers; setBase(it, base);
+  S.mats[op.mat] -= op.n; S.gold -= gold;
+  const cost = Math.min(it.glut, op.glut + Math.floor(rand() * (CRAFT.glutJitter + 1)));
+  it.glut -= cost;
+  if (it.glut < Math.min(...CRAFT.ops.map(o => o.glut))) { it.glut = 0;   // Rest reicht für keinen Eingriff mehr → vollendet
+    it.crafted = S.name; journal(`${it.name} ist vollendet. Mein Zeichen steht darauf.`); }
+  renameMagic(it); it.value = itemValue(it);
+  return { it, op, cost };
 }
 
 // --- Eilen: kostet mit Restzeit und Stufe ---

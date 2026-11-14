@@ -5,7 +5,7 @@ import * as Game from './game.js';
 import * as UI from './ui.js';
 
 const app = document.getElementById('app'), tip = document.getElementById('tip');
-let forgeSel = { mat: null, slot: null }, forgeRes = null, FG = null;
+let forgeSel = { mat: null, slot: null, mode: 'rune', item: null, stat: null, msg: '' }, forgeRes = null, FG = null;
 let tripLoc = null, view = 'hero', pickCls = null, F = null, rival = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
 
 function render() {
@@ -163,6 +163,16 @@ const actions = {
   crypt: d => showFight(Game.cryptFight(d.id), 'crypt'),
   rival: () => { rival = Game.makeRival(); render(); },
   arena: () => { const R = rival; const res = Game.arenaFight(R); if (res) rival = null; showFight(res, 'arena'); },
+  forgemode: d => { forgeSel.mode = d.m; forgeRes = null; forgeSel.msg = ''; render(); },
+  craftpick: d => { forgeSel.item = d.id; forgeSel.stat = null; forgeSel.msg = ''; forgeSel.changed = null; render(); },
+  craftstat: d => { forgeSel.stat = forgeSel.stat === d.k ? null : d.k; forgeSel.msg = ''; render(); },
+  craftop: d => { const it = G.craftItems().find(x => x.id === forgeSel.item); const before = it ? { ...G.baseMods(it) } : {}, pw = G.power();
+    const r = G.craft(forgeSel.item, d.o, forgeSel.stat);
+    if (r.err) { forgeSel.msg = `<span class="down">${r.err}</span>`; return render(); }
+    const after = G.baseMods(r.it); forgeSel.changed = Object.keys(after).filter(k => after[k] !== before[k]);
+    const lost = Object.keys(before).filter(k => !(k in after));
+    forgeSel.msg = `${r.op.name}: −${r.cost} Glut${lost.length ? ` · getilgt: ${lost.map(k => k === 'dmg' ? 'Schaden' : k).join(', ')}` : ''}${r.it.crafted ? ' · <b class="gold">vollendet</b>' : ''}`;
+    if (d.o === 'seal') forgeSel.stat = null; render(); toast(pw); },
   forgemat: d => { forgeSel.mat = d.m; render(); },
   forgeslot: d => { forgeSel.slot = d.s; render(); },
   forgeagain: () => { forgeRes = null; render(); },

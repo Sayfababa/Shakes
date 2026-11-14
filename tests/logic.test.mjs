@@ -201,7 +201,8 @@ test('Sonderboni und Einzigartige: selten, korrekt aufgebaut, wirken im Kampf', 
   assert.equal(G.stats().ward, 0.5);
   const r = fight(G.stats(), G.makeMonster(1, 1)); assert.ok(r.log.length);
   assert.ok(G.power() > G.power({ ...G.stats(), ward: 0 }), 'Kampfkraft muss Knochenschild einrechnen');
-  let shielded = false; for (let i = 0; i < 10; i++) { const f = fight(G.stats(), G.makeMonster(15, 1)); if (f.log.some(l => l.who === 'b' && l.hpA === G.stats().hp)) shielded = true; }
+  const A = { ...G.stats(), ward: 1 }; let shielded = false;   // Schild = volles Leben: der erste Treffer des Gegners kostet kein Leben
+  for (let i = 0; i < 30 && !shielded; i++) { const f = fight(A, G.makeMonster(1, 1)); if (f.log.some(l => l.who === 'b' && l.dmg && l.hpA === A.hp)) shielded = true; }
   assert.ok(shielded, 'Schild fängt den ersten Treffer');
 });
 
@@ -240,5 +241,58 @@ test('Keine Gold-Schleifen: Glücksgriff und Ladenware kosten mehr, als ihr Verk
     for (let i = 0; i < 600; i++) { S.gold = 1e9; S.bag = []; const g = S.gold; const it = G.doService('ysolde', 'gamble'); cost += g - S.gold; val += it.value; }
     assert.ok(val < cost * 0.8, `Glücksgriff Stufe ${L}: Wert ${val} vs Kosten ${cost}`);
     for (const t of Object.keys(D.TRADERS)) for (let k = 0; k < 4; k++) { S.traders[t].rep = [0, 200, 700, 1600][k]; S.traders[t].shop = []; for (const it of G.shopFor(t)) assert.ok(it.price > it.value, 'Laden unter Verkaufswert'); }
+  }
+});
+
+// --- Umschmieden: gegen Fehler und Ausnutzen ---
+const craftable = (rar = 3, lvl = 25) => { let it; do it = makeItem(lvl, { slot: 'amulet', minRarity: rar }); while (it.unique || it.rarity !== D.RARITIES[rar].id); return it; };
+const richCraft = () => { const S = fresh(); S.gold = 1e7; for (const k of Object.keys(D.MATS)) S.mats[k] = 1e4; S.bag = []; return S; };
+
+test('Umschmieden: Versiegelter Bonus bleibt bei allem unverändert, Runen und Sonderbonus auch', () => {
+  for (let rep = 0; rep < 40; rep++) {
+    const S = richCraft(), it = craftable(); it.glut = it.glutMax = 9999; it.fx = { crit: 0.06 }; it.special = 'crit';
+    S.equip.amulet = it; G.forge('amulet', 'zahn', 15); const runeDmg = it.runes[0].v;
+    const k = Object.keys(G.baseMods(it))[0], v = G.baseMods(it)[k], t = it.tiers[k];
+    assert.ok(!G.craft(it.id, 'seal', k).err); assert.equal(it.sealed, k);
+    for (let i = 0; i < 30; i++) for (const op of ['chaos', 'values', 'remove', 'add']) { G.craft(it.id, op);
+      assert.equal(G.baseMods(it)[k], v, 'versiegelter Wert verändert'); assert.equal(it.tiers[k], t);
+      assert.ok((it.mods.dmg || 0) >= runeDmg, 'Rune verloren'); assert.equal(it.special, 'crit');
+      assert.ok(Object.keys(G.baseMods(it)).length <= D.CRAFT.maxAff.rare, 'zu viele Boni');
+      for (const [s, tt] of Object.entries(it.tiers)) assert.ok(tt >= 1 && tt <= 5 && G.baseMods(it)[s] >= 1, 'Stufe ohne Bonus'); }
+    assert.ok(G.craft(it.id, 'seal', Object.keys(G.baseMods(it)).find(x => x !== k)).err, 'zweites Siegel');
+  }
+});
+
+test('Umschmieden: kostet genau Material, Gold und Glut; Glut leer = vollendet mit Schmiedezeichen', () => {
+  const S = richCraft(), it = craftable(2, 20); S.bag = [it]; S.bag[0].x = 0; S.bag[0].y = 0; it.glut = it.glutMax = 7;
+  const m = S.mats.staub, g = S.gold, gl = it.glut, cg = G.craftGold(it);
+  const r = G.craft(it.id, 'values'); assert.ok(!r.err);
+  assert.equal(S.mats.staub, m - 2); assert.equal(S.gold, g - cg); assert.equal(it.glut, gl - r.cost); assert.ok(r.cost >= 2 && r.cost <= 4);
+  for (let i = 0; i < 20 && !it.crafted; i++) G.craft(it.id, 'values');
+  assert.equal(it.crafted, 'Test'); assert.ok(G.craft(it.id, 'values').err, 'vollendetes Item lässt sich weiter craften');
+});
+
+test('Umschmieden: Grenzen – Einzigartige, gewöhnliche, zu wenig Material/Gold/Glut, voll', () => {
+  const S = richCraft(); let u; do u = makeItem(25, { slot: 'helm', minRarity: 4 }); while (!u.unique);
+  S.bag = [u]; assert.ok(G.craft(u.id, 'add').err);
+  const n = makeItem(5, { slot: 'helm' }); n.rarity = 'normal'; S.bag = [n]; assert.ok(G.craft(n.id, 'add').err);
+  const it = craftable(2, 20); S.bag = [it]; it.glut = 1; assert.ok(G.craft(it.id, 'values').err);
+  it.glut = 50; S.mats.staub = 1; assert.ok(G.craft(it.id, 'values').err); S.mats.staub = 99; S.gold = 0; assert.ok(G.craft(it.id, 'values').err);
+  S.gold = 1e6; while (Object.keys(G.baseMods(it)).length < 2) G.craft(it.id, 'add'); assert.ok(G.craft(it.id, 'add').err, 'magisch über 2 Boni');
+  assert.ok(G.craft('gibtsnicht', 'add').err);
+});
+
+test('Umschmieden: Stufe I nur ab Gegenstandsstufe 20, auch beim Neu-Würfeln', () => {
+  const S = richCraft(), it = craftable(3, 8); S.bag = [it]; it.glut = it.glutMax = 1e6;
+  for (let i = 0; i < 300; i++) { G.craft(it.id, i % 2 ? 'chaos' : 'values'); assert.ok(Object.values(it.tiers).every(t => t >= 3), 'zu hohe Stufe auf niedriger Gegenstandsstufe'); }
+});
+
+test('Umschmieden: kein Gold durch Craften+Verkaufen – bei keinem Eingriff, keiner Stufe, keiner Seltenheit', () => {
+  const S = richCraft();
+  for (const op of ['add', 'chaos', 'values', 'remove']) for (const rar of [2, 3, 4]) for (const L of [10, 25, 40]) {
+    let spent = 0, gain = 0;
+    for (let i = 0; i < 150; i++) { const it = craftable(rar, L); S.bag = [it]; const v0 = it.value, g0 = S.gold;
+      if (G.craft(it.id, op).err) continue; spent += g0 - S.gold; gain += it.value - v0; }
+    assert.ok(gain < spent, `${op}/${rar}/${L}: Wertzuwachs ${gain} > Kosten ${spent}`);
   }
 });
