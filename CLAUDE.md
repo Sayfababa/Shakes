@@ -37,7 +37,7 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 ## Mobile / PWA
 - Wird primär am Handy als Homescreen-App getestet: https://sayfababa.github.io/Shakes/ (Pages vom Arbeits-Branch).
 - **Große Bildschirme** (≥ 760 px Höhe, z. B. großes iPhone als App 430×867): eigener `@media (min-height: 760px)`-Block am Ende von style.css – größere Schrift (`html` 2,1vh), Knöpfe ≥ 42 px, Ware 3×2, große Zauber-/Crafting-Knöpfe. Tests laufen zusätzlich auf „App 430x867“.
-- **Kein Scrollen**: App-Layout = HUD oben, `<main>` (overflow hidden), Tabs unten. `#app` ist `position: fixed; inset: 0` – **nicht** 100dvh/100vh; als Homescreen-App setzt `fitApp()` in main.js die Höhe auf `screen.height` (iOS meldet den Viewport dort zu kurz, unten blieb ~100 pt frei). Jede Ansicht muss auf iPhone SE (375×667) und iPhone 13 passen – mit Playwright prüfen (Elemente unter main-Unterkante zählen). Nur Kampflog und die Auftragsliste im Helden-Bildschirm (`.heroquests`) dürfen intern scrollen.
+- **Kein Scrollen**: App-Layout = HUD oben, `<main>` (overflow hidden), Tabs unten. `#app` ist `position: fixed; inset: 0` – **nicht** 100dvh/100vh; als Homescreen-App setzt `fitApp()` in main.js die Höhe auf `screen.height` (iOS meldet den Viewport dort zu kurz, unten blieb ~100 pt frei). Jede Ansicht muss auf iPhone SE (375×667) und iPhone 13 passen – mit Playwright prüfen (Elemente unter main-Unterkante zählen). Nur das Kampflog darf intern scrollen. Karten (Orte, Krypten) dürfen nichts abschneiden – ui.cjs prüft das.
 - `manifest.json` + `sw.js` (network-first, damit Updates sofort ankommen). Alle Pfade relativ (Pages-Unterordner!).
 - Touch: Item-Tap öffnet Detail-Popup mit Aktionen (`showTouchTip` in main.js), kein Hover/Rechtsklick voraussetzen.
 
@@ -71,6 +71,7 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - **Klassenwaffe**: fremde Waffenart → Schaden ×`offWeapon`, Zauberkraft ×`offWeaponSpell` (Tooltip sagt es, Kampfkraft rechnet es ein).
 - **Attribute** haben für jede Klasse einen Zweck (`ATTR_INFO`): Stärke → Rüstung (`strArmor`), Int → Zauber, Haupt → Schaden.
 - **Kampfbewertung** (`GRADES`, `gradeOf()` in game.js): Restleben → Überlegen/Sicher/Knapp, Bonus auf Gold + Beute-Chance (nicht EP, sonst kippt das Tempo).
+- **Kampf-Einblendungen** (`combatFx()` in main.js): Log-Einträge tragen Anzeige-Felder aus combat.js (`dmg`, `crit`, `hits` bei Mehrfachtreffern, `heal` = Lebensraub/Regeneration/Heilzauber, `shield`, `buff`, `tick`+`tk` Gift/Bluten, `dot`, `thorns`, `miss`, `stun`, `rage`). Schwebende Zahlen `.fnum` (Zauber in Zauberfarbe, erst beim Einschlag; Krit groß + `.quake`), Heilung grün links am eigenen Bild, beim Sieg Gold-Münze `.goldpop` über dem besiegten Gegner (grau). Neue Kampfeffekte: Feld im Log setzen, dann in `combatFx` anzeigen.
 - **Tutorial** (`TUTORIAL`, `tutCheck()` in main.js): ersetzt im HUD die Balken, nie als Overlay über Buttons.
 
 ## Tests (vor jedem Push: `sh tests/run.sh`)
@@ -88,7 +89,7 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - **Zeit des Spielers respektieren**: keine Softlocks (Boss-Ziele zählen rückwirkend), Gegner wachsen nur halb mit (`locLvl`).
 
 ## UI-Regeln (aus UX-REVIEW.md)
-- Held: Name (und Titel) steht oben in der Kopfzeile, nicht unter dem Portrait. Unter dem Beutel stehen die aktiven Aufträge aller Questgeber (fertige zuerst, Tipp → Auftraggeber), kein Tagebuch (das steht im Streifzug). Ausrüstung symmetrisch: links Helm/Waffe/Handschuhe/Ring, rechts Amulett/Nebenhand/Stiefel/Ring, unter dem Portrait Brust + Gürtel. Portrait sitzt in `.pfill` (absolut) und richtet sich nach den Spalten – nie umgekehrt.
+- Held: Name (und Titel) steht oben in der Kopfzeile, nicht unter dem Portrait. Unter dem Beutel bleibt Platz für spätere Quest-Knöpfe. Kein Tagebuch in der UI (nirgends; `S.journal` wird nur noch gespeichert). Ausrüstung symmetrisch: links Helm/Waffe/Handschuhe/Ring, rechts Amulett/Nebenhand/Stiefel/Ring, unter dem Portrait Brust + Gürtel. Portrait sitzt in `.pfill` (absolut) und richtet sich nach den Spalten – nie umgekehrt.
 - Tab-Punkte nur für echte Handlungen (siehe `badge` in navBar), nie als Dauerzustand.
 - Treffer-Feedback: Schadenszahl + kurzer Rand-Schatten/Wackeln, Portrait nie einfärben.
 - Gesperrtes klein halten (Orte als Zeile, Krypten kompakt). Schrift nie unter ~11px.

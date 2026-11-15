@@ -33,7 +33,7 @@ const issues = new Map(); const note = (k, v) => { if (!issues.has(k)) issues.se
       const bad = await p.evaluate(() => {
         const m = document.querySelector('main')?.getBoundingClientRect(); if (!m) return ['main fehlt'];
         const tip = document.getElementById('tip'); const out = [];
-        const over = [...document.querySelectorAll('main *')].filter(e => { const r = e.getBoundingClientRect(); return r.width && (r.bottom > m.bottom + 1 || r.right > m.right + 1) && !e.closest('.log, .journal, .heroquests, .note p, .proj, .burst, .spellname, .dmgnum, .sparks'); });
+        const over = [...document.querySelectorAll('main *')].filter(e => { const r = e.getBoundingClientRect(); return r.width && (r.bottom > m.bottom + 1 || r.right > m.right + 1) && !e.closest('.log, .note p, .proj, .burst, .spellname, .fnum, .goldpop, .sparks'); });
         if (over.length) out.push('ragt heraus: ' + (over[0].className || over[0].tagName) + ' in ' + (document.querySelector('main > *')?.className || ''));
         const spill = [...document.querySelectorAll('.panel .sitem, .panel .cellitem, .panel .eslot, .panel .fslot, .panel .mtile')].filter(e => { const r = e.getBoundingClientRect(), q = e.closest('.panel').getBoundingClientRect(); return r.bottom > q.bottom + 1 || r.right > q.right + 1; });
         if (spill.length) out.push('Item-Feld über Panel in ' + (document.querySelector('main > *')?.className || ''));

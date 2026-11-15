@@ -18,12 +18,15 @@ let failures = 0;
       await p.waitForTimeout(120);
       const over = await p.evaluate(() => { const m = document.querySelector('main').getBoundingClientRect();
         return [...document.querySelectorAll('main *')].filter(e => { const r = e.getBoundingClientRect();
-          return (r.bottom > m.bottom + 1 || r.right > m.right + 1) && !e.closest('.log, .journal, .note p, .heroquests'); }).length; });
+          return (r.bottom > m.bottom + 1 || r.right > m.right + 1) && !e.closest('.log, .note p, .fnum, .goldpop, .proj, .burst, .spellname'); }).length; });
       if (over) { failures++; console.log(`FEHLER ${tag} ${n}: ${over} Elemente ragen heraus`); }
       // Item-Felder dürfen nie über ihr Panel hinausragen (Laden, Beutel, Figur, Schmiede)
       const spill = await p.evaluate(() => [...document.querySelectorAll('.panel .sitem, .panel .cellitem, .panel .eslot, .panel .fslot, .panel .mtile')].filter(e => {
         const r = e.getBoundingClientRect(), q = e.closest('.panel').getBoundingClientRect(); return r.bottom > q.bottom + 1 || r.right > q.right + 1 || r.left < q.left - 1 || r.top < q.top - 1; }).length);
       if (spill) { failures++; console.log(`FEHLER ${tag} ${n}: ${spill} Item-Felder ragen über ihr Panel`); }
+      // Abgeschnittener Inhalt in Karten (z. B. Ortskarte: „Stufe/Zeit“ unten weg)
+      const clip = await p.evaluate(() => [...document.querySelectorAll('main .trip *, main .crypt *, main .tcard *')].filter(e => { const r = e.getBoundingClientRect(), q = e.closest('.trip, .crypt, .tcard').getBoundingClientRect(); return r.height && r.bottom > q.bottom + 1; }).map(e => e.className || e.tagName));
+      if (clip.length) { failures++; console.log(`FEHLER ${tag} ${n}: abgeschnitten: ${clip.slice(0, 3).join(' | ')}`); }
       await p.screenshot({ path: `${OUT}/${tag}-${n}.png` });
     };
     // Tippen mit kurzer Frist: gesperrte/verdeckte Knöpfe blockieren den Test nicht 30 s, sondern werden gemeldet
@@ -50,7 +53,6 @@ let failures = 0;
       if (g1 >= g0) { failures++; console.log(`FEHLER ${tag}: Kaufen per Touch hat nichts gekauft`); } }
     for (const [tab, n] of [['crypt', 'ilse'], ['arena', 'vargo'], ['trips', 'prophet']]) { await tap(`[data-v=${tab}]`); await tap('.speaker'); await chk(n); }
     // Auftragsliste im Helden-Bildschirm führt zum Auftraggeber
-    await tap('[data-v=hero]'); if (await tap('.hq')) { if (!(await p.$('.trader, .npcrow, .note'))) { failures++; console.log(`FEHLER ${tag}: Auftragszeile führt nirgendwohin`); } }
     await tap('[data-v=hero]'); if (await tap('.cellitem')) { await chk('itemtip'); await tap('#tip button[data-action=equip]'); await p.waitForTimeout(250); await p.screenshot({ path: `${OUT}/${tag}-toast.png` }); }
     // Hohe Stufe mit freien Punkten: Werte (mit Kampfkraft je Punkt) und alle drei Zauber
     await p.evaluate(() => { const s = JSON.parse(localStorage.aschenkrone_v1); s.lvl = 20; s.points = 25; localStorage.aschenkrone_v1 = JSON.stringify(s); });

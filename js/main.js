@@ -43,10 +43,10 @@ function tutCheck() {
 function showFight(res, back, extra = '') {
   if (!res) return render();
   const { A, B, r, win, rew } = res;
-  F = { A, B, ...r, step: 0, back, reward: (win ? (res.haul ? haulRewText(res) : rewText(rew)) : loseText(res)) + extra };
+  F = { A, B, ...r, step: 0, back, gold: win ? rew?.gold || 0 : 0, reward: (win ? (res.haul ? haulRewText(res) : rewText(rew)) : loseText(res)) + extra };
   view = 'fight'; G.save();
   clearTimeout(fightTimer);
-  const tick = () => { F.step++; if (F.step >= F.log.length) return render(); fightStep(); fightTimer = setTimeout(tick, F.log[F.step - 1]?.spell ? 750 : 380); };
+  const tick = () => { F.step++; if (F.step >= F.log.length) return render(); fightStep(); const l = F.log[F.step - 1]; fightTimer = setTimeout(tick, l?.spell ? 780 : l?.crit ? 560 : 400); };
   fightTimer = setTimeout(tick, 380);
   render();
 }
@@ -120,11 +120,40 @@ function fightStep() {
     const el = document.getElementById(id); if (!el) continue;
     el.querySelector('.bar i').style.width = Math.max(0, Math.min(100, hp / max * 100)) + '%';
     el.querySelector('.hp').textContent = `${Math.max(0, hp)} / ${max}`;
-    const hit = (id === 'fA' && l.who === 'b') || (id === 'fB' && l.who === 'a');
-    el.classList.remove('hit', 'crit'); if (hit) { void el.offsetWidth; el.classList.add('hit'); if (l.crit) el.classList.add('crit');
-      if (l.dmg) { const n = document.createElement('span'); n.className = 'dmgnum' + (l.crit ? ' crit' : '') + (l.spell ? ' sp' : ''); n.textContent = l.dmg;
-        n.style.left = (35 + Math.random() * 30) + '%'; el.querySelector('.pwrap')?.appendChild(n); setTimeout(() => n.remove(), 900); } }
   }
+  combatFx(l);
+}
+
+// Schwebende Zahlen und Treffer-Effekte: Schaden (Zauber in Zauberfarbe, erst wenn das Geschoss einschlägt),
+// Krit groß mit Wackeln, Heilung/Lebensraub grün am eigenen Bild, Schild, Gift/Bluten, Dornen, Ausweichen
+function combatFx(l) {
+  const me = document.getElementById(l.who === 'a' ? 'fA' : 'fB'), foe = document.getElementById(l.who === 'a' ? 'fB' : 'fA'); if (!me || !foe) return;
+  const F0 = l.who === 'a' ? F.A : F.B, sp = l.sid ? F0.spells?.find(x => x.id === l.sid) : null;
+  const self = sp && ['heal', 'shield', 'buff'].includes(sp.kind), delay = sp && !self ? 330 : 0;
+  // Plätze reihum je Bild, damit sich Zahlen aufeinanderfolgender Züge nicht überdecken; Heilung links, Schaden mittig/rechts
+  const SPOTS = [[52, 38], [70, 58], [40, 62], [64, 30], [34, 44]], HEAL = [[26, 52], [30, 30], [24, 70]];
+  const pop = (el, txt, cls, wait = 0, fx) => setTimeout(() => { const w = el.querySelector('.pwrap'); if (!w) return;
+    const n = document.createElement('span'); n.className = 'fnum ' + cls; n.innerHTML = txt; if (fx) n.style.setProperty('--fx', fx);
+    const heal = /heal|shield|buff/.test(cls), list = heal ? HEAL : SPOTS, k = +(w.dataset[heal ? 'kh' : 'k'] || 0);
+    w.dataset[heal ? 'kh' : 'k'] = (k + 1) % list.length; const [x, y] = /crit/.test(cls) ? [50, 45] : list[k];
+    n.style.left = x + '%'; n.style.top = y + '%';
+    w.appendChild(n); setTimeout(() => n.remove(), 1300); }, wait);
+  const hit = (el, crit, wait) => setTimeout(() => { el.classList.remove('hit', 'crit'); void el.offsetWidth; el.classList.add('hit'); if (crit) el.classList.add('crit');
+    if (crit) { const f = document.querySelector('.fight'); f?.classList.remove('quake'); void f?.offsetWidth; f?.classList.add('quake'); } }, wait);
+  if (l.dmg) {
+    hit(foe, l.crit, delay);
+    if (l.hits) l.hits.forEach((d, i) => pop(foe, d, 'dmg sp', delay + i * 140, sp?.fx));
+    else pop(foe, l.crit ? `<small>Kritisch</small>${l.dmg}` : l.dmg, `dmg ${l.crit ? 'crit' : ''} ${sp ? 'sp' : ''}`, delay, sp?.fx);
+  }
+  if (l.tick) { hit(foe, false, 0); pop(foe, l.tick, 'tick ' + l.tk); }
+  if (l.dot) pop(foe, `<small>Gift</small>${l.dot}`, 'tick poison', delay);
+  if (l.miss) pop(foe, l.miss, 'miss', delay);
+  if (l.stun) pop(foe, 'Betäubt', 'miss stun', delay + 120);
+  if (l.heal) { pop(me, '+' + l.heal, 'heal', delay + 80); me.classList.remove('healed'); void me.offsetWidth; me.classList.add('healed'); }
+  if (l.shield) pop(me, `<small>Schild</small>${l.shield}`, 'shield');
+  if (l.buff) pop(me, `+${l.buff} %`, 'buff');
+  if (l.rage) pop(me, 'Raserei', 'miss rage');
+  if (l.thorns) { hit(me, false, delay + 60); pop(me, l.thorns, 'tick thorns', delay + 60); }
 }
 
 const actions = {

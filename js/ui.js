@@ -97,15 +97,6 @@ export function viewCreate(sel) {
 }
 
 // --- Held: Ausrüstungsfigur + Raster-Inventar ---
-// Aktive Aufträge aller Questgeber auf einen Blick – fertige zuerst, Tipp führt zum Auftraggeber
-function heroQuests() {
-  const rows = GIVERS.filter(available).map(t => { const q = current(t), o = objectives(t), done = canComplete(t);
-    const cur = o.reduce((a, x) => a + Math.min(x.cur, x.n), 0), n = o.reduce((a, x) => a + x.n, 0);
-    return { t, q, done, cur, n, who: (TRADERS[t] || NPCS[t]).name }; }).sort((a, b) => b.done - a.done || a.q.lvl - b.q.lvl);
-  return `<section class="panel grow heroquests"><h2>Aufträge <span class="h2r">${rows.filter(r => r.done).length ? `<b class="hot">${rows.filter(r => r.done).length}</b> fertig` : rows.length + ' offen'}</span></h2>
-    ${rows.map(r => `<div class="hq ${r.done ? 'done' : ''}" data-action="${TRADERS[r.t] ? 'trader' : 'npc'}" data-t="${r.t}" data-n="${r.t}">
-      <span class="hqw">${r.who}</span><span class="hqt">${r.q.title}</span><b>${r.done ? 'Abgeben' : `${r.cur}/${r.n}`}</b></div>`).join('') || '<p class="dim small">Keine offenen Aufträge.</p>'}</section>`;
-}
 export function viewHero() {
   const rk = rank(), st = stats(), pts = S.points + talentPoints();
   const slot = s => { const it = S.equip[s]; return `<div class="eslot es-${s} ${it ? 'r-' + it.rarity : ''}" ${it ? `data-tip="${it.id}" data-action="unequip" data-s="${s}"` : ''}>${it ? itemArt(it) : `<span class="ghost">${ghost(s)}</span>`}</div>`; };
@@ -128,7 +119,6 @@ export function viewHero() {
       </div>
       <div class="mats">${mats.length ? mats.map(([k, n]) => `<span title="${MATS[k]}">${matImg(k)}<b>${n}</b></span>`).join('') : '<span class="dim">Keine Materialien. Monster lassen sie fallen.</span>'}</div>
     </section>
-    ${heroQuests()}
   </div>`;
 }
 
@@ -189,7 +179,7 @@ export function viewTrips() {
       <div class="waitmob">${monsterArt(MONSTERS.find(m => m.name === a.mob).glyph)}</div><p class="dim">Du folgst einer Spur: <b>${a.mob}</b>.</p>
       ${left > 0 ? `<div class="big" data-until="${a.end}">${fmtT(left)}</div><div class="btns"><button data-action="rush" ${S.gold < rushCost() ? 'disabled' : ''}>Eilen · ${rushCost()} Gold</button><button class="red" data-action="go" data-v="forge">Zur Schmiede</button></div>`
                  : `<button class="red big-btn" data-action="resolve">Stellen</button>`}</section>
-      ${say('prophet')}<section class="panel grow journal"><h2>Tagebuch</h2>${S.journal.slice(0, 6).map(j => `<div>${j.t}</div>`).join('')}</section></div>`;
+      ${say('prophet')}</div>`;
   }
   const o = omen();
   const openLocs = LOCATIONS.filter(locOpen), nextLoc = LOCATIONS.find(l => !locOpen(l)), later = LOCATIONS.filter(l => !locOpen(l) && l !== nextLoc);
@@ -205,8 +195,7 @@ export function viewTrips() {
       <h3>${l.name}${open && wanted.size ? '<span class="qmark" title="Auftrag">!</span>' : ''}</h3><p class="lore small">${l.text}</p>
       ${open ? `<div class="mobpics">${l.mobs.map(n => monsterArt(MONSTERS.find(m => m.name === n).glyph)).join('')}</div>
       <div class="tripinfo">${threat(tripChance(l))}<span>Stufe ${locLvl(l)}</span><span>${fmtT(l.sec[0])}–${fmtT(l.sec[1])}</span><span>${l.glut} Glut</span><span>~${r.gold} Gold</span></div>` : `<div class="mobs">Erst ab Stufe ${l.lvl}</div>`}
-    </section>`; }).join('')}</div>${later.length ? `<p class="unknown">Noch unentdeckt: ${later.map(l => `${l.name} <i>(Stufe ${l.lvl})</i>`).join(' · ')}</p>` : ''}
-    <section class="panel journal tripsjournal"><h2>Tagebuch</h2>${S.journal.slice(0, 8).map(j => `<div>${j.t}</div>`).join('')}</section></div>`;
+    </section>`; }).join('')}</div>${later.length ? `<p class="unknown">Noch unentdeckt: ${later.map(l => `${l.name} <i>(Stufe ${l.lvl})</i>`).join(' · ')}</p>` : ''}</div>`;
 }
 
 // Ungesicherte Beute: Heimkehren oder tiefer gehen
@@ -312,11 +301,12 @@ function fightSummary(F) {
   return `<div class="fsum">${g ? `<b class="g-${g.id}">${g.name}</b>${g.bonus ? ` · +${Math.round(g.bonus * 100)} % Gold` : ''} · ` : ''}${Math.round((F.left || 0) * 100)} % Leben übrig${sp ? `<br><span class="dim">Zauber: ${sp}</span>` : ''}</div>`;
 }
 export function viewFight(F) {
-  const side = (f, hp, max, hit, id, ch) => `<div class="fighter" id="${id}"><div class="pwrap">${f.cls ? `<img class="portrait" src="${P(f.cls)}" alt="">` : monsterArt(f.glyph)}</div>
-    <div class="nm">${f.name}</div><div class="bar"><i style="width:${pct(hp, max)}%"></i></div><div class="hp">${Math.max(0, hp)} / ${max}</div>
-    ${f.spells?.length ? `<div class="sbar">${f.spells.map((sp, i) => `<div class="sb" data-i="${i}" title="${sp.name}" style="--c:${ch?.[i] ?? 0}"><img src="assets/spells/${sp.id}.webp" alt=""><i></i></div>`).join('')}</div>` : ''}</div>`;
   const shown = F.log.slice(0, F.step), last = shown[shown.length - 1] || {};
   const hpA = last.hpA ?? F.hpA, hpB = last.hpB ?? F.hpB, done = F.step >= F.log.length;
+  const side = (f, hp, max, hit, id, ch) => `<div class="fighter ${done && (id === 'fA') !== (F.winner === 'a') ? 'dead' : ''}" id="${id}"><div class="pwrap">${f.cls ? `<img class="portrait" src="${P(f.cls)}" alt="">` : monsterArt(f.glyph)}${done && F.gold && id === 'fB' ? `<span class="goldpop"><img src="assets/ui/coin.webp" alt="">+${F.gold}</span>` : ''}</div>
+    <div class="nm">${f.name}</div><div class="bar"><i style="width:${pct(hp, max)}%"></i></div><div class="hp">${Math.max(0, hp)} / ${max}</div>
+    ${f.spells?.length ? `<div class="sbar">${f.spells.map((sp, i) => `<div class="sb" data-i="${i}" title="${sp.name}" style="--c:${ch?.[i] ?? 0}"><img src="assets/spells/${sp.id}.webp" alt=""><i></i></div>`).join('')}</div>` : ''}</div>`;
+
   return `<div class="panel fightwrap"><div class="fight">
     ${side(F.A, hpA, F.hpA, last.who === 'b', 'fA', last.cA)}
     <div><div class="log" id="log">${shown.map(l => `<div class="${l.who} ${l.crit ? 'crit' : ''} ${l.spell ? 'spell' : ''}">${l.t}</div>`).join('')}</div>

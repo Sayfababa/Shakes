@@ -201,6 +201,7 @@ input { background: #000; color: var(--text); border: 1px solid var(--edge); pad
   .fight { grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; }
   .fight > div:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
   .fighter .portrait { width: 64%; margin: 0 auto; }
+  .fighter .pwrap { width: 64%; margin: 0 auto; } .fighter .pwrap > :is(.portrait, img, svg) { width: 100%; }   /* Blitz/Zahlen nur auf dem Bild */
 }
 
 /* --- Erstellung --- */
@@ -572,3 +573,32 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
   .trips.many .trip .lore { display: none; }               /* viele Orte: Flavortext weg, damit Titel/Gefahr/Lohn ganz sichtbar bleiben */
   .craft > .panel:nth-of-type(2) { justify-content: flex-start; }
 }
+
+/* --- Kampf-Zahlen: Schaden, Krit, Heilung/Lebensraub, Schild, Gift, Dornen, Ausweichen; Gold beim Sieg --- */
+.fnum { position: absolute; z-index: 6; transform: translate(-50%, -50%); pointer-events: none; white-space: nowrap; text-align: center; line-height: .95;
+  font-family: 'Grenze Gotisch'; font-weight: 700; font-size: 1.45rem; color: #ecdcb8; text-shadow: 0 2px 0 #000, 0 0 4px #000, 0 0 8px #000;
+  animation: fnum 1.25s cubic-bezier(.2,.7,.3,1) forwards; }
+.fnum small { display: block; font-family: 'Alegreya SC'; font-size: .55em; letter-spacing: .06em; }
+.fnum.sp { color: var(--fx, #9fb4ff); text-shadow: 0 2px 0 #000, 0 0 4px #000, 0 0 12px var(--fx, #2a3a9a); }
+.fnum.crit { font-size: 2.3rem; color: #ffb03a; text-shadow: 0 2px 0 #000, 0 0 4px #000, 0 0 16px #c23a10; animation-name: fcrit; }
+.fnum.crit small { color: #ffd890; }
+.fnum.heal { color: #7ee05a; text-shadow: 0 2px 0 #000, 0 0 4px #000, 0 0 12px #1f6a10; }
+.fnum.shield { color: #9fc4ff; font-size: 1.2rem; }
+.fnum.buff { color: #ffcf6a; font-size: 1.15rem; }
+.fnum.tick { font-size: 1.1rem; } .fnum.poison { color: #9ad04a; } .fnum.bleed { color: #e0473a; } .fnum.thorns { color: #c9a06a; }
+.fnum.miss { font-family: 'Alegreya SC'; font-size: .95rem; font-weight: 700; color: #b8ad98; }
+.fnum.stun, .fnum.rage { color: #ffcf6a; }
+@keyframes fnum { 0% { opacity: 0; transform: translate(-50%, -30%) scale(.6); } 12% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+  25% { transform: translate(-50%, -55%) scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -120%) scale(.95); } }
+@keyframes fcrit { 0% { opacity: 0; transform: translate(-50%, -50%) scale(2.2); } 14% { opacity: 1; transform: translate(-50%, -50%) scale(.9); }
+  24% { transform: translate(-50%, -50%) scale(1.08); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -100%) scale(1); } }
+.fighter.healed .pwrap > .portrait, .fighter.healed .pwrap > svg, .fighter.healed .pwrap > img { animation: healglow .8s ease-out; }
+@keyframes healglow { 0% { filter: drop-shadow(0 0 0 #5adc46) brightness(1); } 30% { filter: drop-shadow(0 0 10px #5adc46) brightness(1.25) sepia(.3) hue-rotate(50deg); } 100% { filter: none; } }
+.fight.quake { animation: quake .3s; }
+@keyframes quake { 0%, 100% { transform: none; } 20% { transform: translate(-4px, 2px); } 40% { transform: translate(4px, -2px); } 60% { transform: translate(-3px, -1px); } 80% { transform: translate(2px, 1px); } }
+.fighter.dead .pwrap > :not(.goldpop) { filter: grayscale(.8) brightness(.45); transition: filter .6s; }
+.goldpop { position: absolute; left: 50%; top: 45%; z-index: 6; display: flex; align-items: center; gap: 4px; pointer-events: none; white-space: nowrap;
+  font-family: 'Grenze Gotisch'; font-weight: 700; font-size: 1.7rem; color: #ffd76a; text-shadow: 0 2px 0 #000, 0 0 6px #000, 0 0 16px #a06a10;
+  transform: translate(-50%, -50%); animation: goldpop 1.6s ease-out forwards; }
+.goldpop img { width: 1.3em; height: 1.3em; filter: drop-shadow(0 0 6px #c08a20); }
+@keyframes goldpop { 0% { opacity: 0; transform: translate(-50%, -10%) scale(.5); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); } 35% { transform: translate(-50%, -50%) scale(1); } 100% { opacity: 1; transform: translate(-50%, -70%); } }

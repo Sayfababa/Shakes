@@ -13,21 +13,22 @@ export function fight(A, B) {
   const cast = [];
   for (const f of [a, b]) if (f.ward) f.shield = Math.round(f.hp * f.ward);   // Knochenschild zu Beginn
   const log = [];
-  const say = (who, t, extra = {}) => log.push({ who, t, hpA: Math.max(0, Math.round(a.cur)), hpB: Math.max(0, Math.round(b.cur)), cA: chg(a), cB: chg(b), ...extra });
+  let ev = {};   // was die Anzeige zusätzlich zeigen soll (Heilung, Dornen, Einzeltreffer) – wird mit der nächsten Zeile geschrieben
+  const say = (who, t, extra = {}) => { log.push({ who, t, hpA: Math.max(0, Math.round(a.cur)), hpB: Math.max(0, Math.round(b.cur)), cA: chg(a), cB: chg(b), ...ev, ...extra }); ev = {}; };
   const ini = f => (f.first ? 1000 : 0) + f.dex + roll(0, 10);
   let atk = ini(a) >= ini(b) ? a : b, def = atk === a ? b : a;
 
   for (let r = 0; r < MAX_ROUNDS && a.cur > 0 && b.cur > 0; r++) {
-    if (atk.regen && atk.cur < atk.hp) { const h = Math.round(atk.hp * atk.regen); atk.cur = Math.min(atk.hp, atk.cur + h); say(atk.side, `${atk.name} regeneriert ${h}.`); }
+    if (atk.regen && atk.cur < atk.hp) { const h = Math.round(atk.hp * atk.regen); atk.cur = Math.min(atk.hp, atk.cur + h); say(atk.side, `${atk.name} regeneriert ${h}.`, { heal: h }); }
     if (atk.stunned) { atk.stunned = false; say(def.side, `${atk.name} ist betäubt und taumelt.`); [atk, def] = [def, atk]; continue; }
     atk.turn++;
     // Zauber laden pro eigenem Zug um 1 (+ Zaubertempo); der stärkste geladene wird gewirkt
     const sps = atk.spells || []; let sp = null;
     sps.forEach((x, i) => { atk.ch[i] = (atk.ch[i] || 0) + 1 + (atk.haste || 0); if (atk.ch[i] >= x.every) sp = i; });
     if (sp !== null) { atk.ch[sp] -= sps[sp].every; spell(atk, def, sps[sp]); } else strike(atk, def);
-    if (atk.rage && def.cur > 0 && atk.cur < atk.hp / 2 && chance(atk.rage)) { say(atk.side, `${atk.name} rast vor Wut!`); strike(atk, def); }
-    if (def.bleedDmg && def.cur > 0) { def.cur -= def.bleedDmg; say(atk.side, `${def.name} blutet (${def.bleedDmg}).`); }
-    if (def.poisonDmg && def.cur > 0) { def.cur -= def.poisonDmg; say(atk.side, `Gift zerfrisst ${def.name} (${def.poisonDmg}).`); }
+    if (atk.rage && def.cur > 0 && atk.cur < atk.hp / 2 && chance(atk.rage)) { say(atk.side, `${atk.name} rast vor Wut!`, { rage: true }); strike(atk, def); }
+    if (def.bleedDmg && def.cur > 0) { def.cur -= def.bleedDmg; say(atk.side, `${def.name} blutet (${def.bleedDmg}).`, { tick: def.bleedDmg, tk: 'bleed' }); }
+    if (def.poisonDmg && def.cur > 0) { def.cur -= def.poisonDmg; say(atk.side, `Gift zerfrisst ${def.name} (${def.poisonDmg}).`, { tick: def.poisonDmg, tk: 'poison' }); }
     [atk, def] = [def, atk];
   }
   const winner = a.cur > 0 && (b.cur <= 0 || a.cur / a.hp >= b.cur / b.hp) ? 'a' : 'b';
@@ -39,10 +40,11 @@ export function fight(A, B) {
   function spell(x, y, s) {
     const amp = x.amp || 1, red = 1 - Math.min(0.6, y.armor / (y.armor + 20 + x.lvl * 8)) * (1 - Math.min(0.9, x.pen || 0));
     const dmgKind = !['heal', 'shield', 'buff'].includes(s.kind);
-    if (dmgKind && chance(Math.min(0.5, y.dex / (y.dex + x.dex * 3 + 40) + (y.evade || 0)))) return say(x.side, `${x.name} wirkt ${s.name} – ${y.name} weicht aus.`, { spell: s.name, sid: s.id });
+    if (dmgKind && chance(Math.min(0.5, y.dex / (y.dex + x.dex * 3 + 40) + (y.evade || 0)))) return say(x.side, `${x.name} wirkt ${s.name} – ${y.name} weicht aus.`, { spell: s.name, sid: s.id, miss: 'Ausgewichen' });
     let t = `${x.name} wirkt ${s.name}`, d = 0, anyCrit = false, extra = '';
     // Ein Zauber-Treffer läuft durch dieselben Werte wie ein Hieb (Henker, Krit, Lebensraub, Bluten, Gift, Glocke, Dornen)
-    const zap = raw => { const r = finish(x, y, raw); hurt(y, r.d); d += r.d; anyCrit ||= r.crit; extra += onHit(x, y, r.d, r.crit); return r; };
+    const hits = [];
+    const zap = raw => { const r = finish(x, y, raw); hurt(y, r.d); d += r.d; hits.push(r.d); anyCrit ||= r.crit; extra += onHit(x, y, r.d, r.crit); return r; };
     if (s.kind === 'hit' || s.kind === 'stun' || s.kind === 'mark') {
       const r = zap(base(x) * s.mult * (s.kind === 'mark' && y.cur < y.hp / 2 ? 2 : 1) * amp * red); t += `: ${r.crit ? 'KRITISCH ' : ''}${r.d}.`;
       if (s.kind === 'stun') { y.stunned = true; t += ` ${y.name} ist betäubt.`; }
@@ -51,16 +53,16 @@ export function fight(A, B) {
       t += `: ${n} Treffer, ${d}${anyCrit ? ' (kritisch)' : ''}.`;
     } else if (s.kind === 'dot') {
       const r = finish(x, y, base(x) * s.mult * amp * red); anyCrit = r.crit;   // Giftstärke: auch Henker/Krit zählen
-      y.poisonDmg = Math.max(y.poisonDmg || 0, r.d); t += `. ${r.crit ? 'Kritisches ' : ''}Gift: ${y.poisonDmg} je Runde.`;
+      y.poisonDmg = Math.max(y.poisonDmg || 0, r.d); t += `. ${r.crit ? 'Kritisches ' : ''}Gift: ${y.poisonDmg} je Runde.`; ev.dot = y.poisonDmg;
     } else if (s.kind === 'heal') {
-      const h = Math.round(x.hp * s.pct * amp); x.cur = Math.min(x.hp, x.cur + h); t += `: +${h} Leben.`;
+      const h = Math.round(x.hp * s.pct * amp); x.cur = Math.min(x.hp, x.cur + h); t += `: +${h} Leben.`; ev.heal = (ev.heal || 0) + h;
     } else if (s.kind === 'shield') {
-      const h = Math.round(x.hp * s.pct * amp); x.shield += h; t += `: Schild ${h}.`;
+      const h = Math.round(x.hp * s.pct * amp); x.shield += h; t += `: Schild ${h}.`; ev.shield = h;
     } else if (s.kind === 'buff') {
-      x.buff = Math.min(1 + (s.max || 9), x.buff + s.v); t += `: Schaden +${Math.round((x.buff - 1) * 100)} %.`;
+      x.buff = Math.min(1 + (s.max || 9), x.buff + s.v); t += `: Schaden +${Math.round((x.buff - 1) * 100)} %.`; ev.buff = Math.round((x.buff - 1) * 100);
     }
     if (x.side === 'a') cast.push(s.name);
-    say(x.side, t + extra, { spell: s.name, sid: s.id, dmg: d || undefined, crit: anyCrit });
+    say(x.side, t + extra, { spell: s.name, sid: s.id, dmg: d || undefined, crit: anyCrit, hits: hits.length > 1 ? hits : undefined, stun: s.kind === 'stun' || undefined });
     // Nachhall: der Zauber wirkt ein zweites Mal (nie öfter)
     if (x.echo && !x.echoing && y.cur > 0 && chance(x.echo)) { x.echoing = true; say(x.side, `${s.name} hallt nach!`, {}); spell(x, y, s); x.echoing = false; }
   }
@@ -75,18 +77,18 @@ export function fight(A, B) {
   // Was ein Treffer zusätzlich auslöst (für Hieb und Zauber) – neue Effekte hier eintragen, dann gelten sie für beides
   function onHit(x, y, d, crit) {
     let t = '';
-    if (x.leech) { const h = Math.round(d * x.leech); x.cur = Math.min(x.hp, x.cur + h); if (h) t += ` +${h} Leben.`; }
+    if (x.leech) { const h = Math.round(d * x.leech); x.cur = Math.min(x.hp, x.cur + h); if (h) { t += ` +${h} Leben.`; ev.heal = (ev.heal || 0) + h; } }
     if (crit && x.bleed) y.bleedDmg = Math.max(y.bleedDmg || 0, Math.round(d * x.bleed));
     if (x.poison) y.poisonDmg = Math.min(Math.round(y.hp * 0.08), (y.poisonDmg || 0) + Math.max(1, Math.round(d * x.poison)));
-    if (x.toll && (x.hits = (x.hits || 0) + 1) % 3 === 0) { y.stunned = true; t += ' Die Glocke dröhnt!'; }
-    if (y.thorns && y.cur > 0) { const r = Math.round(d * y.thorns); hurt(x, r); if (r) t += ` Dornen: ${r}.`; }
+    if (x.toll && (x.hits = (x.hits || 0) + 1) % 3 === 0) { y.stunned = true; t += ' Die Glocke dröhnt!'; ev.stun = true; }
+    if (y.thorns && y.cur > 0) { const r = Math.round(d * y.thorns); hurt(x, r); if (r) { t += ` Dornen: ${r}.`; ev.thorns = (ev.thorns || 0) + r; } }
     return t;
   }
 
   function strike(x, y) {
     const evade = Math.min(0.5, y.dex / (y.dex + x.dex * 3 + 40) + (y.evade || 0));
-    if (chance(evade)) return say(x.side, `${y.name} weicht aus.`);
-    if (y.block && chance(Math.min(0.5, y.block))) return say(x.side, `${y.name} blockt.`);
+    if (chance(evade)) return say(x.side, `${y.name} weicht aus.`, { miss: 'Ausgewichen' });
+    if (y.block && chance(Math.min(0.5, y.block))) return say(x.side, `${y.name} blockt.`, { miss: 'Geblockt' });
     const raw = roll(x.dmg[0], x.dmg[1]) * (1 + x[x.main] / CFG.mainDiv) * x.buff
       * (1 - Math.min(0.6, y.armor / (y.armor + 20 + x.lvl * 8)) * (1 - Math.min(0.9, x.pen || 0)));
     const { d, crit } = finish(x, y, raw);
