@@ -159,13 +159,15 @@ export function enemyInfo(m, A = G.stats()) {
 }
 
 // Was der Spieler mit einem Tippen für einen Trank tun kann (Vorbereitung): einpacken, brauen+einpacken, oder was fehlt
+// Kurzname eines Ortes für enge Hinweise: „Moor der Gehenkten“ → Moor, „Die Alte Mühle“ → Mühle
+const placeShort = n => { const w = n.replace(/^(Die|Der|Das) /, '').split(' '); return / (von|der) /.test(n) ? w[0] : w[w.length - 1]; };
 export function potOffer(id) {
   const S = G.S, p = G.potion(id);
   if (S.belt.slice(0, G.beltSlots()).some(b => b?.id === id) && S.pots[id] > 0) return { kind: 'in' };
   if (S.pots[id] > 0) return { kind: 'pack' };
   const cb = G.canBrew(id); if (cb.ok) return { kind: 'brew', gold: G.brewCost(id).gold };
   const miss = Object.entries(p.cost).find(([k, n]) => (S.herbs[k] || 0) < n);
-  if (miss) { const loc = LOCATIONS.find(l => HERB_LOC[l.id] === miss[0]); return { kind: 'miss', text: `Fehlt: ${HERBS[miss[0]].name} (${miss[0] === 'herz' ? 'Krypta-Bosse' : loc?.name || '?'})` }; }
+  if (miss) { const loc = LOCATIONS.find(l => HERB_LOC[l.id] === miss[0]); return { kind: 'miss', text: `Fehlt: ${HERBS[miss[0]].name} (${miss[0] === 'herz' ? 'Krypta-Bosse' : loc?.name || '?'})`, short: `fehlt ${HERBS[miss[0]].name}${miss[0] === 'herz' ? ' (Bosse)' : loc ? ` (${placeShort(loc.name)})` : ''}` }; }
   return { kind: 'miss', text: cb.reason };
 }
 // Trank in den Gürtel legen: freier Platz, sonst ersetzt er einen Trank, der gegen diesen Gegner nicht gebraucht wird (keep)

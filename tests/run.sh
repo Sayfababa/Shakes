@@ -11,9 +11,9 @@ pots() { for c in barbarian paladin assassin huntress sorceress witch; do node t
 bot() { for c in barbarian paladin assassin huntress sorceress witch; do node tests/bot.mjs $c 3 1 | grep -E "Kämpfe" | sed "s/^/$c: /" & done; wait; }
 
 if [ "$1" = "quick" ]; then
-  set -- logic ui trader
+  set -- logic ui trader prep
 else
-  set -- logic bot fuzz ways potions ui trader uifuzz
+  set -- logic bot fuzz ways potions ui trader prep uifuzz
 fi
 for t in "$@"; do
   case $t in
@@ -24,6 +24,7 @@ for t in "$@"; do
     potions) pots ;;
     ui)     node tests/ui.cjs ;;
     trader) node tests/trader.cjs ;;
+    prep) node tests/prep.cjs ;;
     uifuzz) node tests/uifuzz.cjs 120 ;;
   esac > "$T/$t.out" 2>&1 &
   echo $! > "$T/$t.pid"

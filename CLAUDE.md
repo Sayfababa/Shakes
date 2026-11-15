@@ -88,6 +88,7 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - `tests/uifuzz.cjs [taps]` – tippt zufällig auf alles in der App (3 iPhones, früh/spät), meldet JS-Fehler, Überstand, „undefined/NaN“ im Text, Sackgassen.
 - `tests/potions.mjs` – Balance jedes Tranks (je Auslöser) gegen Krypta-Ebenen und jeden Boss, gekoppelter Zufall; in run.sh mit `--check`.
 - `tests/trader.cjs` – Händler-Layout: 3 Händler × alle Aufträge × offen/fertig × 8 Bildschirme (auch iOS-App, wo `vh` größer ist als die sichtbare Fläche). Kopf, Zettel, Dienste haben feste Höhe, Ware füllt den Rest → überall gleich groß.
+- `tests/prep.cjs` – Krypta-Vorbereitung: 5 Lagen (Boss mit vielen Hinweisen, 3 Gürtelplätze) × 8 Bildschirme inkl. iOS-App mit fehlendem Stück unten; „Kämpfen“ muss sichtbar sein. Siegchance + Kämpfen sind eine Leiste; Gürtel als Liste, `fitPrep()` in main.js schaltet auf Reihe (`.prep.tight`), wenn die Höhe nicht reicht.
 - `tests/ui.cjs` – Playwright auf iPhone SE + 13: alle Ansichten, JS-Fehler, nichts ragt heraus. Screenshots in `tests/out/` (nicht committen).
 - Neue Features: Logik in game.js/state.js (DOM-frei), dann Test ergänzen.
 

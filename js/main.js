@@ -28,9 +28,16 @@ function render() {
   tutCheck();
   app.innerHTML = UI.hud(view === 'fight' ? '' : UI.tutorial(S.tut)) + `<main>${(views[view] || views.hero)()}</main>` + UI.navBar(view === 'fight' ? F.back : view);
   const log = document.getElementById('log'); if (log) log.scrollTop = log.scrollHeight;
+  fitPrep();
   G.save();
 }
 
+// Vorbereitung: Gürtel als Liste; reicht die Höhe nicht (kleine Handys, iOS-App), als Reihe nebeneinander
+function fitPrep() {
+  const pr = document.querySelector('.prep'), m = pr?.parentElement; if (!pr) return;
+  pr.classList.remove('tight'); const low = () => pr.lastElementChild.getBoundingClientRect().bottom > m.getBoundingClientRect().bottom + 1;
+  if (low()) pr.classList.add('tight');
+}
 // Tutorial: nächster Schritt, sobald die Bedingung erfüllt ist
 function tutCheck() {
   const S = G.S, t = TUTORIAL[S.tut]; if (!t) return;
@@ -328,9 +335,9 @@ setInterval(() => {
 const STANDALONE = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
 function fitApp() {
   const portrait = innerHeight >= innerWidth, full = portrait ? screen.height : screen.width;
-  document.documentElement.classList.toggle('shortvp', full - innerHeight > 40);
+  document.documentElement.classList.toggle('shortvp', full - innerHeight > 40); fitPrep();
 }
-addEventListener('resize', fitApp); addEventListener('orientationchange', () => setTimeout(fitApp, 300)); fitApp();
+addEventListener('resize', fitApp); addEventListener('orientationchange', () => setTimeout(fitApp, 300)); fitApp(); document.fonts?.ready.then(fitPrep);
 // Anzeige-Info: Titel antippen zeigt die Maße (zum Fehlersuchen am Handy)
 document.addEventListener('click', e => { if (!e.target.closest('.hud .ttl')) return;
   const cs = getComputedStyle(document.documentElement), t = document.querySelector('.tabs')?.getBoundingClientRect();

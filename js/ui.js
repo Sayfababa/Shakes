@@ -416,6 +416,14 @@ function beltRow(i, edit) {
     <span class="bn"><b>${p.name}</b><small>${p.rare ? 'selten · wirkt den ganzen Kampf' : TRIGGERS[b.trig]}</small></span>
     ${!p.rare && p.trig.length > 1 ? `<button class="tiny" data-action="trig" data-i="${i}">Auslöser</button>` : ''}${edit ? `<button class="tiny" data-action="beltdel" data-i="${i}">×</button>` : ''}</div>`;
 }
+// Gürtel in der Vorbereitung: Plätze nebeneinander (spart Höhe), Antippen wechselt den Auslöser
+function beltCell(i) {
+  const b = S.belt[i], p = b && potion(b.id), n = p ? S.pots[p.id] || 0 : 0;
+  if (!p) return `<div class="bcell empty"><span class="pslot"></span><span class="bn dim small">Leer</span></div>`;
+  const tr = !p.rare && p.trig.length > 1;
+  return `<div class="bcell ${p.rare ? 'rare' : ''} ${n ? '' : 'out'} ${tr ? 'tap' : ''}" ${tr ? `data-action="trig" data-i="${i}"` : ''}><span class="pslot">${potImg(p.id)}<i>${n}</i></span>
+    <span class="bn"><b>${p.name}</b><small>${p.rare ? 'ganzer Kampf' : TRIGGERS[b.trig]}</small></span></div>`;
+}
 export function viewAlch(sel, back) {
   const p = potion(sel) || POTIONS[0], c = brewCost(p.id), cb = canBrew(p.id), inBelt = S.belt.some(b => b?.id === p.id);
   return `<div class="col alch">
@@ -440,10 +448,9 @@ export function viewPrep(c, m) {
     <section class="panel"><h2>Seine Werte <span class="h2r">gegen dich</span></h2>
       <div class="grid2">${st('Leben', fmtN(e.hp))}${st('Trifft dich', e.hit.join('–'))}${st('Ausweichen', pc(e.evade))}${st('Krit', pc(e.crit))}${st('Rüstung', pc(e.armor))}${st('Blocken', e.block ? pc(e.block) : '–')}</div>
       ${e.tags.length ? `<div class="etags">${e.tags.slice(0, 4).map(([t, id]) => { const o = potOffer(id), nm = potion(id).name;
-        const act = o.kind === 'pack' ? `einpacken: ${nm}` : o.kind === 'brew' ? `${nm} brauen + einpacken · ${o.gold} G` : o.kind === 'in' ? `${nm} im Gürtel` : `${nm} – ${o.text}`;
+        const act = o.kind === 'pack' ? `${nm} einpacken` : o.kind === 'brew' ? `${nm} brauen · ${o.gold} G` : o.kind === 'in' ? `${nm} im Gürtel` : `${nm} · ${o.short || o.text}`;
         return `<span class="etag ${o.kind}" ${o.kind === 'pack' || o.kind === 'brew' ? `data-action="prepPot" data-id="${id}"` : ''}><b>${t}</b>${act}</span>`; }).join('')}</div>` : ''}</section>
-    <section class="panel"><h2>Dein Gürtel <span class="gbtns"><button class="tiny" data-action="bestBelt">Bester Gürtel</button><button class="tiny" data-action="alch" data-b="prep">Alle Tränke</button></span></h2><div class="belt">${[0, 1, 2].slice(0, beltSlots()).map(i => beltRow(i, false)).join('')}</div></section>
-    <section class="panel chance"><span>Siegchance</span><b>${pc(pW)}</b><small class="dim">ohne Tränke ${pc(p0)}</small></section>
-    <div class="btns"><button data-action="go" data-v="crypt">Zurück</button><button class="red" data-action="cryptgo" ${cd ? 'disabled' : ''}>Kämpfen</button></div>
+    <section class="panel"><h2>Dein Gürtel <span class="gbtns"><button class="tiny" data-action="bestBelt">Bester Gürtel</button><button class="tiny" data-action="alch" data-b="prep">Alle Tränke</button></span></h2><div class="beltrow">${[0, 1, 2].slice(0, beltSlots()).map(beltCell).join('')}</div></section>
+    <section class="panel chance"><span class="cl">Siegchance<small class="dim">ohne Tränke ${pc(p0)}</small></span><b>${pc(pW)}</b><button class="red" data-action="cryptgo" ${cd ? 'disabled' : ''}>Kämpfen</button></section>
   </div>`;
 }

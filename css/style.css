@@ -747,3 +747,23 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .fighter .intent.pulse { animation: intentPulse .6s ease-out; }
 @keyframes intentPulse { 0% { box-shadow: 0 0 0 rgba(200,40,20,0); transform: translateX(-50%) scale(1.12); } 100% { box-shadow: 0 0 8px rgba(170,30,20,.45); transform: translateX(-50%) scale(1); } }
 @media (min-height: 760px) { .fighter .intent { font-size: .76rem; padding: 2px 8px; } }
+
+/* Vorbereitung kompakt: Gürtel als Reihe, Siegchance + Kämpfen in einer Leiste (iOS-App zeigt unten weniger als gemeldet) */
+.beltrow { display: flex; flex-direction: column; gap: 4px; }
+.prep.tight .beltrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 6px; }
+.bcell { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 6px; align-items: center; min-width: 0; }
+.bcell .pslot { width: 38px; height: 38px; } .bcell.tap { cursor: pointer; }
+.bcell .bn { display: flex; flex-direction: column; min-width: 0; line-height: 1.1; }
+.bcell .bn b { font-size: .8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bcell .bn small { font-family: 'Alegreya SC'; font-size: .66rem; color: var(--gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bcell.tap .bn small { text-decoration: underline dotted; text-underline-offset: 2px; }
+.bcell.rare .bn b { color: var(--r-rare); } .bcell.out .pslot img { opacity: .35; }
+.prep .chance { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; }
+.prep .chance { padding-left: 16px; padding-right: 12px; }
+.prep .chance .cl { display: flex; flex-direction: column; line-height: 1.15; } .prep .chance .cl small { font-size: .7rem; }
+.prep .chance b { margin-left: 0; } .prep .chance button { min-width: 6.5rem; margin: 0; }
+.prep .etags .etag { display: block; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.prep .etags .etag b { display: block; }
+.prep > .panel:last-child { margin-top: auto; }
+@media (min-height: 760px) { .bcell { grid-template-columns: 46px minmax(0, 1fr); } .bcell .pslot { width: 46px; height: 46px; } .bcell .bn b { font-size: .88rem; } .bcell .bn small { font-size: .7rem; } }
+@media (max-height: 620px) { .bcell { grid-template-columns: 32px minmax(0, 1fr); gap: 4px; } .bcell .pslot { width: 32px; height: 32px; } .prep .chance button { min-height: 32px; padding: 4px 8px; } }
