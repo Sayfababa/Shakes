@@ -39,7 +39,7 @@ function questNote(tid) {
   if (!available(tid)) return `<div class="note sealed"><h4>${q.title}</h4><p>„Komm wieder, wenn du Stufe ${q.lvl} erreicht hast.“</p></div>`;
   const r = q.rew, extra = [r.item ? `${SLOTS[r.item.slot]} (${RARITIES[r.item.rar].name})` : '', r.perk ? `Segen: ${r.perk.name}` : '', r.rep ? `${r.rep} Ruf` : ''].filter(Boolean);
   const champOpen = q.champ && objs.some(o => !o.done) && Date.now() >= S.arenaTs;
-  return `<div class="note"><h4>${q.title}</h4><p>${q.text}</p>
+  return `<div class="note ${canComplete(tid) ? 'ready' : ''}"><h4>${q.title}</h4><p>${q.text}</p>
     <ul>${objs.map(o => `<li class="${o.done ? 'ok' : ''}">${o.label} <b>${o.cur}/${o.n}</b></li>`).join('')}</ul>
     <div class="rew">Lohn: ${r.gold} Gold · ${r.xp} EP${extra.length ? ' · ' + extra.join(' · ') : ''}</div>
     ${q.champ && objs.some(o => !o.done) ? `<button class="red" data-action="champ" data-t="${tid}" ${champOpen ? '' : 'disabled'}>Herausfordern: ${q.champ.name}</button>` : ''}

@@ -643,3 +643,26 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 @media (min-height: 760px) { .way { min-height: 78px; } .way b { font-size: 1.12rem; } .way small { font-size: .84rem; } }
 @media (max-height: 620px) { .gradesp { display: none; } }   /* winzige Handys: Zauber und Wege haben Vorrang */
 @media (max-height: 620px) { .waynote { display: none; } .way { min-height: 48px; } }
+
+/* --- Händler: feste, einheitliche Größen bei allen drei Händlern ---
+   Dienste: immer 3 gleiche Spalten, feste Höhe. Ware: feste Höhe je Bildschirm. Kopf: Spruch immer 2 Zeilen hoch.
+   Zettel: Erzähltext 2 Zeilen; ist der Auftrag fertig, nur Ziel/Lohn/Abgeben. */
+.trader .services { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.trader .svc { height: 46px; min-height: 0; justify-content: center; padding: 3px 4px; }
+.trader .svc b { font-size: .7rem; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-align: center; }
+.trader .svc small { font-size: .62rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.trader .note { flex: none !important; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.trader .note > * { flex: none; }
+.trader .note p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.trader .note.ready p { display: none; }
+.trader .npcrow .lore { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.5em; }
+.trader > .shop { flex: none !important; margin-top: auto; display: block; }
+.trader .shoprow { max-height: none; grid-template-rows: none; }
+@media (min-height: 760px) {
+  .trader .svc { height: 52px; } .trader .svc b { font-size: .78rem; } .trader .svc small { font-size: .68rem; }
+  .trader .shoprow { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: auto; gap: 8px; }
+  .trader .sitem { aspect-ratio: auto; height: clamp(64px, 8.1vh, 84px); }
+  .trader .npcrow { grid-template-columns: 22% 1fr; }
+}
+@media (max-height: 600px) {   /* winzige Handys: Zettel nur Titel/Ziele/Lohn, Kopf ohne Spruch, Dienste flacher */
+  .trader .note p, .trader .npcrow .lore { display: none; } .trader .svc { height: 38px; } .trader .svc small { display: none; } }
