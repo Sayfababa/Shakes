@@ -63,7 +63,7 @@ export const AFFIXES = [
   { stat: 'critc', per: 1.0, pre: 'Scharfer', suf: 'der Schärfe', pct: 1, label: 'Krit-Chance', slots: ['weapon', 'gloves', 'ring', 'amulet'] },
   { stat: 'critd', per: 3.0, pre: 'Brutaler', suf: 'des Gemetzels', pct: 1, label: 'Krit-Schaden', slots: ['weapon', 'gloves', 'amulet'] },
   { stat: 'dmgp', per: 0.95, pre: 'Wütender', suf: 'des Zorns', pct: 1, label: 'Schaden', slots: ['weapon', 'gloves', 'ring'] },
-  { stat: 'spellp', per: 1.2, pre: 'Arkaner', suf: 'der Zauberei', pct: 1, label: 'Zauberschaden', slots: ['weapon', 'offhand', 'helm', 'amulet'] },
+  { stat: 'spellp', per: 1.2, pre: 'Arkaner', suf: 'der Zauberei', pct: 1, label: 'Zauberkraft', slots: ['weapon', 'offhand', 'helm', 'amulet'] },
   { stat: 'penp', per: 1.8, pre: 'Bohrender', suf: 'des Durchbohrens', pct: 1, label: 'Rüstung ignorieren', slots: ['weapon'] },
   { stat: 'leechp', per: 0.65, pre: 'Saugender', suf: 'des Egels', pct: 1, label: 'Lebensraub', slots: ['weapon', 'ring'] },
   { stat: 'lifep', per: 1.9, pre: 'Lebendiger', suf: 'des Lebens', pct: 1, label: 'Leben', slots: ['chest', 'helm', 'belt'] },

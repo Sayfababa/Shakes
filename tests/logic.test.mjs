@@ -386,3 +386,19 @@ test('Eichung: jeder Prozent-Bonus der Stufe III liegt nah am Hauptattribut (Stu
     assert.ok(v20 > 0.7 && v20 < 1.4, `${k}: ${v20} weicht zu weit vom Hauptattribut ab`);
   }
 });
+
+test('Kampf-Boni wirken auf Hieb UND Zauber (Krit, Krit-Schaden, Lebensraub, Zauber-Bonus auf Heilung)', () => {
+  const S = fresh('sorceress'); S.lvl = 20;
+  const mon = () => ({ name: 'Puppe', lvl: 20, main: 'str', str: 10, dex: 0, int: 0, con: 10, lck: 0, armor: 100, dmg: [60, 60], hp: 1e9 });
+  const logs = mods => { S.equip.weapon.mods = mods; const A = { ...G.stats(), hp: 1e7 }; const L = []; for (let i = 0; i < 150; i++) L.push(...fight(A, mon()).log.filter(l => l.who === 'a' && l.dmg && !l.hits)); return L; };
+  const rate = (L, f) => L.filter(f).length / L.length;
+  const c = logs({ critc: 30 });
+  assert.ok(rate(c.filter(l => !l.spell), l => l.crit) > 0.25 && rate(c.filter(l => l.spell), l => l.crit) > 0.25, 'Krit-Chance auf Hieb und Zauber');
+  const ratio = (L, sp) => { const x = L.filter(l => !!l.spell === sp), cr = x.filter(l => l.crit), no = x.filter(l => !l.crit);
+    return cr.reduce((a, l) => a + l.dmg, 0) / cr.length / (no.reduce((a, l) => a + l.dmg, 0) / no.length); };
+  const d = logs({ critc: 40, critd: 60 }); assert.ok(ratio(d, false) > 2.3 && ratio(d, true) > 2.3, 'Krit-Schaden auf Hieb und Zauber');
+  const h = logs({ leechp: 10 }); assert.ok(h.filter(l => !l.spell).every(l => l.heal) && h.filter(l => l.spell).every(l => l.heal), 'Lebensraub auf Hieb und Zauber');
+  const P = fresh('paladin'); P.lvl = 20; const gebet = mods => { P.equip.weapon.mods = mods; const A = { ...G.stats(), hp: 1e7 };
+    return fight(A, mon()).log.find(l => l.sid === 'gebet').heal; };
+  assert.ok(Math.abs(gebet({ sk_gebet: 50 }) / gebet({}) - 1.5) < 0.02, 'Zauber-Bonus verstärkt Heilzauber');
+});
