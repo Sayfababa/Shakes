@@ -91,10 +91,10 @@ export function delve() {
 export const bank = () => { const d = G.S.haul?.depth || 0, h = G.bankHaul(); if (h) G.bountyEvent({ type: 'bank', depth: d }); return h; };
 
 // --- Krypta-Kampf ---
-export function cryptFight(id) {
+export function cryptFight(id, m0 = null) {
   const S = G.S, c = CRYPTS.find(x => x.id === id);
   if (!c || now() < S.crypt.cd || !G.cryptOpen(c) || G.cryptFloor(c) >= 5) return null;
-  const m = G.cryptEnemy(c), boss = !!m.boss;
+  const m = m0 || G.cryptEnemy(c), boss = !!m.boss;
   S.crypt.cd = now() + CFG.cryptCdSec * 1000;
   const A = { ...G.stats(), belt: G.beltCombat() }, r = fight(A, m), win = r.winner === 'a', rew = newRew();
   G.usePotions(r.used); rew.used = r.used;
@@ -144,3 +144,16 @@ export const tripChance = (l, track = 'norm') => winChance('trip:' + l.id + trac
 });
 export const cryptChance = (c, belt = G.beltCombat()) => winChance('crypt:' + c.id + ':' + G.cryptFloor(c) + ':' + G.S.crypt.diff, () => G.cryptEnemy(c), 24, belt);
 export const threatLabel = p => p >= 0.9 ? ['gering', 'low'] : p >= 0.65 ? ['mäßig', 'mid'] : p >= 0.35 ? ['hoch', 'high'] : ['tödlich', 'deadly'];
+
+// Werte eines Gegners aus Sicht des Helden (Vorbereitung): gleiche Formeln wie combat.js
+export function enemyInfo(m, A = G.stats()) {
+  const hitDmg = [0, 1].map(i => Math.round(m.dmg[i] * (1 + m[m.main] / CFG.mainDiv) * (1 - Math.min(0.6, A.armor / (A.armor + 20 + m.lvl * 8)))));
+  const tags = [];
+  if (m.poison) tags.push(['Gift, das sich stapelt', 'gegengift']); if (m.bleed) tags.push(['Lässt dich bluten', 'gegengift']);
+  if (m.regen || m.leech) tags.push(['Heilt sich', 'weihwasser']); if (m.toll) tags.push(['Betäubt dich', 'wachsaft']);
+  if (m.execute) tags.push(['Schlachtet Geschwächte', 'steinhaut']); if (m.rage > 0.2) tags.push(['Wird rasend', 'steinhaut']);
+  const evade = Math.min(0.5, m.dex / (m.dex + A.dex * 3 + 40) + (m.evade || 0)), armor = Math.min(0.6, m.armor / (m.armor + 20 + A.lvl * 8));
+  const crit = Math.min(0.6, CFG.critBase + m.lck / (m.lck + 100 + A.lvl * 5) + (m.crit || 0));
+  if (evade >= 0.25) tags.push(['Weicht oft aus', 'jaegerblick']); if (armor >= 0.4) tags.push(['Schwer gepanzert', 'rostsaeure']); if (crit >= 0.2) tags.push(['Trifft oft kritisch', 'knochenmark']);
+  return { hp: m.hp, hit: hitDmg, evade, armor, crit, block: m.block || 0, tags };
+}

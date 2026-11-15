@@ -77,6 +77,17 @@ let failures = 0;
     for (let i = 0; i < 3; i++) if (!(await tap('[data-o=values]'))) { failures++; console.log(`FEHLER ${tag}: Werte würfeln gesperrt:`, await p.evaluate(() => document.querySelector('.cmsg')?.textContent)); }
     const v1 = await p.evaluate(() => document.querySelector('.caff.sealed span')?.textContent); await chk('craft2');
     if (!v0 || v0 !== v1) { failures++; console.log(`FEHLER ${tag}: Siegel hält nicht (${v0} → ${v1})`); }
+    // Alchemie: brauen, in den Gürtel, Vorbereitung vor der Krypta, Kampf mit Trank
+    await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.herbs = { rotwurz: 6, grabmoos: 6, silberstaub: 6, nachtschatten: 6, schwefel: 6, herz: 2 }; G.S.gold += 2000; G.S.crypt.cd = 0; G.save(); });
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=traders]'); await tap('[data-t=ysolde]');
+    if (!(await tap('[data-action=alch]'))) { failures++; console.log(`FEHLER ${tag}: Alchemie nicht erreichbar`); }
+    await tap('[data-action=potsel][data-id=rotwurz]'); await tap('[data-action=brew]'); await tap('[data-action=beltin]');
+    await tap('[data-action=potsel][data-id=falkenauge]'); await tap('[data-action=brew]'); await tap('[data-action=beltin]'); await chk('alch');
+    const belt = await p.evaluate(async () => (await import('./js/state.js')).S.belt.filter(Boolean).map(b => b.id).join());
+    if (belt !== 'rotwurz,falkenauge') { failures++; console.log(`FEHLER ${tag}: Gürtel ${belt}`); }
+    await tap('[data-v=crypt]'); if (await tap('[data-action=crypt]')) { await chk('prep'); await tap('[data-action=trig]'); await tap('[data-action=cryptgo]'); await p.waitForTimeout(600); await chk('fightpot');
+      if (!(await p.$('.pbelt img'))) { failures++; console.log(`FEHLER ${tag}: Tränke im Kampf nicht sichtbar`); } }
+    else { failures++; console.log(`FEHLER ${tag}: Krypta nicht antippbar`); }
     if (errs.length) { failures++; console.log(`FEHLER ${tag} JS:`, errs); }
     await c.close();
   }));

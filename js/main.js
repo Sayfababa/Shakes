@@ -1,4 +1,4 @@
-import { CFG, MATS, TUTORIAL, TRADERS, FORGE } from './data.js';
+import { CFG, MATS, TUTORIAL, TRADERS, FORGE, CRYPTS, HERBS, POTIONS } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import * as Game from './game.js';
@@ -6,12 +6,13 @@ import * as UI from './ui.js';
 
 const app = document.getElementById('app'), tip = document.getElementById('tip');
 let forgeSel = { mat: null, slot: null, mode: 'rune', item: null, stat: null, msg: '' }, forgeRes = null, FG = null;
+let prepC = null, prepM = null, alchSel = POTIONS[0].id, alchBack = 'traders';
 let tripLoc = null, view = 'hero', pickCls = null, F = null, rival = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
 
 function render() {
   const S = G.S;
   if (!S) { app.innerHTML = `<main>${UI.viewCreate(pickCls)}</main>`; return; }
-  G.tickGlut();
+  G.tickGlut(); G.potDaily();
   const views = {
     fight: () => UI.viewFight(F), trips: UI.viewTrips, stats: UI.viewStats, spells: UI.viewSpells, ways: () => UI.viewWays(waySel), talents: UI.viewTalents, crypt: UI.viewCrypts,
     traders: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewTrader(trader),
@@ -20,6 +21,8 @@ function render() {
     forge: () => UI.viewForge(forgeSel, forgeRes),
     npc: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewNpc(npc),
     arena: () => UI.viewArena(rival ||= Game.makeRival()), hero: UI.viewHero,
+    alch: () => UI.viewAlch(alchSel, alchBack),
+    prep: () => prepM ? UI.viewPrep(CRYPTS.find(c => c.id === prepC), prepM) : UI.viewCrypts(),
   };
   if (view === 'fight' && !F) view = 'hero';
   tutCheck();
@@ -53,6 +56,7 @@ function showFight(res, back, extra = '') {
 function haulRewText(res) {
   const w = res.rew, h = res.haul, L = [`Gefunden: ${w.gold} Gold · ${w.xp} EP`];
   for (const [k, n] of w.mats) L.push(`${MATS[k]} ×${n}`);
+  for (const [k, n] of w.herbs || []) L.push(`${HERBS[k].name} ×${n}`);
   if (w.item) L.push(`<span class="r-${w.item.rarity}">${w.item.name}</span>${betterTxt(w.item)}`);
   if (w.omen) L.push('<b class="gold">Das Omen hat sich erfüllt.</b>');
   L.push(`<i class="dim">Ungesichert (Tiefe ${h.depth}): ${h.gold} Gold, ${h.xp} EP${h.items.length ? `, ${h.items.length} Fundstück(e)` : ''}</i>`);
@@ -79,6 +83,7 @@ function rewText(w) {
   if (w.gold || w.xp) L.push(`+${w.gold} Gold${w.xp ? ` · +${w.xp} EP` : ''}${w.honor ? ` · +${w.honor} Ehre` : ''}`);
   else if (w.honor) L.push(`+${w.honor} Ehre`);
   for (const [k, n] of w.mats) L.push(`${MATS[k]} ×${n}`);
+  for (const [k, n] of w.herbs || []) L.push(`${HERBS[k].name} ×${n}`);
   if (w.item) L.push(`Beute: <span class="r-${w.item.rarity}">${w.item.name}</span>${w.item.soldFull ? ' <i class="dim">(Beutel voll – verkauft)</i>' : betterTxt(w.item)}`);
   if (w.omen) L.push('<b class="gold">Das Omen hat sich erfüllt.</b>');
   if (w.trophy) L.push(`<b class="r-legendary">Trophäe: ${w.trophy.name}</b>`);
@@ -155,6 +160,7 @@ function combatFx(l) {
   if (l.rage) pop(me, 'Raserei', 'miss rage');
   if (l.thorns) { hit(me, false, delay + 60); pop(me, l.thorns, 'tick thorns', delay + 60); }
   if (l.combo) pop(foe, l.combo, 'combo', delay + 40, sp?.fx);                        // Zauber-Weg löst aus (Schmelzen, Detonation …)
+  if (l.pot && l.who === 'a') { pop(me, l.potName, 'combo pot'); const b = me.querySelector(`.pbelt [data-p="${l.pot}"]`); if (b) b.classList.add('used'); }
   if (l.status) pop(l.status === 'Gereinigt' ? me : foe, l.status, 'miss status', delay + 200);
 }
 
@@ -196,7 +202,17 @@ const actions = {
   rush: () => { const S = G.S, c = G.rushCost(); if (S.active && S.gold >= c) { S.gold -= c; S.active.end = Date.now(); } render(); },
   claim: d => { const r = G.claimBounty(+d.i); if (r) G.journal(`Steckbrief erfüllt: ${r.gold} Gold, ${r.xp} EP.`); render(); },
   resolve: () => showFight(Game.resolveTrip(), 'trips'),
-  crypt: d => showFight(Game.cryptFight(d.id), 'crypt'),
+  crypt: d => { const c = CRYPTS.find(x => x.id === d.id); if (!c) return; prepC = c.id; prepM = G.cryptEnemy(c); view = 'prep'; render(); },
+  cryptgo: () => { const m = prepM; prepM = null; showFight(Game.cryptFight(prepC, m), 'crypt'); },
+  alch: d => { alchBack = d.b === 'prep' ? 'prep' : 'traders'; view = 'alch'; render(); },
+  potsel: d => { alchSel = d.id; render(); },
+  brew: d => { if (G.brew(d.id)) { alchSel = d.id; render(); } },
+  beltin: d => { const n = G.beltSlots(); let i = G.S.belt.slice(0, n).findIndex(b => !b);
+    if (G.potion(d.id).rare) { const r = G.S.belt.slice(0, n).findIndex(b => b && G.potion(b.id).rare); if (r >= 0) i = r; }   // seltenen ersetzen
+    if (i < 0) return alert('Der Gürtel ist voll. Nimm erst einen Trank heraus.'); if (!G.setBelt(i, d.id)) return alert('Geht nicht.'); render(); },
+  beltout: d => { const i = G.S.belt.findIndex(b => b?.id === d.id); if (i >= 0) G.setBelt(i, null); render(); },
+  beltdel: d => { G.setBelt(+d.i, null); render(); },
+  trig: d => { const b = G.S.belt[+d.i], ts = b && G.potion(b.id).trig; if (!ts) return; G.setTrig(+d.i, ts[(ts.indexOf(b.trig) + 1) % ts.length]); render(); },
   rival: () => { rival = Game.makeRival(); render(); },
   arena: () => { const R = rival; const res = Game.arenaFight(R); if (res) rival = null; showFight(res, 'arena'); },
   forgemode: d => { forgeSel.mode = d.m; forgeRes = null; forgeSel.msg = ''; render(); },

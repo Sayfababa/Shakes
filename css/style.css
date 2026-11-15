@@ -688,3 +688,46 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .statsv .vscroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; display: flex; flex-direction: column; gap: var(--gap); }
 .statsv .vscroll > .panel { flex: none !important; }
 .statsv > .btns { flex: none; }
+
+/* --- Alchemie, Gürtel, Vorbereitung (Rahmen aus dem UI-Kit: slot.webp) --- */
+.pslot, .ptile, .herb { position: relative; display: grid; place-items: center; background-color: #07080b; box-shadow: inset 0 0 10px #000; border-image: url('../assets/ui/slot.webp') 16 / 6px stretch; }
+.pslot img, .ptile img, .herb img { width: 82%; height: 82%; object-fit: contain; filter: drop-shadow(0 1px 1px #000); }
+.pslot i, .ptile i, .herb i { position: absolute; right: 4px; bottom: 1px; font-style: normal; font-family: 'Alegreya SC'; font-size: .72rem; color: var(--gold-hi); text-shadow: 0 1px 0 #000, 0 0 3px #000; }
+.belt { display: flex; flex-direction: column; gap: 4px; }
+.bslot { display: grid; grid-template-columns: 40px 1fr auto auto; gap: 8px; align-items: center; min-height: 40px; }
+.bslot .pslot { width: 40px; height: 40px; } .bslot.locked, .bslot.empty { grid-template-columns: 40px 1fr; }
+.bslot.locked .pslot { opacity: .35; } .bslot.out .pslot img { opacity: .35; } .bslot.out .bn small::after { content: ' · leer'; color: var(--blood-hi); }
+.bslot .bn { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; } .bslot .bn b { font-size: .9rem; } .bslot .bn small { font-family: 'Alegreya SC'; font-size: .7rem; color: var(--gold); }
+.bslot.rare .bn b, .ptile.rare i { color: var(--r-rare); }
+.ptile.rare { box-shadow: inset 0 0 10px #000, inset 0 0 0 1px rgba(242,224,90,.25); }
+.herbs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; padding-top: 6px; padding-bottom: 6px; }
+.herb { aspect-ratio: 1; }
+.potgrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; padding-top: 6px; padding-bottom: 6px; }
+.ptile { aspect-ratio: 1; cursor: pointer; } .ptile.on { outline: 1px solid var(--gold); box-shadow: inset 0 0 12px #000, 0 0 8px rgba(192,154,85,.5); }
+.potdet h3 { font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.1rem; display: flex; align-items: baseline; gap: 8px; }
+.potdet p { margin: 3px 0; } .potdet .btns { margin-top: 6px; }
+.alch > .panel, .prep > .panel { flex: none !important; }
+.alch .potdet { flex: 1 1 auto !important; min-height: 0; overflow: hidden; }
+.prephead { display: grid; grid-template-columns: 74px 1fr; gap: 10px; align-items: center; } .prephead h2 { margin: 0; border: 0; box-shadow: none; }
+.prephead .portrait { width: 74px; height: 74px; object-fit: cover; }
+.etags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.etags span { font-family: 'Alegreya SC'; font-size: .7rem; padding: 2px 6px; border: 1px solid #4a2018; color: #d8a890; background: #120a07; }
+.etags span.have { border-color: #3d5a24; color: #9fc870; }
+.prep .chance { display: flex; align-items: baseline; gap: 10px; } .prep .chance b { font-family: 'Grenze Gotisch'; font-size: 1.5rem; color: var(--gold-hi); margin-left: auto; }
+.prep h2 .tiny, .alch h2 .tiny { margin-left: auto; }
+.prep > .btns { margin-top: auto; }
+/* Kampf: Tränke unter dem eigenen Bild, verbrauchte grau */
+.pbelt { display: flex; justify-content: center; gap: 3px; margin-top: 3px; }
+.pbelt img { width: 22px; height: 22px; object-fit: contain; filter: drop-shadow(0 0 2px #000); transition: opacity .3s; }
+.pbelt img.used { opacity: .25; filter: grayscale(1); }
+.fnum.pot { color: #9fc870; }
+@media (min-height: 760px) { .bslot { grid-template-columns: 48px 1fr auto auto; } .bslot .pslot { width: 48px; height: 48px; } .bslot.locked, .bslot.empty { grid-template-columns: 48px 1fr; }
+  .prephead { grid-template-columns: 96px 1fr; } .prephead .portrait { width: 96px; height: 96px; } .pbelt img { width: 28px; height: 28px; } }
+@media (max-height: 620px) { .alch .herbs { padding-top: 3px; padding-bottom: 3px; } .bslot { min-height: 34px; } .bslot .pslot { width: 34px; height: 34px; } .prephead .portrait { width: 56px; height: 56px; } .prephead { grid-template-columns: 56px 1fr; } }
+@media (max-height: 620px) {   /* kleinste iPhones (mit Tutorial-Leiste): Alchemie und Vorbereitung kompakt */
+  .alch h2 .h2r, .alch .bslot.locked, .prep .prephead p.dim, .prep h2 .h2r { display: none; }
+  .alch .herb { aspect-ratio: auto; height: 30px; } .alch .ptile { aspect-ratio: auto; height: 32px; }
+  .alch .potgrid, .alch .herbs { gap: 3px; } .alch .panel, .prep .panel { padding-top: 5px; padding-bottom: 5px; }
+  .potdet h3 { font-size: .95rem; } .potdet p { font-size: .72rem; margin: 1px 0; } .potdet .btns button, .prep > .btns button { min-height: 30px; padding: 4px 8px; }
+  .prep .stat { padding: 1px 0; font-size: .82rem; } .prep h2 { font-size: 1rem; margin-bottom: 2px; } .prep .chance b { font-size: 1.15rem; }
+  .bslot { min-height: 32px; gap: 6px; } .bslot .pslot { width: 32px; height: 32px; } .bslot, .bslot.empty { grid-template-columns: 32px 1fr auto auto; } }

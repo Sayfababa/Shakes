@@ -475,7 +475,7 @@ test('Gürtel: Tagesladung nur für gewöhnliche im Gürtel, einmal je Tag', () 
 });
 test('Kampf: Trank zündet bei seinem Auslöser, wird in der Krypta verbraucht', () => {
   const S = fresh('barbarian'); S.pots = { rotwurz: 2 }; G.setBelt(0, 'rotwurz');
-  const A = { ...G.stats(), belt: G.beltCombat() }, B = { ...G.makeMonster(1, 3), hp: 99999 };
+  const A = { ...G.stats(), belt: G.beltCombat() }, B = { ...G.makeMonster(1, 3), hp: 99999, rage: 0, crit: 0, lck: 0 }; B.dmg = [Math.round(A.hp * 0.08), Math.round(A.hp * 0.1)]; B[B.main] = 0;
   const r = fight(A, B); assert.deepEqual(r.used, ['rotwurz']); const e = r.log.find(l => l.pot === 'rotwurz');
   assert.ok(e && e.hpA > 0); assert.ok(r.log[r.log.indexOf(e) - 1].hpA < A.hp * 0.5, 'erst unter 50 % Leben');
   S.crypt.cd = 0; const res = Game.cryptFight('c1'); assert.ok(res); assert.ok(S.pots.rotwurz === 2 - res.rew.used.length);

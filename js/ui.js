@@ -1,13 +1,14 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
 import { AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
-import { SPELL_TREE, TREE_LVL } from './data.js';
+import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH } from './data.js';
+import { potion, beltSlots, brewCost, canBrew, potMax } from './state.js';
 import { waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 // Name eines Item-Bonus: Attribute, Rüstung/Schaden, Prozent-Boni ("% Krit-Chance", "% Feuerball")
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
-import { gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance } from './game.js';
+import { gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
 const P = cls => `assets/portraits/${CLASSES[cls].portrait}.jpg`;
@@ -84,7 +85,7 @@ export function hud(tut = '') {
 }
 export function navBar(view) {
   const tabs = [['hero', 'Held'], ['trips', 'Streifzug'], ['traders', 'Händler'], ['crypt', 'Krypta'], ['arena', 'Grube']];
-  const map = { forge: 'traders', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips' };
+  const map = { alch: 'traders', prep: 'crypt', forge: 'traders', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips' };
   // Nur echte Handlungsaufforderungen markieren – ein Dauer-Punkt auf jedem Tab sagt nichts mehr
   const badge = { hero: S.points + talentPoints() + waysPending() > 0, traders: Object.keys(TRADERS).some(canComplete), arena: canComplete('vargo'),
     crypt: canComplete('ilse'), trips: !!S.haul || canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) || (!!S.active && Date.now() >= S.active.end) };
@@ -281,7 +282,7 @@ export function viewTrader(tid) {
         <div class="loyal"><span>Treue <b>${LOYALTY[L]}</b></span><div class="bar rep"><i style="width:${L + 1 < t.need.length ? pct(st.rep - t.need[L], t.need[L + 1] - t.need[L]) : 100}%"></i></div><small>${next}</small></div></div>
     </section>
     ${note}
-    <section class="panel services">${tid === 'halvar' ? `<button class="svc red" data-action="go" data-v="forge"><b>Schmiede</b></button>` : ''}${(SERVICES[tid] || []).map(sv => { const st = serviceState(sv);
+    <section class="panel services">${tid === 'halvar' ? `<button class="svc red" data-action="go" data-v="forge"><b>Schmiede</b></button>` : tid === 'ysolde' ? `<button class="svc red" data-action="alch" data-b="traders"><b>Alchemie</b></button>` : ''}${(SERVICES[tid] || []).map(sv => { const st = serviceState(sv);
       return `<button class="svc" data-action="service" data-t="${tid}" data-s="${sv.id}" ${st.can ? '' : 'disabled'}>
         <b>${sv.name}${sv.max && st.it ? ` +${st.step}` : ''}</b><small>${st.reason || st.costText}${st.questMat && !st.reason ? ` <i class="hot">– ${MATS[st.questMat]} für Auftrag!</i>` : ''}</small></button>`; }).join('')}</section>
     <section class="panel shop"><div class="invhead"><span>Ware</span><small class="dim">bessere Ware mit höherer Treue</small></div>
@@ -323,6 +324,7 @@ export function viewFight(F) {
   const hpA = last.hpA ?? F.hpA, hpB = last.hpB ?? F.hpB, done = F.step >= F.log.length;
   const side = (f, hp, max, hit, id, ch) => `<div class="fighter ${done && (id === 'fA') !== (F.winner === 'a') ? 'dead' : ''}" id="${id}"><div class="pwrap">${f.cls ? `<img class="portrait" src="${P(f.cls)}" alt="">` : monsterArt(f.glyph)}${done && F.gold && id === 'fB' ? `<span class="goldpop"><img src="assets/ui/coin.webp" alt="">+${F.gold}</span>` : ''}</div>
     <div class="nm">${f.name}</div><div class="bar"><i style="width:${pct(hp, max)}%"></i></div><div class="hp">${Math.max(0, hp)} / ${max}</div>
+    ${f.belt?.length ? `<div class="pbelt">${f.belt.map(p => { const k = F.log.findIndex(l => l.pot === p.id && l.who === 'a'); return `<img class="${k >= 0 && k < F.step ? 'used' : ''}" src="assets/potions/${p.id}.webp" data-p="${p.id}" alt="" title="${p.name}">`; }).join('')}</div>` : ''}
     ${f.spells?.length ? `<div class="sbar">${f.spells.map((sp, i) => `<div class="sb" data-i="${i}" title="${sp.name}" style="--c:${ch?.[i] ?? 0}"><img src="assets/spells/${sp.id}.webp" alt=""><i></i></div>`).join('')}</div>` : ''}</div>`;
 
   return `<div class="panel fightwrap"><div class="fight">
@@ -398,4 +400,45 @@ function viewCraft(sel) {
     <section class="panel grow">${card}</section>
     <section class="panel"><div class="cops">${ops}</div>
       <p class="small cmsg">${sel.msg || (it ? `Je Eingriff ${craftGold(it)} Gold · ${sel.stat ? `<b>${STAT_NAME(sel.stat)}</b> gewählt` : 'zum Versiegeln einen Bonus antippen'}${why ? ` · <span class="down">${why}</span>` : ''}` : 'Material bestimmt den Eingriff, Schmiedeglut wie oft.')}</p></section></div>`;
+}
+
+// --- Alchemie & Vorbereitung ---
+const potImg = id => `<img src="assets/potions/${id}.webp" alt="">`;
+// Ein Gürtel-Platz: Bild, Name, Ladungen, Auslöser (antippen = wechseln)
+function beltRow(i, edit) {
+  if (i >= beltSlots()) return `<div class="bslot locked"><span class="pslot"></span><span class="dim small">Dritter Platz ab Treue ${LOYALTY[ALCH.loyalNeed]} bei Ysolde</span></div>`;
+  const b = S.belt[i], p = b && potion(b.id), n = p ? S.pots[p.id] || 0 : 0;
+  if (!p) return `<div class="bslot empty"><span class="pslot"></span><span class="dim small">Leer${edit ? ' – Trank wählen, dann „In den Gürtel“' : ''}</span></div>`;
+  return `<div class="bslot ${p.rare ? 'rare' : ''} ${n ? '' : 'out'}"><span class="pslot">${potImg(p.id)}<i>${n}</i></span>
+    <span class="bn"><b>${p.name}</b><small>${p.rare ? 'selten · wirkt den ganzen Kampf' : TRIGGERS[b.trig]}</small></span>
+    ${!p.rare && p.trig.length > 1 ? `<button class="tiny" data-action="trig" data-i="${i}">Auslöser</button>` : ''}${edit ? `<button class="tiny" data-action="beltdel" data-i="${i}">×</button>` : ''}</div>`;
+}
+export function viewAlch(sel, back) {
+  const p = potion(sel) || POTIONS[0], c = brewCost(p.id), cb = canBrew(p.id), inBelt = S.belt.some(b => b?.id === p.id);
+  return `<div class="col alch">
+    <section class="panel"><h2>Alchemie <span class="h2r">Tränke wirken nur in der Krypta</span><button class="tiny" data-action="${back === 'prep' ? 'go" data-v="prep' : 'trader" data-t="ysolde'}">Zurück</button></h2>
+      <div class="belt">${[0, 1, 2].map(i => beltRow(i, true)).join('')}</div></section>
+    <section class="panel herbs">${Object.entries(HERBS).map(([k, h]) => `<span class="herb" title="${h.name}">${potImg(h.img)}<i>${S.herbs[k] || 0}</i></span>`).join('')}</section>
+    <section class="panel potgrid">${POTIONS.map(x => `<span class="ptile ${x.rare ? 'rare' : ''} ${x.id === p.id ? 'on' : ''}" data-action="potsel" data-id="${x.id}">${potImg(x.id)}${S.pots[x.id] ? `<i>${S.pots[x.id]}</i>` : ''}</span>`).join('')}</section>
+    <section class="panel potdet"><h3 class="${p.rare ? 'r-rare' : ''}">${p.name} <span class="h2r">${p.rare ? 'selten · 1 Ladung' : `gewöhnlich · ${ALCH.charges} Ladungen`}</span></h3>
+      <p class="small">${p.text}${p.rare ? '' : ` Zündet: ${p.trig.map(t => TRIGGERS[t]).join(' oder ')}.`}</p>
+      <p class="small dim">Vorrat ${S.pots[p.id] || 0}/${potMax(p)} · Kosten: ${Object.entries(c.herbs).map(([k, n]) => `${HERBS[k].name} ×${n} <i class="${(S.herbs[k] || 0) < n ? 'down' : ''}">(${S.herbs[k] || 0})</i>`).join(', ')}, ${c.gold} Gold</p>
+      <div class="btns"><button class="red" data-action="brew" data-id="${p.id}" ${cb.ok ? '' : 'disabled'}>${cb.ok ? 'Brauen' : cb.reason}</button>
+        <button data-action="${inBelt ? 'beltout' : 'beltin'}" data-id="${p.id}" ${inBelt || S.pots[p.id] ? '' : 'disabled'}>${inBelt ? 'Aus dem Gürtel' : 'In den Gürtel'}</button></div></section>
+  </div>`;
+}
+// Vor dem Krypta-Kampf: Gegner, seine Werte, dein Gürtel, Siegchance mit/ohne Tränke
+export function viewPrep(c, m) {
+  const f = cryptFloor(c), e = enemyInfo(m), belt = S.belt.slice(0, beltSlots()).filter(Boolean).map(b => b.id);
+  const pW = cryptChance(c), p0 = cryptChance(c, []), cd = S.crypt.cd > Date.now();
+  const st = (k, v) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`, pc = x => Math.round(x * 100) + ' %';
+  return `<div class="col prep">
+    <section class="panel prephead">${monsterArt(m.glyph)}<div><h2>${m.name.split(',')[0]}</h2><p class="dim small">${c.name} · ${f === 4 ? 'Boss' : 'Ebene ' + (f + 1)} · Stufe ${m.lvl}</p>${threat(pW)}</div></section>
+    <section class="panel"><h2>Seine Werte <span class="h2r">gegen dich</span></h2>
+      <div class="grid2">${st('Leben', fmtN(e.hp))}${st('Trifft dich', e.hit.join('–'))}${st('Ausweichen', pc(e.evade))}${st('Krit', pc(e.crit))}${st('Rüstung', pc(e.armor))}${st('Blocken', e.block ? pc(e.block) : '–')}</div>
+      ${e.tags.length ? `<div class="etags">${e.tags.slice(0, 4).map(([t, id]) => `<span class="${belt.includes(id) ? 'have' : ''}">${t} · ${belt.includes(id) ? potion(id).name + ' im Gürtel' : 'hilft: ' + potion(id).name}</span>`).join('')}</div>` : ''}</section>
+    <section class="panel"><h2>Dein Gürtel <button class="tiny" data-action="alch" data-b="prep">Packen</button></h2><div class="belt">${[0, 1, 2].slice(0, beltSlots()).map(i => beltRow(i, false)).join('')}</div></section>
+    <section class="panel chance"><span>Siegchance</span><b>${pc(pW)}</b><small class="dim">ohne Tränke ${pc(p0)}</small></section>
+    <div class="btns"><button data-action="go" data-v="crypt">Zurück</button><button class="red" data-action="cryptgo" ${cd ? 'disabled' : ''}>Kämpfen</button></div>
+  </div>`;
 }
