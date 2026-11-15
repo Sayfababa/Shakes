@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup – Vorbereitung, Absicht, Kampfbericht</title>
+<link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+SC:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  html, body { overflow: auto; height: auto; }
+  .wrap { display: flex; gap: 28px; padding: 24px; align-items: flex-start; width: max-content; }
+  .phone { width: 390px; height: 800px; position: relative; display: flex; flex-direction: column; padding: 10px; gap: 7px;
+    border: 1px solid #2a2118; box-shadow: 0 0 0 6px #0b0907, 0 0 40px #000; background: var(--noise), var(--stonetex), radial-gradient(ellipse at 50% 20%, #241a12, #070504 70%); }
+  .cap { font-family: 'Alegreya SC'; color: var(--gold); text-align: center; margin-bottom: 8px; font-size: 1rem; }
+  .hudm { display: flex; align-items: center; justify-content: space-between; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.5rem; }
+  .hudm small { font-family: 'Alegreya SC'; font-size: .8rem; color: var(--text); }
+  .boss { display: grid; grid-template-columns: 92px 1fr; gap: 10px; align-items: center; }
+  .boss img, .fighter img { width: 100%; display: block; border: 1px solid #3a2e22; box-shadow: inset 0 0 0 1px #000; }
+  .boss h2 { margin: 0; } .danger { font-family: 'Alegreya SC'; font-size: .78rem; color: var(--blood-hi); }
+  .pat { display: grid; grid-template-columns: 26px 1fr auto; gap: 6px; align-items: center; padding: 5px 0; border-bottom: 1px solid #000; box-shadow: 0 1px 0 #2e241a; font-size: .9rem; }
+  .pat:last-child { border: 0; box-shadow: none; }
+  .ic { width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid #000; box-shadow: inset 0 0 0 1px #3a2e22; background: #0b0907; }
+  .ic svg { width: 16px; height: 16px; }
+  .pat small { color: var(--dim); font-family: 'Alegreya SC'; font-size: .72rem; }
+  .flask { display: grid; grid-template-columns: 44px 1fr auto; gap: 8px; align-items: center; padding: 6px; margin-top: 5px; background: #0a0806; box-shadow: inset 0 0 10px #000; border: 1px solid #2a2118; }
+  .flask.good { border-color: #3d5a24; }
+  .fslot2 { width: 44px; height: 44px; position: relative; display: grid; place-items: center; background: #07080b; box-shadow: inset 0 0 10px #000; border: 1px solid #000; }
+  .fslot2 svg { width: 30px; height: 30px; }
+  .fslot2 i { position: absolute; right: 2px; bottom: 0; font-style: normal; font-family: 'Alegreya SC'; font-size: .72rem; color: var(--gold-hi); text-shadow: 0 1px 0 #000; }
+  .flask b { display: block; font-size: .92rem; } .trig { font-family: 'Alegreya SC'; font-size: .72rem; color: var(--gold); border-bottom: 1px dashed var(--gold); }
+  .tag { font-family: 'Alegreya SC'; font-size: .68rem; padding: 2px 5px; border: 1px solid #3d5a24; color: #8fbf5c; }
+  .tag.meh { border-color: #3a2e22; color: var(--dim); }
+  .chance { display: flex; align-items: baseline; justify-content: space-between; font-family: 'Alegreya SC'; }
+  .chance b { font-size: 1.5rem; color: #8fbf5c; font-family: 'Grenze Gotisch'; } .chance s { color: var(--dim); font-size: .8rem; }
+  .bar2 { height: 9px; background: #000; border: 1px solid #2a2118; margin-top: 3px; position: relative; } .bar2 i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(#a52a1a, #5e120a); }
+  .bar2.g i { background: linear-gradient(#c9a25e, #7a5a26); }
+  .btnrow { display: grid; grid-template-columns: 1fr 1.6fr; gap: 6px; margin-top: auto; }
+  .pop { position: absolute; left: 50%; transform: translateX(-50%); font-family: 'Alegreya SC'; font-size: .78rem; padding: 4px 8px; background: #0b0907; border: 1px solid #6b5a44; white-space: nowrap; }
+  .fighter { position: relative; width: 62%; margin: 0 auto; }
+  .intent { position: absolute; top: -6px; left: 50%; transform: translate(-50%, -100%); display: flex; gap: 6px; align-items: center; padding: 4px 9px; background: #120a07;
+    border: 1px solid #8a1c13; box-shadow: 0 0 14px rgba(170,30,20,.5); font-family: 'Alegreya SC'; font-size: .82rem; color: #e8c8a8; white-space: nowrap; }
+  .intent svg { width: 18px; height: 18px; } .intent em { color: var(--blood-hi); font-style: normal; }
+  .states { display: flex; gap: 4px; margin-top: 4px; justify-content: center; } .st { display: flex; align-items: center; gap: 2px; font-family: 'Alegreya SC'; font-size: .72rem; padding: 1px 4px; background: #0b0907; border: 1px solid #2a2118; }
+  .st svg { width: 12px; height: 12px; }
+  .belt { display: flex; gap: 6px; justify-content: center; margin-top: 4px; } .belt .fslot2 { width: 38px; height: 38px; } .belt .fslot2 svg { width: 24px; height: 24px; }
+  .belt .fslot2.fire { border-color: #6aa03a; box-shadow: 0 0 14px rgba(110,170,60,.7), inset 0 0 10px #000; }
+  .float { position: absolute; font-family: 'Alegreya SC'; font-weight: 700; color: #8fdc6a; text-shadow: 0 2px 0 #000; font-size: 1rem; }
+  .log2 { font-size: .8rem; color: var(--dim); background: #0a0806; padding: 6px 8px; border: 1px solid #2a2118; } .log2 p { margin: 1px 0; } .log2 b { color: var(--text); }
+  .row { display: grid; grid-template-columns: 74px 1fr 38px; gap: 6px; align-items: center; font-size: .84rem; padding: 2px 0; } .row .bar2 { margin: 0; } .row span:last-child { text-align: right; font-family: 'Alegreya SC'; }
+  .res { display: block !important; font-family: Alegreya !important; font-size: .88rem; padding: 3px 0; } .res .ok { color: #8fbf5c; } .res .no { color: var(--blood-hi); }
+  .tip { margin-top: 4px; padding: 7px 9px; border-left: 2px solid var(--gold); background: #0f0b07; font-size: .88rem; } .tip b { font-family: 'Alegreya SC'; color: var(--gold); }
+  .note2 { font-family: 'Alegreya'; color: #a8987a; font-size: .85rem; width: 390px; margin-top: 10px; }
+</style></head><body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="poison" viewBox="0 0 24 24"><path fill="#7fbf3f" d="M12 2c3 4 6 7 6 11a6 6 0 0 1-12 0c0-4 3-7 6-11z"/><circle cx="10" cy="13" r="1.6" fill="#0b0907"/><circle cx="14" cy="15" r="1.2" fill="#0b0907"/></symbol>
+  <symbol id="heal" viewBox="0 0 24 24"><path fill="#c0301e" d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></symbol>
+  <symbol id="sword" viewBox="0 0 24 24"><path fill="#cdbd9c" d="M19 2l3 3-11 11-3-3zM6 14l4 4-2 2-1-1-3 3-1-1 3-3-1-1z"/></symbol>
+  <symbol id="potr" viewBox="0 0 24 24"><path fill="#6b5a44" d="M9 2h6v2h-1v4l5 8a4 4 0 0 1-3.5 6h-7A4 4 0 0 1 5 16l5-8V4H9z"/><path fill="#b0281a" d="M7.4 15h9.2l1 1.7A2.4 2.4 0 0 1 15.5 20h-7a2.4 2.4 0 0 1-2.1-3.3z"/></symbol>
+  <symbol id="potg" viewBox="0 0 24 24"><path fill="#6b5a44" d="M9 2h6v2h-1v4l5 8a4 4 0 0 1-3.5 6h-7A4 4 0 0 1 5 16l5-8V4H9z"/><path fill="#6aa03a" d="M7.4 15h9.2l1 1.7A2.4 2.4 0 0 1 15.5 20h-7a2.4 2.4 0 0 1-2.1-3.3z"/></symbol>
+  <symbol id="potw" viewBox="0 0 24 24"><path fill="#6b5a44" d="M9 2h6v2h-1v4l5 8a4 4 0 0 1-3.5 6h-7A4 4 0 0 1 5 16l5-8V4H9z"/><path fill="#c8d6e0" d="M7.4 15h9.2l1 1.7A2.4 2.4 0 0 1 15.5 20h-7a2.4 2.4 0 0 1-2.1-3.3z"/></symbol>
+</defs></svg>
+<div class="wrap">
+
+<!-- 1: Vorbereitung -->
+<div><div class="cap">1 · Vorbereitung (Krypta antippen)</div>
+<div class="phone">
+  <div class="hudm">Sayfa <small>Stufe 9 · 1.240 Gold</small></div>
+  <section class="panel boss"><img src="../assets/monsters/gerlinde.jpg"><div>
+    <h2>Mutter Gerlinde</h2><div class="dim small">Die Ertränkte · Ebene 5</div><div class="danger">Gefahr: hoch</div></div></section>
+  <section class="panel"><h2>Ihr Muster <span class="h2r">vorher bekannt</span></h2>
+    <div class="pat"><span class="ic"><svg><use href="#poison"/></svg></span><span>Giftwolke – stapelt Gift</span><small>alle 3 Züge</small></div>
+    <div class="pat"><span class="ic"><svg><use href="#heal"/></svg></span><span>Trinkt Heiltrank</span><small>1× unter 40 %</small></div>
+    <div class="pat"><span class="ic"><svg><use href="#sword"/></svg></span><span>Hieb – schwach, schnell</span><small>sonst</small></div></section>
+  <section class="panel"><h2>Dein Gürtel <span class="h2r">2 Plätze</span></h2>
+    <div class="flask good"><span class="fslot2"><svg><use href="#potg"/></svg><i>2</i></span><div><b>Gegengift</b><span class="trig">wenn vergiftet ▾</span></div><span class="tag">hilft hier</span></div>
+    <div class="flask"><span class="fslot2"><svg><use href="#potr"/></svg><i>3</i></span><div><b>Rotwurz-Trank</b><span class="trig">Leben unter 50 % ▾</span></div><span class="tag meh">tauschen</span></div>
+    <p class="dim small" style="margin-top:6px">Zauber-Wege: Giftklinge · Gift stapelt · Schatten</p></section>
+  <section class="panel"><div class="chance"><span>Geschätzte Siegchance</span><b>58 %</b></div>
+    <div class="bar2 g"><i style="width:58%"></i></div><div class="chance" style="margin-top:3px"><span class="dim small">ohne Gegengift 41 %</span><span class="dim small">mit Weihwasser statt Rotwurz 63 %</span></div></section>
+  <div class="btnrow"><button>Zurück</button><button class="red">Kämpfen</button></div>
+</div>
+<p class="note2">Muster lesen → Gürtel packen → Auslöser wählen (▾). Die Siegchance ändert sich sofort – so sieht man, dass die Vorbereitung zählt. „hilft hier“ zeigt Antworten, nicht die eine Lösung.</p></div>
+
+<!-- 2: Kampf -->
+<div><div class="cap">2 · Kampf mit Absicht-Anzeige</div>
+<div class="phone">
+  <div class="hudm">Krypta · Ebene 5 <small>Zug 6</small></div>
+  <section class="panel" style="padding-top:44px">
+    <div class="fighter"><div class="intent"><svg><use href="#poison"/></svg>Giftwolke <em>in 1 Zug</em></div>
+      <img src="../assets/monsters/gerlinde.jpg"><div class="float" style="right:-34px;top:40%;color:#9fd060">−84 Gift</div></div>
+    <div class="bar2" style="margin-top:6px"><i style="width:46%"></i></div>
+    <div class="states"><span class="st"><svg><use href="#poison"/></svg>×3 dein Gift</span><span class="st"><svg><use href="#heal"/></svg>Trank bereit</span></div>
+  </section>
+  <section class="panel">
+    <div class="fighter" style="width:48%"><img src="../assets/portraits/assassin.jpg"><div class="float" style="left:-70px;top:30%">Gegengift!<br><small style="color:#cdbd9c">Gift entfernt</small></div></div>
+    <div class="bar2" style="margin-top:6px"><i style="width:71%"></i></div>
+    <div class="belt"><span class="fslot2 fire"><svg><use href="#potg"/></svg><i>1</i></span><span class="fslot2"><svg><use href="#potr"/></svg><i>3</i></span></div>
+  </section>
+  <div class="log2"><p><b>Gerlinde</b> – Giftwolke! Gift ×2</p><p><b>Gegengift</b> zündet – Gift entfernt, 3 Züge immun</p><p><b>Giftklinge</b> – 212, Gift ×3</p></div>
+</div>
+<p class="note2">Über dem Gegner steht sein nächster Zug mit Zähler. Kurz vor dem Boss-Moment glüht die Anzeige rot. Zündet ein Trank, leuchtet das Fläschchen und die Ladung zählt runter.</p></div>
+
+<!-- 3: Bericht -->
+<div><div class="cap">3 · Kampfbericht</div>
+<div class="phone">
+  <div class="hudm">Sieg <small style="color:#c9a25e">knapp</small></div>
+  <section class="panel"><h2>Dein Schaden <span class="h2r">2.940</span></h2>
+    <div class="row"><span>Gift</span><div class="bar2 g"><i style="width:48%"></i></div><span>48 %</span></div>
+    <div class="row"><span>Hiebe</span><div class="bar2 g"><i style="width:31%"></i></div><span>31 %</span></div>
+    <div class="row"><span>Zauber</span><div class="bar2 g"><i style="width:21%"></i></div><span>21 %</span></div></section>
+  <section class="panel"><h2>Ihr Schaden <span class="h2r">1.120</span></h2>
+    <div class="row"><span>Giftwolke</span><div class="bar2"><i style="width:62%"></i></div><span>62 %</span></div>
+    <div class="row"><span>Hiebe</span><div class="bar2"><i style="width:38%"></i></div><span>38 %</span></div></section>
+  <section class="panel"><h2>Was geschah</h2>
+    <div class="res"><span class="ok">✓</span> Gegengift reinigte 2× – <b>310</b> Schaden verhindert</div>
+    <div class="res"><span class="ok">✓</span> Dein Gift stapelte bis ×5</div>
+    <div class="res"><span class="no">✗</span> Sie heilte sich um <b>420</b></div>
+    <div class="tip"><b>Tipp:</b> Weihwasser oder mehr Schaden auf einmal hätte ihre Heilung verhindert.</div></section>
+  <section class="panel"><h2>Beute</h2><p class="small">320 Gold · Glockensplitter · Grabmoos ×2</p></section>
+  <div class="btnrow" style="grid-template-columns:1fr 1fr"><button>Gürtel ändern</button><button class="red">Weiter</button></div>
+</div>
+<p class="note2">Zeigt, WARUM man gewonnen oder verloren hat – und bei Niederlage zwei mögliche Antworten. So wird aus „Glück gehabt“ ein Plan.</p></div>
+
+</div></body></html>
