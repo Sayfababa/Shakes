@@ -439,3 +439,56 @@ test('Migration: Spielstand v6 bekommt leere Zauber-Wege', () => {
   fresh('witch'); const d = JSON.parse(JSON.stringify(G.S)); d.v = 6; delete d.sp;
   localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); const L = G.load(); assert.equal(L.v, G.SAVE_VERSION); assert.deepEqual(L.sp, {});
 });
+
+// --- Alchemie ---
+test('Tränke: Bilder, Rezepte, Auslöser gültig', async () => {
+  const fs = await import('node:fs');
+  for (const p of D.POTIONS) {
+    assert.ok(fs.existsSync(`assets/potions/${p.id}.webp`), `Trank-Bild fehlt: ${p.id}`);
+    for (const k of Object.keys(p.cost)) assert.ok(D.HERBS[k], `${p.id}: Zutat ${k} unbekannt`);
+    assert.equal(!!p.rare, !!p.cost.herz, `${p.id}: selten ⇔ braucht Schwarzes Herz`);
+    if (!p.rare) { assert.ok(p.trig?.length); for (const t of p.trig) assert.ok(D.TRIGGERS[t], t); }
+  }
+  for (const h of Object.values(D.HERBS)) assert.ok(fs.existsSync(`assets/potions/${h.img}.webp`), h.img);
+  for (const l of D.LOCATIONS) assert.ok(D.HERBS[D.HERB_LOC[l.id]], `Ort ohne Zutat: ${l.id}`);
+});
+test('Alchemie: Brauen kostet Zutaten und Gold, Vorrat begrenzt', () => {
+  const S = fresh(); S.gold = 1000; S.herbs = { rotwurz: 20 };
+  assert.ok(G.brew('rotwurz')); assert.equal(S.pots.rotwurz, D.ALCH.charges); assert.equal(S.herbs.rotwurz, 18); assert.ok(S.gold < 1000);
+  G.brew('rotwurz'); G.brew('rotwurz'); assert.equal(S.pots.rotwurz, D.ALCH.maxCommon); assert.equal(G.canBrew('rotwurz').ok, false);
+  assert.equal(G.brew('falkenauge'), false, 'ohne Herz kein seltener Trank');
+  S.herbs = { herz: 1, silberstaub: 1 }; assert.ok(G.brew('falkenauge')); assert.equal(S.pots.falkenauge, 1);
+});
+test('Gürtel: nur mit Vorrat, kein Doppel, höchstens ein seltener, Plätze nach Treue', () => {
+  const S = fresh(); S.pots = { rotwurz: 3, steinhaut: 3, falkenauge: 1, schatten: 1 };
+  assert.ok(G.setBelt(0, 'rotwurz')); assert.equal(G.setBelt(1, 'rotwurz'), false);
+  assert.ok(G.setBelt(1, 'falkenauge')); assert.equal(G.beltSlots(), 2); assert.equal(G.setBelt(2, 'steinhaut'), false, 'dritter Platz erst mit Treue');
+  S.traders.ysolde.rep = 99999; S.lvl = 60; assert.equal(G.beltSlots(), 3); assert.equal(G.setBelt(2, 'schatten'), false, 'zweiter seltener');
+  assert.ok(G.setBelt(2, 'steinhaut')); assert.equal(G.setBelt(0, 'gegengift'), false, 'ohne Vorrat');
+  assert.ok(G.setTrig(0, 'hp30')); assert.equal(G.setTrig(0, 'start'), false);
+  assert.equal(G.beltCombat().length, 3);
+});
+test('Gürtel: Tagesladung nur für gewöhnliche im Gürtel, einmal je Tag', () => {
+  const S = fresh(); S.pots = { rotwurz: 1, falkenauge: 1 }; G.setBelt(0, 'rotwurz'); G.setBelt(1, 'falkenauge');
+  S.potDay = 'gestern'; assert.ok(G.potDaily()); assert.equal(S.pots.rotwurz, 2); assert.equal(S.pots.falkenauge, 1);
+  assert.equal(G.potDaily(), false); assert.equal(S.pots.rotwurz, 2);
+});
+test('Kampf: Trank zündet bei seinem Auslöser, wird in der Krypta verbraucht', () => {
+  const S = fresh('barbarian'); S.pots = { rotwurz: 2 }; G.setBelt(0, 'rotwurz');
+  const A = { ...G.stats(), belt: G.beltCombat() }, B = { ...G.makeMonster(1, 3), hp: 99999 };
+  const r = fight(A, B); assert.deepEqual(r.used, ['rotwurz']); const e = r.log.find(l => l.pot === 'rotwurz');
+  assert.ok(e && e.hpA > 0); assert.ok(r.log[r.log.indexOf(e) - 1].hpA < A.hp * 0.5, 'erst unter 50 % Leben');
+  S.crypt.cd = 0; const res = Game.cryptFight('c1'); assert.ok(res); assert.ok(S.pots.rotwurz === 2 - res.rew.used.length);
+});
+test('Kampf: Gegengift macht immun gegen neues Gift, Weihwasser stoppt Heilung', () => {
+  fresh('paladin'); const A = { ...G.stats(), hp: 99999, belt: [{ id: 'g', name: 'G', fx: { cure: 50 }, trig: 'dot' }] };
+  const B = { ...G.makeMonster(5, 1), poison: 0.5, hp: 5000 };
+  const r = fight(A, B), i = r.log.findIndex(l => l.pot === 'g'); assert.ok(i >= 0);
+  assert.ok(!r.log.slice(i + 1).some(l => l.tk === 'poison' && l.who === 'b'), 'nach Gegengift kein Gift mehr');
+  const C = { ...G.makeMonster(5, 1), regen: 0.1, hp: 5000 }, A2 = { ...G.stats(), hp: 99999, belt: [{ id: 'w', name: 'W', fx: { noheal: 99 }, trig: 'start' }] };
+  assert.ok(!fight(A2, C).log.some(l => l.who === 'b' && l.heal), 'kein Heilen unter Weihwasser');
+});
+test('Migration: Spielstand v7 bekommt Gürtel, Zutaten, Tränke', () => {
+  fresh('witch'); const d = JSON.parse(JSON.stringify(G.S)); d.v = 7; delete d.belt; delete d.herbs; delete d.pots; delete d.potDay;
+  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); const L = G.load(); assert.equal(L.v, 8); assert.deepEqual(L.belt, [null, null, null]); assert.deepEqual(L.herbs, {});
+});

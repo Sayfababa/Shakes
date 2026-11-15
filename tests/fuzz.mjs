@@ -21,6 +21,10 @@ function check(act) {
   f(S.xp, 'EP'); if (S.xp < 0 || S.xp >= G.xpNeed(S.lvl)) fail(`EP außerhalb: ${S.xp}/${G.xpNeed(S.lvl)}`, act);
   if (S.points < 0) fail(`Punkte negativ`, act); if (G.talentPoints() < 0) fail(`Talentpunkte negativ`, act);
   for (const [k, n] of Object.entries(S.mats)) if (!Number.isInteger(n) || n < 0) fail(`Material ${k}: ${n}`, act);
+  for (const [k, n] of Object.entries(S.herbs)) if (!D.HERBS[k] || !Number.isInteger(n) || n < 0) fail(`Zutat ${k}: ${n}`, act);
+  for (const [k, n] of Object.entries(S.pots)) { const p = G.potion(k); if (!p || !Number.isInteger(n) || n < 0 || n > G.potMax(p)) fail(`Trank ${k}: ${n}`, act); }
+  { const b = S.belt.filter(Boolean); if (S.belt.length !== 3 || new Set(b.map(x => x.id)).size !== b.length || b.filter(x => G.potion(x.id)?.rare).length > 1) fail('Gürtel ungültig ' + JSON.stringify(S.belt), act);
+    for (const x of b) if (G.potion(x.id).trig && !G.potion(x.id).trig.includes(x.trig)) fail('Auslöser ungültig ' + x.trig, act); }
   for (const [k, v] of Object.entries(S.attrs)) if (!Number.isInteger(v) || v < 1) fail(`Attribut ${k}: ${v}`, act);
   // Items: keine Doppelten, Raster ohne Überlappung, Werte heil
   const all = [...S.bag, ...Object.values(S.equip).filter(Boolean)], ids = new Set();
@@ -79,6 +83,11 @@ const actions = {
   day: () => { clock += 86400e3; G.tickGlut(); },
   gift: () => { if (Math.random() < 0.1) { for (const k of Object.keys(D.MATS)) G.addMat(k, 3); G.S.gold += 500; } },   // Material/Gold, damit seltene Wege vorkommen
   way: () => { const sp = pick(D.SPELLS[G.S.cls]); G.chooseWay(sp.id, Math.floor(Math.random() * 3), Math.floor(Math.random() * 2)); },
+  herbs: () => { if (Math.random() < 0.15) for (const k of Object.keys(D.HERBS)) G.addHerb(k, 2); },
+  brew: () => G.brew(pick(D.POTIONS).id),
+  belt: () => G.setBelt(Math.floor(Math.random() * 3), Math.random() < 0.2 ? null : pick(D.POTIONS).id),
+  trig: () => G.setTrig(Math.floor(Math.random() * 3), pick(Object.keys(D.TRIGGERS))),
+  potday: () => { G.S.potDay = 'x'; G.potDaily(); },
   loot: () => { if (Math.random() < 0.2) G.addToBag(makeItem(G.S.lvl, { minRarity: Math.floor(Math.random() * 5) })); },
 };
 const names = Object.keys(actions);

@@ -586,3 +586,33 @@ export const SPELL_TREE = {
     [W('knochendornen', 'Knochendornen', 'Trifft zusätzlich für 40 % Schaden', { strike: 0.4 }), W('wallreinigen', 'Totenruhe', 'Entfernt Gift, Bluten und Brand; heilt 2 % Leben', { cleanse: 1, healPct: 0.02 })],
     [W('wallunbeugsam', 'Unbeugsam', '3 Züge nicht betäubbar; Schild +15 %', { stunImmune: 3, mult: 0.15 }), W('totenwacht', 'Totenwacht', 'Heilt jedes Mal 3 % Leben', { healPct: 0.03 })]],
 };
+
+// --- Alchemie (Ysolde): Tränke wirken nur in der Krypta (dort kennt man den Gegner vorher). Gürtel mit 2 Plätzen (3 ab Treue II bei Ysolde).
+// Gewöhnliche: 3 Ladungen je Brauen, Auslöser wählbar, +1 Ladung je Tag für Tränke im Gürtel. Seltene: 1 Ladung, brauchen ein Schwarzes Herz
+// (Krypta-Bosse), wirken den ganzen Kampf, höchstens einer im Gürtel. Wirkung `fx` in combat.js (potion()).
+// Auslöser: start (eigener 1. Zug), hp50/hp30 (eigenes Leben unter x), dot (Gift/Bluten/Brand auf dir), low (Gegner unter 50 %), heal (Gegner heilt/regeneriert).
+export const HERBS = {
+  rotwurz: { name: 'Rotwurz', img: 'i_rotwurz' }, grabmoos: { name: 'Grabmoos', img: 'i_grabmoos' }, silberstaub: { name: 'Silberstaub', img: 'i_silberstaub' },
+  nachtschatten: { name: 'Nachtschatten', img: 'i_nachtschatten' }, schwefel: { name: 'Schwefel', img: 'i_schwefel' }, herz: { name: 'Schwarzes Herz', img: 'i_herz' },
+};
+// Welche Zutat ein Streifzug-Ort liefert (Chance je Sieg), Herz von Krypta-Bossen
+export const HERB_LOC = { friedhof: 'grabmoos', muehle: 'rotwurz', katakomben: 'silberstaub', moor: 'nachtschatten', kapelle: 'grabmoos', gruben: 'schwefel' };
+export const ALCH = { herbChance: 0.4, slots: 2, slotsLoyal: 3, loyalNeed: 2, charges: 3, maxCommon: 6, maxRare: 2, bossHearts: 2, floorHeart: 0.12,
+  gold: [8, 2.5], goldRare: [30, 7] };   // Gold = a + Stufe × b
+export const POTIONS = [
+  { id: 'rotwurz', name: 'Rotwurz-Trank', text: 'Heilt 12 % Leben.', fx: { heal: 0.12 }, trig: ['hp50', 'hp30'], cost: { rotwurz: 2 } },
+  { id: 'steinhaut', name: 'Steinhaut', text: 'Schild aus 10 % Leben.', fx: { shield: 0.1 }, trig: ['start', 'hp50'], cost: { grabmoos: 2 } },
+  { id: 'berserker', name: 'Berserkersud', text: '+35 % Schaden für 3 Züge.', fx: { rage: 0.35, n: 3 }, trig: ['start', 'low'], cost: { rotwurz: 1, grabmoos: 1 } },
+  { id: 'gegengift', name: 'Gegengift', text: 'Entfernt Gift, Bluten, Brand. 4 Züge immun.', fx: { cure: 4 }, trig: ['dot'], cost: { grabmoos: 1, silberstaub: 1 } },
+  { id: 'wachsaft', name: 'Wachsaft', text: '5 Züge nicht betäubbar.', fx: { stunImm: 5 }, trig: ['start'], cost: { nachtschatten: 2 } },
+  { id: 'weihwasser', name: 'Weihwasser', text: 'Gegner kann 6 Züge nicht heilen.', fx: { noheal: 6 }, trig: ['start', 'heal'], cost: { silberstaub: 2 } },
+  { id: 'falkenauge', rare: 1, name: 'Falkenauge', text: '+15 % Krit-Chance im ganzen Kampf.', fx: { crit: 0.15 }, cost: { herz: 1, silberstaub: 1 } },
+  { id: 'knochenmark', rare: 1, name: 'Knochenmark-Tonikum', text: 'Gegner trifft 10 % seltener kritisch.', fx: { critRes: 0.1 }, cost: { herz: 1, grabmoos: 1 } },
+  { id: 'schatten', rare: 1, name: 'Schattentrank', text: '+7 % Ausweichen im ganzen Kampf.', fx: { evade: 0.07 }, cost: { herz: 1, nachtschatten: 1 } },
+  { id: 'jaegerblick', rare: 1, name: 'Jägerblick', text: 'Gegner weicht 8 % seltener aus.', fx: { acc: 0.08 }, cost: { herz: 1, silberstaub: 1 } },
+  { id: 'bollwerk', rare: 1, name: 'Bollwerk-Trank', text: '+7 % Blocken im ganzen Kampf.', fx: { block: 0.07 }, cost: { herz: 1, grabmoos: 1 } },
+  { id: 'rostsaeure', rare: 1, name: 'Rostsäure', text: 'Ignoriert 30 % der Rüstung.', fx: { pen: 0.3 }, cost: { herz: 1, schwefel: 1 } },
+  { id: 'zaubertinte', rare: 1, name: 'Zaubertinte', text: 'Alle Zauber starten halb geladen.', fx: { charge: 0.5 }, cost: { herz: 1, nachtschatten: 1 } },
+  { id: 'vampirsud', rare: 1, name: 'Vampirsud', text: '+8 % Lebensraub im ganzen Kampf.', fx: { leech: 0.08 }, cost: { herz: 1, rotwurz: 1 } },
+];
+export const TRIGGERS = { start: 'zu Kampfbeginn', hp50: 'Leben unter 50 %', hp30: 'Leben unter 30 %', dot: 'wenn vergiftet/blutend', low: 'Gegner unter 50 %', heal: 'wenn Gegner heilt' };

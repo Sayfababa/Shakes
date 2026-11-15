@@ -1,9 +1,9 @@
-import { SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS } from './data.js';
+import { SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, ALCH } from './data.js';
 import { affixPool, makeItem, itemValue, rollTier, affixValue, renameMagic } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 export let S = null; // aktueller Spielstand
 
 export const now = () => Date.now();
@@ -44,6 +44,7 @@ function migrate(d) {
   }
   if (d.v === 5) { d.bounty = null; d.v = 6; }
   if (d.v === 6) { d.sp = {}; d.v = 7; }   // Zauber-Wege
+  if (d.v === 7) { d.belt = [null, null, null]; d.herbs = {}; d.pots = {}; d.potDay = today(); d.v = 8; }   // Alchemie
   d.name = cleanName(d.name);
   return d.v === SAVE_VERSION ? d : null;
 }
@@ -55,7 +56,7 @@ export function newChar(name, cls) {
   S = { v: SAVE_VERSION, name, cls, lvl: 1, xp: 0, gold: 40, attrs: baseAttrs(cls), points: CFG.startPoints, tal: {}, sp: {}, respecs: 0,
     crypt: { diff: 0, prog: {}, cd: 0 }, trophies: [], traders: freshTraders(), mats: {}, omen: null, omens: 0, shards: [], tut: 0, title: null, haul: null, bounty: null,
     equip: {}, bag: [], glut: CFG.maxGlut, glutTs: now(), active: null,
-    journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0 };
+    journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0, belt: [null, null, null], herbs: {}, pots: {}, potDay: today() };
   const wb = BASES.find(b => b.kind === c.weapon);
   S.equip.weapon = { id: 'start', slot: 'weapon', kind: wb.kind, base: wb.name, art: wb.art, w: wb.w, h: wb.h, name: 'Rostige/r ' + wb.name,
     rarity: 'normal', lvl: 1, mods: {}, dmg: [...wb.dmg], value: 2 };
@@ -529,3 +530,44 @@ export function doService(tid, svId) {
   return it;
 }
 export { ATTRS };
+
+// --- Alchemie: Zutaten, Tränke brauen, Gürtel (wirkt nur in der Krypta) ---
+export const today = () => new Date().toDateString();
+export const potion = id => POTIONS.find(p => p.id === id);
+export const beltSlots = () => loyalty('ysolde') >= ALCH.loyalNeed ? ALCH.slotsLoyal : ALCH.slots;
+export const potMax = p => p.rare ? ALCH.maxRare : ALCH.maxCommon;
+export function addHerb(id, n = 1) { S.herbs[id] = (S.herbs[id] || 0) + n; }
+export function brewCost(id) { const p = potion(id), [a, b] = p.rare ? ALCH.goldRare : ALCH.gold; return { herbs: p.cost, gold: Math.round(a + S.lvl * b) }; }
+export function canBrew(id) {
+  const p = potion(id); if (!p) return { ok: false, reason: 'Unbekannt' };
+  const c = brewCost(id), have = S.pots[id] || 0;
+  if (have >= potMax(p)) return { ok: false, reason: 'Vorrat voll' };
+  const miss = Object.entries(c.herbs).find(([k, n]) => (S.herbs[k] || 0) < n);
+  if (miss) return { ok: false, reason: `Fehlt: ${HERBS[miss[0]].name}` };
+  if (S.gold < c.gold) return { ok: false, reason: 'Zu wenig Gold' };
+  return { ok: true };
+}
+export function brew(id) {
+  if (!canBrew(id).ok) return false;
+  const p = potion(id), c = brewCost(id);
+  for (const [k, n] of Object.entries(c.herbs)) S.herbs[k] -= n;
+  S.gold -= c.gold; S.pots[id] = Math.min(potMax(p), (S.pots[id] || 0) + (p.rare ? 1 : ALCH.charges));
+  return true;
+}
+// Gürtel: Platz i mit Trank belegen (oder leeren). Höchstens ein seltener, kein Trank doppelt.
+export function canBelt(i, id) {
+  if (i < 0 || i >= beltSlots()) return false; if (id === null) return true;
+  const p = potion(id); if (!p || !(S.pots[id] > 0)) return false;
+  return !S.belt.some((b, j) => j !== i && b && (b.id === id || (p.rare && potion(b.id).rare)));
+}
+export function setBelt(i, id) { if (!canBelt(i, id)) return false; S.belt[i] = id === null ? null : { id, trig: potion(id).trig?.[0] || null }; return true; }
+export function setTrig(i, t) { const b = S.belt[i]; if (!b || !potion(b.id).trig?.includes(t)) return false; b.trig = t; return true; }
+// Was im Kampf mitgeht: belegte Plätze mit Vorrat
+export const beltCombat = () => S.belt.slice(0, beltSlots()).filter(b => b && S.pots[b.id] > 0).map(b => { const p = potion(b.id); return { id: p.id, name: p.name, fx: p.fx, rare: p.rare, trig: b.trig }; });
+export function usePotions(ids = []) { for (const id of ids) if (S.pots[id] > 0) S.pots[id]--; }
+// Täglich +1 Ladung für gewöhnliche Tränke im Gürtel (gegen Horten: wer nichts nutzt, verschenkt etwas)
+export function potDaily() {
+  if (S.potDay === today()) return false; S.potDay = today();
+  for (const b of S.belt.slice(0, beltSlots())) { const p = b && potion(b.id); if (p && !p.rare) S.pots[p.id] = Math.min(potMax(p), (S.pots[p.id] || 0) + 1); }
+  return true;
+}

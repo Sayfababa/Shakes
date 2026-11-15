@@ -6,12 +6,14 @@ cd "$(dirname "$0")/.."
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 
 ways() { node tests/ways.mjs all all 1500 --check > "$T/ways.full"; rc=$?; grep -E '^!!|Rahmen' "$T/ways.full"; return $rc; }
+pots() { for c in barbarian paladin assassin huntress sorceress witch; do node tests/potions.mjs $c all 300 --check > "$T/pot.$c" 2>&1 & done; wait
+  grep -h '^!!' "$T"/pot.*; n=$(grep -l 'im Rahmen' "$T"/pot.* | wc -l); echo "Tränke im Rahmen: $n/6 Klassen"; [ "$n" -eq 6 ]; }
 bot() { for c in barbarian paladin assassin huntress sorceress witch; do node tests/bot.mjs $c 3 1 | grep -E "Kämpfe" | sed "s/^/$c: /" & done; wait; }
 
 if [ "$1" = "quick" ]; then
   set -- logic ui trader
 else
-  set -- logic bot fuzz ways ui trader uifuzz
+  set -- logic bot fuzz ways potions ui trader uifuzz
 fi
 for t in "$@"; do
   case $t in
@@ -19,6 +21,7 @@ for t in "$@"; do
     bot)    bot ;;
     fuzz)   node tests/fuzz.mjs 1500 6 | tail -1 ;;
     ways)   ways ;;
+    potions) pots ;;
     ui)     node tests/ui.cjs ;;
     trader) node tests/trader.cjs ;;
     uifuzz) node tests/uifuzz.cjs 120 ;;
