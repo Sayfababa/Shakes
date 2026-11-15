@@ -41,7 +41,8 @@ let failures = 0;
       if (i === 1 && await tap('[data-action=delve]')) { await tap('[data-action=skip]'); await chk('delve'); }
       if (i === 2) { await tap('[data-v=trips]'); await chk('haulpanel'); }
       await tap('[data-action=bank]'); }
-    for (const v of ['trips', 'hero', 'stats', 'talents', 'spells', 'crypt', 'arena']) { await tap('[data-v=hero]'); await tap(`[data-v=${v}]`); await chk(v); }
+    for (const v of ['trips', 'hero', 'stats', 'talents', 'spells', 'crypt', 'forge', 'alch']) { await tap('[data-v=hero]'); await tap(`[data-v=${v}]`); await chk(v); }
+    await tap('[data-v=crypt]'); await tap('.ctabs [data-v=arena]'); await chk('arena'); await tap('.ctabs [data-v=desc]'); await chk('desclocked');
     await tap('[data-v=hero]'); await tap('[data-v=spells]'); if (await tap('[data-action=ways]')) await chk('ways'); else { failures++; console.log(`FEHLER ${tag}: Zauber-Wege nicht erreichbar`); }
     await tap('[data-v=traders]'); for (const t of ['halvar', 'ysolde', 'kaspar']) { await tap(`[data-t=${t}]`); await chk(t); }
     if (await tap('[data-action=turnin]')) await chk('turnin');
@@ -52,7 +53,7 @@ let failures = 0;
     if (await tap('.sitem')) { await p.waitForTimeout(150); await tap('#tip button[data-action=buy]'); await p.waitForTimeout(200);
       const g1 = await p.evaluate(() => JSON.parse(localStorage.aschenkrone_v1).gold);
       if (g1 >= g0) { failures++; console.log(`FEHLER ${tag}: Kaufen per Touch hat nichts gekauft`); } }
-    for (const [tab, n] of [['crypt', 'ilse'], ['arena', 'vargo'], ['trips', 'prophet']]) { await tap(`[data-v=${tab}]`); await tap('.speaker'); await chk(n); }
+    for (const [tab, n] of [['crypt', 'ilse'], ['arena', 'vargo'], ['trips', 'prophet']]) { if (tab === 'arena') await tap('[data-v=crypt]'); await tap(`[data-v=${tab}]`); await tap('.speaker'); await chk(n); }
     // Auftragsliste im Helden-Bildschirm führt zum Auftraggeber
     await tap('[data-v=hero]'); if (await tap('.cellitem')) { await chk('itemtip'); await tap('#tip button[data-action=equip]'); await p.waitForTimeout(250); await p.screenshot({ path: `${OUT}/${tag}-toast.png` }); }
     // Hohe Stufe mit freien Punkten: Werte (mit Kampfkraft je Punkt) und alle drei Zauber
@@ -117,7 +118,7 @@ let failures = 0;
       if (!S.trophies.some(t => t.key === 'c1:0')) S.trophies.push({ key: 'c1:0', name: 'x', diff: 'Normal', eff: D.CRYPTS[0].trophy });
       S.attrs.int += 400; S.attrs.con += 300; S.active = null; S.haul = null; S.exp = null; S.desc = null; S.descDay = null; G.save(); });
     await p.reload(); await p.waitForTimeout(300); await tap('[data-v=crypt]');
-    if (!(await tap('.dbtn'))) { failures++; console.log(`FEHLER ${tag}: kein Knopf „Der Abstieg“ in der Krypta`); }
+    if (!(await tap('.ctabs [data-v=desc]'))) { failures++; console.log(`FEHLER ${tag}: kein Reiter „Abgrund“ in der Krypta`); }
     await chk('descstart'); await tap('[data-action=descgo]'); await chk('descmap');
     if ((await p.$$('.node.next')).length < 2) { failures++; console.log(`FEHLER ${tag}: Abstieg ohne Wahl im ersten Raum`); }
     for (let k = 0; k < 2; k++) {
@@ -130,7 +131,7 @@ let failures = 0;
     await chk('descres'); if (!(await p.$('.descres'))) { failures++; console.log(`FEHLER ${tag}: Abstieg ohne Bilanz`); }
     await tap('[data-action=descok]');
     await p.evaluate(async () => { const G = await import('./js/state.js'); const S = G.S; S.attrs = { str: 5, dex: 5, int: 5, con: 6, lck: 3 }; S.equip = {}; G.save(); });
-    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=crypt]'); await tap('.dbtn'); await tap('[data-action=descgo]');
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=crypt]'); await tap('.ctabs [data-v=desc]'); await tap('[data-action=descgo]');
     await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.desc.hpf = 0.02; G.S.desc.sack.gold = 50; });
     await tap('[data-v=trips]'); await chk('descaway'); if (!(await p.$('[data-action=go][data-v=desc]'))) { failures++; console.log(`FEHLER ${tag}: Streifzug während des Abstiegs nicht gesperrt`); }
     await tap('[data-action=go][data-v=desc]'); const n0 = await p.$('[data-action=descsel]:not(.exit)'); if (n0) await n0.tap(); await tap('[data-action=descgo2]'); await tap('[data-action=skip]'); await tap('[data-action=go][data-v=desc]');

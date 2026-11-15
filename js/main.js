@@ -38,7 +38,7 @@ function render() {
 
 // Vorbereitung: Gürtel als Liste; reicht die Höhe nicht (kleine Handys, iOS-App), als Reihe nebeneinander
 function fitPrep() {
-  const pr = document.querySelector('.prep, .exped, .expev, .expresv, .desc, .descv, .descres, .craft'), m = pr?.parentElement; if (!pr) return;
+  const pr = document.querySelector('.prep, .exped, .expev, .expresv, .desc, .descv, .descres, .craft, .crypts'), m = pr?.parentElement; if (!pr) return;
   pr.classList.remove('tight');
   // zu hoch – oder (Umschmieden) Boni im Kasten abgeschnitten
   const low = () => pr.lastElementChild.getBoundingClientRect().bottom > m.getBoundingClientRect().bottom + 1
@@ -207,7 +207,7 @@ const actions = {
   create: () => { const n = document.getElementById('nm').value.trim() || 'Namenloser'; G.newChar(n, pickCls);
     G.journal(`${n} erwacht im Grab. Drei Gestalten warten am Friedhofstor.`); view = 'traders'; render(); },
   wipe: () => { if (confirm('Charakter wirklich vernichten?')) { G.wipe(); pickCls = null; render(); } },
-  go: d => { view = d.v; turnin = null; expAsk = false; if (d.v === 'forge') { forgeRes = null; stopForge(); } if (d.v === 'npc') npc = d.n || npc; if (view !== 'fight') { F = null; clearTimeout(fightTimer); } render(); },
+  go: d => { view = d.v; turnin = null; expAsk = false; if (d.v === 'alch') alchBack = null; if (d.v === 'forge') { forgeRes = null; stopForge(); } if (d.v === 'npc') npc = d.n || npc; if (view !== 'fight') { F = null; clearTimeout(fightTimer); } render(); },
   attr: d => { G.addAttr(d.k); render(); },
   learn: d => { if (G.learn(+d.b, +d.t)) render(); },
   respec: () => { const c = G.respecCost(); if (confirm(c ? `Für ${c} Gold alle Attribute und Talente zurücksetzen?` : 'Attribute und Talente zurücksetzen? (einmalig gratis)')) { G.respec(); render(); } },
