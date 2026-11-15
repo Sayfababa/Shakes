@@ -8,8 +8,8 @@ const issues = new Map(); const note = (k, v) => { if (!issues.has(k)) issues.se
 (async () => {
   await new Promise(r => setTimeout(r, 800));
   const b = await chromium.launch();
-  for (const dev of ['iPhone SE', 'iPhone 13', 'iPhone 15 Pro Max', 'App 430x867']) for (const stage of ['früh', 'spät']) {
-    const c = await b.newContext(dev === 'App 430x867' ? { ...devices['iPhone 15 Pro Max'], viewport: { width: 430, height: 867 } } : { ...devices[dev] }); const p = await c.newPage(); const tag = `${dev}/${stage}`;
+  await Promise.all(['iPhone SE', 'iPhone 13', 'iPhone 15 Pro Max', 'App 430x867'].map(async dev => { for (const stage of ['früh', 'spät']) {   // 4 Handys gleichzeitig
+    const c = await b.newContext(dev === 'App 430x867' ? { ...devices['iPhone 15 Pro Max'], viewport: { width: 430, height: 867 }, deviceScaleFactor: 1 } : { ...devices[dev], deviceScaleFactor: 1 }); const p = await c.newPage(); const tag = `${dev}/${stage}`;
     let last = '';
     p.on('pageerror', e => note(`JS-Fehler: ${e.message}`, `${tag} nach ${last}`));
     p.on('console', m => m.type() === 'error' && !/favicon|404/.test(m.text()) && note(`Konsole: ${m.text()}`, `${tag} nach ${last}`));
@@ -44,8 +44,8 @@ const issues = new Map(); const note = (k, v) => { if (!issues.has(k)) issues.se
       for (const x of bad) note(x, `${tag} nach ${last}`);
     }
     await c.close();
-  }
+  } }));
   await b.close(); srv.kill();
   if (issues.size) { console.log('PROBLEME:'); for (const [k, v] of issues) console.log(`- ${k}  (${v})`); process.exit(1); }
-  console.log(`UI-Fuzz ok: ${TAPS} Taps × 6 Durchläufe ohne Problem.`);
+  console.log(`UI-Fuzz ok: ${TAPS} Taps × 8 Durchläufe (4 Handys × früh/spät) ohne Problem.`);
 })().catch(e => { console.error(e); srv.kill(); process.exit(1); });

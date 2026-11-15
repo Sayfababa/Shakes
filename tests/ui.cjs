@@ -10,8 +10,8 @@ let failures = 0;
 (async () => {
   await new Promise(r => setTimeout(r, 800));
   const b = await chromium.launch();
-  for (const dev of ['iPhone SE', 'iPhone 13', 'iPhone 15 Pro Max', 'App 430x867']) {
-    const c = await b.newContext(dev === 'App 430x867' ? { ...devices['iPhone 15 Pro Max'], viewport: { width: 430, height: 867 } } : { ...devices[dev] }); const p = await c.newPage(); const errs = [];
+  await Promise.all(['iPhone SE', 'iPhone 13', 'iPhone 15 Pro Max', 'App 430x867'].map(async dev => {   // 4 Handys gleichzeitig
+    const c = await b.newContext(dev === 'App 430x867' ? { ...devices['iPhone 15 Pro Max'], viewport: { width: 430, height: 867 }, deviceScaleFactor: 1 } : { ...devices[dev], deviceScaleFactor: 1 }); const p = await c.newPage(); const errs = [];
     p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'error' && errs.push(m.text()));
     const tag = dev.replace(/ /g, '');
     const chk = async n => {
@@ -78,7 +78,7 @@ let failures = 0;
     if (!v0 || v0 !== v1) { failures++; console.log(`FEHLER ${tag}: Siegel hält nicht (${v0} → ${v1})`); }
     if (errs.length) { failures++; console.log(`FEHLER ${tag} JS:`, errs); }
     await c.close();
-  }
+  }));
   await b.close(); srv.kill();
   console.log(failures ? `${failures} Probleme` : 'UI ok – Screenshots in tests/out/');
   process.exit(failures ? 1 : 0);
