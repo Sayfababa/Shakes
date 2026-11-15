@@ -74,3 +74,31 @@ Ohne GameGene-Beleg, aus Genre-Wissen: D2 (Uniques, Runen als Währung), PoE (Ma
 2. **Erledigt:** Crafting: Kultistensiegel versiegelt einen Bonus, Höllenasche würfelt unversiegelte neu, Knochenstaub nur Werte, Blutstein fügt hinzu, Grableinen tilgt. Jedes Item hat Schmiedeglut (Budget) → kein perfektes Craften, Funde bleiben wertvoll. Schmiedezeichen (Name) auf fertigen Items.
 3. Basar mit NPC-Käufern (Preise, Gebühren, Item-Format für später).
 4. Server + Konten + echter Handel (Items serverseitig erzeugen; `S.tampered` → kein Handel).
+
+## Gear & Boni – Ausbau (Vorschlag, noch nicht gebaut)
+
+Leitfrage: Was macht ein Item **spannend**, ohne das Spiel komplizierter zu machen? Leitlinie aus GameGene
+([Tiefe mit möglichst wenig Komplexität](https://gamegene.app/joseki/depth-with-least-complexity)): keine neuen Regeln stapeln,
+sondern vorhandene Systeme (Zauber, Krypten, Schmiede, Runen) über das Gear miteinander verknüpfen.
+Und ([Diablo IV](https://gamegene.app/library/records/claims/9aa91ee7-9d21-4d39-81dd-bebb8455692f)): Wenn **alle** Stärke aus dem Gear kommt, fehlt der Bezug zum eigenen Helden – Gear soll den Build *formen*, nicht nur Zahlen erhöhen
+([Monster Slayers](https://gamegene.app/library/records/claims/cf549596-a490-41ad-ab7a-5cf7ce5d64c7): zufällige Beute formt die Spielweise).
+
+Passt zum Stil nur, was **düster, kurz lesbar, ohne Verwaltungsaufwand** ist. Bewusst NICHT: Haltbarkeit/Reparatur
+(Zeit des Spielers), Elementar-Resistenzen gegen 6 Elemente (zu viel Text am Handy), Sockel+Edelsteine (doppelt zu Runen).
+
+| # | Idee | Was es tut | Warum es passt | Aufwand |
+|---|------|-----------|----------------|---------|
+| 1 | **Verfluchte Gegenstände** | Seltene Items mit starkem Bonus + spürbarem Makel („+35 % Schaden · −15 % Leben“). Lila-schwarzer Rand, Fluch-Zeile in Rot. Ysolde kann Flüche (teuer) bannen – dann verliert das Item auch die Hälfte des Bonus. | Echtes Abwägen statt „größere Zahl gewinnt“; Diablo-1-Gefühl (negative Affixe); Kampfkraft zeigt sofort, ob es sich lohnt | klein |
+| 2 | **Zauber-Boni auf Gear** | Affixe wie „Feuerball +20 % Stärke“, „Frostnova lädt 1 Zug schneller“, „Heilzauber wirkt doppelt bei < 30 % Leben“ – nur für Zauber der eigenen Klasse. | Verbindet Gear mit den Zaubern (sichtbar im Kampf), bereitet den passiven Zauberbaum vor; Klassenwaffe zählt mehr | mittel |
+| 3 | **Grab-Sets (grün)** | Je Krypta ein Set aus 3 Teilen (Boss lässt ein Teil fallen). 2 Teile: Bonus, 3 Teile: Set-Fähigkeit (z. B. „Wäscherinnen-Tracht: Gift heilt dich“). Grün ist als Lootfarbe schon vorgesehen. | Gibt Krypten einen Grund zum Wiederholen (Endspiel), Sammelziel mit Geschichte | mittel |
+| 4 | **Erwachen (Blutzoll)** | Legendäre/einzigartige Items tragen eine verborgene Zeile „???“. Nach N Siegen mit dem Item angelegt erwacht sie (eigener Sonderbonus). | Lieblingsitem wird über Zeit besser – Spannung im Idle-Kreislauf ohne neue Handlung; Bindung an den Helden | klein |
+| 5 | **Runenwörter** | Bestimmte 3 Runen in richtiger Reihenfolge in einem Teil (Schmiede gibt es schon) ergeben einen Namen + Zusatzeffekt. Hinweise als Rätselzeilen bei Prophet/Ilse. | Nutzt die bestehende Schmiede, Entdeckerfreude, D2-Gefühl ohne Kopie | mittel |
+| 6 | **Gegnertypen-Boni** | „+25 % gegen Untote / Bestien / Kultisten“ – Gegner bekommen eine Familie. Streifzug-Karte zeigt die Familie. | Gear-Wechsel je Ort wird sinnvoll | mittel, braucht Daten für alle Monster |
+
+**Empfohlene Reihenfolge:** 1 → 4 → 2 → 3 → 5 (6 nur, wenn Gear-Wechsel gewünscht ist).
+1 und 4 sind klein, sofort spürbar und berühren keine bestehende Balance stark. 2 braucht den Zauberbaum im Hinterkopf.
+
+**Balance-Schutz für alle Punkte:**
+- Jede neue Bonusart bekommt ein „Machtbudget“ je Gegenstandsstufe (wie `TIERS`), Kampfkraft rechnet sie ein.
+- Bots/Personas vor und nach dem Einbau: Finale weiterhin ~Tag 16–17, Niederlagen nicht deutlich anders.
+- Fuzz-Test erweitert um die neuen Felder (Fluch, Set, Erwachen), Speichern=Laden.
