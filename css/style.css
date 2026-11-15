@@ -623,3 +623,23 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 /* Alle fünf Krypten offen: Trophäen-Zeile weg, Bild kleiner – sonst passt die letzte Karte nicht */
 .col:has(> .crypt):not(:has(> .crypt.locked)) .crypt .dim.small { display: none; }
 .col:has(> .crypt):not(:has(> .crypt.locked)) > .crypt:not(.locked) { grid-template-columns: 17% 1fr !important; padding-top: 6px; padding-bottom: 6px; }
+
+/* --- Zauber-Wege --- */
+.panel.spell[data-action] { cursor: pointer; }
+.wayline { margin: 3px 0 0; font-size: .78rem; } .wayline b { font-family: 'Alegreya SC'; color: var(--gold); font-weight: 600; }
+.ways > .panel { flex: none; }
+.waytier h2 { margin-bottom: 6px; } .waytier.locked { opacity: .45; }
+.wayopts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.way { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; min-height: 64px; padding: 7px 9px; white-space: normal; }
+.way b { font-family: 'Grenze Gotisch'; font-size: 1.02rem; color: var(--gold); font-weight: 400; letter-spacing: 0; text-transform: none; }
+.way small { font-family: 'Alegreya'; font-size: .76rem; line-height: 1.2; color: var(--dim); text-transform: none; letter-spacing: 0; }
+.way.on { border-image-source: url('../assets/ui/tab_on.webp'); box-shadow: 0 0 10px rgba(200,150,60,.35); }
+.way.on b { color: #f1d79a; } .way.on small { color: #d8c8a8; }
+.waynote { margin: 2px 4px; }
+.fnum.burn { color: #ff9a3a; }
+.fnum.combo { font-size: 1.25rem; color: var(--fx, #ffd76a); text-shadow: 0 2px 0 #000, 0 0 4px #000, 0 0 14px var(--fx, #a06a10); }
+.fnum.status { font-size: .8rem; color: #d8c8a8; }
+@media (max-height: 720px) { .way { min-height: 54px; padding: 5px 7px; } .way small { font-size: .7rem; } .waytier h2 { margin-bottom: 3px; } }
+@media (min-height: 760px) { .way { min-height: 78px; } .way b { font-size: 1.12rem; } .way small { font-size: .84rem; } }
+@media (max-height: 620px) { .gradesp { display: none; } }   /* winzige Handys: Zauber und Wege haben Vorrang */
+@media (max-height: 620px) { .waynote { display: none; } .way { min-height: 48px; } }

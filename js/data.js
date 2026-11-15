@@ -375,6 +375,7 @@ export const CFG = {
   bossHp: 2.2, bossDiff: 1.35,
   rushPerLvl: 3,                      // Eilen: 1 Gold je 20 s Restzeit × (1 + Stufe / rushPerLvl)
   attrPerLevel: 5, startPoints: 5,       // Attributpunkte pro Stufenaufstieg
+  wayCostPerLvl: 6,                  // Zauber-Weg umentscheiden: Gold je Stufe (erste Wahl gratis)
   respecPerLvl: 30,                        // Läuterung: Gold je Stufe (erste gratis)
   cryptCdSec: 180, arenaCdSec: 300, arenaGlut: 4,                         // Pause nach jedem Krypta-Kampf (Prototyp)
   shopSize: 6, shopRefreshSec: 600, matChance: 0.7,
@@ -511,3 +512,77 @@ export const SHARD_CRYPTS = ['c1', 'c2', 'c3', 'c4'];
 // Zauber-Boni aus SPELLS erzeugen (Waffe der Klasse → nur deren Zauber)
 for (const [cls, list] of Object.entries(SPELLS)) for (const sp of list)
   AFFIXES.push({ stat: 'sk_' + sp.id, per: SKILL_PER, pre: 'Geweihter', suf: 'des Rituals', pct: 1, label: sp.name, slots: ['weapon'], cls, kind: CLASSES[cls].weapon });
+
+// --- Zauber-Wege: je Zauber 3 Stufen, auf jeder Stufe 1 von 2 Wegen (Wahl statt Punkte, GameGene: Diablo III Runen).
+// Stufe t öffnet sich ab Charakterstufe TREE_LVL[t] (und erst, wenn der Zauber gelernt ist). Bausteine `m` wirken in combat.js:
+// open (sofort zu Kampfbeginn), every (± Züge), mult (± Wirkung), desperate x (lädt doppelt unter x Leben), hits (+Treffer), dotStack k (Gift stapelt bis k-fach),
+// crit (+Krit-Chance), pierce x (ignoriert Anteil x der Rüstung), fresh x (+x gegen Gegner über 70 % Leben), execute (+% unter 30 % Leben), burn {v,n} (Brand: v × Treffer je Runde, n Runden),
+// bleed (Bluten: v × Treffer je Runde), poison (Gift: v × Treffer, stapelt), weaken {v,n} (Gegner −v Schaden), vuln {v,n} (Gegner +v erlittener Schaden),
+// lifesteal (heilt v × Schaden), shieldGain (Schild v × Schaden), healPct (heilt v × Leben), overshield (Überheilung → Schild), strike (trifft zusätzlich v × Hieb),
+// buff (+v Schaden bis Kampfende), stun (Chance zu betäuben), stunTurns (Betäubung dauert n Züge), dazedCrit (gegen gerade Betäubte immer kritisch),
+// noheal n (Gegner heilt n Züge nicht), cleanse (entfernt Gift/Bluten/Brand von dir), stunImmune n (n Züge unbetäubbar),
+// detonate k (Gift bricht aus: k × Giftschaden sofort, Gift bleibt), poisonLeech (Gift-Ticks heilen dich v × Tick), max (+ Obergrenze Kriegsschrei).
+export const TREE_LVL = [6, 14, 22];
+const W = (id, name, text, m) => ({ id, name, text, m });
+export const SPELL_TREE = {
+  // Barbar
+  schrei: [[W('bruellen', 'Brüllen', 'Wirkt sofort zu Kampfbeginn, +25 % Wirkung', { open: 1, mult: 0.25 }), W('ausdauer', 'Ausdauer', 'Obergrenze +60 %, +10 % Wirkung', { max: 0.6, mult: 0.1 })],
+    [W('einschuechtern', 'Einschüchtern', 'Gegner macht 3 Züge 10 % weniger Schaden', { weaken: { v: 0.1, n: 3 } }), W('blutrausch', 'Kampfeslust', '+35 % Wirkung', { mult: 0.35 })],
+    [W('schlachtruf', 'Schlachtruf', 'Heilt jedes Mal 2 % Leben', { healPct: 0.02 }), W('ahnenzorn', 'Zorn der Ahnen', 'Trifft zusätzlich für 20 % Schaden', { strike: 0.2 })]],
+  wirbel: [[W('klingensturm', 'Klingensturm', '+1 Hieb', { hits: 1 }), W('wuchtig', 'Wuchtig', 'Ignoriert die halbe Rüstung', { pierce: 0.5 })],
+    [W('aufreissen', 'Aufreißen', 'Treffer lassen bluten (12 % je Runde)', { bleed: 0.12 }), W('blutdurstig', 'Blutdurstig', 'Heilt 20 % des Schadens', { lifesteal: 0.2 })],
+    [W('gemetzel', 'Gemetzel', '+100 % gegen Gegner unter 30 % Leben, +10 % Krit', { execute: 1, crit: 0.1 }), W('sturm', 'Sturm der Klingen', '+20 % Krit-Chance je Hieb', { crit: 0.2 })]],
+  blutdurst: [[W('zaehesfleisch', 'Zähes Fleisch', '+20 % Heilung, Überheilung wird zu Schild', { overshield: 1, mult: 0.2 }), W('letztesblut', 'Letztes Blut', 'Lädt doppelt unter 30 % Leben', { desperate: 0.3 })],
+    [W('raserei', 'Raserei', 'Jedes Mal +25 % Schaden bis Kampfende', { buff: 0.25 }), W('reinigen', 'Ausbrennen', 'Entfernt Gift, Bluten und Brand; +15 % Heilung', { cleanse: 1, mult: 0.15 })],
+    [W('unbeugsam', 'Unbeugsam', '3 Züge nicht betäubbar; +15 % Heilung', { stunImmune: 3, mult: 0.15 }), W('lebensdurst', 'Lebensdurst', 'Heilt 20 % mehr', { mult: 0.2 })]],
+  // Paladin
+  schlag: [[W('richtspruch', 'Richtspruch', '+20 % Krit-Chance', { crit: 0.2 }), W('eifer', 'Eifer', 'Lädt 1 Zug schneller', { every: -1 })],
+    [W('laeuterung', 'Läuterung', 'Gegner heilt 3 Züge nicht; +15 % Schaden', { noheal: 3, mult: 0.15 }), W('schildschlag', 'Schildschlag', '15 % des Schadens als Schild', { shieldGain: 0.15 })],
+    [W('urteil', 'Urteil', '+150 % gegen Gegner unter 30 % Leben', { execute: 1.5 }), W('bindend', 'Bindender Schlag', '45 % Chance zu betäuben', { stun: 0.45 })]],
+  gebet: [[W('schutzgebet', 'Schutzgebet', '+10 % Heilung, Überheilung wird zu Schild', { overshield: 1, mult: 0.1 }), W('kurzgebet', 'Kurzes Gebet', 'Lädt 1 Zug schneller', { every: -1 })],
+    [W('reinigung', 'Reinigung', 'Entfernt Gift, Bluten und Brand; +10 % Heilung', { cleanse: 1, mult: 0.1 }), W('segen', 'Segen', 'Jedes Mal +6 % Schaden bis Kampfende', { buff: 0.06 })],
+    [W('standhaft', 'Standhaft', '3 Züge nicht betäubbar; +20 % Heilung', { stunImmune: 3, mult: 0.2 }), W('maertyrer', 'Märtyrer', 'Lädt doppelt unter 30 % Leben', { desperate: 0.3 })]],
+  hammer: [[W('wucht', 'Wucht', 'Ignoriert Rüstung', { pierce: 1 }), W('donner', 'Donner', 'Wirkt sofort zu Kampfbeginn', { open: 1 })],
+    [W('zerschmettern', 'Zerschmettern', 'Gegner nimmt 5 Züge +35 % Schaden', { vuln: { v: 0.35, n: 5 } }), W('heiligesfeuer', 'Heiliges Feuer', 'Brand: 18 % je Runde, 3 Runden', { burn: { v: 0.18, n: 3 } })],
+    [W('nachbeben', 'Nachbeben', 'Betäubt 2 Züge', { stunTurns: 2 }), W('lichtsplitter', 'Lichtsplitter', 'Heilt jedes Mal 8 % Leben', { healPct: 0.08 })]],
+  // Assassine
+  schatten: [[W('ausdemschatten', 'Aus dem Schatten', 'Wirkt sofort zu Kampfbeginn', { open: 1 }), W('praezision', 'Präzision', '+18 % Krit-Chance', { crit: 0.18 })],
+    [W('klaffend', 'Klaffende Wunde', 'Bluten: 25 % je Runde', { bleed: 0.25 }), W('giftspitze', 'Giftspitze', 'Gift: 12 % des Treffers', { poison: 0.12 })],
+    [W('hinrichtung', 'Hinrichtung', '+15 % Schaden, +180 % gegen Gegner unter 30 % Leben', { execute: 1.8, mult: 0.15 }), W('schattenblut', 'Schattenblut', 'Heilt 15 % des Schadens', { lifesteal: 0.15 })]],
+  giftklinge: [[W('toedlich', 'Tödliches Gift', 'Gift +80 %, lädt 1 Zug langsamer', { mult: 0.8, every: 1 }), W('schnellgift', 'Doppelgift', 'Gift stapelt sich (bis 4-fach)', { dotStack: 4 })],
+    [W('laehmend', 'Lähmendes Gift', 'Gegner macht 3 Züge 15 % weniger Schaden', { weaken: { v: 0.15, n: 3 } }), W('zersetzend', 'Zersetzend', 'Gegner nimmt 3 Züge +20 % Schaden', { vuln: { v: 0.2, n: 3 } })],
+    [W('blutgift', 'Blutgift', 'Gift-Ticks heilen dich um 25 %', { poisonLeech: 0.25 }), W('lahmlegen', 'Lahmlegen', 'Gegner heilt 3 Züge nicht; Gift +20 %', { noheal: 3, mult: 0.2 })]],
+  mal: [[W('gezeichnet', 'Gezeichnet', 'Gegner nimmt 4 Züge +25 % Schaden', { vuln: { v: 0.25, n: 4 } }), W('raschesmal', 'Rasches Mal', 'Lädt 1 Zug schneller, +10 % Krit', { every: -1, crit: 0.1 })],
+    [W('blutzoll', 'Blutzoll', 'Heilt 25 % des Schadens', { lifesteal: 0.25 }), W('durchbohren', 'Durchbohren', 'Ignoriert Rüstung', { pierce: 1 })],
+    [W('detonation', 'Detonation', 'Gift bricht aus: 3 × Giftschaden sofort', { detonate: 3 }), W('todesurteil', 'Todesurteil', '+30 % Krit-Chance', { crit: 0.3 })]],
+  // Jägerin
+  gezielt: [[W('ersterpfeil', 'Erster Pfeil', 'Wirkt sofort zu Kampfbeginn', { open: 1 }), W('scharfesauge', 'Scharfes Auge', '+20 % Krit-Chance', { crit: 0.2 })],
+    [W('widerhaken', 'Widerhaken', 'Bluten: 6 % je Runde', { bleed: 0.06 }), W('schwachstelle', 'Schwachstelle', 'Gegner nimmt 3 Züge +12 % Schaden', { vuln: { v: 0.12, n: 3 } })],
+    [W('kopfschuss', 'Kopfschuss', 'Gegen gerade Betäubte immer kritisch', { dazedCrit: 1 }), W('durchschlag', 'Durchschlag', 'Ignoriert die halbe Rüstung', { pierce: 0.5 })]],
+  hagel: [[W('mehrpfeile', 'Mehr Pfeile', '+1 Pfeil', { hits: 1 }), W('brandpfeile', 'Brandpfeile', 'Brand: 30 % je Runde, 3 Runden', { burn: { v: 0.3, n: 3 } })],
+    [W('giftpfeile', 'Giftpfeile', 'Gift: 4 % je Pfeil', { poison: 0.04 }), W('sperrfeuer', 'Sperrfeuer', 'Gegner macht 3 Züge 15 % weniger Schaden', { weaken: { v: 0.15, n: 3 } })],
+    [W('salve', 'Salve', 'Lädt 1 Zug schneller, +10 % Krit', { every: -1, crit: 0.1 }), W('jagdglueck', 'Jagdglück', '+30 % Krit-Chance je Pfeil', { crit: 0.3 })]],
+  falle: [[W('gespannt', 'Gespannt', 'Wirkt sofort zu Kampfbeginn, 30 % weniger Schaden', { open: 1, mult: -0.3 }), W('klingeneisen', 'Klingeneisen', 'Bluten: 15 % je Runde', { bleed: 0.15 })],
+    [W('doppelfalle', 'Doppelte Falle', 'Betäubt 2 Züge', { stunTurns: 2 }), W('zaehne', 'Eiserne Zähne', 'Gegner nimmt 3 Züge +25 % Schaden', { vuln: { v: 0.25, n: 3 } })],
+    [W('koeder', 'Köder', 'Lädt 1 Zug schneller, +10 % Krit', { every: -1, crit: 0.1 }), W('fallengift', 'Fallengift', 'Gift: 12 % des Treffers', { poison: 0.12 })]],
+  // Zauberin
+  feuerball: [[W('funkenflug', 'Funkenflug', 'Wirkt sofort zu Kampfbeginn', { open: 1 }), W('gluehend', 'Glühend', 'Brand: 10 % je Runde, 3 Runden', { burn: { v: 0.1, n: 3 } })],
+    [W('schmelzen', 'Schmelzen', 'Gegen gerade Betäubte (Frostnova) immer kritisch, sonst +10 % Krit', { dazedCrit: 1, crit: 0.1 }), W('flammenhaut', 'Flammenhaut', '15 % des Schadens als Schild', { shieldGain: 0.15 })],
+    [W('phoenix', 'Phönix', 'Heilt 20 % des Schadens', { lifesteal: 0.2 }), W('inferno', 'Inferno', '1 Zug schneller, 12 % weniger Schaden', { every: -1, mult: -0.12 })]],
+  frost: [[W('frostruestung', 'Frostrüstung', '40 % des Schadens als Schild', { shieldGain: 0.4 }), W('raschekaelte', 'Rasche Kälte', 'Lädt 1 Zug schneller, +15 % Schaden', { every: -1, mult: 0.15 })],
+    [W('sproede', 'Spröde', 'Gegner nimmt 4 Züge +35 % Schaden', { vuln: { v: 0.35, n: 4 } }), W('erfrierung', 'Erfrierung', 'Gegner macht 4 Züge 30 % weniger Schaden', { weaken: { v: 0.3, n: 4 } })],
+    [W('ewigerwinter', 'Ewiger Winter', 'Betäubt 2 Züge', { stunTurns: 2 }), W('splittern', 'Splittern', '+100 % gegen unverwundete Gegner (über 70 % Leben)', { fresh: 1 })]],
+  meteor: [[W('sternenfall', 'Sternenfall', 'Wirkt sofort zu Kampfbeginn, 25 % weniger Schaden', { open: 1, mult: -0.25 }), W('einschlag', 'Einschlag', 'Betäubt immer, +15 % Schaden', { stun: 1, mult: 0.15 })],
+    [W('glutfeld', 'Glutfeld', 'Brand: 25 % je Runde, 3 Runden', { burn: { v: 0.25, n: 3 } }), W('komet', 'Kometenschweif', 'Lädt 2 Züge schneller', { every: -2 })],
+    [W('weltenbrand', 'Weltenbrand', '+20 % Schaden, +150 % gegen Gegner unter 30 % Leben', { execute: 1.5, mult: 0.2 }), W('gestirn', 'Gestirn', '+45 % Krit-Chance', { crit: 0.45 })]],
+  // Grabhexe
+  speer: [[W('splitterspeer', 'Splitterspeer', 'Ignoriert 40 % der Rüstung', { pierce: 0.4 }), W('raschespeer', 'Rascher Speer', '1 Zug schneller, 10 % weniger Schaden', { every: -1, mult: -0.1 })],
+    [W('markaussaugen', 'Mark aussaugen', 'Heilt 13 % des Schadens', { lifesteal: 0.13 }), W('knochenfluch', 'Knochenfluch', 'Gegner macht 3 Züge 15 % weniger Schaden', { weaken: { v: 0.15, n: 3 } })],
+    [W('seelenernte', 'Seelenernte', '+15 % Schaden, +180 % gegen Gegner unter 30 % Leben', { execute: 1.8, mult: 0.15 }), W('faeulnis', 'Fäulnis', 'Gift: 8 % des Treffers', { poison: 0.08 })]],
+  seuche: [[W('pest', 'Pest', 'Gift +60 %, lädt 1 Zug langsamer', { mult: 0.6, every: 1 }), W('ansteckend', 'Ansteckend', 'Gift stapelt sich (bis 3-fach)', { dotStack: 3 })],
+    [W('siechtum', 'Siechtum', 'Gegner heilt 3 Züge nicht; Gift +20 %', { noheal: 3, mult: 0.2 }), W('verfall', 'Verfall', 'Gegner nimmt 3 Züge +25 % Schaden', { vuln: { v: 0.25, n: 3 } })],
+    [W('seuchenernte', 'Ernte', 'Gift bricht aus: 2 × Giftschaden sofort', { detonate: 2 }), W('seuchenblut', 'Blutgift', 'Gift-Ticks heilen dich um 15 %', { poisonLeech: 0.15 })]],
+  wall: [[W('fruehwall', 'Früher Wall', 'Wirkt sofort zu Kampfbeginn, 25 % schwächer', { open: 1, mult: -0.25 }), W('dickeknochen', 'Dicke Knochen', 'Schild +50 %, lädt 1 Zug langsamer', { mult: 0.5, every: 1 })],
+    [W('knochendornen', 'Knochendornen', 'Trifft zusätzlich für 40 % Schaden', { strike: 0.4 }), W('wallreinigen', 'Totenruhe', 'Entfernt Gift, Bluten und Brand; heilt 2 % Leben', { cleanse: 1, healPct: 0.02 })],
+    [W('wallunbeugsam', 'Unbeugsam', '3 Züge nicht betäubbar; Schild +15 %', { stunImmune: 3, mult: 0.15 }), W('totenwacht', 'Totenwacht', 'Heilt jedes Mal 3 % Leben', { healPct: 0.03 })]],
+};

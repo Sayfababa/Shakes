@@ -42,6 +42,7 @@ let failures = 0;
       if (i === 2) { await tap('[data-v=trips]'); await chk('haulpanel'); }
       await tap('[data-action=bank]'); }
     for (const v of ['trips', 'hero', 'stats', 'talents', 'spells', 'crypt', 'arena']) { await tap('[data-v=hero]'); await tap(`[data-v=${v}]`); await chk(v); }
+    await tap('[data-v=hero]'); await tap('[data-v=spells]'); if (await tap('[data-action=ways]')) await chk('ways'); else { failures++; console.log(`FEHLER ${tag}: Zauber-Wege nicht erreichbar`); }
     await tap('[data-v=traders]'); for (const t of ['halvar', 'ysolde', 'kaspar']) { await tap(`[data-t=${t}]`); await chk(t); }
     if (await tap('[data-action=turnin]')) await chk('turnin');
     // Regression: Kaufen über das Touch-Fenster muss funktionieren (früher schloss 'mouseleave' das Fenster)

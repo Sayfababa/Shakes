@@ -109,3 +109,9 @@ Passt zum Stil nur, was **düster, kurz lesbar, ohne Verwaltungsaufwand** ist. B
 - Dabei aufgefallen und angeglichen: Zaubertempo (vorher ~0,1×) und Rüstung (~0,15×) waren fast wertlos; Glück leicht angehoben (bleibt wegen Beute-Glück darunter).
 - Gegenprobe mit echten Kämpfen (1500 je Bonus): Kampfkraft sagt die Siegchance gut voraus; Lebensraub wird leicht unterschätzt, Zaubertempo beim Barbaren leicht überschätzt.
 - Bots 6 Klassen × 14 Tage und Personas 20 Tage: Tempo unverändert (Finale Tag 16–17), Krypta-Niederlagen nicht höher.
+
+## Zauber-Wege (umgesetzt)
+- Idee: im Zug-Kampf eins gegen eins bringen „mehr Projektile“ nichts – Tiefe kommt aus **Zeitpunkt, Reihenfolge, Zuständen**. Je Zauber 3 Stufen × 2 Wege, **Wahl statt Punkte** ([GameGene: Diablo III Runen](https://gamegene.app/library/records/claims/dd5a6831-498c-47e0-8486-1cfbc32b791c)); Umentscheiden günstig, aber nicht gratis ([Diablo IV: Mittelweg beim Umskillen](https://gamegene.app/library/records/claims/a4bf96a3-f4be-405b-b655-9704d4bac9ec)).
+- Wegarten: Kombos (Schmelzen nach Frostnova, Detonation des Gifts, Kopfschuss nach Fangeisen), Zeitpunkt (sofort, doppelt laden bei wenig Leben), Verwandlung/Preis (schneller aber schwächer, stärker aber langsamer), Zustände (Brand, Bluten, Gift, Verwundbar, Geschwächt), Boss-Antworten (Reinigen vs. Aldemars Gift, Bannen vs. Gerlindes Heilung, Unbeugsam vs. Glöckner).
+- Balance (tests/ways.mjs, 3000 Kämpfe je Weg, Stufe 14 und 24, alle Klassen): fast alle Wege +4…+12 Prozentpunkte Siegchance bei 50 %-Gegnern; Boss-Antworten gegen ihren Boss +25…+48. Bots/Personas: Tempo unverändert (Finale Tag 16–17), Niederlagen nicht höher.
+- Offen: Jägerin und Zauberin haben keine eigene Boss-Antwort (Ausgleich über stärkere Kontrolle: Betäubung/Schwächen).

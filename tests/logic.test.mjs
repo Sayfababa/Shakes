@@ -397,8 +397,45 @@ test('Kampf-Boni wirken auf Hieb UND Zauber (Krit, Krit-Schaden, Lebensraub, Zau
   const ratio = (L, sp) => { const x = L.filter(l => !!l.spell === sp), cr = x.filter(l => l.crit), no = x.filter(l => !l.crit);
     return cr.reduce((a, l) => a + l.dmg, 0) / cr.length / (no.reduce((a, l) => a + l.dmg, 0) / no.length); };
   const d = logs({ critc: 40, critd: 60 }); assert.ok(ratio(d, false) > 2.3 && ratio(d, true) > 2.3, 'Krit-Schaden auf Hieb und Zauber');
-  const h = logs({ leechp: 10 }); assert.ok(h.filter(l => !l.spell).every(l => l.heal) && h.filter(l => l.spell).every(l => l.heal), 'Lebensraub auf Hieb und Zauber');
+  const h = logs({ leechp: 10 }); assert.ok(rate(h.filter(l => !l.spell), l => l.heal) > 0.7 && rate(h.filter(l => l.spell), l => l.heal) > 0.7, 'Lebensraub auf Hieb und Zauber');   // bei vollem Leben heilt nichts
   const P = fresh('paladin'); P.lvl = 20; const gebet = mods => { P.equip.weapon.mods = mods; const A = { ...G.stats(), hp: 1e7 };
-    return fight(A, mon()).log.find(l => l.sid === 'gebet').heal; };
+    for (let i = 0; i < 50; i++) { const l = fight(A, { ...mon(), dmg: [1.5e6, 1.5e6] }).log.find(l => l.sid === 'gebet' && l.heal); if (l) return l.heal; } };   // verwundet, damit die volle Heilung zählt
   assert.ok(Math.abs(gebet({ sk_gebet: 50 }) / gebet({}) - 1.5) < 0.02, 'Zauber-Bonus verstärkt Heilzauber');
+});
+
+test('Zauber-Wege: Daten gültig, Stufen öffnen mit der Stufe, erste Wahl gratis, Wechsel kostet', () => {
+  const KEYS = new Set(['open', 'every', 'mult', 'desperate', 'hits', 'dotStack', 'crit', 'pierce', 'fresh', 'execute', 'burn', 'bleed', 'poison', 'weaken', 'vuln', 'lifesteal', 'shieldGain',
+    'healPct', 'overshield', 'strike', 'buff', 'stun', 'stunTurns', 'dazedCrit', 'noheal', 'cleanse', 'stunImmune', 'detonate', 'poisonLeech', 'max']);
+  for (const sp of Object.values(D.SPELLS).flat()) { const tr = D.SPELL_TREE[sp.id]; assert.equal(tr?.length, 3, sp.id);
+    for (const opts of tr) { assert.equal(opts.length, 2); for (const o of opts) { assert.ok(o.name && o.text); for (const k of Object.keys(o.m)) assert.ok(KEYS.has(k), `${o.id}: ${k}`); } } }
+  const S = fresh('sorceress'); S.lvl = 5; S.gold = 0;
+  assert.ok(G.chooseWay('feuerball', 0, 1));                       // Stufe 6 noch nicht erreicht
+  S.lvl = 10; assert.equal(G.chooseWay('feuerball', 0, 1), null); assert.equal(S.gold, 0);   // erste Wahl gratis
+  assert.ok(G.chooseWay('feuerball', 0, 0));                       // Wechsel ohne Gold geht nicht
+  S.gold = G.wayCost(); assert.equal(G.chooseWay('feuerball', 0, 0), null); assert.equal(S.gold, 0);
+  assert.ok(G.chooseWay('meteor', 0, 0));                          // Meteor erst ab Stufe 18
+  const st = G.stats().spells.find(s => s.id === 'feuerball'); assert.equal(st.m.open, 1); assert.deepEqual(st.ways, ['Funkenflug']);
+});
+
+test('Zauber-Wege wirken im Kampf: sofort, Brand, Kombo-Krit, Bannen, Reinigen, Unbeugsam', () => {
+  const S = fresh('sorceress'); S.lvl = 24;
+  const mon = (x = {}) => ({ name: 'Puppe', lvl: 24, main: 'str', str: 10, dex: 0, int: 0, con: 10, lck: 0, armor: 50, dmg: [50, 50], hp: 1e9, ...x });
+  const run = (sp, x) => { S.sp = sp; return fight({ ...G.stats(), hp: 1e7 }, mon(x)).log; };
+  assert.ok(run({ feuerball: [0, null, null] }).find(l => l.who === 'a' && (l.dmg || l.miss)).sid === 'feuerball', 'Funkenflug wirkt im ersten Zug');
+  assert.ok(run({ feuerball: [1, null, null] }).some(l => l.tk === 'burn'), 'Glühend lässt brennen');
+  let combos = 0; for (let i = 0; i < 20; i++) combos += run({ feuerball: [null, 0, null], frost: [null, null, 0] }).filter(l => l.sid === 'feuerball' && l.combo).length;
+  assert.ok(combos > 0, 'Schmelzen löst nach Frostnova aus');
+  const regen = run({ frost: [null, null, null], feuerball: [null, null, null] }, { regen: 0.05 }).filter(l => l.who === 'b' && l.heal).length;
+  const P = fresh('witch'); P.lvl = 24; P.sp = { seuche: [null, 0, null] };
+  const banned = fight({ ...G.stats(), hp: 1e7 }, mon({ regen: 0.05 })).log.filter(l => l.who === 'b' && l.heal).length;
+  assert.ok(banned < regen, 'Siechtum unterbindet Heilung');
+  const B = fresh('paladin'); B.lvl = 24; B.sp = { gebet: [null, 0, null] };
+  const pois = fight({ ...G.stats(), hp: 1e7 }, mon({ poison: 0.3 })).log; assert.ok(pois.some(l => l.status === 'Gereinigt'), 'Reinigung entfernt Gift');
+  B.sp = { gebet: [null, null, 0] }; let res = 0; for (let i = 0; i < 10; i++) res += fight({ ...G.stats(), hp: 1e7 }, mon({ toll: 1 })).log.filter(l => l.status === 'Widersteht').length;
+  assert.ok(res > 0, 'Standhaft widersteht der Glocke');
+});
+
+test('Migration: Spielstand v6 bekommt leere Zauber-Wege', () => {
+  fresh('witch'); const d = JSON.parse(JSON.stringify(G.S)); d.v = 6; delete d.sp;
+  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); const L = G.load(); assert.equal(L.v, G.SAVE_VERSION); assert.deepEqual(L.sp, {});
 });

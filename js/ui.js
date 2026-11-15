@@ -1,6 +1,7 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
 import { AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
-import { craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
+import { SPELL_TREE, TREE_LVL } from './data.js';
+import { waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 // Name eines Item-Bonus: Attribute, Rüstung/Schaden, Prozent-Boni ("% Krit-Chance", "% Feuerball")
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
@@ -83,9 +84,9 @@ export function hud(tut = '') {
 }
 export function navBar(view) {
   const tabs = [['hero', 'Held'], ['trips', 'Streifzug'], ['traders', 'Händler'], ['crypt', 'Krypta'], ['arena', 'Grube']];
-  const map = { forge: 'traders', stats: 'hero', talents: 'hero', spells: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips' };
+  const map = { forge: 'traders', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips' };
   // Nur echte Handlungsaufforderungen markieren – ein Dauer-Punkt auf jedem Tab sagt nichts mehr
-  const badge = { hero: S.points + talentPoints() > 0, traders: Object.keys(TRADERS).some(canComplete), arena: canComplete('vargo'),
+  const badge = { hero: S.points + talentPoints() + waysPending() > 0, traders: Object.keys(TRADERS).some(canComplete), arena: canComplete('vargo'),
     crypt: canComplete('ilse'), trips: !!S.haul || canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) || (!!S.active && Date.now() >= S.active.end) };
   const on = map[view] || view;
   return `<nav class="tabs">${tabs.map(([k, n]) => `<a class="${on === k ? 'on' : ''} ${badge[k] ? 'badge' : ''}" data-action="go" data-v="${k}">${n}</a>`).join('')}</nav>`;
@@ -114,7 +115,7 @@ export function viewHero() {
       <span class="kkline">Kampfkraft <b>${fmtN(power(st))}</b></span>
       <button class="${S.points ? 'red' : ''}" data-action="go" data-v="stats">Werte${S.points ? ' ·' + S.points : ''}</button>
       <button class="${talentPoints() ? 'red' : ''}" data-action="go" data-v="talents">Talente${talentPoints() ? ' ·' + talentPoints() : ''}</button>
-      <button data-action="go" data-v="spells">Zauber</button>
+      <button class="${waysPending() ? 'red' : ''}" data-action="go" data-v="spells">Zauber${waysPending() ? ' ·' + waysPending() : ''}</button>
     </div>
     <section class="panel invp"><div class="invhead"><span>Beutel</span><button class="tiny" data-action="sort">Ordnen</button></div>
       <div class="inv" style="--w:${INV_W};--h:${INV_H}">
@@ -156,10 +157,24 @@ export function viewSpells() {
   const st = stats();
   return `<div class="col"><section class="panel"><h2>Zauber <span class="h2r">Zauberkraft ×${st.amp.toFixed(2).replace('.', ',')}${st.haste ? ` · Tempo +${Math.round(st.haste * 100)} %` : ''}</span><button class="tiny" data-action="go" data-v="hero">Zurück</button></h2>
     <p class="small">Wirken von selbst und nutzen <b>alle deine Werte</b> wie ein Hieb. Stärker durch <b>Intelligenz</b>, schneller durch <b>Zaubertempo</b>.</p>${st.offWeapon ? '<p class="small down">Du trägst eine fremde Waffe – Zauber geschwächt.</p>' : ''}</section>
-    ${SPELLS[S.cls].map(sp => { const on = S.lvl >= sp.lvl, bo = Math.round(((st.spells.find(x => x.id === sp.id)?.boost || 1) - 1) * 100);
-      return `<section class="panel spell ${on ? '' : 'locked'}"><img class="sic" src="assets/spells/${sp.id}.webp" alt="">
-        <div><h3>${sp.name} <span class="h2r">${on ? `alle ${(sp.every / (1 + st.haste)).toFixed(1).replace('.0', '').replace('.', ',')} Züge` : `ab Stufe ${sp.lvl}`}</span></h3><p class="small">${sp.text}${bo ? ` · <b class="up">+${bo} % durch Waffe</b>` : ''}</p></div></section>`; }).join('')}
-    <section class="panel grow"><h2>Kampfbewertung <span class="h2r">je stärker, desto mehr Lohn</span></h2>${GRADES_TXT()}</section></div>`;
+    ${SPELLS[S.cls].map(sp => { const on = S.lvl >= sp.lvl, cur = st.spells.find(x => x.id === sp.id), bo = Math.round(((st.spells.find(x => x.id === sp.id)?.boost || 1) / (1 + (cur?.m?.mult || 0)) - 1) * 100);
+      const pend = on && waysPending(sp.id), ev = cur?.every || sp.every;
+      return `<section class="panel spell ${on ? '' : 'locked'}" ${on ? `data-action="ways" data-s="${sp.id}"` : ''}><img class="sic" src="assets/spells/${sp.id}.webp" alt="">
+        <div><h3>${sp.name} <span class="h2r">${on ? `alle ${(ev / (1 + st.haste)).toFixed(1).replace('.0', '').replace('.', ',')} Züge` : `ab Stufe ${sp.lvl}`}</span></h3><p class="small">${sp.text}${bo ? ` · <b class="up">+${bo} % durch Waffe</b>` : ''}</p>
+        ${on ? `<p class="wayline">${cur?.ways?.length ? cur.ways.map(n => `<b>${n}</b>`).join(' · ') : '<i class="dim">Noch kein Weg gewählt</i>'}${pend ? ` <span class="hot">· Weg wählen</span>` : ''}</p>` : ''}</div></section>`; }).join('')}
+    <section class="panel grow gradesp"><h2>Kampfbewertung <span class="h2r">je stärker, desto mehr Lohn</span></h2>${GRADES_TXT()}</section></div>`;
+}
+
+// Zauber-Wege eines Zaubers: 3 Stufen, je 2 Wege – Wahl statt Punkte
+export function viewWays(sid) {
+  const sp = SPELLS[S.cls].find(x => x.id === sid); if (!sp) return viewSpells();
+  const ch = S.sp?.[sid] || [], cost = wayCost();
+  return `<div class="col ways"><section class="panel spell"><img class="sic" src="assets/spells/${sp.id}.webp" alt="">
+      <div><h3>${sp.name} <span class="h2r"><button class="tiny" data-action="go" data-v="spells">Zurück</button></span></h3><p class="small">${sp.text}</p></div></section>
+    ${SPELL_TREE[sid].map((opts, t) => { const open = wayOpen(sp, t);
+      return `<section class="panel waytier ${open ? '' : 'locked'}"><h2>Stufe ${t + 1} <span class="h2r">${open ? (ch[t] == null ? '<b class="hot">wählen</b>' : 'gewählt') : `ab Stufe ${Math.max(sp.lvl, TREE_LVL[t])}`}</span></h2>
+        <div class="wayopts">${opts.map((o, i) => `<button class="way ${ch[t] === i ? 'on' : ''}" ${open ? `data-action="way" data-s="${sid}" data-t="${t}" data-i="${i}"` : 'disabled'}><b>${o.name}</b><small>${o.text}</small></button>`).join('')}</div></section>`; }).join('')}
+    <p class="small dim waynote">Erste Wahl je Stufe gratis, Umentscheiden ${cost} Gold. Vor einer Krypta lohnt es sich: Reinigen hilft gegen Gift, Bannen gegen Heilung, Unbeugsam gegen Betäubung.</p></div>`;
 }
 const GRADES_TXT = () => GRADES.map(g => `<div class="stat small"><span class="g-${g.id}">${g.name}</span><span>${g.min ? `≥ ${Math.round(g.min * 100)} % Leben` : 'sonst'} → ${g.bonus ? `+${Math.round(g.bonus * 100)} % Gold${g.id === 'dom' ? ', mehr Beute' : ''}` : 'kein Bonus'}</span></div>`).join('');
 

@@ -13,7 +13,7 @@ function render() {
   if (!S) { app.innerHTML = `<main>${UI.viewCreate(pickCls)}</main>`; return; }
   G.tickGlut();
   const views = {
-    fight: () => UI.viewFight(F), trips: UI.viewTrips, stats: UI.viewStats, spells: UI.viewSpells, talents: UI.viewTalents, crypt: UI.viewCrypts,
+    fight: () => UI.viewFight(F), trips: UI.viewTrips, stats: UI.viewStats, spells: UI.viewSpells, ways: () => UI.viewWays(waySel), talents: UI.viewTalents, crypt: UI.viewCrypts,
     traders: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewTrader(trader),
     trippick: () => UI.viewTripPick(tripLoc),
     bounties: UI.viewBounties,
@@ -154,9 +154,16 @@ function combatFx(l) {
   if (l.buff) pop(me, `+${l.buff} %`, 'buff');
   if (l.rage) pop(me, 'Raserei', 'miss rage');
   if (l.thorns) { hit(me, false, delay + 60); pop(me, l.thorns, 'tick thorns', delay + 60); }
+  if (l.combo) pop(foe, l.combo, 'combo', delay + 40, sp?.fx);                        // Zauber-Weg löst aus (Schmelzen, Detonation …)
+  if (l.status) pop(l.status === 'Gereinigt' ? me : foe, l.status, 'miss status', delay + 200);
 }
 
+let waySel = null;
 const actions = {
+  ways: d => { waySel = d.s; view = 'ways'; render(); },
+  way: d => { const cur = G.S.sp?.[d.s]?.[+d.t]; if (cur === +d.i) return;
+    if (cur != null && !confirm(`Weg wechseln für ${G.wayCost()} Gold?`)) return;
+    const p = G.power(), err = G.chooseWay(d.s, +d.t, +d.i); if (err) return alert(err); G.save(); render(); toast(p); },
   pick: d => { pickCls = d.c; render(); setTimeout(() => document.getElementById('nm')?.focus()); },
   create: () => { const n = document.getElementById('nm').value.trim() || 'Namenloser'; G.newChar(n, pickCls);
     G.journal(`${n} erwacht im Grab. Drei Gestalten warten am Friedhofstor.`); view = 'traders'; render(); },

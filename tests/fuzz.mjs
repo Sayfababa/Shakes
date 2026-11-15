@@ -78,6 +78,7 @@ const actions = {
   wait: () => { clock += Math.floor(Math.random() * 3600e3); G.tickGlut(); },
   day: () => { clock += 86400e3; G.tickGlut(); },
   gift: () => { if (Math.random() < 0.1) { for (const k of Object.keys(D.MATS)) G.addMat(k, 3); G.S.gold += 500; } },   // Material/Gold, damit seltene Wege vorkommen
+  way: () => { const sp = pick(D.SPELLS[G.S.cls]); G.chooseWay(sp.id, Math.floor(Math.random() * 3), Math.floor(Math.random() * 2)); },
   loot: () => { if (Math.random() < 0.2) G.addToBag(makeItem(G.S.lvl, { minRarity: Math.floor(Math.random() * 5) })); },
 };
 const names = Object.keys(actions);

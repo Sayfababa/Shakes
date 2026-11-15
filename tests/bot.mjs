@@ -18,6 +18,9 @@ function manage(log) {
   const S = G.S, c = D.CLASSES[S.cls];
   while (S.points > 0) G.addAttr(S.points % 5 < 2 ? 'con' : c.main);
   for (let i = 0; i < 9; i++) for (let b = 0; b < 3; b++) for (let t = 2; t >= 0; t--) if (G.learn(b, t)) break;
+    // Zauber-Wege: offene Stufen wählen (den Weg mit der höheren Kampfkraft)
+    for (const sp of D.SPELLS[S.cls]) (D.SPELL_TREE[sp.id] || []).forEach((opts, t) => { if (!G.wayOpen(sp, t) || G.S.sp?.[sp.id]?.[t] != null) return;
+      const pw = opts.map((o, i) => { (G.S.sp[sp.id] ||= [null, null, null])[t] = i; return G.power(); }); G.S.sp[sp.id][t] = pw[1] > pw[0] ? 1 : 0; });
   // bessere Items anlegen, Rest verkaufen
   for (const it of [...S.bag]) {
     const sl = slotOf(it);

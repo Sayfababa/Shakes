@@ -1,9 +1,9 @@
-import { CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS } from './data.js';
+import { SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS } from './data.js';
 import { affixPool, makeItem, itemValue, rollTier, affixValue, renameMagic } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 export let S = null; // aktueller Spielstand
 
 export const now = () => Date.now();
@@ -43,6 +43,7 @@ function migrate(d) {
   if (d.v === 4) { d.haul = null; d.v = 5;
   }
   if (d.v === 5) { d.bounty = null; d.v = 6; }
+  if (d.v === 6) { d.sp = {}; d.v = 7; }   // Zauber-Wege
   d.name = cleanName(d.name);
   return d.v === SAVE_VERSION ? d : null;
 }
@@ -51,7 +52,7 @@ function migrate(d) {
 export const cleanName = n => String(n ?? '').replace(/[<>&"'`\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16) || 'Namenloser';
 export function newChar(name, cls) {
   name = cleanName(name); const c = CLASSES[cls];
-  S = { v: SAVE_VERSION, name, cls, lvl: 1, xp: 0, gold: 40, attrs: baseAttrs(cls), points: CFG.startPoints, tal: {}, respecs: 0,
+  S = { v: SAVE_VERSION, name, cls, lvl: 1, xp: 0, gold: 40, attrs: baseAttrs(cls), points: CFG.startPoints, tal: {}, sp: {}, respecs: 0,
     crypt: { diff: 0, prog: {}, cd: 0 }, trophies: [], traders: freshTraders(), mats: {}, omen: null, omens: 0, shards: [], tut: 0, title: null, haul: null, bounty: null,
     equip: {}, bag: [], glut: CFG.maxGlut, glutTs: now(), active: null,
     journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0 };
@@ -94,6 +95,32 @@ export function effects(p = S) {
   return e;
 }
 
+// --- Zauber-Wege: je Zauber 3 Stufen, je Stufe 1 von 2 Wegen ---
+export const wayOpen = (sp, t, lvl = S.lvl) => lvl >= Math.max(sp.lvl, TREE_LVL[t]);
+export const wayCost = () => S.lvl * CFG.wayCostPerLvl;
+// Offene, noch nicht gewählte Stufen (für Hinweis-Punkte)
+export const waysPending = (sid) => SPELLS[S.cls].filter(sp => !sid || sp.id === sid).reduce((n, sp) => n + (SPELL_TREE[sp.id] || []).filter((_, t) => wayOpen(sp, t) && S.sp?.[sp.id]?.[t] == null).length, 0);          // Umentscheiden kostet Gold, erste Wahl gratis
+export function chooseWay(sid, t, i) {
+  const sp = SPELLS[S.cls].find(x => x.id === sid), opts = SPELL_TREE[sid]?.[t];
+  if (!sp || !opts?.[i] || !wayOpen(sp, t)) return 'Noch nicht offen.';
+  const cur = S.sp[sid]?.[t]; if (cur === i) return null;
+  const cost = cur == null ? 0 : wayCost(); if (S.gold < cost) return 'Zu wenig Gold.';
+  S.gold -= cost; (S.sp[sid] ||= [null, null, null])[t] = i; return null;
+}
+// Gewählte Wege als Bausteine `m` an den Zauber hängen (Zahlen addieren, Objekte übernehmen)
+function withWays(s, p) {
+  const ch = p.sp?.[s.id] || [], m = {}, wn = {}, names = [];
+  (SPELL_TREE[s.id] || []).forEach((opts, t) => { const o = opts[ch[t]]; if (!o || !wayOpen(s, t, p.lvl)) return; names.push(o.name);
+    for (const [k, v] of Object.entries(o.m)) { m[k] = typeof v === 'number' ? (m[k] || 0) + v : v; wn[k] = o.name; } });
+  if (!names.length) return s;
+  const w = { ...s, m, wn, ways: names };
+  if (m.every) w.every = Math.max(2, s.every + m.every);
+  if (m.mult) w.boost = (s.boost || 1) * (1 + m.mult);
+  if (m.hits) w.hits = s.hits + m.hits;
+  if (m.max) w.max = (s.max || 0) + m.max;
+  return w;
+}
+
 // Abgeleitete Kampfwerte
 const cap = (base = 0, add, max) => Math.max(base, Math.min(max, base + add));
 export function stats(p = S) {
@@ -108,7 +135,7 @@ export function stats(p = S) {
   const P = k => (st[k] || 0) / 100;              // Prozent-Boni von Items (critc, dmgp, …)
   const base = w?.dmg || [1, 3], dm = (1 + (e.dmgPct || 0) + P('dmgp')) * (fit ? 1 : CFG.offWeapon);
   return { ...e, ...st, name: p.name, cls: p.cls, lvl: p.lvl, main: c.main,
-    spells: SPELLS[p.cls].filter(s => p.lvl >= s.lvl).map(s => st['sk_' + s.id] ? { ...s, boost: 1 + P('sk_' + s.id) } : s),
+    spells: SPELLS[p.cls].filter(s => p.lvl >= s.lvl).map(s => withWays({ ...s, boost: 1 + P('sk_' + s.id) }, p)),
     amp: (1 + st.int / (st.int + CFG.spellK)) * (1 + P('spellp')) * (fit ? 1 : CFG.offWeaponSpell), offWeapon: !fit,
     // Item-Prozente stapeln nur bis zur Obergrenze; was Klasse/Talente schon geben, wird nie gekürzt
     crit: cap(e.crit, P('critc'), CAPS.crit), critMult: cap(2 + (e.critDmg || 0), P('critd'), CAPS.critMult),
@@ -141,18 +168,44 @@ export function power(A = stats()) {
   const strike = (A.dmg[0] + A.dmg[1]) / 2 * (1 + A[A.main] / CFG.mainDiv);
   const onHit = (1 + crit * ((A.critMult || 2) - 1 + (A.bleed || 0))) * (1 + (A.execute || 0) * 0.2 + (A.poison || 0));   // gilt für Hieb und Zauber
   let dpt = strike * (1 - red) * hit * onHit * (1 + (A.rage || 0) * 0.3);
-  let heal = (A.regen || 0) * A.hp;
+  let heal = (A.regen || 0) * A.hp, takenF = 1, vulnF = 1;
+  const stunner = (A.spells || []).some(s => s.kind === 'stun' || s.m?.stun), dotter = (A.spells || []).some(s => s.kind === 'dot' || s.m?.poison);
   for (const s of A.spells || []) {
+    const m = s.m || {}, cm = (A.critMult || 2) - 1;
     const sd = strike * A.amp * (1 - red) * hit * onHit;
-    const b = s.boost || 1;   // Zauber-Bonus von der Waffe
-    const v = b * (s.kind === 'multi' ? sd * s.mult * s.hits : s.kind === 'dot' ? sd * s.mult * 3 : s.kind === 'buff' ? dpt * s.v * 2
+    const b = s.boost || 1;   // Zauber-Bonus von der Waffe und Wege (mult)
+    let v = b * (s.kind === 'multi' ? sd * s.mult * s.hits : s.kind === 'dot' ? sd * s.mult * 3 : s.kind === 'buff' ? dpt * s.v * 2
       : s.kind === 'heal' || s.kind === 'shield' ? 0 : sd * s.mult * (s.kind === 'mark' ? 1.4 : s.kind === 'stun' ? 1.5 : 1));
-    const ev = s.every / (1 + (A.haste || 0));
+    // Zauber-Wege (Schätzung gegen einen Gegner deiner Stufe; die echten Werte prüft tests/ways.mjs)
+    if (m.strike) v += sd * m.strike;
+    const raw = v;
+    if (m.crit) v *= 1 + Math.min(m.crit, 0.6 + m.crit - crit) * cm / (1 + crit * cm);
+    if (m.dazedCrit && stunner) v *= 1 + 0.35 * cm;
+    if (m.pierce && s.kind !== 'buff') v *= (1 - red * (1 - Math.min(1, m.pierce))) / (1 - red);
+    if (m.execute) v *= 1 + m.execute * 0.2;
+    if (m.burn) v += raw * m.burn.v * m.burn.n;
+    if (m.bleed) v += raw * m.bleed * 3;
+    if (m.poison) v += raw * m.poison * 3;
+    if (m.detonate && dotter) v += sd * 0.35 * m.detonate;
+    if (m.fresh) v *= 1 + m.fresh * 0.35;
+    if (m.dotStack && s.kind === 'dot') v *= 1.6;
+    let ev = s.every / (1 + (A.haste || 0)); if (m.open) ev *= 0.82; if (m.desperate) ev *= 1 - m.desperate * 0.3;
     dpt += (v * (1 + (A.echo || 0)) - dpt) / ev;
-    if (s.kind === 'heal' || s.kind === 'shield') heal += A.hp * s.pct * A.amp * b / ev;
+    if (m.buff) dpt *= 1 + m.buff * 1.5 / ev;
+    if (s.kind === 'heal' || s.kind === 'shield') heal += A.hp * s.pct * A.amp * b * (m.overshield ? 1.15 : 1) / ev;
+    if (m.lifesteal) heal += v * m.lifesteal / ev;
+    if (m.shieldGain) heal += v * m.shieldGain / ev;
+    if (m.healPct) heal += A.hp * m.healPct * A.amp / ev;
+    if (m.poisonLeech) heal += sd * s.mult * b * m.poisonLeech;
+    if (m.vuln) vulnF *= 1 + m.vuln.v * Math.min(1, m.vuln.n / ev);
+    if (m.weaken) takenF *= 1 - m.weaken.v * Math.min(1, m.weaken.n / ev);
+    if (m.stun) takenF *= 1 - m.stun / ev;
+    if (m.stunTurns > 1) takenF *= 1 - 0.4 * (m.stunTurns - 1) / ev;
+    if (m.noheal || m.cleanse || m.stunImmune) takenF *= 0.985;   // Antworten auf Boss-Mechaniken: im Schnitt wenig, gegen den passenden Boss viel
   }
+  dpt *= vulnF;
   heal += dpt * (A.leech || 0);   // Lebensraub aus Hieben und Zaubern
-  const taken = eDmg * (1 - Math.min(0.6, A.armor / (A.armor + 20 + L * 8))) * (1 - Math.min(0.5, A.dex / (A.dex + en * 3 + 40) + (A.evade || 0))) * (1 - Math.min(0.5, A.block || 0));
+  const taken = eDmg * (1 - Math.min(0.6, A.armor / (A.armor + 20 + L * 8))) * (1 - Math.min(0.5, A.dex / (A.dex + en * 3 + 40) + (A.evade || 0))) * (1 - Math.min(0.5, A.block || 0)) * takenF;
   dpt += taken * (A.thorns || 0);   // Dornen: Teil jedes erlittenen Treffers geht zurück
   const ehp = A.hp * (1 + (A.ward || 0)) / (taken * Math.max(0.3, 1 - heal * 0.6 / Math.max(1, taken))) * eDmg;   // Leben, umgerechnet in "wie viele Gegner-Hiebe halte ich aus"
   return Math.round(Math.sqrt(Math.max(1, dpt) * ehp) * 20);

@@ -5,18 +5,20 @@
 cd "$(dirname "$0")/.."
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 
+ways() { node tests/ways.mjs all all 1500 --check > "$T/ways.full"; rc=$?; grep -E '^!!|Rahmen' "$T/ways.full"; return $rc; }
 bot() { for c in barbarian paladin assassin huntress sorceress witch; do node tests/bot.mjs $c 3 1 | grep -E "Kämpfe" | sed "s/^/$c: /" & done; wait; }
 
 if [ "$1" = "quick" ]; then
   set -- logic ui
 else
-  set -- logic bot fuzz ui uifuzz
+  set -- logic bot fuzz ways ui uifuzz
 fi
 for t in "$@"; do
   case $t in
     logic)  node --test tests/logic.test.mjs ;;
     bot)    bot ;;
     fuzz)   node tests/fuzz.mjs 1500 6 | tail -1 ;;
+    ways)   ways ;;
     ui)     node tests/ui.cjs ;;
     uifuzz) node tests/uifuzz.cjs 120 ;;
   esac > "$T/$t.out" 2>&1 &
