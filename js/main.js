@@ -135,7 +135,7 @@ function combatFx(l) {
   const pop = (el, txt, cls, wait = 0, fx) => setTimeout(() => { const w = el.querySelector('.pwrap'); if (!w) return;
     const n = document.createElement('span'); n.className = 'fnum ' + cls; n.innerHTML = txt; if (fx) n.style.setProperty('--fx', fx);
     const heal = /heal|shield|buff/.test(cls), list = heal ? HEAL : SPOTS, k = +(w.dataset[heal ? 'kh' : 'k'] || 0);
-    w.dataset[heal ? 'kh' : 'k'] = (k + 1) % list.length; const [x, y] = /crit/.test(cls) ? [50, 45] : list[k];
+    w.dataset[heal ? 'kh' : 'k'] = (k + 1) % list.length; const [x, y] = /combo/.test(cls) ? [50, 14] : /crit/.test(cls) ? [50, 52] : list[k];   // Kombo-Name oben, Krit-Zahl darunter
     n.style.left = x + '%'; n.style.top = y + '%';
     w.appendChild(n); setTimeout(() => n.remove(), 1300); }, wait);
   const hit = (el, crit, wait) => setTimeout(() => { el.classList.remove('hit', 'crit'); void el.offsetWidth; el.classList.add('hit'); if (crit) el.classList.add('crit');
