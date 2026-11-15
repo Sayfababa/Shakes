@@ -77,6 +77,12 @@ let failures = 0;
     for (let i = 0; i < 3; i++) if (!(await tap('[data-o=values]'))) { failures++; console.log(`FEHLER ${tag}: Werte würfeln gesperrt:`, await p.evaluate(() => document.querySelector('.cmsg')?.textContent)); }
     const v1 = await p.evaluate(() => document.querySelector('.caff.sealed span')?.textContent); await chk('craft2');
     if (!v0 || v0 !== v1) { failures++; console.log(`FEHLER ${tag}: Siegel hält nicht (${v0} → ${v1})`); }
+    // Item antippen → Schmieden: Schmiede öffnet direkt mit diesem Item, angelegte Teile grün umrandet
+    await p.evaluate(async () => { const L = await import('./js/loot.js'); const G = await import('./js/state.js'); let r; do r = L.makeItem(25, { slot: 'ring', minRarity: 2 }); while (r.unique); G.S.equip.ring1 = r; G.save(); });
+    await p.reload(); await p.waitForTimeout(300);
+    await tap('[data-v=hero]'); await tap(`[data-tip="${rid}"]`); await tap('#tip [data-action=forgeitem]'); await chk('forgeitem');
+    const fi = await p.evaluate(() => [document.querySelector('.cpick .fslot.on')?.dataset.id, document.querySelectorAll('.cpick .fslot.eq').length]);
+    if (fi[0] !== rid || !fi[1]) { failures++; console.log(`FEHLER ${tag}: Schmieden aus dem Item-Fenster`, fi); }
     // Alchemie: brauen, in den Gürtel, Vorbereitung vor der Krypta, Kampf mit Trank
     await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.herbs = { rotwurz: 6, grabmoos: 6, silberstaub: 6, nachtschatten: 6, schwefel: 6, herz: 2 }; G.S.gold += 2000; G.S.crypt.cd = 0; G.save(); });
     await p.reload(); await p.waitForTimeout(300); await tap('[data-v=traders]'); await tap('[data-t=ysolde]');

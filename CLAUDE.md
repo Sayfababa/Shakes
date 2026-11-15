@@ -39,7 +39,7 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - **Große Bildschirme** (≥ 760 px Höhe, z. B. großes iPhone als App 430×867): eigener `@media (min-height: 760px)`-Block am Ende von style.css – größere Schrift (`html` 2,1vh), Knöpfe ≥ 42 px, Ware 3×2, große Zauber-/Crafting-Knöpfe. Tests laufen zusätzlich auf „App 430x867“.
 - **Kein Scrollen**: App-Layout = HUD oben, `<main>` (overflow hidden), Tabs unten. `#app` ist `position: fixed; inset: 0` – **nicht** 100dvh/100vh; als Homescreen-App setzt `fitApp()` in main.js die Höhe auf `screen.height` (iOS meldet den Viewport dort zu kurz, unten blieb ~100 pt frei). Jede Ansicht muss auf iPhone SE (375×667) und iPhone 13 passen – mit Playwright prüfen (Elemente unter main-Unterkante zählen). Nur das Kampflog und die Werte-Ansicht (`.vscroll`) dürfen intern scrollen. Karten (Orte, Krypten) dürfen nichts abschneiden – ui.cjs prüft das.
 - `manifest.json` + `sw.js` (network-first, damit Updates sofort ankommen). Alle Pfade relativ (Pages-Unterordner!).
-- Touch: Item-Tap öffnet Detail-Popup mit Aktionen (`showTouchTip` in main.js), kein Hover/Rechtsklick voraussetzen.
+- Touch: Item-Tap öffnet Detail-Popup mit Aktionen (`showTouchTip` in main.js), kein Hover/Rechtsklick voraussetzen. Dort auch „Schmieden“ (`forgeitem`): öffnet die Schmiede direkt mit dem Item (Umschmieden, sonst Runen für angelegte Teile). In der Umschmieden-Liste sind angelegte Teile grün umrandet (`.fslot.eq`).
 
 ## Progression (siehe DESIGN.md)
 - Attribute nur über Punkte (5/Stufe), Talente 1/Stufe (`TALENTS` in data.js), Läuterung kostet Gold.

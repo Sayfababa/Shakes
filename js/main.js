@@ -235,6 +235,10 @@ const actions = {
     const lost = Object.keys(before).filter(k => !(k in after));
     forgeSel.msg = `${r.op.name}: −${r.cost} Glut${lost.length ? ` · getilgt: ${lost.map(k => k === 'dmg' ? 'Schaden' : k).join(', ')}` : ''}${r.it.crafted ? ' · <b class="gold">vollendet</b>' : ''}`;
     if (d.o === 'seal') forgeSel.stat = null; render(); toast(pw); },
+  forgeitem: d => { const S = G.S, it = findItem(d.id); if (!it) return; hideTip(); stopForge(); forgeRes = null;
+    const slot = Object.entries(S.equip).find(([, x]) => x === it)?.[0];
+    if (G.craftItems().includes(it)) Object.assign(forgeSel, { mode: 'craft', item: it.id, stat: null, msg: '', changed: null }); else Object.assign(forgeSel, { mode: 'rune' });
+    if (slot) forgeSel.slot = slot; view = 'forge'; render(); },
   forgemat: d => { forgeSel.mat = d.m; render(); },
   forgeslot: d => { forgeSel.slot = d.s; render(); },
   forgeagain: () => { forgeRes = null; render(); },
@@ -291,6 +295,8 @@ function showTouchTip(el) {
   const d = el.dataset, a = d.action, attrs = Object.entries(d).filter(([k]) => k !== 'tip').map(([k, v]) => `data-${k}="${v}"`).join(' ');
   let btns = `<button ${attrs}>${ACT_LABEL[a] || 'OK'}</button>`;
   if (a === 'equip') btns += `<button class="red" data-action="sell" data-id="${it.id}">Verkaufen · ${it.value}</button>`;
+  const slot = Object.entries(G.S.equip).find(([, x]) => x === it)?.[0];   // Schmieden: Umschmieden (magisch+), sonst Runen (nur angelegt)
+  if ((a === 'equip' || a === 'unequip') && (G.craftItems().includes(it) || slot)) btns += `<button data-action="forgeitem" data-id="${it.id}">Schmieden</button>`;
   tip.innerHTML = UI.itemTip(it, compareTo(it)) + `<div class="act">${btns}<button data-action="noop">Zurück</button></div>`;
   tip.className = 'touch'; tip.hidden = false;
   tip.style.left = Math.max(8, (innerWidth - tip.offsetWidth) / 2) + 'px';

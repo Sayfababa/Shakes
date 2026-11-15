@@ -399,7 +399,7 @@ function viewCraft(sel) {
     return `<button class="cop" data-action="craftop" data-o="${op.id}" ${err ? 'disabled' : ''} title="${op.text}">${matImg(op.mat)}<b>${op.name}</b><small>${MATS[op.mat]} ${S.mats[op.mat] || 0}/${op.n} · Glut ${op.glut}+</small></button>`; }).join('');
   const why = it && CRAFT.ops.map(op => craftCheck(it, op.id, sel.stat)).find(e => e && !/Material|Bonus antippen/.test(e));
   return `<div class="col forge craft">${forgeTabs(sel)}
-    <section class="panel"><div class="cpick">${list.map(x => `<div class="fslot r-${x.rarity} ${x.id === sel.item ? 'on' : ''} ${x.crafted ? 'full' : ''}" data-action="craftpick" data-id="${x.id}">${itemArt(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`).join('') || '<span class="dim small">Nichts zum Umschmieden. Magische Items fallen bei Monstern und Händlern.</span>'}</div></section>
+    <section class="panel"><div class="cpick">${list.map(x => `<div class="fslot r-${x.rarity} ${x.id === sel.item ? 'on' : ''} ${x.crafted ? 'full' : ''} ${Object.values(S.equip).includes(x) ? 'eq' : ''}" data-action="craftpick" data-id="${x.id}">${itemArt(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`).join('') || '<span class="dim small">Nichts zum Umschmieden. Magische Items fallen bei Monstern und Händlern.</span>'}</div></section>
     <section class="panel grow">${card}</section>
     <section class="panel"><div class="cops">${ops}</div>
       <p class="small cmsg">${sel.msg || (it ? `Je Eingriff ${craftGold(it)} Gold · ${sel.stat ? `<b>${STAT_NAME(sel.stat)}</b> gewählt` : 'zum Versiegeln einen Bonus antippen'}${why ? ` · <span class="down">${why}</span>` : ''}` : 'Material bestimmt den Eingriff, Schmiedeglut wie oft.')}</p></section></div>`;

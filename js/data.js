@@ -600,7 +600,7 @@ export const HERB_LOC = { friedhof: 'grabmoos', muehle: 'rotwurz', katakomben: '
 export const ALCH = { herbChance: 0.15, slots: 2, slotsLoyal: 3, loyalNeed: 2, charges: 3, maxCommon: 6, maxRare: 2, bossHearts: 2, floorHeart: 0.12,
   gold: [8, 2.5], goldRare: [30, 7] };   // Gold = a + Stufe × b
 export const POTIONS = [
-  { id: 'rotwurz', name: 'Rotwurz-Trank', text: 'Heilt 12 % Leben.', fx: { heal: 0.12 }, trig: ['hp50', 'hp30'], cost: { rotwurz: 2 } },
+  { id: 'rotwurz', name: 'Rotwurz-Trank', text: 'Heilt 11 % Leben.', fx: { heal: 0.11 }, trig: ['hp50', 'hp30'], cost: { rotwurz: 2 } },
   { id: 'steinhaut', name: 'Steinhaut', text: 'Schild aus 10 % Leben.', fx: { shield: 0.1 }, trig: ['start', 'hp50'], cost: { grabmoos: 2 } },
   { id: 'berserker', name: 'Berserkersud', text: '+35 % Schaden für 3 Züge.', fx: { rage: 0.35, n: 3 }, trig: ['start', 'low'], cost: { rotwurz: 1, grabmoos: 1 } },
   { id: 'gegengift', name: 'Gegengift', text: 'Entfernt Gift, Bluten, Brand. 4 Züge immun.', fx: { cure: 4 }, trig: ['dot'], cost: { grabmoos: 1, silberstaub: 1 } },
