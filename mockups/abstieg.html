@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup – Der Abstieg</title>
+<link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+SC:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  html, body { overflow: auto; height: auto; }
+  .wrap { display: flex; gap: 28px; padding: 24px; align-items: flex-start; width: max-content; }
+  .phone { width: 390px; height: 800px; position: relative; display: flex; flex-direction: column; padding: 10px; gap: 7px;
+    border: 1px solid #2a2118; box-shadow: 0 0 0 6px #0b0907, 0 0 40px #000; background: var(--noise), var(--stonetex), radial-gradient(ellipse at 50% 20%, #241a12, #070504 70%); }
+  .phone > .panel { flex: none; }
+  .cap { font-family: 'Alegreya SC'; color: var(--gold); text-align: center; margin-bottom: 8px; font-size: 1rem; }
+  .note2 { width: 390px; color: var(--dim); font-size: .85rem; margin-top: 10px; line-height: 1.35; }
+  .note2 b { color: var(--gold); font-weight: 500; }
+  .hudm { display: flex; align-items: center; justify-content: space-between; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.5rem; }
+  .hudm small { font-family: 'Alegreya SC'; font-size: .8rem; color: var(--text); }
+  .tabsm { margin-top: auto; display: flex; gap: 3px; } .tabsm a { flex: 1; text-align: center; padding: 9px 2px; font-family: 'Alegreya SC'; font-size: .76rem; color: var(--dim); border-image: url('../assets/ui/tab.webp') 16 fill / 8px stretch; }
+  .tabsm a.on { color: var(--gold-hi); border-image-source: url('../assets/ui/tab_on.webp'); }
+  .up { color: #9fc870; } .down { color: var(--blood-hi); } .dimt { color: var(--dim); }
+  .sum { font-size: .82rem; line-height: 1.3; margin: 0; } .sum b { color: var(--gold-hi); font-weight: 500; }
+  /* Siegel */
+  .xseals { display: flex; gap: 6px; justify-content: center; }
+  .xseal { width: 64px; height: 64px; display: grid; place-items: center; position: relative; background: #07080b; box-shadow: inset 0 0 10px #000; border-image: url('../assets/ui/slot.webp') 16 / 6px stretch; }
+  .xseal img { width: 74%; } .xseal b { position: absolute; bottom: 1px; right: 4px; font-family: 'Grenze Gotisch'; color: var(--gold-hi); font-size: 1rem; text-shadow: 0 1px 2px #000; }
+  .xseal.on { box-shadow: inset 0 0 10px #000, 0 0 0 2px var(--gold-hi); }
+  .xtip { padding: 10px 12px; border-image: url('../assets/ui/tooltip.webp') 24 fill / 12px stretch; }
+  .xtip h3 { margin: 0 0 2px; font-family: 'Alegreya SC'; font-weight: 500; color: #ffff64; font-size: 1rem; }
+  .xtip p { margin: 1px 0; font-size: .8rem; line-height: 1.25; } .xtip .m { color: #6969ff; }
+  .xtip hr { border: 0; height: 1px; background: #3a2e22; margin: 5px 0; }
+  .xonly { display: grid; grid-template-columns: 26px 1fr; gap: 3px 8px; align-items: center; font-size: .8rem; line-height: 1.2; }
+  .xonly img { width: 26px; height: 26px; object-fit: contain; }
+  .xonly b { color: #c7b377; font-weight: 500; }
+  /* Leisten */
+  .xbars { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 8px; align-items: center; font-family: 'Alegreya SC'; font-size: .72rem; }
+  .xbar { height: 12px; background: #070504; border: 1px solid #2e241a; position: relative; }
+  .xbar i { position: absolute; inset: 0 auto 0 0; }
+  .xbar.hp i { background: linear-gradient(#a3281c, #5e120c); width: 58%; }
+  .xbar.un i { background: linear-gradient(#8a6a2a, #4a3410); width: 66%; }
+  .xbar.un s { position: absolute; top: -2px; bottom: -2px; width: 1px; background: #c9a45a; }
+  /* Karte */
+  .xmap { position: relative; height: 292px; }
+  .xmap svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .xnode { position: absolute; width: 40px; height: 40px; translate: -50% -50%; display: grid; place-items: center;
+    background: #07080b; box-shadow: inset 0 0 10px #000; border-image: url('../assets/ui/slot.webp') 16 / 5px stretch; }
+  .xnode img { width: 78%; height: 78%; object-fit: contain; } .xnode img.mon { width: 100%; height: 100%; object-fit: cover; filter: saturate(.7); }
+  .xnode.done { opacity: .45; } .xnode.here { box-shadow: inset 0 0 10px #000, 0 0 0 2px var(--gold-hi), 0 0 12px rgba(226,192,122,.45); }
+  .xnode.next { box-shadow: inset 0 0 10px #000, 0 0 0 1px rgba(226,192,122,.6); }
+  .xnode.elite { box-shadow: inset 0 0 10px #000, 0 0 0 2px #6969ff; } .xnode.boss { width: 52px; height: 52px; box-shadow: inset 0 0 10px #000, 0 0 0 2px var(--blood-hi); }
+  .xnode.exit { box-shadow: inset 0 0 10px #000, 0 0 0 2px #5c8a3a; } .xnode.exit.gone { box-shadow: inset 0 0 10px #000, 0 0 0 1px #3a3a3a; opacity: .5; }
+  .xnode.fog { opacity: .3; filter: blur(1px) grayscale(1); }
+  .xnode label { position: absolute; top: 100%; left: 50%; translate: -50% 0; white-space: nowrap; font-family: 'Alegreya SC'; font-size: .58rem; color: var(--dim); text-shadow: 0 1px 0 #000; }
+  .xnode.exit label { color: #9fc870; } .xnode.elite label { color: #8f8fff; } .xnode.boss label { color: var(--blood-hi); }
+  /* Beutesack */
+  .xsack { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; }
+  .xsack i { min-width: 0; overflow: hidden; }
+  .xsack i { aspect-ratio: 1; background: #07080b; box-shadow: inset 0 0 6px #000; border: 1px solid #1d1711; display: grid; place-items: center; }
+  .xsack i img { width: 86%; height: 86%; max-width: 86%; object-fit: contain; display: block; }
+  .xsack i.safe { border-color: #5c8a3a; } .xsack i.r { box-shadow: inset 0 0 8px rgba(255,255,100,.25); } .xsack i.u { box-shadow: inset 0 0 8px rgba(199,179,119,.45); }
+  .xsack i.w2 { grid-column: span 2; aspect-ratio: auto; }
+  .xsackh { display: flex; justify-content: space-between; font-family: 'Alegreya SC'; font-size: .72rem; color: var(--dim); }
+  .xsackh b { color: var(--gold-hi); font-weight: 500; }
+  /* Ergebnis */
+  .xres h2 { text-align: center; }
+  .xrows p { display: flex; justify-content: space-between; margin: 0; padding: 4px 0; font-size: .84rem; border-bottom: 1px solid #000; box-shadow: 0 1px 0 #2e241a; }
+  .xrows p:last-child { border: 0; box-shadow: none; }
+  .xvs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .xvs > div { padding: 8px; font-size: .78rem; line-height: 1.3; background: #0a0806; border: 1px solid #2e241a; }
+  .xvs h4 { margin: 0 0 3px; font-family: 'Alegreya SC'; font-weight: 500; font-size: .85rem; }
+</style></head>
+<body>
+<div class="wrap">
+
+<!-- 1: Siegel wählen -->
+<div>
+  <div class="cap">1 · Grabsiegel wählen: was nur hier fällt</div>
+  <div class="phone">
+    <div class="hudm">Sayfa <small>Stufe 14 · 812 Gold</small></div>
+    <section class="panel"><h2>Der Abstieg <span class="h2r">Gruft der Wäscherinnen</span></h2>
+      <div class="xseals">
+        <div class="xseal"><img src="../assets/items/ring.webp" alt=""><b>I</b></div>
+        <div class="xseal on"><img src="../assets/items/amulet_a.webp" alt=""><b>IV</b></div>
+        <div class="xseal"><img src="../assets/items/amulet_b.webp" alt=""><b>VI</b></div>
+        <div class="xseal" style="opacity:.35"><img src="../assets/ui/marker.webp" alt=""><b>?</b></div>
+      </div>
+      <p class="sum dimt" style="text-align:center;margin-top:4px">Ein verwittertes Siegel (I) liegt jeden Tag gratis bereit.</p>
+    </section>
+    <div class="xtip">
+      <h3>Grabsiegel der Seufzer · IV</h3>
+      <p class="m">Gegner +25 % Leben</p><p class="m">Elite-Rudel: 2 statt 1</p><p class="m down">Seil-Ausgang fehlt</p>
+      <hr><p>Beute-Menge <b class="up">+60 %</b> · Seltenheit <b class="up">+35 %</b></p>
+    </div>
+    <section class="panel"><h2>Nur im Abstieg</h2>
+      <div class="xonly">
+        <img src="../assets/items/runeblade.webp" alt=""><span><b>Einzigartige &amp; Sets</b>: fallen ab Stufe 10 nur noch hier</span>
+        <img src="../assets/forge/haar.webp" alt="" onerror="this.src='../assets/potions/i_schwefel.webp'"><span><b>Boni der Stufe I</b>: die besten Werte, sonst nirgends</span>
+        <img src="../assets/potions/i_herz.webp" alt=""><span><b>Schwarze Herzen</b>: ×3, jede Elite kann eins tragen</span>
+        <img src="../assets/items/amulet_b.webp" alt=""><span><b>Höhere Siegel</b>: der Weg zu Stufe X</span>
+      </div>
+    </section>
+    <div class="btns"><button>Atlas</button><button class="red">Hinabsteigen</button></div>
+    <nav class="tabsm"><a>Held</a><a>Streifzug</a><a>Händler</a><a class="on">Krypta</a><a>Grube</a></nav>
+  </div>
+  <p class="note2"><b>Warum das Risiko lohnt:</b> Streifzug und normale Krypta bleiben der sichere Weg für EP und Gold. Die Spitze der Beute (Einzigartige, Stufe-I-Boni, Herzen, höhere Siegel) gibt es <b>nur</b> hier. Der Eintritt kostet keine Glut, nur ein Siegel. Ein schwaches Siegel liegt täglich gratis bereit, es gibt also nie eine Sperre.</p>
+</div>
+
+<!-- 2: In der Gruft -->
+<div>
+  <div class="cap">2 · Unten: weiter oder raus?</div>
+  <div class="phone">
+    <div class="hudm">Raum 5 <small>Siegel IV · Gruft der Wäscherinnen</small></div>
+    <section class="panel">
+      <div class="xbars">
+        <span>Leben</span><div class="xbar hp"><i></i></div><span>412/710</span>
+        <span>Unruhe</span><div class="xbar un"><i></i><s style="left:33%"></s><s style="left:66%"></s></div><span class="up">Beute ×2,2</span>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="xmap">
+        <svg viewBox="0 0 350 292" preserveAspectRatio="none">
+          <g stroke="#4a3a28" stroke-width="2" fill="none" stroke-dasharray="4 4">
+            <path d="M175 270 L90 215"/><path d="M175 270 L260 215"/><path d="M90 215 L60 160"/><path d="M90 215 L175 160"/><path d="M260 215 L175 160"/><path d="M260 215 L300 160"/>
+            <path d="M175 160 L110 105"/><path d="M175 160 L240 105"/><path d="M300 160 L240 105"/><path d="M60 160 L30 105"/>
+            <path d="M110 105 L175 30"/><path d="M240 105 L175 30"/><path d="M240 105 L320 50"/><path d="M110 105 L45 50"/>
+          </g>
+          <g stroke="#c9a45a" stroke-width="3" fill="none"><path d="M175 270 L90 215"/><path d="M90 215 L175 160"/></g>
+        </svg>
+        <div class="xnode done" style="left:50%;top:270px"><img src="../assets/ui/marker.webp" alt=""><label>Stiege</label></div>
+        <div class="xnode done" style="left:26%;top:215px"><img class="mon" src="../assets/monsters/knochenhund.jpg" alt=""></div>
+        <div class="xnode" style="left:74%;top:215px"><img class="mon" src="../assets/monsters/skelett.jpg" alt=""></div>
+        <div class="xnode exit gone" style="left:17%;top:160px"><img src="../assets/expedition/camp.webp" alt=""><label>Seil · eingestürzt</label></div>
+        <div class="xnode here" style="left:50%;top:160px"><img src="../assets/expedition/ruin.webp" alt=""><label>du</label></div>
+        <div class="xnode" style="left:86%;top:160px"><img src="../assets/expedition/shrine.webp" alt=""></div>
+        <div class="xnode exit" style="left:9%;top:105px"><img src="../assets/expedition/goal.webp" alt=""><label>Brunnen · 60 Gold</label></div>
+        <div class="xnode next" style="left:31%;top:105px"><img src="../assets/expedition/event.webp" alt=""><label>Ereignis</label></div>
+        <div class="xnode elite next" style="left:69%;top:105px"><img class="mon" src="../assets/monsters/wiedergaenger.jpg" alt=""><label>Elite · flink, Steinhaut</label></div>
+        <div class="xnode fog" style="left:13%;top:50px"><img src="../assets/expedition/danger.webp" alt=""></div>
+        <div class="xnode exit fog" style="left:91%;top:50px"><img src="../assets/expedition/goal.webp" alt=""></div>
+        <div class="xnode boss" style="left:50%;top:30px"><img class="mon" src="../assets/monsters/aldemar.jpg" alt=""><label>Die Wäscherin</label></div>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="xsackh"><span>Beutesack</span><b>9/12 Felder · ~1.240 Gold Wert</b></div>
+      <div class="xsack">
+        <i class="safe u"><img src="../assets/items/runeblade.webp" alt=""></i>
+        <i class="r"><img src="../assets/items/helm_b.webp" alt=""></i><i><img src="../assets/items/boots_a.webp" alt=""></i>
+        <i class="r"><img src="../assets/items/ring_b.webp" alt=""></i><i><img src="../assets/potions/i_herz.webp" alt=""></i>
+        <i><img src="../assets/items/amulet_b.webp" alt=""></i>
+        <i><img src="../assets/items/gloves_a.webp" alt=""></i><i><img src="../assets/potions/i_schwefel.webp" alt=""></i><i><img src="../assets/ui/coin.webp" alt=""></i><i></i><i></i><i></i>
+      </div>
+    </section>
+    <div class="btns"><button>Brunnen (2 Räume)</button><button class="red">Weiter</button></div>
+    <nav class="tabsm"><a>Held</a><a>Streifzug</a><a>Händler</a><a class="on">Krypta</a><a>Grube</a></nav>
+  </div>
+  <p class="note2"><b>Jeder Raum ein Shakes-Kampf</b> (Auto-Kampf, überspringbar), Leben und Trank-Ladungen laufen mit. <b>Unruhe</b> steigt je Raum: Gegner stärker, Beute ×1 → ×3. <b>Ausgänge</b> grün: das Seil ist schon eingestürzt, der Brunnen kostet Gold, der hintere liegt im Nebel. <b>Sicheres Fach</b> (grün umrandet): ein Teil kommt immer mit heraus. Der Sack ist klein, also wählst du aus, was du trägst.</p>
+</div>
+
+<!-- 3: Ergebnis -->
+<div>
+  <div class="cap">3 · Entkommen oder gefallen</div>
+  <div class="phone">
+    <div class="hudm">Sayfa <small>Stufe 14</small></div>
+    <section class="panel xres"><h2>Entkommen · über den Brunnen</h2>
+      <div class="xrows">
+        <p><span>Räume</span><b>7 · Unruhe ×2,6</b></p>
+        <p><span>Elite besiegt</span><b class="up">2 · 1 Schwarzes Herz</b></p>
+        <p><span>Gefunden</span><b><span class="r-uniq" style="color:#c7b377">Wäscherinnen-Klinge</span></b></p>
+        <p><span>Siegel</span><b class="up">Grabsiegel V ×1, IV ×1</b></p>
+        <p><span>Brunnen</span><b class="down">−60 Gold</b></p>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="xsack">
+        <i class="safe u"><img src="../assets/items/runeblade.webp" alt=""></i><i class="r"><img src="../assets/items/helm_b.webp" alt=""></i><i><img src="../assets/items/boots_a.webp" alt=""></i>
+        <i class="r"><img src="../assets/items/ring_b.webp" alt=""></i><i><img src="../assets/potions/i_herz.webp" alt=""></i><i><img src="../assets/items/amulet_b.webp" alt=""></i>
+      </div>
+    </section>
+    <section class="panel"><h2>Wenn du gefallen wärst</h2>
+      <div class="xvs">
+        <div><h4 class="up">Bleibt</h4>Angelegte Ausrüstung · Sicheres Fach · Stufe, EP · das Siegel ist verbraucht</div>
+        <div><h4 class="down">Verloren</h4>Alles im Beutesack · Herzen aus diesem Abstieg</div>
+      </div>
+      <p class="sum dimt" style="margin-top:5px">Vor jedem Raum: Siegchance + was du verlieren würdest.</p>
+    </section>
+    <div class="btns"><button class="red">Beute sichten</button></div>
+    <nav class="tabsm"><a>Held</a><a>Streifzug</a><a>Händler</a><a class="on">Krypta</a><a>Grube</a></nav>
+  </div>
+  <p class="note2"><b>Verlust spürbar, nie vernichtend:</b> Die Ausrüstung am Körper ist immer sicher, ein Fach auch. Verloren ist nur, was du heute gefunden hast. So bleibt die Gier-Frage „noch ein Raum?“ spannend, ohne dass ein Tod Tage kostet.</p>
+</div>
+
+</div>
+</body></html>
