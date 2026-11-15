@@ -85,7 +85,7 @@ let failures = 0;
     await tap('[data-action=potsel][data-id=falkenauge]'); await tap('[data-action=brew]'); await tap('[data-action=beltin]'); await chk('alch');
     const belt = await p.evaluate(async () => (await import('./js/state.js')).S.belt.filter(Boolean).map(b => b.id).join());
     if (belt !== 'rotwurz,falkenauge') { failures++; console.log(`FEHLER ${tag}: Gürtel ${belt}`); }
-    await tap('[data-v=crypt]'); if (await tap('[data-action=crypt]')) { await chk('prep'); await tap('[data-action=trig]'); await tap('[data-action=cryptgo]'); await p.waitForTimeout(600); await chk('fightpot');
+    await tap('[data-v=crypt]'); if (await tap('[data-action=crypt]')) { await chk('prep'); await tap('[data-action=prepPot]'); await tap('[data-action=bestBelt]'); await chk('prep2'); await tap('[data-action=trig]'); await tap('[data-action=cryptgo]'); await p.waitForTimeout(600); await chk('fightpot');
       if (!(await p.$('.pbelt img'))) { failures++; console.log(`FEHLER ${tag}: Tränke im Kampf nicht sichtbar`); } }
     else { failures++; console.log(`FEHLER ${tag}: Krypta nicht antippbar`); }
     if (errs.length) { failures++; console.log(`FEHLER ${tag} JS:`, errs); }

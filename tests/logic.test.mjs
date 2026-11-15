@@ -492,3 +492,19 @@ test('Migration: Spielstand v7 bekommt Gürtel, Zutaten, Tränke', () => {
   fresh('witch'); const d = JSON.parse(JSON.stringify(G.S)); d.v = 7; delete d.belt; delete d.herbs; delete d.pots; delete d.potDay;
   localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); const L = G.load(); assert.equal(L.v, 8); assert.deepEqual(L.belt, [null, null, null]); assert.deepEqual(L.herbs, {});
 });
+test('Vorbereitung: ein Tippen packt/braut den passenden Trank, Bester Gürtel nimmt nur Vorrat', () => {
+  const S = fresh('paladin'); S.lvl = 10; S.gold = 1000; S.herbs = { silberstaub: 4 }; S.pots = { rotwurz: 3, steinhaut: 3 };
+  assert.equal(Game.potOffer('weihwasser').kind, 'brew'); assert.equal(Game.potOffer('wachsaft').kind, 'miss'); assert.match(Game.potOffer('wachsaft').text, /Moor/);
+  G.setBelt(0, 'rotwurz'); G.setBelt(1, 'steinhaut');
+  assert.ok(Game.packPotion('weihwasser', ['steinhaut'])); assert.deepEqual(S.belt.filter(Boolean).map(b => b.id).sort(), ['steinhaut', 'weihwasser']);
+  assert.equal(Game.potOffer('weihwasser').kind, 'in');
+  S.crypt.prog.c1 = 4; const m = G.cryptEnemy(D.CRYPTS[0]); assert.ok(Game.bestBelt(m, 10));
+  for (const b of S.belt.filter(Boolean)) assert.ok(S.pots[b.id] > 0);
+});
+test('Kampfbericht: Anteile ergeben ~100 %, Niederlage gibt einen Tipp; Absicht steht im Log', () => {
+  const S = fresh('witch'); S.lvl = 6; S.crypt.prog.c4 = 4; S.lvl = 22; const m = G.cryptEnemy(D.CRYPTS[3]), A = { ...G.stats(), hp: 50000 };
+  const r = fight(A, m), R = Game.fightReport(r, A, m);
+  const sum = R.his.reduce((a, [, v]) => a + v, 0); assert.ok(sum >= 90 && sum <= 101, 'Anteile ' + sum);
+  if (r.winner !== 'a') assert.ok(R.tip);
+  assert.ok(r.log.some(l => /Betäubung/.test(l.iB || '')), 'Glöckner zeigt seine Betäubung an');
+});

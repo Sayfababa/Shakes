@@ -87,6 +87,8 @@ const actions = {
   brew: () => G.brew(pick(D.POTIONS).id),
   belt: () => G.setBelt(Math.floor(Math.random() * 3), Math.random() < 0.2 ? null : pick(D.POTIONS).id),
   trig: () => G.setTrig(Math.floor(Math.random() * 3), pick(Object.keys(D.TRIGGERS))),
+  pack: () => Game.packPotion(pick(D.POTIONS).id, [pick(D.POTIONS).id]),
+  best: () => { if (Math.random() < 0.1) { const c = pick(D.CRYPTS.slice(0, 4)); if (G.cryptFloor(c) < 5) Game.bestBelt(G.cryptEnemy(c), 4); } },
   potday: () => { G.S.potDay = 'x'; G.potDaily(); },
   loot: () => { if (Math.random() < 0.2) G.addToBag(makeItem(G.S.lvl, { minRarity: Math.floor(Math.random() * 5) })); },
 };

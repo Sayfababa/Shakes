@@ -731,3 +731,19 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
   .potdet h3 { font-size: .95rem; } .potdet p { font-size: .72rem; margin: 1px 0; } .potdet .btns button, .prep > .btns button { min-height: 30px; padding: 4px 8px; }
   .prep .stat { padding: 1px 0; font-size: .82rem; } .prep h2 { font-size: 1rem; margin-bottom: 2px; } .prep .chance b { font-size: 1.15rem; }
   .bslot { min-height: 32px; gap: 6px; } .bslot .pslot { width: 32px; height: 32px; } .bslot, .bslot.empty { grid-template-columns: 32px 1fr auto auto; } }
+/* Vorbereitung: Gegner-Eigenschaft + was du mit einem Tippen dagegen tun kannst */
+.etags .etag { display: flex; flex-direction: column; line-height: 1.15; padding: 3px 7px; font-family: 'Alegreya'; font-size: .74rem; color: var(--dim); }
+.etags .etag b { font-family: 'Alegreya SC'; font-weight: 500; font-size: .72rem; color: #d8a890; }
+.etags .etag.pack, .etags .etag.brew { cursor: pointer; border-color: #8a6a2e; color: var(--gold-hi); background: #1a1208; }
+.etags .etag.in { border-color: #3d5a24; color: #9fc870; }
+.prep h2 .gbtns { margin-left: auto; display: flex; gap: 4px; }
+@media (max-height: 620px) { .etags .etag { font-size: .68rem; padding: 2px 5px; } }
+.prep .etags { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fsum .potline { color: #9fc870; } .fsum .tipline { color: var(--gold-hi); font-style: italic; }
+/* Absicht des Gegners: kleines Schild oben am Gegnerbild (absolut, ändert das Layout nicht) */
+.fighter .intent { position: absolute; left: 50%; top: 3px; transform: translateX(-50%); z-index: 3; max-width: 96%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: 'Alegreya SC'; font-size: .68rem; color: #e8c8a8; background: rgba(18,10,7,.92); border: 1px solid #8a1c13; padding: 1px 6px; box-shadow: 0 0 8px rgba(170,30,20,.45); pointer-events: none; }
+.fighter .intent[hidden] { display: none; }
+.fighter .intent.pulse { animation: intentPulse .6s ease-out; }
+@keyframes intentPulse { 0% { box-shadow: 0 0 0 rgba(200,40,20,0); transform: translateX(-50%) scale(1.12); } 100% { box-shadow: 0 0 8px rgba(170,30,20,.45); transform: translateX(-50%) scale(1); } }
+@media (min-height: 760px) { .fighter .intent { font-size: .76rem; padding: 2px 8px; } }

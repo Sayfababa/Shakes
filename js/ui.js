@@ -8,7 +8,7 @@ import { current, available, objectives, canComplete } from './quests.js';
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
-import { gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo } from './game.js';
+import { gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo, potOffer, fightReport } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
 const P = cls => `assets/portraits/${CLASSES[cls].portrait}.jpg`;
@@ -315,14 +315,17 @@ export function viewArena(rival) {
 }
 
 function fightSummary(F) {
-  const g = gradeOf(F), n = {}; for (const c of F.cast || []) n[c] = (n[c] || 0) + 1;
-  const sp = Object.entries(n).map(([k, v]) => `${k} ×${v}`).join(', ');
-  return `<div class="fsum">${g ? `<b class="g-${g.id}">${g.name}</b>${g.bonus ? ` · +${Math.round(g.bonus * 100)} % Gold` : ''} · ` : ''}${Math.round((F.left || 0) * 100)} % Leben übrig${sp ? `<br><span class="dim">Zauber: ${sp}</span>` : ''}</div>`;
+  const g = gradeOf(F), R = fightReport(F, F.A, F.B), pl = x => x.map(([n, v]) => `${n} ${v} %`).join(' · ');
+  return `<div class="fsum">${g ? `<b class="g-${g.id}">${g.name}</b>${g.bonus ? ` · +${Math.round(g.bonus * 100)} % Gold` : ''} · ` : ''}${Math.round((F.left || 0) * 100)} % Leben übrig
+    ${R.mine.length ? `<br><span class="dim">Dein Schaden: ${pl(R.mine)}</span>` : ''}
+    ${F.back === 'crypt' && R.his.length ? `<br><span class="dim">Sein Schaden: ${pl(R.his)}${R.heal ? ` · heilte ${fmtN(R.heal)}` : ''}</span>` : ''}
+    ${R.used.length ? `<br><span class="potline">Getrunken: ${R.used.join(', ')}</span>` : ''}
+    ${R.tip ? `<br><span class="tipline">Tipp: ${R.tip}</span>` : ''}</div>`;
 }
 export function viewFight(F) {
   const shown = F.log.slice(0, F.step), last = shown[shown.length - 1] || {};
   const hpA = last.hpA ?? F.hpA, hpB = last.hpB ?? F.hpB, done = F.step >= F.log.length;
-  const side = (f, hp, max, hit, id, ch) => `<div class="fighter ${done && (id === 'fA') !== (F.winner === 'a') ? 'dead' : ''}" id="${id}"><div class="pwrap">${f.cls ? `<img class="portrait" src="${P(f.cls)}" alt="">` : monsterArt(f.glyph)}${done && F.gold && id === 'fB' ? `<span class="goldpop"><img src="assets/ui/coin.webp" alt="">+${F.gold}</span>` : ''}</div>
+  const side = (f, hp, max, hit, id, ch) => `<div class="fighter ${done && (id === 'fA') !== (F.winner === 'a') ? 'dead' : ''}" id="${id}"><div class="pwrap">${id === 'fB' ? `<span class="intent" ${last.iB && !done ? '' : 'hidden'}>${last.iB || ''}</span>` : ''}${f.cls ? `<img class="portrait" src="${P(f.cls)}" alt="">` : monsterArt(f.glyph)}${done && F.gold && id === 'fB' ? `<span class="goldpop"><img src="assets/ui/coin.webp" alt="">+${F.gold}</span>` : ''}</div>
     <div class="nm">${f.name}</div><div class="bar"><i style="width:${pct(hp, max)}%"></i></div><div class="hp">${Math.max(0, hp)} / ${max}</div>
     ${f.belt?.length ? `<div class="pbelt">${f.belt.map(p => { const k = F.log.findIndex(l => l.pot === p.id && l.who === 'a'); return `<img class="${k >= 0 && k < F.step ? 'used' : ''}" src="assets/potions/${p.id}.webp" data-p="${p.id}" alt="" title="${p.name}">`; }).join('')}</div>` : ''}
     ${f.spells?.length ? `<div class="sbar">${f.spells.map((sp, i) => `<div class="sb" data-i="${i}" title="${sp.name}" style="--c:${ch?.[i] ?? 0}"><img src="assets/spells/${sp.id}.webp" alt=""><i></i></div>`).join('')}</div>` : ''}</div>`;
@@ -436,8 +439,10 @@ export function viewPrep(c, m) {
     <section class="panel prephead">${monsterArt(m.glyph)}<div><h2>${m.name.split(',')[0]}</h2><p class="dim small">${c.name} · ${f === 4 ? 'Boss' : 'Ebene ' + (f + 1)} · Stufe ${m.lvl}</p>${threat(pW)}</div></section>
     <section class="panel"><h2>Seine Werte <span class="h2r">gegen dich</span></h2>
       <div class="grid2">${st('Leben', fmtN(e.hp))}${st('Trifft dich', e.hit.join('–'))}${st('Ausweichen', pc(e.evade))}${st('Krit', pc(e.crit))}${st('Rüstung', pc(e.armor))}${st('Blocken', e.block ? pc(e.block) : '–')}</div>
-      ${e.tags.length ? `<div class="etags">${e.tags.slice(0, 4).map(([t, id]) => `<span class="${belt.includes(id) ? 'have' : ''}">${t} · ${belt.includes(id) ? potion(id).name + ' im Gürtel' : 'hilft: ' + potion(id).name}</span>`).join('')}</div>` : ''}</section>
-    <section class="panel"><h2>Dein Gürtel <button class="tiny" data-action="alch" data-b="prep">Packen</button></h2><div class="belt">${[0, 1, 2].slice(0, beltSlots()).map(i => beltRow(i, false)).join('')}</div></section>
+      ${e.tags.length ? `<div class="etags">${e.tags.slice(0, 4).map(([t, id]) => { const o = potOffer(id), nm = potion(id).name;
+        const act = o.kind === 'pack' ? `einpacken: ${nm}` : o.kind === 'brew' ? `${nm} brauen + einpacken · ${o.gold} G` : o.kind === 'in' ? `${nm} im Gürtel` : `${nm} – ${o.text}`;
+        return `<span class="etag ${o.kind}" ${o.kind === 'pack' || o.kind === 'brew' ? `data-action="prepPot" data-id="${id}"` : ''}><b>${t}</b>${act}</span>`; }).join('')}</div>` : ''}</section>
+    <section class="panel"><h2>Dein Gürtel <span class="gbtns"><button class="tiny" data-action="bestBelt">Bester Gürtel</button><button class="tiny" data-action="alch" data-b="prep">Alle Tränke</button></span></h2><div class="belt">${[0, 1, 2].slice(0, beltSlots()).map(i => beltRow(i, false)).join('')}</div></section>
     <section class="panel chance"><span>Siegchance</span><b>${pc(pW)}</b><small class="dim">ohne Tränke ${pc(p0)}</small></section>
     <div class="btns"><button data-action="go" data-v="crypt">Zurück</button><button class="red" data-action="cryptgo" ${cd ? 'disabled' : ''}>Kämpfen</button></div>
   </div>`;

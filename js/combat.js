@@ -19,7 +19,13 @@ export function fight(A, B) {
   }
   const log = [];
   let ev = {};   // was die Anzeige zusätzlich zeigen soll (Heilung, Dornen, Einzeltreffer) – wird mit der nächsten Zeile geschrieben
-  const say = (who, t, extra = {}) => { log.push({ who, t, hpA: Math.max(0, Math.round(a.cur)), hpB: Math.max(0, Math.round(b.cur)), cA: chg(a), cB: chg(b), ...ev, ...extra }); ev = {}; };
+  const say = (who, t, extra = {}) => { log.push({ who, t, hpA: Math.max(0, Math.round(a.cur)), hpB: Math.max(0, Math.round(b.cur)), cA: chg(a), cB: chg(b), iB: intent(b, a), ...ev, ...extra }); ev = {}; };
+  // Was der Gegner als Nächstes vorhat / was ihn ausmacht (Anzeige über seinem Bild)
+  const intent = (f, o) => { if (f.cur <= 0 || o.cur <= 0) return null; if (f.stunned) return 'Betäubt';
+    if (f.toll) { const n = 3 - ((f.hits || 0) % 3); return n === 1 ? 'Betäubung jetzt!' : `Betäubung in ${n}`; }
+    if (f.execute && o.cur < o.hp * 0.3) return 'Schlachtet!'; if (f.rage > 0.2 && f.cur < f.hp / 2) return 'Rasend';
+    if (f.noheal > 0 && (f.regen || f.leech)) return 'Gebannt'; if (f.regen) return `Heilt ${Math.round(f.regen * 100)} %/Zug`;
+    if (f.poison) return 'Gift je Treffer'; if (f.leech) return 'Saugt Leben'; return null; };
   const ini = f => (f.first ? 1000 : 0) + f.dex + roll(0, 10);
   let atk = ini(a) >= ini(b) ? a : b, def = atk === a ? b : a;
   for (const [x, y] of [[a, b], [b, a]]) for (const p of x.belt) if (p.rare) potion(x, y, p);   // seltene Tränke: wirken den ganzen Kampf

@@ -1,6 +1,6 @@
 // Spielzüge ohne DOM: Kampf ausführen, Belohnung anwenden, strukturiertes Ergebnis liefern.
 // main.js zeigt das Ergebnis an; tests/ spielen damit ganze Verläufe durch.
-import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH } from './data.js';
+import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import { fight } from './combat.js';
@@ -156,4 +156,67 @@ export function enemyInfo(m, A = G.stats()) {
   const crit = Math.min(0.6, CFG.critBase + m.lck / (m.lck + 100 + A.lvl * 5) + (m.crit || 0));
   if (evade >= 0.25) tags.push(['Weicht oft aus', 'jaegerblick']); if (armor >= 0.4) tags.push(['Schwer gepanzert', 'rostsaeure']); if (crit >= 0.2) tags.push(['Trifft oft kritisch', 'knochenmark']);
   return { hp: m.hp, hit: hitDmg, evade, armor, crit, block: m.block || 0, tags };
+}
+
+// Was der Spieler mit einem Tippen für einen Trank tun kann (Vorbereitung): einpacken, brauen+einpacken, oder was fehlt
+export function potOffer(id) {
+  const S = G.S, p = G.potion(id);
+  if (S.belt.slice(0, G.beltSlots()).some(b => b?.id === id) && S.pots[id] > 0) return { kind: 'in' };
+  if (S.pots[id] > 0) return { kind: 'pack' };
+  const cb = G.canBrew(id); if (cb.ok) return { kind: 'brew', gold: G.brewCost(id).gold };
+  const miss = Object.entries(p.cost).find(([k, n]) => (S.herbs[k] || 0) < n);
+  if (miss) { const loc = LOCATIONS.find(l => HERB_LOC[l.id] === miss[0]); return { kind: 'miss', text: `Fehlt: ${HERBS[miss[0]].name} (${miss[0] === 'herz' ? 'Krypta-Bosse' : loc?.name || '?'})` }; }
+  return { kind: 'miss', text: cb.reason };
+}
+// Trank in den Gürtel legen: freier Platz, sonst ersetzt er einen Trank, der gegen diesen Gegner nicht gebraucht wird (keep)
+export function packPotion(id, keep = []) {
+  const S = G.S, n = G.beltSlots(), p = G.potion(id), slots = S.belt.slice(0, n);
+  if (!(S.pots[id] > 0) && !G.brew(id)) return false;
+  if (slots.some(b => b?.id === id)) return true;
+  let i = p.rare ? slots.findIndex(b => b && G.potion(b.id).rare) : -1;
+  if (i < 0) i = slots.findIndex(b => !b);
+  if (i < 0) i = slots.findIndex(b => !keep.includes(b.id));
+  if (i < 0) i = n - 1;
+  return G.setBelt(i, id);
+}
+// Bester Gürtel gegen genau diesen Gegner: alle Kombinationen vorrätiger Tränke (höchstens ein seltener) in Kämpfen ausprobieren
+export function bestBelt(m, n = 50) {
+  const S = G.S, k = G.beltSlots(), have = POTIONS.filter(p => S.pots[p.id] > 0), A0 = G.stats();
+  const combos = [[]]; for (const p of have) for (const c of [...combos]) if (c.length < k && !(p.rare && c.some(x => x.rare))) combos.push([...c, p]);
+  let best = null, bw = -1;
+  for (const c of combos) { if (c.length < Math.min(k, have.length) && combos.some(x => x.length > c.length)) continue;
+    const belt = c.map(p => ({ id: p.id, name: p.name, fx: p.fx, rare: p.rare, trig: p.trig?.[0] || null }));
+    let w = 0; for (let i = 0; i < n; i++) if (fight({ ...A0, belt }, m).winner === 'a') w++;
+    if (w > bw) { bw = w; best = c; } }
+  if (!best) return false;
+  for (let i = 0; i < 3; i++) S.belt[i] = null;
+  best.forEach((p, i) => G.setBelt(i, p.id));
+  return true;
+}
+// Kampfbericht aus dem Log: woher der Schaden kam, was Tränke taten, und bei Niederlage ein Tipp (wie bei der Vorbereitung)
+export function fightReport(r, A, B) {
+  const mine = { hit: 0, spell: 0, dot: 0, thorns: 0 }, his = { hit: 0, dot: 0, thorns: 0 }; let heal = 0, stuns = 0;
+  for (const l of r.log) {
+    const me = l.who === 'a';
+    if (l.dmg) (me ? mine : his)[l.spell && me ? 'spell' : 'hit'] += l.dmg;
+    if (l.tick) (me ? mine : his).dot += l.tick;
+    if (l.thorns) (me ? his : mine).thorns += l.thorns;
+    if (!me && l.heal) heal += l.heal;
+    if (!me && l.stun) stuns++;
+  }
+  const tot = o => Object.values(o).reduce((a, b) => a + b, 0) || 1;
+  const parts = (o, names) => Object.entries(o).filter(([, v]) => v / tot(o) >= 0.05).sort((a, b) => b[1] - a[1]).map(([k, v]) => [names[k], Math.round(v / tot(o) * 100)]);
+  const names = { hit: 'Hiebe', spell: 'Zauber', dot: 'Gift/Bluten/Brand', thorns: 'Dornen' };
+  const used = (r.used || []).map(id => G.potion(id)?.name).filter(Boolean);
+  let tip = null;
+  if (r.winner !== 'a') {
+    const has = id => (r.used || []).includes(id), e = enemyInfo(B, A);
+    if (heal > B.hp * 0.15 && !has('weihwasser')) tip = `${B.name.split(',')[0]} heilte sich um ${heal}. Weihwasser verhindert das.`;
+    else if (his.dot > tot(his) * 0.3 && !has('gegengift')) tip = 'Gift und Bluten machten viel Schaden. Gegengift reinigt und schützt.';
+    else if (stuns >= 2 && !has('wachsaft')) tip = `Du wurdest ${stuns}× betäubt. Wachsaft macht dich unbeugsam.`;
+    else if (e.evade >= 0.25 && !has('jaegerblick')) tip = 'Er wich oft aus. Jägerblick oder mehr Geschick helfen.';
+    else if (e.armor >= 0.4 && !has('rostsaeure')) tip = 'Seine Rüstung schluckte viel. Rostsäure oder Rüstung-ignorieren-Boni helfen.';
+    else tip = used.length ? 'Knapp daneben. Bessere Ausrüstung oder ein stärkerer Trank (Rotwurz, Steinhaut).' : 'Ohne Tränke gekämpft. Rotwurz oder Steinhaut geben Luft.';
+  }
+  return { mine: parts(mine, names), his: parts(his, names), heal, used, tip };
 }

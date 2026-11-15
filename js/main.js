@@ -121,6 +121,7 @@ function fightStep() {
   // Ladebalken der Zauber
   for (const [id, ch] of [['fA', l.cA], ['fB', l.cB]]) (ch || []).forEach((v, i) => { const b = document.querySelector(`#${id} .sb[data-i="${i}"]`); if (b) b.style.setProperty('--c', v); });
   if (l.spell) spellFx(l);
+  const it = document.querySelector('#fB .intent'); if (it) { it.hidden = !l.iB; if (l.iB && it.textContent !== l.iB) { it.textContent = l.iB; it.classList.remove('pulse'); void it.offsetWidth; it.classList.add('pulse'); } }
   for (const [id, hp, max] of [['fA', l.hpA, F.hpA], ['fB', l.hpB, F.hpB]]) {
     const el = document.getElementById(id); if (!el) continue;
     el.querySelector('.bar i').style.width = Math.max(0, Math.min(100, hp / max * 100)) + '%';
@@ -136,11 +137,11 @@ function combatFx(l) {
   const F0 = l.who === 'a' ? F.A : F.B, sp = l.sid ? F0.spells?.find(x => x.id === l.sid) : null;
   const self = sp && ['heal', 'shield', 'buff'].includes(sp.kind), delay = sp && !self ? 330 : 0;
   // Plätze reihum je Bild, damit sich Zahlen aufeinanderfolgender Züge nicht überdecken; Heilung links, Schaden mittig/rechts
-  const SPOTS = [[52, 38], [70, 58], [40, 62], [64, 30], [34, 44]], HEAL = [[26, 52], [30, 30], [24, 70]];
+  const SPOTS = [[52, 38], [70, 58], [40, 62], [64, 30], [34, 44]], HEAL = [[26, 52], [30, 30], [24, 70]], POTS = [[50, 10], [50, 30], [50, 50]];   // Tränke untereinander
   const pop = (el, txt, cls, wait = 0, fx) => setTimeout(() => { const w = el.querySelector('.pwrap'); if (!w) return;
     const n = document.createElement('span'); n.className = 'fnum ' + cls; n.innerHTML = txt; if (fx) n.style.setProperty('--fx', fx);
-    const heal = /heal|shield|buff/.test(cls), list = heal ? HEAL : SPOTS, k = +(w.dataset[heal ? 'kh' : 'k'] || 0);
-    w.dataset[heal ? 'kh' : 'k'] = (k + 1) % list.length; const [x, y] = /combo/.test(cls) ? [50, 14] : /crit/.test(cls) ? [50, 52] : list[k];   // Kombo-Name oben, Krit-Zahl darunter
+    const pot = /pot/.test(cls), heal = !pot && /heal|shield|buff/.test(cls), key = pot ? 'kp' : heal ? 'kh' : 'k', list = pot ? POTS : heal ? HEAL : SPOTS, k = +(w.dataset[key] || 0);
+    w.dataset[key] = (k + 1) % list.length; const [x, y] = pot ? list[k] : /combo/.test(cls) ? [50, 14] : /crit/.test(cls) ? [50, 52] : list[k];   // Kombo-Name oben, Krit-Zahl darunter
     n.style.left = x + '%'; n.style.top = y + '%';
     w.appendChild(n); setTimeout(() => n.remove(), 1300); }, wait);
   const hit = (el, crit, wait) => setTimeout(() => { el.classList.remove('hit', 'crit'); void el.offsetWidth; el.classList.add('hit'); if (crit) el.classList.add('crit');
@@ -203,6 +204,8 @@ const actions = {
   claim: d => { const r = G.claimBounty(+d.i); if (r) G.journal(`Steckbrief erfüllt: ${r.gold} Gold, ${r.xp} EP.`); render(); },
   resolve: () => showFight(Game.resolveTrip(), 'trips'),
   crypt: d => { const c = CRYPTS.find(x => x.id === d.id); if (!c) return; prepC = c.id; prepM = G.cryptEnemy(c); view = 'prep'; render(); },
+  prepPot: d => { if (!prepM) return; const keep = Game.enemyInfo(prepM).tags.map(t => t[1]); if (!Game.packPotion(d.id, keep)) return alert('Geht gerade nicht.'); render(); },
+  bestBelt: () => { if (!prepM) return; if (!Game.bestBelt(prepM)) alert('Du hast noch keine Tränke. Brau welche bei Mutter Ysolde.'); render(); },
   cryptgo: () => { const m = prepM; prepM = null; showFight(Game.cryptFight(prepC, m), 'crypt'); },
   alch: d => { alchBack = d.b === 'prep' ? 'prep' : 'traders'; view = 'alch'; render(); },
   potsel: d => { alchSel = d.id; render(); },
