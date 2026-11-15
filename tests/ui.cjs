@@ -18,11 +18,11 @@ let failures = 0;
       await p.waitForTimeout(120);
       const over = await p.evaluate(() => { const m = document.querySelector('main').getBoundingClientRect();
         return [...document.querySelectorAll('main *')].filter(e => { const r = e.getBoundingClientRect();
-          return (r.bottom > m.bottom + 1 || r.right > m.right + 1) && !e.closest('.log, .note p, .fnum, .goldpop, .proj, .burst, .spellname'); }).length; });
+          return (r.bottom > m.bottom + 1 || r.right > m.right + 1) && !e.closest('.vscroll, .log, .note p, .fnum, .goldpop, .proj, .burst, .spellname'); }).length; });
       if (over) { failures++; console.log(`FEHLER ${tag} ${n}: ${over} Elemente ragen heraus`); }
       // Item-Felder dürfen nie über ihr Panel hinausragen (Laden, Beutel, Figur, Schmiede)
       const spill = await p.evaluate(() => [...document.querySelectorAll('.panel .sitem, .panel .cellitem, .panel .eslot, .panel .fslot, .panel .mtile')].filter(e => {
-        const r = e.getBoundingClientRect(), q = e.closest('.panel').getBoundingClientRect(); return r.bottom > q.bottom + 1 || r.right > q.right + 1 || r.left < q.left - 1 || r.top < q.top - 1; }).length);
+        if (e.closest('.vscroll')) return false; const r = e.getBoundingClientRect(), q = e.closest('.panel').getBoundingClientRect(); return r.bottom > q.bottom + 1 || r.right > q.right + 1 || r.left < q.left - 1 || r.top < q.top - 1; }).length);
       if (spill) { failures++; console.log(`FEHLER ${tag} ${n}: ${spill} Item-Felder ragen über ihr Panel`); }
       // Abgeschnittener Inhalt in Karten (z. B. Ortskarte: „Stufe/Zeit“ unten weg)
       const clip = await p.evaluate(() => [...document.querySelectorAll('main .trip *, main .crypt *, main .tcard *')].filter(e => { const r = e.getBoundingClientRect(), q = e.closest('.trip, .crypt, .tcard').getBoundingClientRect(); return r.height && r.bottom > q.bottom + 1; }).map(e => e.className || e.tagName));

@@ -136,18 +136,18 @@ function attrNow(k, st) {
 }
 export function viewStats() {
   const st = stats(), c = CLASSES[S.cls], rc = respecCost(), P0 = power(st);
-  return `<div class="col">
+  return `<div class="col statsv"><div class="vscroll">
     <section class="panel"><h2>Werte <span class="h2r">${S.points ? `<b class="hot">${S.points}</b> frei · <span class="up">grün</span> = Kampfkraft je Punkt` : `Kampfkraft <b>${fmtN(P0)}</b>`}</span></h2>
       ${Object.entries(ATTRS).map(([k, n]) => `<div class="stat attr"><span><span class="an">${n}${k === c.main ? ' <i class="dim">(Haupt)</i>' : ''}</span><small>${k === c.main ? 'Schaden · ' : ''}${ATTR_INFO[k]}</small></span>
         <span class="av"><small class="dim">${attrNow(k, st)}</small><b>${st[k]}</b>${S.points ? `<button data-action="attr" data-k="${k}">+<small class="up">${Math.max(0, powerAttr(k))}</small></button>` : ''}</span></div>`).join('')}
     </section>
-    <section class="panel"><h2>Kampf <span class="h2r">Kampfkraft <b>${fmtN(P0)}</b></span></h2>
+    <section class="panel"><h2>Kampf</h2>
       <div class="grid2"><div class="stat"><span>Leben</span><b>${fmtN(st.hp)}</b></div><div class="stat"><span>Schaden</span><b>${st.dmg[0]}–${st.dmg[1]}</b></div>
       <div class="stat"><span>Rüstung</span><b>${st.armor}</b></div><div class="stat"><span>Krit</span><b>${Math.round(Math.min(0.6, CFG.critBase + st.lck / (st.lck + 100 + S.lvl * 5) + st.crit) * 100)} % · ×${st.critMult.toFixed(2).replace('.', ',').replace(/0$/, '')}</b></div></div>
       <p class="dim small">${effLine(Object.fromEntries(Object.entries(st).filter(([k, v]) => v && EFFECT_NAMES[k] && !['dmgPct', 'hpPct', 'armorPct', 'crit'].includes(k))))}</p>
       ${S.tampered ? '<p class="small down">Spielstand wurde von Hand verändert – für Handel gesperrt.</p>' : ''}</section>
-    <section class="panel grow"><h2>Trophäen <span class="h2r">${S.trophies.length}</span></h2>
-      ${S.trophies.map(t => `<div class="stat"><span>${t.name} <i class="dim">${t.diff}</i></span><span class="m small">${effLine(t.eff)}</span></div>`).join('') || '<p class="dim small">Besiege die Herren der Krypten.</p>'}</section>
+    <section class="panel"><h2>Trophäen <span class="h2r">${S.trophies.length}</span></h2>
+      ${S.trophies.map(t => `<div class="stat"><span>${t.name} <i class="dim">${t.diff}</i></span><span class="m small">${effLine(t.eff)}</span></div>`).join('') || '<p class="dim small">Besiege die Herren der Krypten.</p>'}</section></div>
     <div class="btns"><button data-action="go" data-v="hero">Zurück</button><button data-action="respec" ${S.gold < rc ? 'disabled' : ''}>Läutern ${rc ? rc : 'gratis'}</button><button class="dim" data-action="wipe">Neu</button></div>
   </div>`;
 }

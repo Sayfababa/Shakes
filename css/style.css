@@ -682,3 +682,9 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 @media (max-height: 600px) {   /* winzige Handys: Zettel nur Titel/Ziele/Lohn, Kopf ohne Spruch, Dienste flacher */
   .trader .note p, .trader .npcrow .lore { display: none; } .trader .svc { height: 38px; } .trader .svc small { display: none; }
   .trader .note { --noteH: 8.4rem; } .trader .npcrow { --npcH: 3.9rem; } }
+
+/* Werte: einzige Ansicht mit Scrollen (Inhalt wächst mit Trophäen); Knöpfe bleiben unten fest */
+.statsv { flex: 1 1 auto; min-height: 0; }
+.statsv .vscroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; display: flex; flex-direction: column; gap: var(--gap); }
+.statsv .vscroll > .panel { flex: none !important; }
+.statsv > .btns { flex: none; }
