@@ -376,7 +376,8 @@ export const descCrypts = () => CRYPTS.filter(descOpen);
 export const descLeft = () => { const d = G.S.descDay; return Math.max(0, DESCENT.daily - (d?.d === G.today() ? d.n : 0)); };
 export const descBusy = () => { const S = G.S; return S.exp ? 'Dein Held ist auf Expedition.' : S.active ? 'Erst den Streifzug beenden.' : S.haul ? 'Erst die Beute des Streifzugs sichern.' : ''; };
 export const descCanStart = c => { const S = G.S; return descOpen(c) && !S.desc && !descBusy() && descLeft() > 0; };
-export const descLvl = c => Math.max(G.cryptLvl(c, 3), G.S.lvl) + DESCENT.lvlAdd;
+export const descLvl = c => Math.max(G.cryptLvl(c, 3), G.S.lvl + DESCENT.lvlAdd);
+const descNowLvl = () => Math.max(G.S.desc.lvl, G.S.lvl + DESCENT.lvlAdd);   // wer unten aufsteigt, trifft stärkere Gegner
 export const descMult = (u = G.S.desc?.unrest || 0) => Math.round((1 + u * DESCENT.unrestLoot) * 10) / 10;
 const descDiff = u => DESCENT.diff * (1 + u * DESCENT.unrestDiff) * DIFFICULTIES[G.S.crypt.diff].mult;
 const descCrypt = () => CRYPTS.find(x => x.id === G.S.desc.c);
@@ -413,8 +414,8 @@ export const descNodeAt = j => { const D = G.S.desc; return j === 'boss' ? 'boss
 export const descWellCost = () => DESCENT.wellGold * G.S.desc.lvl;
 export function descEnemy(nd, u = G.S.desc.unrest) {
   const D = G.S.desc, c = descCrypt();
-  if (nd === 'boss') return G.makeBoss(c, D.lvl, DESCENT.boss * DIFFICULTIES[G.S.crypt.diff].mult);   // Boss wächst nicht mit der Unruhe: er ist schon am Ende des Wegs
-  const elite = nd.t === 'elite', m = G.makeMonster(D.lvl, descDiff(u) * (elite ? ELITE.diff : 1), MONSTERS.find(x => x.name === nd.mob));
+  if (nd === 'boss') return G.makeBoss(c, descNowLvl(), DESCENT.boss * DIFFICULTIES[G.S.crypt.diff].mult);   // Boss wächst nicht mit der Unruhe: er ist schon am Ende des Wegs
+  const elite = nd.t === 'elite', m = G.makeMonster(descNowLvl(), descDiff(u) * (elite ? ELITE.diff : 1), MONSTERS.find(x => x.name === nd.mob));
   if (elite) { m.hp = Math.round(m.hp * ELITE.hp); m.elite = nd.mods.map(id => ELITE.mods.find(x => x.id === id).name);
     for (const id of nd.mods) { const e = ELITE.mods.find(x => x.id === id); Object.assign(m, e.eff || {}); for (const [k, v] of Object.entries(e.mult || {})) m[k] = Math.round(m[k] * v); }
     m.name = `${m.name} (Elite)`; }
@@ -480,7 +481,7 @@ export function descEnter(j) {
   D.rooms++; D.unrest++;
   if (t === 'shrine') { const h = Math.min(1 - D.hpf, DESCENT.heal); D.hpf = Math.min(1, D.hpf + DESCENT.heal);
     return { kind: 'room', t, text: `Das Wasser im Becken ist kalt und klar. +${Math.round(h * 100)} % Leben.` }; }
-  if (t === 'treasure') { const got = descLoot(D.lvl, u, { gold: 1.5, item: 1, minR: 2 }), trap = chance(DESCENT.trap);
+  if (t === 'treasure') { const got = descLoot(descNowLvl(), u, { gold: 1.5, item: 1, minR: 2 }), trap = chance(DESCENT.trap);
     if (trap) D.hpf = Math.max(0.05, D.hpf - DESCENT.trapDmg);
     return { kind: 'room', t, got, trap, text: trap ? `Eine Klinge schnellt aus der Wand. −${Math.round(DESCENT.trapDmg * 100)} % Leben.` : 'Niemand hat diese Kammer bewacht. Seltsam.' }; }
   return { kind: 'fight', res: descFight(nd, u) };

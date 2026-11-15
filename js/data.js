@@ -720,8 +720,8 @@ export const DESCENT = {
   widths: [2, 3, 3, 3, 2],          // Räume je Reihe (Eingang unten, Boss oben)
   rope: 2, well: 3,                 // Reihe (0-basiert) mit Seil / Brunnen
   unrestLoot: 0.4,                  // Beute × (1 + Unruhe × 0,4) → bis ×3
-  unrestDiff: 0.06,                 // Gegner × (1 + Unruhe × 0,07)
-  diff: 1, lvlAdd: 0,               // Gegner: Stufe = max(Gruft-Ebene 3, Heldenstufe) + lvlAdd
+  unrestDiff: 0.08,                 // Gegner × (1 + Unruhe × 0,08)
+  diff: 1, lvlAdd: 1,               // Gegner: Stufe = max(Gruft-Ebene 3, Heldenstufe + lvlAdd) – wächst mit, wenn du unten aufsteigst
   gold: 1.1, xp: 0.6,               // gegenüber einem Krypta-Kampf
   item: 0.35, eliteMinR: 2, bossMinR: 3,
   heart: 0.1, eliteHeart: 0.35,
