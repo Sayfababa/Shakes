@@ -1,11 +1,11 @@
 // Spielzüge ohne DOM: Kampf ausführen, Belohnung anwenden, strukturiertes Ergebnis liefern.
 // main.js zeigt das Ergebnis an; tests/ spielen damit ganze Verläufe durch.
-import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS } from './data.js';
+import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS, DESCENT, DESC_ROOMS, ELITE, DIFFICULTIES } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import { fight } from './combat.js';
 import { makeItem } from './loot.js';
-import { pick, roll, chance } from './rng.js';
+import { pick, roll, chance, rand } from './rng.js';
 
 const now = () => Date.now();
 
@@ -93,7 +93,7 @@ export const bank = () => { const d = G.S.haul?.depth || 0, h = G.bankHaul(); if
 // --- Krypta-Kampf ---
 export function cryptFight(id, m0 = null) {
   const S = G.S, c = CRYPTS.find(x => x.id === id);
-  if (!c || S.exp || now() < S.crypt.cd || !G.cryptOpen(c) || G.cryptFloor(c) >= 5) return null;
+  if (!c || S.exp || S.desc || now() < S.crypt.cd || !G.cryptOpen(c) || G.cryptFloor(c) >= 5) return null;
   const m = m0 || G.cryptEnemy(c), boss = !!m.boss;
   S.crypt.cd = now() + CFG.cryptCdSec * 1000;
   const A = blessed({ ...G.stats(), belt: G.beltCombat() }), r = fight(A, m), win = r.winner === 'a', rew = newRew();
@@ -109,7 +109,7 @@ export function cryptFight(id, m0 = null) {
 
 // --- Grube ---
 export function arenaFight(R) {
-  const S = G.S; if (S.exp || now() < S.arenaTs || !R || S.glut < CFG.arenaGlut) return null;
+  const S = G.S; if (S.exp || S.desc || now() < S.arenaTs || !R || S.glut < CFG.arenaGlut) return null;
   S.arenaTs = now() + CFG.arenaCdSec * 1000; S.glut -= CFG.arenaGlut;
   const A = G.stats(), B = G.stats(R), r = fight(A, B), win = r.winner === 'a', rew = newRew();
   if (win) { S.honor += 10; S.wins++; rew.grade = gradeOf(r); pay(rew, Math.round(R.lvl * 3 * (1 + rew.grade.bonus)), 0); rew.honor = 10; Q.event({ type: 'arena' }); G.bountyEvent({ type: 'arena' }); G.journal(`${R.name} in der Grube besiegt.`); }
@@ -119,7 +119,7 @@ export function arenaFight(R) {
 
 // --- Champion einer Questkette (z. B. Vargos "Die Kette") ---
 export function champFight(tid) {
-  const S = G.S, q = Q.current(tid); if (S.exp || !q?.champ || now() < S.arenaTs) return null;
+  const S = G.S, q = Q.current(tid); if (S.exp || S.desc || !q?.champ || now() < S.arenaTs) return null;
   const c = q.champ, R = makeRival({ name: c.name, cls: c.cls, lvl: S.lvl + c.lvlAdd, rich: 1, minRarity: 2 });
   S.arenaTs = now() + CFG.arenaCdSec * 1000;
   const A = G.stats(), B = G.stats(R), r = fight(A, B), win = r.winner === 'a', rew = newRew();
@@ -232,7 +232,7 @@ const rollN = x => Math.floor(x) + (chance(x % 1) ? 1 : 0);
 const mulberry = a => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 const hashStr = str => { let h = 2166136261; for (const ch of str) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
 const ROWX = { 2: [0.27, 0.73], 3: [0.16, 0.5, 0.84] };
-export const expedOpen = () => { const S = G.S; return !S.exp && !S.active && !S.haul; };
+export const expedOpen = () => { const S = G.S; return !S.exp && !S.desc && !S.active && !S.haul; };
 export const expEvent = id => EXP_EVENTS.find(e => e.id === id);
 export function expedMap(locId, h, day = Math.floor(now() / 86400000)) {
   const r = mulberry(hashStr(`${locId}|${h}|${day}|${G.S.name}`)), n = EXPED.stations[h], used = {}, evs = new Set(), rows = [];
@@ -266,7 +266,7 @@ export function expedPreview(locId, h, path = null) {
 }
 export function startExped(locId, h, path) {
   const S = G.S, l = LOCATIONS.find(x => x.id === locId);
-  if (!l || !G.locOpen(l) || !EXPED.hours.includes(h) || S.exp || S.active) return false;
+  if (!l || !G.locOpen(l) || !EXPED.hours.includes(h) || S.exp || S.desc || S.active) return false;
   const map = expedMap(locId, h); if (!expPathOk(map, path)) return false;
   if (S.haul) G.bankHaul();
   S.exp = { loc: locId, h, start: now(), end: now() + h * 3600000, nodes: path.map((j, i) => ({ ...map.rows[i][j] })), goal: map.goal.name };
@@ -367,4 +367,127 @@ export function claimExped(pickChoice = ev => ev.ch.findIndex(c => !expChoiceOk(
   if (!G.S.exp) return null; expBegin(); let r = expAdvance();
   while (r && r.ev) { const want = pickChoice(r.ev), ok = r.ev.ch[want] && !expChoiceOk(r.ev.ch[want]); r = expChoose(ok ? want : r.ev.ch.findIndex(c => !expChoiceOk(c))); }
   return r?.done || null;
+}
+
+// --- Der Abstieg: Gruft-Karte mit Ausgängen. Leben + Trank-Ladungen laufen mit, Beute im Sack zählt erst draußen ---
+// Eingang unten, Boss oben. Reihen wie bei der Expedition (gleiche Verbindungsregel), aber Raum für Raum gewählt.
+export const descOpen = c => !!c && G.S.trophies.some(t => t.key.split(':')[0] === c.id);
+export const descCrypts = () => CRYPTS.filter(descOpen);
+export const descLeft = () => { const d = G.S.descDay; return Math.max(0, DESCENT.daily - (d?.d === G.today() ? d.n : 0)); };
+export const descBusy = () => { const S = G.S; return S.exp ? 'Dein Held ist auf Expedition.' : S.active ? 'Erst den Streifzug beenden.' : S.haul ? 'Erst die Beute des Streifzugs sichern.' : ''; };
+export const descCanStart = c => { const S = G.S; return descOpen(c) && !S.desc && !descBusy() && descLeft() > 0; };
+export const descLvl = c => Math.max(G.cryptLvl(c, 3), G.S.lvl) + DESCENT.lvlAdd;
+export const descMult = (u = G.S.desc?.unrest || 0) => Math.round((1 + u * DESCENT.unrestLoot) * 10) / 10;
+const descDiff = u => DESCENT.diff * (1 + u * DESCENT.unrestDiff) * DIFFICULTIES[G.S.crypt.diff].mult;
+const descCrypt = () => CRYPTS.find(x => x.id === G.S.desc.c);
+function descNode(c, t, x) {
+  const n = { t, x }; if (t === 'fight' || t === 'elite') n.mob = pick(c.floors);
+  if (t === 'elite') n.mods = [...ELITE.mods].sort(() => rand() - 0.5).slice(0, 2).map(m => m.id);
+  return n;
+}
+export function descMap(c) {
+  const used = {}, rows = [];
+  const pickT = r => { const pool = Object.entries(DESC_ROOMS).filter(([k, x]) => x.w && r >= (x.minR || 0) && (!x.max || (used[k] || 0) < x.max));
+    let w = rand() * pool.reduce((a, [, x]) => a + x.w, 0); for (const [k, x] of pool) if ((w -= x.w) < 0) return k; return 'fight'; };
+  DESCENT.widths.forEach((wd, r) => {
+    const row = []; for (let j = 0; j < wd; j++) { const t = r === 0 ? 'fight' : pickT(r); used[t] = (used[t] || 0) + 1; row.push(descNode(c, t, ROWX[wd][j])); }
+    if (r === DESCENT.rope || r === DESCENT.well) { const j = chance(0.5) ? 0 : wd - 1; row[j] = { t: r === DESCENT.rope ? 'rope' : 'well', x: row[j].x }; }
+    rows.push(row);
+  });
+  return rows;
+}
+export function descStart(cid) {
+  const S = G.S, c = CRYPTS.find(x => x.id === cid); if (!descCanStart(c)) return null;
+  if (S.descDay?.d !== G.today()) S.descDay = { d: G.today(), n: 0 }; S.descDay.n++;
+  S.desc = { c: c.id, lvl: descLvl(c), rows: descMap(c), path: [], unrest: 0, hpf: 1, rooms: 0, xp: 0, sack: { gold: 0, items: [], mats: {}, herbs: {} } };
+  G.journal(`Abstieg in ${c.name}.`); return S.desc;
+}
+// Erreichbare Räume der nächsten Reihe (Indizes), oben 'boss'
+export function descNext() {
+  const D = G.S.desc; if (!D) return []; const r = D.path.length;
+  if (r >= D.rows.length) return ['boss'];
+  if (r === 0) return D.rows[0].map((_, j) => j);
+  const cur = D.rows[r - 1][D.path[r - 1]]; return D.rows[r].map((_, j) => j).filter(j => expLinked(cur, D.rows[r][j]));
+}
+export const descNodeAt = j => { const D = G.S.desc; return j === 'boss' ? 'boss' : D.rows[D.path.length]?.[+j] || null; };
+export const descWellCost = () => DESCENT.wellGold * G.S.desc.lvl;
+export function descEnemy(nd, u = G.S.desc.unrest) {
+  const D = G.S.desc, c = descCrypt();
+  if (nd === 'boss') return G.makeBoss(c, D.lvl, DESCENT.boss * DIFFICULTIES[G.S.crypt.diff].mult);   // Boss wächst nicht mit der Unruhe: er ist schon am Ende des Wegs
+  const elite = nd.t === 'elite', m = G.makeMonster(D.lvl, descDiff(u) * (elite ? ELITE.diff : 1), MONSTERS.find(x => x.name === nd.mob));
+  if (elite) { m.hp = Math.round(m.hp * ELITE.hp); m.elite = nd.mods.map(id => ELITE.mods.find(x => x.id === id).name);
+    for (const id of nd.mods) { const e = ELITE.mods.find(x => x.id === id); Object.assign(m, e.eff || {}); for (const [k, v] of Object.entries(e.mult || {})) m[k] = Math.round(m[k] * v); }
+    m.name = `${m.name} (Elite)`; }
+  return m;
+}
+const descHero = () => { const A = { ...G.stats(), belt: G.beltCombat() }; A.cur0 = Math.max(1, Math.round(A.hp * G.S.desc.hpf)); return A; };
+// Siegchance mit dem Leben, das du gerade hast (j = Raum-Index, 'boss' oder 'stair')
+export function descChance(j) {
+  const D = G.S.desc; if (!D) return null; const stair = j === 'stair', nd = stair ? null : descNodeAt(j);
+  if (!stair && !(nd === 'boss' || nd?.t === 'fight' || nd?.t === 'elite')) return null;
+  const A = descHero(), c = descCrypt(), u = D.unrest + (stair ? DESCENT.stairUnrest : 0);
+  const key = 'desc|' + JSON.stringify([D.c, D.path, j, u, A.cur0, A.hp, A.dmg, A.armor, A[A.main], A.belt.map(b => b.id + b.trig)]);
+  if (threatCache.has(key)) return threatCache.get(key);
+  let w = 0; for (let i = 0; i < 24; i++) if (fight(A, descEnemy(stair ? { t: 'fight', mob: pick(c.floors) } : nd, u)).winner === 'a') w++;
+  const p = w / 24; if (threatCache.size > 200) threatCache.clear(); threatCache.set(key, p); return p;
+}
+function descLoot(lvl, u, { gold = 1, item = 0, minR = 0, heart = 0, mat = null }) {
+  const S = G.S, s = S.desc.sack, k = descMult(u), got = { gold: Math.round((10 + lvl * 5) * DESCENT.gold * gold * k), items: [], mats: [], herbs: [] };
+  s.gold += got.gold;
+  for (let n = rollN(item * Math.sqrt(k)); n > 0; n--) {
+    const it = makeItem(lvl, { luck: G.stats().lck + u * 15, cls: CLASSES[S.cls], minRarity: Math.max(minR, u >= 5 ? 3 : u >= 3 ? 2 : 0) });
+    s.items.push(it); got.items.push(it); }
+  if (mat && chance(Math.min(1, CFG.matChance * k))) { const n = Math.max(1, rollN(k / 2)); s.mats[mat] = (s.mats[mat] || 0) + n; got.mats.push([mat, n]); }
+  if (heart && chance(Math.min(1, heart * k))) { s.herbs.herz = (s.herbs.herz || 0) + 1; got.herbs.push(['herz', 1]); }
+  return got;
+}
+function descExtract(how) {
+  const S = G.S, D = S.desc, s = D.sack, c = descCrypt(), out = { how, crypt: c.name, rooms: D.rooms, unrest: D.unrest, xp: D.xp, gold: s.gold, items: [], mats: [], herbs: [] };
+  S.gold += s.gold;
+  for (const it of s.items) { if (G.addToBag(it)) out.items.push(it); else { S.gold += it.value; out.gold += it.value; out.items.push({ ...it, soldFull: true }); } }
+  for (const [k, n] of Object.entries(s.mats)) if (n > 0) { G.addMat(k, n); out.mats.push([k, n]); }
+  for (const [k, n] of Object.entries(s.herbs)) if (n > 0) { G.addHerb(k, n); out.herbs.push([k, n]); }
+  S.desc = null; G.journal(`Aus ${c.name} entkommen (${how}): ${out.gold} Gold, ${out.items.length} Fundstück(e).`);
+  return out;
+}
+function descFight(nd, u, exit = null) {
+  const S = G.S, D = S.desc, c = descCrypt(), boss = nd === 'boss', elite = nd?.t === 'elite';
+  const A = descHero(), m = descEnemy(nd, u), r = fight(A, m), win = r.winner === 'a', rew = newRew();
+  G.usePotions(r.used); rew.used = r.used; D.hpf = Math.max(0, r.endA / A.hp);
+  if (!win) { S.deaths++; const lost = { ...D.sack, rooms: D.rooms, unrest: D.unrest, xp: D.xp, crypt: c.name }; S.desc = null;
+    G.journal(`In ${c.name} gefallen. Der Sack bleibt unten.`); return { A, B: m, r, win, rew, desc: { lost } }; }
+  S.wins++; Q.event({ type: 'kill', mob: boss ? c.boss.name : nd.mob }); if (boss) Q.event({ type: 'boss', crypt: c.id }); G.bountyEvent({ type: 'kill', mob: boss ? c.boss.name : nd.mob });
+  rew.grade = gradeOf(r);
+  const xp = Math.round((25 + m.lvl * 14) * DESCENT.xp * (boss ? 3 : elite ? 1.5 : 1)); rew.xp = xp; rew.up = G.gainXp(xp); D.xp += xp;
+  const gb = 1 + rew.grade.bonus;   // Kampfbewertung: mehr Gold wie überall
+  rew.sack = descLoot(m.lvl, u, boss ? { gold: 4 * gb, item: 2, minR: DESCENT.bossMinR, heart: 1, mat: m.mat } : elite ? { gold: 1.8 * gb, item: 1, minR: DESCENT.eliteMinR, heart: DESCENT.eliteHeart, mat: m.mat }
+    : { gold: gb, item: DESCENT.item, heart: DESCENT.heart, mat: m.mat });
+  if (boss || exit) return { A, B: m, r, win, rew, desc: { out: descExtract(boss ? c.boss.name : exit) } };
+  return { A, B: m, r, win, rew, desc: { hpf: D.hpf } };
+}
+// Einen Raum betreten. Ergebnis: { kind: 'fight', res } | { kind: 'room', t, text, got? } | { kind: 'out', out }
+export function descEnter(j) {
+  const S = G.S, D = S.desc; if (!D) return null;
+  const key = j === 'boss' ? 'boss' : +j; if (!descNext().includes(key)) return null;
+  const nd = descNodeAt(key), t = nd === 'boss' ? 'boss' : nd.t;
+  if (t === 'well' && descWellCost() > S.gold + D.sack.gold) return null;
+  if (t !== 'boss') D.path.push(key);
+  const u = D.unrest;
+  if (t === 'rope' || t === 'well') {
+    if (t === 'well') { const g = descWellCost(), fromSack = Math.min(D.sack.gold, g); D.sack.gold -= fromSack; S.gold -= g - fromSack; }
+    return { kind: 'out', out: descExtract(DESC_ROOMS[t].name) };
+  }
+  D.rooms++; D.unrest++;
+  if (t === 'shrine') { const h = Math.min(1 - D.hpf, DESCENT.heal); D.hpf = Math.min(1, D.hpf + DESCENT.heal);
+    return { kind: 'room', t, text: `Das Wasser im Becken ist kalt und klar. +${Math.round(h * 100)} % Leben.` }; }
+  if (t === 'treasure') { const got = descLoot(D.lvl, u, { gold: 1.5, item: 1, minR: 2 }), trap = chance(DESCENT.trap);
+    if (trap) D.hpf = Math.max(0.05, D.hpf - DESCENT.trapDmg);
+    return { kind: 'room', t, got, trap, text: trap ? `Eine Klinge schnellt aus der Wand. −${Math.round(DESCENT.trapDmg * 100)} % Leben.` : 'Niemand hat diese Kammer bewacht. Seltsam.' }; }
+  return { kind: 'fight', res: descFight(nd, u) };
+}
+// Rückweg über die Stiege: ein Kampf bei höherer Unruhe, dann draußen. Vor dem ersten Raum: umkehren ohne Kampf (zählt nicht).
+export function descStair() {
+  const S = G.S, D = S.desc; if (!D) return null;
+  if (!D.rooms) { S.desc = null; if (S.descDay?.n) S.descDay.n--; return { kind: 'back' }; }
+  return { kind: 'fight', res: descFight({ t: 'fight', mob: pick(descCrypt().floors) }, D.unrest + DESCENT.stairUnrest, 'Stiege') };
 }

@@ -13,7 +13,7 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
 const errors = new Map();
 const fail = (msg, act) => { const k = msg.split(':')[0]; if (!errors.has(k)) errors.set(k, { msg, act, n: 0 }); errors.get(k).n++; };
 
-let prevExp = null, prevFights = 0;
+let prevExp = null, prevFights = 0, prevDesc = null;
 function check(act) {
   const S0 = G.S, nf = S0.wins + S0.deaths;
   if (S0.exp && S0.active) fail('Expedition und Streifzug gleichzeitig', act);
@@ -21,7 +21,16 @@ function check(act) {
   if (S0.exp?.ret && (S0.exp.ret.i > S0.exp.ret.list.length || S0.exp.ret.acc.gold < 0)) fail('Heimkehr kaputt', act);
   if (S0.bless && (S0.bless > D.EXPED.blessMax + 1e-9 || S0.bless < D.EXPED.curseMax - 1e-9)) fail(`Segen außerhalb: ${S0.bless}`, act);
   if (prevExp && S0.exp && nf !== prevFights) fail('Kampf während der Expedition', act);
-  prevExp = S0.exp; prevFights = nf;
+  if (prevDesc && S0.desc && nf !== prevFights && !act.startsWith('desc')) fail('Kampf außerhalb des Abstiegs, während der Held unten ist', act);
+  if (S0.desc && S0.exp) fail('Abstieg und Expedition gleichzeitig', act);
+  if (S0.desc) { const d = S0.desc;
+    if (!(d.hpf > 0 && d.hpf <= 1)) fail(`Abstieg: Leben außerhalb ${d.hpf}`, act);
+    if (!Number.isInteger(d.unrest) || d.unrest < 0 || d.unrest > d.rows.length + 1) fail(`Abstieg: Unruhe ${d.unrest}`, act);
+    if (d.path.length > d.rows.length || d.path.some((j, i) => !d.rows[i][j] || (i && !Game.expLinked(d.rows[i - 1][d.path[i - 1]], d.rows[i][j])))) fail('Abstieg: Weg ungültig', act);
+    if (d.path.some((j, i) => D.DESC_ROOMS[d.rows[i][j].t].exit)) fail('Abstieg: auf einem Ausgang stehen geblieben', act);
+    if (!Number.isInteger(d.sack.gold) || d.sack.gold < 0) fail(`Abstieg: Sack-Gold ${d.sack.gold}`, act); }
+  if (S0.descDay && (S0.descDay.n < 0 || S0.descDay.n > D.DESCENT.daily)) fail(`Abstiege je Tag: ${S0.descDay.n}`, act);
+  prevExp = S0.exp; prevFights = nf; prevDesc = S0.desc;
   const S = G.S, f = (v, n) => { if (typeof v !== 'number' || !Number.isFinite(v)) fail(`${n} ist keine Zahl: ${v}`, act); };
   f(S.gold, 'Gold'); if (S.gold < 0) fail(`Gold negativ: ${S.gold}`, act);
   f(S.glut, 'Glut'); if (S.glut < 0 || S.glut > D.CFG.maxGlut) fail(`Glut außerhalb: ${S.glut}`, act);
@@ -35,7 +44,7 @@ function check(act) {
     for (const x of b) if (G.potion(x.id).trig && !G.potion(x.id).trig.includes(x.trig)) fail('Auslöser ungültig ' + x.trig, act); }
   for (const [k, v] of Object.entries(S.attrs)) if (!Number.isInteger(v) || v < 1) fail(`Attribut ${k}: ${v}`, act);
   // Items: keine Doppelten, Raster ohne Überlappung, Werte heil
-  const all = [...S.bag, ...Object.values(S.equip).filter(Boolean)], ids = new Set();
+  const all = [...S.bag, ...Object.values(S.equip).filter(Boolean), ...(S.desc?.sack.items || [])], ids = new Set();
   for (const t of Object.values(S.traders)) for (const it of t.shop || []) if (ids.has(it.id)) fail(`Ladenitem doppelt`, act); else ids.add(it.id);
   for (const it of all) {
     if (ids.has(it.id)) fail(`Item doppelt (Duplizierung!): ${it.name}`, act); ids.add(it.id);
@@ -103,6 +112,10 @@ const actions = {
     Game.startExped(loc, h, Math.random() < 0.1 ? path.slice(1) : path); } },
   expclaim: () => { if (G.S.exp && Math.random() < 0.5) { Game.expBegin(); Game.expAdvance(); } },
   expchoose: () => { if (G.S.exp?.ret) Game.expChoose(Math.floor(Math.random() * 3)); },
+  descstart: () => { if (Math.random() < 0.3) { const c = pick(D.CRYPTS); if (Math.random() < 0.3 && !G.S.trophies.some(t => t.key === c.id + ':0')) G.S.trophies.push({ key: c.id + ':0', name: c.boss.name, diff: 'x', eff: c.trophy }); Game.descStart(c.id); } },
+  descenter: () => { if (G.S.desc) { const nx = Game.descNext(); Game.descEnter(Math.random() < 0.05 ? 7 : pick(nx)); } },
+  descenter2: () => { if (G.S.desc) Game.descEnter(pick(Game.descNext())); },
+  descstair: () => { if (G.S.desc && Math.random() < 0.15) Game.descStair(); },
   loot: () => { if (Math.random() < 0.2) G.addToBag(makeItem(G.S.lvl, { minRarity: Math.floor(Math.random() * 5) })); },
 };
 const names = Object.keys(actions);

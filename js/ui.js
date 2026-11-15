@@ -1,6 +1,6 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
 import { AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
-import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES } from './data.js';
+import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, DESCENT, DESC_ROOMS } from './data.js';
 import { potion, beltSlots, brewCost, canBrew, potMax } from './state.js';
 import { waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
@@ -8,7 +8,8 @@ import { current, available, objectives, canComplete } from './quests.js';
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
-import { gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost } from './game.js';
+import { gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
+  descCrypts, descLeft, descCanStart, descBusy, descLvl, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
 const P = cls => `assets/portraits/${CLASSES[cls].portrait}.jpg`;
@@ -85,7 +86,7 @@ export function hud(tut = '') {
 }
 export function navBar(view) {
   const tabs = [['hero', 'Held'], ['trips', 'Streifzug'], ['traders', 'Händler'], ['crypt', 'Krypta'], ['arena', 'Grube']];
-  const map = { alch: 'traders', prep: 'crypt', forge: 'traders', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips', exped: 'trips' };
+  const map = { alch: 'traders', prep: 'crypt', desc: 'crypt', forge: 'traders', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips', exped: 'trips' };
   // Nur echte Handlungsaufforderungen markieren – ein Dauer-Punkt auf jedem Tab sagt nichts mehr
   const badge = { hero: S.points + talentPoints() + waysPending() > 0, traders: Object.keys(TRADERS).some(canComplete), arena: canComplete('vargo'),
     crypt: canComplete('ilse'), trips: !!S.haul || canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) || (!!S.active && Date.now() >= S.active.end) || (!!S.exp && Date.now() >= S.exp.end) };
@@ -242,6 +243,12 @@ export function viewAway(npc) {
   return `<div class="col">${say(npc)}<section class="panel waiting"><h2>Dein Held ist fort</h2><p class="lore">Expedition: ${l.name}. Kämpfen kann er erst, wenn er zurück ist.</p>
     ${left > 0 ? `<div class="big" data-until="${e.end}">${fmtT(left)}</div>` : '<p class="up">Er ist zurück – hol ihn heim.</p>'}<div class="btns"><button data-action="go" data-v="trips">Zur Expedition</button></div></section></div>`;
 }
+// Held ist im Abstieg: andere Kämpfe und Reisen warten
+export function viewDescAway(npc) {
+  const c = CRYPTS.find(x => x.id === S.desc.c);
+  return `<div class="col">${say(npc)}<section class="panel waiting"><h2>Dein Held ist unten</h2><p class="lore">Abstieg: ${c.name}, Raum ${S.desc.rooms + 1}. Erst wenn er draußen ist, geht es hier weiter.</p>
+    <div class="btns"><button class="red" data-action="go" data-v="desc">Zum Abstieg</button></div></section></div>`;
+}
 // Weg planen: Karte mit Gabelungen. sel = { loc, h, path }
 export function viewExped(sel) {
   const open = LOCATIONS.filter(locOpen), loc = open.some(l => l.id === sel.loc) ? sel.loc : open[open.length - 1].id, li = open.findIndex(l => l.id === loc);
@@ -377,7 +384,7 @@ export function viewTrader(tid) {
 // --- Krypten ---
 export function viewCrypts() {
   const d = DIFFICULTIES[S.crypt.diff], cd = Math.max(0, Math.ceil((S.crypt.cd - Date.now()) / 1000));
-  return `<div class="col">${say('ilse')}<div class="crypthead"><span>Die Krypten · ${d.name}</span><span>${cd ? `Erholung <span data-until="${S.crypt.cd}">${fmtT(cd)}</span>` : 'bereit'}</span></div>
+  return `<div class="col">${say('ilse')}<div class="crypthead"><span>Die Krypten · ${d.name}</span><span>${cd ? `Erholung <span data-until="${S.crypt.cd}">${fmtT(cd)}</span>` : 'bereit'}${descCrypts().length ? '<button class="tiny dbtn" data-action="go" data-v="desc">Der Abstieg</button>' : ''}</span></div>
     ${CRYPTS.map(c => { const f = cryptFloor(c), open = cryptOpen(c), done = f >= 5;
       const troph = S.trophies.some(t => t.key === c.id + ':' + S.crypt.diff);
       return `<section class="panel crypt ${!open ? 'locked' : ''} ${done ? 'done' : ''}" ${open && !done && !cd ? `data-action="crypt" data-id="${c.id}"` : ''}>
@@ -408,7 +415,7 @@ function fightSummary(F) {
 }
 export function viewFight(F) {
   const shown = F.log.slice(0, F.step), last = shown[shown.length - 1] || {};
-  const hpA = last.hpA ?? F.hpA, hpB = last.hpB ?? F.hpB, done = F.step >= F.log.length;
+  const hpA = last.hpA ?? F.curA0 ?? F.hpA, hpB = last.hpB ?? F.hpB, done = F.step >= F.log.length;
   const side = (f, hp, max, hit, id, ch) => `<div class="fighter ${done && (id === 'fA') !== (F.winner === 'a') ? 'dead' : ''}" id="${id}"><div class="pwrap">${id === 'fB' ? `<span class="intent" ${last.iB && !done ? '' : 'hidden'}>${last.iB || ''}</span>` : ''}${f.cls ? `<img class="portrait" src="${P(f.cls)}" alt="">` : monsterArt(f.glyph)}${done && F.gold && id === 'fB' ? `<span class="goldpop"><img src="assets/ui/coin.webp" alt="">+${F.gold}</span>` : ''}</div>
     <div class="nm">${f.name}</div><div class="bar"><i style="width:${pct(hp, max)}%"></i></div><div class="hp">${Math.max(0, hp)} / ${max}</div>
     ${f.belt?.length ? `<div class="pbelt">${f.belt.map(p => { const k = F.log.findIndex(l => l.pot === p.id && l.who === 'a'); return `<img class="${k >= 0 && k < F.step ? 'used' : ''}" src="assets/potions/${p.id}.webp" data-p="${p.id}" alt="" title="${p.name}">`; }).join('')}</div>` : ''}
@@ -511,7 +518,7 @@ function beltCell(i) {
 export function viewAlch(sel, back) {
   const p = potion(sel) || POTIONS[0], c = brewCost(p.id), cb = canBrew(p.id), inBelt = S.belt.some(b => b?.id === p.id);
   return `<div class="col alch">
-    <section class="panel"><h2>Alchemie <span class="h2r">Tränke wirken nur in der Krypta</span><button class="tiny" data-action="${back === 'prep' ? 'go" data-v="prep' : 'trader" data-t="ysolde'}">Zurück</button></h2>
+    <section class="panel"><h2>Alchemie <span class="h2r">Tränke wirken nur in der Krypta</span><button class="tiny" data-action="${back === 'prep' || back === 'desc' ? `go" data-v="${back}` : 'trader" data-t="ysolde'}">Zurück</button></h2>
       <div class="belt">${[0, 1, 2].map(i => beltRow(i, true)).join('')}</div></section>
     <section class="panel herbs">${Object.entries(HERBS).map(([k, h]) => `<span class="herb" title="${h.name}">${potImg(h.img)}<i>${S.herbs[k] || 0}</i></span>`).join('')}</section>
     <section class="panel potgrid">${POTIONS.map(x => `<span class="ptile ${x.rare ? 'rare' : ''} ${x.id === p.id ? 'on' : ''}" data-action="potsel" data-id="${x.id}">${potImg(x.id)}${S.pots[x.id] ? `<i>${S.pots[x.id]}</i>` : ''}</span>`).join('')}</section>
@@ -537,4 +544,100 @@ export function viewPrep(c, m) {
     <section class="panel"><h2>Dein Gürtel <span class="gbtns"><button class="tiny" data-action="bestBelt">Bester Gürtel</button><button class="tiny" data-action="alch" data-b="prep">Alle Tränke</button></span></h2><div class="beltrow">${[0, 1, 2].slice(0, beltSlots()).map(beltCell).join('')}</div></section>
     <section class="panel chance"><span class="cl">Siegchance<small class="dim">ohne Tränke ${pc(p0)}</small>${S.bless ? `<small class="${S.bless > 0 ? 'up' : 'down'}">${S.bless > 0 ? 'Segen' : 'Fluch'} ${S.bless > 0 ? '+' : ''}${Math.round(S.bless * 100)} % Leben</small>` : ''}</span><b>${pc(pW)}</b><button class="red" data-action="cryptgo" ${cd ? 'disabled' : ''}>Kämpfen</button></section>
   </div>`;
+}
+
+// --- Der Abstieg ---
+const monImg = name => { const m = MONSTERS.find(x => x.name === name); return `<img class="mon" src="assets/monsters/${m?.glyph || 'skelett'}.jpg" alt="">`; };
+const descArt = (n, c) => n === 'boss' ? `<img class="mon" src="${c.boss.glyph === 'self' ? P(S.cls) : `assets/monsters/${c.boss.glyph}.jpg`}" alt="">` : n.mob ? monImg(n.mob) : nodeArt(DESC_ROOMS[n.t].img);
+const pcT = p => Math.round(p * 100) + ' %';
+export function viewDesc(st) {
+  if (st.res) return viewDescRes(st.res);
+  return S.desc ? viewDescRun(st) : viewDescStart(st);
+}
+function viewDescStart(st) {
+  const list = descCrypts(); if (!list.length) return viewCrypts();
+  const c = list.find(x => x.id === st.c) || list[list.length - 1], i = list.indexOf(c), left = descLeft();
+  return `<div class="col desc">
+    <section class="panel dhead">${monsterArt(c.boss.glyph)}<div><h2>Der Abstieg <span class="h2r">heute noch ${left}</span></h2>
+      <div class="xhead"><button class="tiny" data-action="descc" data-d="-1" ${i <= 0 ? 'disabled' : ''}>‹</button><b>${c.name}</b><button class="tiny" data-action="descc" data-d="1" ${i >= list.length - 1 ? 'disabled' : ''}>›</button></div>
+      <p class="small dim">Gegner Stufe ${descLvl(c)} · oben wartet ${c.boss.name.split(',')[0]}: <i>${c.boss.mechText}</i></p></div></section>
+    <section class="panel drules"><h2>Rausholen oder verlieren</h2>
+      <p class="small">Jeder Raum ein Kampf. <b>Leben und Trank-Ladungen füllen sich unten nicht auf.</b></p>
+      <p class="small">Mit jedem Raum steigt die <b>Unruhe</b>: Gegner stärker, Beute bis ×${descMult(5)}.</p>
+      <p class="small">Beute liegt im <b>Beutesack</b>. Dir gehört sie erst an einem <span class="up">Ausgang</span>: Seil, Brunnen, Stiege oder hinter dem Boss.</p>
+      <p class="small down">Fällst du, bleibt der Sack unten. Ausrüstung, Stufe und EP behältst du.</p>${descBusy() ? `<p class="small hot">${descBusy()}</p>` : ''}</section>
+    <section class="panel"><h2>Dein Gürtel <span class="gbtns"><button class="tiny" data-action="alch" data-b="desc">Tränke</button></span></h2><div class="beltrow">${[0, 1, 2].slice(0, beltSlots()).map(beltCell).join('')}</div></section>
+    <div class="btns"><button data-action="go" data-v="crypt">Zurück</button><button class="red" data-action="descgo" data-c="${c.id}" ${descCanStart(c) ? '' : 'disabled'}>${left ? 'Hinabsteigen' : 'Morgen wieder'}</button></div>
+  </div>`;
+}
+function sackRow(s) {
+  const its = s.items.slice(0, 7).map(it => `<span class="dit r-${it.rarity}" data-tip="${it.id}" data-action="noop">${itemArt(it)}</span>`).join('');
+  const more = s.items.length > 7 ? `<span class="dmore">+${s.items.length - 7}</span>` : '';
+  const chips = [...Object.entries(s.herbs).filter(([, n]) => n > 0).map(([k, n]) => `<span title="${HERBS[k].name}">${herbImg(k)}×${n}</span>`),
+    ...Object.entries(s.mats).filter(([, n]) => n > 0).map(([k, n]) => `<span title="${MATS[k]}">${matImg(k)}×${n}</span>`)].join('');
+  return `<div class="dsack">${its}${more}${chips ? `<span class="xrow">${chips}</span>` : ''}${!its && !chips ? '<span class="dim small">noch leer</span>' : ''}</div>`;
+}
+function viewDescRun(st) {
+  const D = S.desc, c = CRYPTS.find(x => x.id === D.c), A = stats(), hp = Math.max(0, Math.round(A.hp * D.hpf)), nx = descNext(), R = D.rows.length, cur = D.path.length;
+  const nR = R + 2, Y = k => (nR - k - 0.5) / nR * 100;   // 0 Eingang (unten), 1..R Reihen, R+1 Boss (oben)
+  const sel = st.j != null && nx.includes(st.j === 'boss' ? 'boss' : +st.j) ? st.j : null;
+  let lines = '', gold = '';
+  const ln = (a, b, on) => { const t = `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>`; if (on) gold += t; else lines += t; };
+  const P = (r, n) => ({ x: n.x * 100, y: Y(r + 1) }), ent = { x: 50, y: Y(0) }, bp = { x: 50, y: Y(R + 1) };
+  D.rows[0].forEach((n, j) => ln(ent, P(0, n), D.path[0] === j));
+  for (let r = 1; r < R; r++) D.rows[r].forEach((n, j) => D.rows[r - 1].forEach((m, k) => { if (Math.abs(m.x - n.x) <= 0.4 && !DESC_ROOMS[m.t].exit) ln(P(r - 1, m), P(r, n), D.path[r - 1] === k && D.path[r] === j); }));
+  D.rows[R - 1].forEach((n, j) => { if (!DESC_ROOMS[n.t].exit) ln(P(R - 1, n), bp, false); });
+  const node = (r, n, j) => {
+    const ex = DESC_ROOMS[n.t].exit, been = D.path[r] === j, here = been && r === cur - 1, nxt = r === cur && nx.includes(j), fog = r > cur && !ex, on = sel != null && sel !== 'boss' && +sel === j && nxt;
+    const cls = [been ? 'been' : '', here ? 'here' : '', nxt ? 'next' : '', on ? 'on' : '', fog ? 'fog' : '', !been && !nxt && r <= cur ? 'off' : '', ex ? 'exit' : '', n.t === 'elite' ? 'elite' : ''].join(' ');
+    const lab = here ? 'du' : nxt ? (n.t === 'elite' ? 'Elite' : DESC_ROOMS[n.t].name) : '';
+    return `<button class="node ${cls}" style="left:${n.x * 100}%;top:${Y(r + 1)}%" ${nxt ? `data-action="descsel" data-j="${j}"` : ''}>${fog ? '' : descArt(n, c)}${lab ? `<label>${lab}</label>` : ''}</button>`;
+  };
+  const bossNext = nx.includes('boss');
+  const nodes = D.rows.map((row, r) => row.map((n, j) => node(r, n, j)).join('')).join('')
+    + `<button class="node goal boss ${bossNext ? 'next' : ''} ${sel === 'boss' ? 'on' : ''}" style="left:50%;top:${Y(R + 1)}%" ${bossNext ? 'data-action="descsel" data-j="boss"' : ''}>${descArt('boss', c)}<label>${c.boss.name.split(',')[0]}</label></button>`
+    + `<span class="node start ${cur ? 'been' : 'here'}" style="left:50%;top:${Y(0)}%"><img src="assets/ui/marker.webp" alt=""><label>${cur ? 'Stiege' : 'du'}</label></span>`;
+  const stairP = D.rooms ? descChance('stair') : 1;
+  // Info zum gewählten Raum
+  let info = '', go = '';
+  if (st.ask) info = `<p class="small"><b>Über die Stiege zurück:</b> ein letzter Kampf bei höherer Unruhe (Sieg ${pcT(stairP)}), dann bist du draußen – mit allem im Sack. Noch einmal tippen.</p>`;
+  else if (sel == null) info = st.msg ? `<p class="small dmsg">${st.msg}</p>` : `<p class="small dim">Wähle den nächsten Raum. Leuchtende Räume sind erreichbar.</p>`;
+  else {
+    const nd = descNodeAt(sel), t = nd === 'boss' ? 'boss' : nd.t, R0 = DESC_ROOMS[t];
+    if (t === 'boss' || t === 'fight' || t === 'elite') {
+      const m = descEnemy(nd), p = descChance(sel);
+      info = `<p class="small"><b class="${t === 'elite' ? 'r-magic' : t === 'boss' ? 'hot' : ''}">${t === 'boss' ? c.boss.name.split(',')[0] : nd.mob}</b> · Stufe ${m.lvl}${m.elite ? ` · <span class="r-magic">${m.elite.join(', ')}</span>` : ''}${t === 'boss' ? ` · <i>${c.boss.mechText}</i>` : ''}</p>
+        <p class="small">${threat(p)} · Sieg ${pcT(p)} mit ${hp} Leben${t === 'boss' ? ' · <span class="up">danach draußen</span>' : ''}</p>`;
+      go = t === 'boss' ? 'Den Boss stellen' : 'Kämpfen';
+    } else if (R0.exit) {
+      const cost = t === 'well' ? descWellCost() : 0, can = !cost || S.gold + D.sack.gold >= cost;
+      info = `<p class="small"><b class="up">${R0.name}</b> · ${R0.text}${cost ? ` <b>${cost} Gold</b>.` : ''}</p><p class="small">Du nimmst alles im Sack mit hinaus.${can ? '' : ' <span class="down">Zu wenig Gold.</span>'}</p>`;
+      go = can ? 'Hinaus' : '';
+    } else { info = `<p class="small"><b>${R0.name}</b> · ${R0.text}</p>`; go = 'Betreten'; }
+  }
+  return `<div class="col descv">
+    <section class="panel dtop"><h2>Raum ${D.rooms + 1} <span class="h2r">${c.name}</span></h2>
+      <div class="dbars"><span>Leben</span><div class="bar"><i style="width:${D.hpf * 100}%"></i></div><b>${hp}/${A.hp}</b>
+        <span>Unruhe</span><div class="bar xp"><i style="width:${Math.min(100, D.unrest / 6 * 100)}%"></i></div><b class="up">Beute ×${descMult()}</b></div></section>
+    <section class="panel dmap"><div class="map" style="--rows:${nR}"><svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none"><g class="l0">${lines}</g><g class="l1">${gold}</g></svg>${nodes}</div></section>
+    <section class="panel dinfo">${info}</section>
+    <section class="panel dsackp"><h2>Beutesack <span class="h2r">${D.sack.gold} Gold</span></h2>${sackRow(D.sack)}</section>
+    <div class="btns"><button data-action="descstair" class="${st.ask ? 'red' : ''}">${!D.rooms ? 'Umkehren' : st.ask ? 'Wirklich zur Stiege?' : `Stiege · ${pcT(stairP)}`}</button><button class="red" data-action="descgo2" ${sel != null && go ? `data-j="${sel}"` : 'disabled'}>${go || 'Betreten'}</button></div>
+  </div>`;
+}
+function viewDescRes(res) {
+  if (res.lost) { const l = res.lost;
+    return `<div class="col descres"><section class="panel"><h2 class="hot">Gefallen · ${l.crypt}</h2>
+      <p class="lore">Die Gruft behält, was du getragen hast.</p>
+      <p class="small">Verloren: <b class="down">${l.gold} Gold</b>${l.items.length ? ` · <b class="down">${l.items.length} Fundstück${l.items.length > 1 ? 'e' : ''}</b>` : ''}</p>
+      ${l.items.length ? `<p class="small">${l.items.map(it => `<span class="r-${it.rarity}">${it.name}</span>`).join(' · ')}</p>` : ''}
+      <p class="small">Behalten: <b class="up">${l.xp} EP</b>, Ausrüstung, Stufe · ${l.rooms} Räume geschafft</p></section>
+      <div class="btns"><button class="red" data-action="descok">Weiter</button></div></div>`; }
+  const o = res.out, chips = [...o.herbs.map(([k, n]) => `<span title="${HERBS[k].name}">${herbImg(k)}<i class="nm">${HERBS[k].name} </i>×${n}</span>`), ...o.mats.map(([k, n]) => `<span title="${MATS[k]}">${matImg(k)}<i class="nm">${MATS[k]} </i>×${n}</span>`)];
+  return `<div class="col descres"><section class="panel"><h2>Entkommen · ${o.how}</h2>
+    <div class="drows"><p><span>Räume</span><b>${o.rooms} · Unruhe ×${descMult(o.unrest)}</b></p><p><span>Erfahrung</span><b>${o.xp} EP</b></p><p><span>Gold</span><b class="up">+${o.gold}</b></p></div></section>
+    <section class="panel"><h2>Gesichert</h2><div class="xloot">
+      ${o.items.length ? `<p>${o.items.map(it => `<span class="r-${it.rarity}">${it.name}</span>${it.soldFull ? ' <span class="dim small">(Beutel voll, verkauft)</span>' : ''}`).join(' · ')}</p>` : ''}
+      ${chips.length ? `<p class="xrow">${chips.join('')}</p>` : ''}${!o.items.length && !chips.length ? '<p class="dim">nur Gold</p>' : ''}</div></section>
+    <div class="btns"><button class="red" data-action="descok">Weiter</button></div></div>`;
 }

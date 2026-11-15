@@ -1,4 +1,4 @@
-import { CFG, MATS, TUTORIAL, TRADERS, FORGE, CRYPTS, HERBS, POTIONS, LOCATIONS } from './data.js';
+import { CFG, MATS, TUTORIAL, TRADERS, FORGE, CRYPTS, HERBS, POTIONS, LOCATIONS, DESC_ROOMS } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import * as Game from './game.js';
@@ -7,6 +7,7 @@ import * as UI from './ui.js';
 const app = document.getElementById('app'), tip = document.getElementById('tip');
 let expSel = { loc: null, h: 8, path: [] }, expRes = null, expAsk = false;
 let forgeSel = { mat: null, slot: null, mode: 'rune', item: null, stat: null, msg: '' }, forgeRes = null, FG = null;
+let descSt = { c: null, j: null, msg: '', res: null };
 let prepC = null, prepM = null, alchSel = POTIONS[0].id, alchBack = 'traders';
 let tripLoc = null, view = 'hero', pickCls = null, F = null, rival = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
 
@@ -15,16 +16,17 @@ function render() {
   if (!S) { app.innerHTML = `<main>${UI.viewCreate(pickCls)}</main>`; return; }
   G.tickGlut(); G.potDaily();
   const views = {
-    fight: () => UI.viewFight(F), trips: () => expRes ? UI.viewExpRes(expRes) : UI.viewTrips(expAsk), stats: UI.viewStats, spells: UI.viewSpells, ways: () => UI.viewWays(waySel), talents: UI.viewTalents, crypt: () => S.exp ? UI.viewAway('ilse') : UI.viewCrypts(),
+    fight: () => UI.viewFight(F), trips: () => expRes ? UI.viewExpRes(expRes) : S.desc ? UI.viewDescAway('prophet') : UI.viewTrips(expAsk), stats: UI.viewStats, spells: UI.viewSpells, ways: () => UI.viewWays(waySel), talents: UI.viewTalents, crypt: () => S.exp ? UI.viewAway('ilse') : S.desc || descSt.res ? UI.viewDesc(descSt) : UI.viewCrypts(),
+    desc: () => S.exp ? UI.viewAway('ilse') : UI.viewDesc(descSt),
     traders: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewTrader(trader),
-    trippick: () => S.exp ? UI.viewTrips() : UI.viewTripPick(tripLoc),
+    trippick: () => S.desc ? UI.viewDescAway('prophet') : S.exp ? UI.viewTrips() : UI.viewTripPick(tripLoc),
     bounties: UI.viewBounties,
     forge: () => UI.viewForge(forgeSel, forgeRes),
     npc: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewNpc(npc),
-    arena: () => S.exp ? UI.viewAway('vargo') : UI.viewArena(rival ||= Game.makeRival()), hero: UI.viewHero,
-    exped: () => S.exp ? UI.viewTrips(expAsk) : UI.viewExped(expSel),
+    arena: () => S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : UI.viewArena(rival ||= Game.makeRival()), hero: UI.viewHero,
+    exped: () => S.desc ? UI.viewDescAway('prophet') : S.exp ? UI.viewTrips(expAsk) : UI.viewExped(expSel),
     alch: () => UI.viewAlch(alchSel, alchBack),
-    prep: () => S.exp ? UI.viewAway('ilse') : prepM ? UI.viewPrep(CRYPTS.find(c => c.id === prepC), prepM) : UI.viewCrypts(),
+    prep: () => S.exp ? UI.viewAway('ilse') : S.desc ? UI.viewDesc(descSt) : prepM ? UI.viewPrep(CRYPTS.find(c => c.id === prepC), prepM) : UI.viewCrypts(),
   };
   if (view === 'fight' && !F) view = 'hero';
   tutCheck();
@@ -36,7 +38,7 @@ function render() {
 
 // Vorbereitung: Gürtel als Liste; reicht die Höhe nicht (kleine Handys, iOS-App), als Reihe nebeneinander
 function fitPrep() {
-  const pr = document.querySelector('.prep, .exped, .expev, .expresv'), m = pr?.parentElement; if (!pr) return;
+  const pr = document.querySelector('.prep, .exped, .expev, .expresv, .desc, .descv, .descres'), m = pr?.parentElement; if (!pr) return;
   pr.classList.remove('tight'); const low = () => pr.lastElementChild.getBoundingClientRect().bottom > m.getBoundingClientRect().bottom + 1;
   if (low()) pr.classList.add('tight');
 }
@@ -51,16 +53,33 @@ function tutCheck() {
   if (ok) { S.tut++; tutCheck(); }
 }
 
+// Abstieg: Raum-Ergebnis zeigen (Kampf → Kampfbildschirm, Raum → Hinweis, Ausgang → Bilanz)
+function descResult(r) {
+  view = 'desc';
+  if (r.kind === 'out') { descSt.res = { out: r.out }; return render(); }
+  if (r.kind === 'room') { const g = r.got; descSt.msg = `<b>${DESC_ROOMS[r.t].name}:</b> ${r.text}${g ? ` Im Sack: ${g.gold} Gold${g.items.map(it => ` · <span class="r-${it.rarity}">${it.name}</span>`).join('')}` : ''}`; return render(); }
+  const res = r.res; if (res.desc.lost) descSt.res = { lost: res.desc.lost }; else if (res.desc.out) descSt.res = { out: res.desc.out };
+  showFight(res, 'desc');
+}
 // Ergebnis eines Spielzugs (aus game.js) anzeigen
 function showFight(res, back, extra = '') {
   if (!res) return render();
   const { A, B, r, win, rew } = res;
-  F = { A, B, ...r, step: 0, back, gold: win ? rew?.gold || 0 : 0, reward: (win ? (res.haul ? haulRewText(res) : rewText(rew)) : loseText(res)) + extra };
+  F = { A, B, ...r, step: 0, back, gold: win ? rew?.sack?.gold || rew?.gold || 0 : 0, reward: (win ? (res.haul ? haulRewText(res) : res.desc ? descRewText(res) : rewText(rew)) : loseText(res)) + extra };
   view = 'fight'; G.save();
   clearTimeout(fightTimer);
   const tick = () => { F.step++; if (F.step >= F.log.length) return render(); fightStep(); const l = F.log[F.step - 1]; fightTimer = setTimeout(tick, l?.spell ? 780 : l?.crit ? 560 : 400); };
   fightTimer = setTimeout(tick, 380);
   render();
+}
+// Abstieg: EP sofort, alles andere liegt im Sack
+function descRewText(res) {
+  const w = res.rew, g = w.sack, L = [`+${w.xp} EP${w.up ? ` · <b class="hot">Stufe ${G.S.lvl}!</b>` : ''}`];
+  const bits = [`${g.gold} Gold`, ...g.mats.map(([k, n]) => `${MATS[k]} ×${n}`), ...g.herbs.map(([k, n]) => `${HERBS[k].name} ×${n}`), ...g.items.map(it => `<span class="r-${it.rarity}">${it.name}</span>${betterTxt(it)}`)];
+  L.push(`Im Sack: ${bits.join(' · ')}`);
+  if (res.desc.out) L.push(`<b class="gold">Entkommen! Alles gesichert.</b>`);
+  else L.push(`<i class="dim">Leben ${Math.round(res.desc.hpf * 100)} % – es füllt sich unten nicht auf.</i>`);
+  return L.join('<br>');
 }
 function haulRewText(res) {
   const w = res.rew, h = res.haul, L = [`Gefunden: ${w.gold} Gold · ${w.xp} EP`];
@@ -84,6 +103,7 @@ function toast(before) {
 function loseText(res) {
   if (res.lost) return `In der Tiefe verloren: ${res.lost.gold} Gold, ${res.lost.xp || 0} EP${res.lost.items.length ? ` und ${res.lost.items.length} Fundstück(e)` : ''}.`;
   if (res.rew.honor) return `${res.rew.honor} Ehre`;
+  if (res.desc?.lost) { const l = res.desc.lost; return `Der Sack bleibt unten: ${l.gold} Gold${l.items.length ? `, ${l.items.length} Fundstück${l.items.length > 1 ? 'e' : ''}` : ''}.`; }
   if (res.crypt) return 'Die Krypta behält dich. Diesmal. Dein Fortschritt bleibt.';
   return 'Die Asche spuckt dich wieder aus.';
 }
@@ -216,7 +236,7 @@ const actions = {
   prepPot: d => { if (!prepM) return; const keep = Game.enemyInfo(prepM).tags.map(t => t[1]); if (!Game.packPotion(d.id, keep)) return alert('Geht gerade nicht.'); render(); },
   bestBelt: () => { if (!prepM) return; if (!Game.bestBelt(prepM)) alert('Du hast noch keine Tränke. Brau welche bei Mutter Ysolde.'); render(); },
   cryptgo: () => { const m = prepM; prepM = null; showFight(Game.cryptFight(prepC, m), 'crypt'); },
-  alch: d => { alchBack = d.b === 'prep' ? 'prep' : 'traders'; view = 'alch'; render(); },
+  alch: d => { alchBack = d.b === 'prep' || d.b === 'desc' ? d.b : 'traders'; view = 'alch'; render(); },
   potsel: d => { alchSel = d.id; render(); },
   brew: d => { if (G.brew(d.id)) { alchSel = d.id; render(); } },
   beltin: d => { const n = G.beltSlots(); let i = G.S.belt.slice(0, n).findIndex(b => !b);
@@ -241,6 +261,15 @@ const actions = {
     const slot = Object.entries(S.equip).find(([, x]) => x === it)?.[0];
     if (G.craftItems().includes(it)) Object.assign(forgeSel, { mode: 'craft', item: it.id, stat: null, msg: '', changed: null }); else Object.assign(forgeSel, { mode: 'rune' });
     if (slot) forgeSel.slot = slot; view = 'forge'; render(); },
+  descc: d => { const list = Game.descCrypts(), i = Math.max(0, list.findIndex(c => c.id === descSt.c)), cur = list.some(c => c.id === descSt.c) ? i : list.length - 1;
+    descSt.c = list[Math.max(0, Math.min(list.length - 1, cur + +d.d))].id; render(); },
+  descgo: d => { if (Game.descStart(d.c)) { descSt = { c: d.c, j: null, msg: '', res: null }; view = 'desc'; } render(); },
+  descsel: d => { descSt.j = descSt.j === d.j ? null : d.j; descSt.msg = ''; descSt.ask = false; render(); },
+  descgo2: d => { const r = Game.descEnter(d.j); descSt.j = null; descSt.msg = ''; descSt.ask = false; if (!r) return render(); descResult(r); },
+  descstair: () => { if (G.S.desc?.rooms && !descSt.ask) { descSt.ask = true; descSt.j = null; return render(); }   // zwei Tipps: erst fragen
+    descSt.ask = false; const r = Game.descStair(); descSt.j = null; if (!r) return render();
+    if (r.kind === 'back') { view = 'desc'; return render(); } descResult(r); },
+  descok: () => { descSt.res = null; view = 'desc'; render(); },
   expsel: d => { if (d.h) { expSel.h = +d.h; expSel.path = []; } render(); },
   exploc: d => { const open = LOCATIONS.filter(G.locOpen), i = open.findIndex(l => l.id === expSel.loc), cur = i < 0 ? open.length - 1 : i;
     expSel.loc = open[Math.max(0, Math.min(open.length - 1, cur + +d.d))].id; expSel.path = []; render(); },
@@ -324,7 +353,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Enter' && document.ge
 function findItem(id) {
   const S = G.S; if (!S) return null;
   const shops = Object.values(S.traders).flatMap(t => t.shop);
-  return [...S.bag, ...shops, ...Object.values(S.equip).filter(Boolean), ...(rival ? Object.values(rival.equip) : [])].find(x => x.id === id);
+  return [...S.bag, ...shops, ...Object.values(S.equip).filter(Boolean), ...(rival ? Object.values(rival.equip) : []), ...(S.desc?.sack.items || [])].find(x => x.id === id);
 }
 function hideTip() { tip.hidden = true; tip.className = ''; }
 app.addEventListener('mousemove', e => {

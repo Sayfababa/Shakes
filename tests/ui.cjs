@@ -112,6 +112,29 @@ let failures = 0;
     if (!evn) { failures++; console.log(`FEHLER ${tag}: Weg über „?“ ohne Ereignis`); }
     await chk('expres'); if (!(await p.$('.steps p'))) { failures++; console.log(`FEHLER ${tag}: Expedition ohne Ergebnis`); }
     await tap('[data-action=expok]'); if (!(await p.$('.expbar'))) { failures++; console.log(`FEHLER ${tag}: nach Expedition kein Streifzug`); }
+    // Der Abstieg: Knopf in der Krypta, Start, Karte, Raum wählen, Kampf, Stiege (zwei Tipps), Bilanz; Tod zeigt den Verlust
+    await p.evaluate(async () => { const G = await import('./js/state.js'), D = await import('./js/data.js'); const S = G.S;
+      if (!S.trophies.some(t => t.key === 'c1:0')) S.trophies.push({ key: 'c1:0', name: 'x', diff: 'Normal', eff: D.CRYPTS[0].trophy });
+      S.attrs.int += 400; S.attrs.con += 300; S.active = null; S.haul = null; S.exp = null; S.desc = null; S.descDay = null; G.save(); });
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=crypt]');
+    if (!(await tap('.dbtn'))) { failures++; console.log(`FEHLER ${tag}: kein Knopf „Der Abstieg“ in der Krypta`); }
+    await chk('descstart'); await tap('[data-action=descgo]'); await chk('descmap');
+    if ((await p.$$('.node.next')).length < 2) { failures++; console.log(`FEHLER ${tag}: Abstieg ohne Wahl im ersten Raum`); }
+    for (let k = 0; k < 2; k++) {
+      const n = await p.$('[data-action=descsel]:not(.exit)'); if (!n) break;
+      await n.tap(); await chk('descsel' + k); await tap('[data-action=descgo2]'); await tap('[data-action=skip]'); if (!k) await chk('descfight'); await tap('[data-action=go][data-v=desc]');
+      if (!(await p.$('.descv'))) break; }
+    if (await p.$('.descv')) { await chk('descrun'); await tap('[data-action=descstair]'); await chk('descask');
+      if (!(await p.$('[data-action=descstair].red'))) { failures++; console.log(`FEHLER ${tag}: Stiege ohne Rückfrage`); }
+      await tap('[data-action=descstair]'); await tap('[data-action=skip]'); await tap('[data-action=go][data-v=desc]'); }
+    await chk('descres'); if (!(await p.$('.descres'))) { failures++; console.log(`FEHLER ${tag}: Abstieg ohne Bilanz`); }
+    await tap('[data-action=descok]');
+    await p.evaluate(async () => { const G = await import('./js/state.js'); const S = G.S; S.attrs = { str: 5, dex: 5, int: 5, con: 6, lck: 3 }; S.equip = {}; G.save(); });
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=crypt]'); await tap('.dbtn'); await tap('[data-action=descgo]');
+    await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.desc.hpf = 0.02; G.S.desc.sack.gold = 50; });
+    await tap('[data-v=trips]'); await chk('descaway'); if (!(await p.$('[data-action=go][data-v=desc]'))) { failures++; console.log(`FEHLER ${tag}: Streifzug während des Abstiegs nicht gesperrt`); }
+    await tap('[data-action=go][data-v=desc]'); const n0 = await p.$('[data-action=descsel]:not(.exit)'); if (n0) await n0.tap(); await tap('[data-action=descgo2]'); await tap('[data-action=skip]'); await tap('[data-action=go][data-v=desc]');
+    await chk('desclost'); if (!(await p.$('.descres h2.hot'))) { failures++; console.log(`FEHLER ${tag}: Tod im Abstieg ohne Verlust-Anzeige`); }
     if (errs.length) { failures++; console.log(`FEHLER ${tag} JS:`, errs); }
     await c.close();
   }));

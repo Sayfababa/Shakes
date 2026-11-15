@@ -8,12 +8,13 @@ T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 ways() { node tests/ways.mjs all all 1500 --check > "$T/ways.full"; rc=$?; grep -E '^!!|Rahmen' "$T/ways.full"; return $rc; }
 pots() { for c in barbarian paladin assassin huntress sorceress witch; do node tests/potions.mjs $c all 300 --check > "$T/pot.$c" 2>&1 & done; wait
   grep -h '^!!' "$T"/pot.*; n=$(grep -l 'im Rahmen' "$T"/pot.* | wc -l); echo "Tränke im Rahmen: $n/6 Klassen"; [ "$n" -eq 6 ]; }
+desc() { node tests/descent.mjs all 10 120 --check > "$T/desc.full"; rc=$?; grep -E '⚠|Stufe 10' "$T/desc.full"; return $rc; }
 bot() { for c in barbarian paladin assassin huntress sorceress witch; do node tests/bot.mjs $c 3 1 | grep -E "Kämpfe" | sed "s/^/$c: /" & done; wait; }
 
 if [ "$1" = "quick" ]; then
   set -- logic ui trader prep
 else
-  set -- logic bot fuzz ways potions ui trader prep uifuzz
+  set -- logic bot fuzz ways potions descent ui trader prep uifuzz
 fi
 for t in "$@"; do
   case $t in
@@ -25,6 +26,7 @@ for t in "$@"; do
     ui)     node tests/ui.cjs ;;
     trader) node tests/trader.cjs ;;
     prep) node tests/prep.cjs ;;
+    descent) desc ;;
     uifuzz) node tests/uifuzz.cjs 120 ;;
   esac > "$T/$t.out" 2>&1 &
   echo $! > "$T/$t.pid"

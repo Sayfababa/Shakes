@@ -711,3 +711,36 @@ export const EXP_TALES = {
   kapelle: ['Die Glocke hängt im Schutt und schweigt. Fast.', 'Kultisten beteten bis zum Morgen. Zu wem, blieb ungesagt.'],
   gruben: ['Die Hitze ließ das Eisen am Gürtel glühen.', 'Aus der Tiefe kam ein Lachen. Es klang wie Feuer.'],
 };
+
+// --- Der Abstieg: Gruft als Karte mit Ausgängen (rausholen oder verlieren) ---
+// Freigeschaltet je Gruft, sobald ihr Boss einmal gefallen ist. Leben und Trank-Ladungen laufen von Raum zu Raum mit.
+// Beute landet im Beutesack und zählt erst an einem Ausgang. Wer fällt, verliert den Sack – nie Ausrüstung, Stufe oder EP.
+export const DESCENT = {
+  daily: 3,                         // Abstiege je Tag (später: Grabsiegel)
+  widths: [2, 3, 3, 3, 2],          // Räume je Reihe (Eingang unten, Boss oben)
+  rope: 2, well: 3,                 // Reihe (0-basiert) mit Seil / Brunnen
+  unrestLoot: 0.4,                  // Beute × (1 + Unruhe × 0,4) → bis ×3
+  unrestDiff: 0.06,                 // Gegner × (1 + Unruhe × 0,07)
+  diff: 1, lvlAdd: 0,               // Gegner: Stufe = max(Gruft-Ebene 3, Heldenstufe) + lvlAdd
+  gold: 1.1, xp: 0.6,               // gegenüber einem Krypta-Kampf
+  item: 0.35, eliteMinR: 2, bossMinR: 3,
+  heart: 0.1, eliteHeart: 0.35,
+  heal: 0.35, trap: 0.3, trapDmg: 0.15,
+  wellGold: 6,                      // Brunnen: × Gegnerstufe
+  stairUnrest: 1,                   // Rückweg über die Stiege: ein Kampf mit Unruhe +1
+  boss: 0.8,                        // Boss-Stärke gegenüber der Krypta (er kommt nach 5 Räumen ohne Heilung)
+};
+export const DESC_ROOMS = {
+  fight:    { name: 'Kampf', w: 5, img: 'mon', text: 'Ein Gegner der Gruft.' },
+  elite:    { name: 'Elite', w: 2, minR: 1, img: 'mon', text: 'Stärker, mit zwei Eigenschaften. Trägt sicher ein magisches Fundstück.' },
+  treasure: { name: 'Schatzkammer', w: 1.3, minR: 1, max: 2, img: 'ruin', text: 'Beute ohne Kampf. Manchmal eine Falle: −15 % Leben.' },
+  shrine:   { name: 'Schrein', w: 1, minR: 1, max: 1, img: 'shrine', text: 'Heilt 35 % deines Lebens.' },
+  rope:     { name: 'Seil', exit: true, img: 'camp', text: 'Ausgang. Kostet nichts.' },
+  well:     { name: 'Brunnen', exit: true, img: 'goal', text: 'Ausgang. Kostet Gold (erst aus dem Sack, dann deins).' },
+};
+export const ELITE = { diff: 1.2, hp: 1.3, mods: [
+  { id: 'flink', name: 'Flink', eff: { evade: 0.15 } }, { id: 'stein', name: 'Steinhaut', mult: { armor: 1.7 } },
+  { id: 'dorn', name: 'Dornig', eff: { thorns: 0.2 } }, { id: 'vamp', name: 'Blutsauger', eff: { leech: 0.12 } },
+  { id: 'wut', name: 'Rasend', eff: { rage: 0.35 } }, { id: 'gift', name: 'Giftig', eff: { poison: 0.15 } },
+  { id: 'zaeh', name: 'Zäh', mult: { hp: 1.3 } },
+] };

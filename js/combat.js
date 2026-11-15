@@ -8,7 +8,7 @@ import { roll, chance, rand } from './rng.js';
 const MAX_ROUNDS = 50;
 
 export function fight(A, B) {
-  const a = { ...A, cur: A.hp, side: 'a', turn: 0, buff: 1, shield: 0, ch: [] }, b = { ...B, cur: B.hp, side: 'b', turn: 0, buff: 1, shield: 0, ch: [] };
+  const a = { ...A, cur: Math.min(A.hp, A.cur0 ?? A.hp), side: 'a', turn: 0, buff: 1, shield: 0, ch: [] }, b = { ...B, cur: B.hp, side: 'b', turn: 0, buff: 1, shield: 0, ch: [] };
   const chg = f => (f.spells || []).map((x, i) => Math.min(1, Math.round((f.ch[i] || 0) / x.every * 100) / 100));
   const cast = [];
   for (const f of [a, b]) {
@@ -17,6 +17,7 @@ export function fight(A, B) {
     f.poisonLeech = Math.max(0, ...(f.spells || []).map(x => x.m?.poisonLeech || 0));
     f.belt = (f.belt || []).map(p => ({ ...p, used: false }));
   }
+  const curA0 = Math.round(a.cur);   // Startleben (Abstieg: Leben läuft von Raum zu Raum mit)
   const log = [];
   let ev = {};   // was die Anzeige zusätzlich zeigen soll (Heilung, Dornen, Einzeltreffer) – wird mit der nächsten Zeile geschrieben
   const say = (who, t, extra = {}) => { log.push({ who, t, hpA: Math.max(0, Math.round(a.cur)), hpB: Math.max(0, Math.round(b.cur)), cA: chg(a), cB: chg(b), iB: intent(b, a), ...ev, ...extra }); ev = {}; };
@@ -51,7 +52,7 @@ export function fight(A, B) {
     [atk, def] = [def, atk];
   }
   const winner = a.cur > 0 && (b.cur <= 0 || a.cur / a.hp >= b.cur / b.hp) ? 'a' : 'b';
-  return { winner, log, hpA: A.hp, hpB: B.hp, left: Math.max(0, a.cur) / a.hp, cast, used: a.belt.filter(p => p.used).map(p => p.id) };
+  return { winner, log, hpA: A.hp, hpB: B.hp, left: Math.max(0, a.cur) / a.hp, curA0, endA: Math.max(0, Math.round(a.cur)), cast, used: a.belt.filter(p => p.used).map(p => p.id) };
 
   // Tränke (data.js POTIONS): Auslöser prüfen und wirken. Trinken kostet keinen Zug.
   function trig(x, y, t) {

@@ -829,3 +829,42 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 @media (min-height: 760px) { .map .node { width: min(50px, calc(100cqh / var(--rows) * .78)); height: min(50px, calc(100cqh / var(--rows) * .78)); } .map .node.goal { width: min(58px, calc(100cqh / var(--rows) * .9)); height: min(58px, calc(100cqh / var(--rows) * .9)); } }
 @container (max-height: 260px) { .node label { display: none; } .node .q { font-size: 1.1rem; } }
 .xrow i.nm { font-style: normal; } .expresv.tight .xrow i.nm { display: none; } .expresv.tight .xloot p { margin: 1px 0; font-size: .8rem; } .expresv.tight .steps p { padding: 1px 0; } .expresv.tight .steps i { width: 22px; height: 22px; }
+
+/* Der Abstieg: Karte (Eingang unten, Boss oben), Leben/Unruhe, Beutesack. Rahmen aus dem UI-Kit (slot, track/fill) */
+.desc > .panel, .descv > .panel, .descres > .panel { flex: none !important; }
+.descv > .panel.dmap { flex: 1 1 auto !important; display: flex; flex-direction: column; min-height: 0; padding-top: 4px; padding-bottom: 4px; }
+.descv .map { margin-top: 0; min-height: 120px; }
+.dhead { display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: center; } .dhead .portrait { width: 64px; height: 64px; }
+.dhead h2 { margin-bottom: 2px; } .dhead p { margin: 2px 0 0; }
+.drules p { margin: 3px 0; line-height: 1.3; } .drules b { color: var(--gold-hi); font-weight: 500; } .drules .down { color: var(--blood-hi); }
+.dcrypt { display: flex; justify-content: space-between; }
+.crypthead .dbtn { margin-left: 8px; padding: 2px 10px; min-height: 0; font-size: .74rem; color: var(--gold-hi); }
+.dtop h2 { margin-bottom: 3px; }
+.dbars { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 8px; align-items: center; font-family: 'Alegreya SC'; font-size: .72rem; }
+.dbars .bar { height: 10px; } .dbars b { font-weight: 500; text-align: right; } .dbars b.up { color: #9fc870; }
+.node.been { opacity: .5; } .node.here { opacity: 1; box-shadow: inset 0 0 10px #000, 0 0 0 2px var(--gold-hi), 0 0 12px rgba(226,192,122,.45); }
+.node.fog { background: #050403; opacity: .35; }
+.node.exit { box-shadow: inset 0 0 10px #000, 0 0 0 2px #5c8a3a; } .node.exit label { color: #9fc870; }
+.node.exit.off { opacity: .35; }
+.node.elite { box-shadow: inset 0 0 10px #000, 0 0 0 2px #6969ff; } .node.elite label { color: #8f8fff; }
+.node.boss { box-shadow: inset 0 0 10px #000, 0 0 0 2px var(--blood-hi); } .node.boss label { color: var(--blood-hi); }
+.node.exit.next, .node.elite.next, .node.boss.next { animation: nodePulse 1.6s infinite; }
+.node.on, .node.boss.on, .node.elite.on, .node.exit.on { box-shadow: inset 0 0 10px #000, 0 0 0 3px var(--gold-hi), 0 0 14px rgba(226,192,122,.6); animation: none; }
+.dinfo p { margin: 2px 0; line-height: 1.3; } .dinfo .dmsg b { color: var(--gold-hi); font-weight: 500; } .dinfo .up { color: #9fc870; } .dinfo .down { color: var(--blood-hi); }
+.dsackp h2 { margin-bottom: 3px; }
+.dsack { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; min-height: 30px; }
+.dit { width: 30px; height: 30px; display: grid; place-items: center; background: #07080b; box-shadow: inset 0 0 6px #000; border-image: url('../assets/ui/slot.webp') 16 / 4px stretch; }
+.dit { position: relative; overflow: hidden; } .dit img, .dit svg { position: absolute; inset: 7%; width: 86%; height: 86%; object-fit: contain; }
+.dit.r-magic { box-shadow: inset 0 0 8px rgba(105,105,255,.35); } .dit.r-rare { box-shadow: inset 0 0 8px rgba(255,255,100,.3); } .dit.r-legendary { box-shadow: inset 0 0 8px rgba(199,179,119,.5); }
+.dmore { font-family: 'Alegreya SC'; font-size: .75rem; color: var(--dim); padding: 0 4px; } .dsack .xrow { margin-left: 4px; }
+.drows p { display: flex; justify-content: space-between; margin: 0; padding: 4px 0; font-size: .85rem; border-bottom: 1px solid #000; box-shadow: 0 1px 0 #2e241a; }
+.drows p:last-child { border: 0; box-shadow: none; } .drows b { font-weight: 500; } .drows .up { color: #9fc870; }
+.descres > .btns, .desc > .btns, .descv > .btns { margin-top: 0; }
+.descres h2.hot { color: var(--blood-hi); } .descres .down { color: var(--blood-hi); } .descres .up { color: #9fc870; }
+.desc.tight .drules p:nth-of-type(4), .desc.tight .dhead p { display: none; } .desc.tight .drules p { font-size: .76rem; margin: 2px 0; }
+.dhead .xhead b { font-size: .82rem; text-align: center; line-height: 1.15; } .desc.tight .dhead .portrait { width: 48px; height: 48px; } .desc.tight .dhead { grid-template-columns: 48px 1fr; }
+.descv.tight .dsackp h2 { display: none; } .descv.tight .dtop h2 { display: none; }
+@media (max-height: 620px) { .desc .panel, .descv .panel, .descres .panel { padding-top: 5px; padding-bottom: 5px; } .desc h2, .descv h2 { font-size: 1rem; margin-bottom: 2px; } .dit { width: 26px; height: 26px; } }
+.descv .map .node { width: min(44px, calc(100cqh / var(--rows) * .7)); height: min(44px, calc(100cqh / var(--rows) * .7)); }
+.descv .map .node.goal { width: min(52px, calc(100cqh / var(--rows) * .82)); height: min(52px, calc(100cqh / var(--rows) * .82)); }
+.descv .map .node.start { width: min(32px, calc(100cqh / var(--rows) * .6)); height: min(32px, calc(100cqh / var(--rows) * .6)); }

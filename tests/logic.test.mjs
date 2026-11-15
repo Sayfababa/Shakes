@@ -550,8 +550,89 @@ test('Expedition: Segen/Fluch wirkt einmal auf den nächsten Krypta-Kampf', () =
 });
 test('Migration: Spielstand v8 bekommt Expedition, v9-Expedition (Ausrichtung) wird zum Weg', () => {
   fresh('witch'); let d = JSON.parse(JSON.stringify(G.S)); d.v = 8; delete d.exp; delete d.bless;
-  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); let L = G.load(); assert.equal(L.v, 10); assert.equal(L.exp, null); assert.equal(L.bless, 0);
+  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); let L = G.load(); assert.equal(L.v, G.SAVE_VERSION); assert.equal(L.exp, null); assert.equal(L.bless, 0);
   fresh('witch'); d = JSON.parse(JSON.stringify(G.S)); d.v = 9; delete d.bless; d.exp = { loc: 'friedhof', h: 8, focus: 'kraeuter', start: Date.now() - 9 * 3600e3, end: Date.now() - 3600e3 };
   localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); L = G.load(); assert.equal(L.exp.nodes.length, 4); assert.ok(L.exp.nodes.every(n => n.t === 'herb'));
   G.S.exp = L.exp; const r = Game.claimExped(); assert.ok(r && r.rew.herbs.length, 'alte Expedition lässt sich heimholen');
+});
+
+// --- Der Abstieg ---
+const descHero = (cls = 'paladin', lvl = 14) => { const S = fresh(cls); S.lvl = lvl; S.attrs.str += 120; S.attrs.con += 80; S.attrs.int += 60; S.attrs.dex += 40;
+  S.trophies.push({ key: 'c2:0', name: 'x', diff: 'Normal', eff: D.CRYPTS[1].trophy }); return S; };
+test('Abstieg: Karte – Reihen, Ausgänge, jeder Raum erreichbar, Boss oben', () => {
+  descHero();
+  for (let k = 0; k < 200; k++) {
+    const rows = Game.descMap(D.CRYPTS[1]);
+    assert.deepEqual(rows.map(r => r.length), D.DESCENT.widths);
+    assert.ok(rows[0].every(n => n.t === 'fight'), 'erste Reihe: Kämpfe');
+    assert.equal(rows[D.DESCENT.rope].filter(n => n.t === 'rope').length, 1); assert.equal(rows[D.DESCENT.well].filter(n => n.t === 'well').length, 1);
+    for (let r = 1; r < rows.length; r++) for (const n of rows[r]) assert.ok(rows[r - 1].some(m => !D.DESC_ROOMS[m.t].exit && Game.expLinked(m, n)), 'Raum unerreichbar');
+    assert.ok(rows[rows.length - 1].some(n => !D.DESC_ROOMS[n.t].exit), 'Boss erreichbar');
+    for (const n of rows.flat()) { assert.ok(D.DESC_ROOMS[n.t]); if (n.t === 'fight' || n.t === 'elite') assert.ok(D.CRYPTS[1].floors.includes(n.mob)); if (n.t === 'elite') assert.equal(n.mods.length, 2); }
+  }
+});
+test('Abstieg: nur nach dem Boss der Gruft, je Tag begrenzt, nicht neben Expedition/Streifzug; Umkehren vor Raum 1 zählt nicht', () => {
+  const S = fresh(); assert.equal(Game.descStart('c2'), null, 'ohne Bosssieg gesperrt');
+  descHero(); assert.ok(Game.descStart('c2')); assert.equal(Game.descStart('c2'), null, 'nicht zweimal');
+  assert.equal(Game.descStair().kind, 'back'); assert.equal(G.S.desc, null); assert.equal(Game.descLeft(), D.DESCENT.daily, 'Umkehren kostet keinen Abstieg');
+  for (let i = 0; i < D.DESCENT.daily; i++) { assert.ok(Game.descStart('c2')); G.S.desc = null; }
+  assert.equal(Game.descLeft(), 0); assert.equal(Game.descStart('c2'), null, 'Tageslimit');
+  G.S.descDay.d = 'gestern'; assert.ok(Game.descStart('c2'), 'neuer Tag'); G.S.desc = null;
+  G.S.active = { loc: 'friedhof', end: Date.now() + 1e6 }; assert.equal(Game.descStart('c2'), null, 'nicht während eines Streifzugs'); G.S.active = null;
+  assert.ok(Game.descStart('c2')); assert.equal(Game.startExped('friedhof', 1, [0]), false, 'keine Expedition während des Abstiegs');
+  G.S.crypt.cd = 0; assert.equal(Game.cryptFight('c1'), null, 'keine Krypta während des Abstiegs'); assert.equal(G.startTrip('friedhof'), false, 'kein Streifzug');
+});
+test('Kampf: Startleben (cur0) wird übernommen, Restleben kommt zurück', () => {
+  descHero(); const A = { ...G.stats(), cur0: 37 }, m = G.makeMonster(1, 0.5);
+  const r = fight(A, m); assert.equal(r.curA0, 37); assert.equal(r.log[0].hpA <= 37 + A.hp, true); assert.ok(r.endA >= 0 && r.endA <= A.hp);
+  const r2 = fight(G.stats(), m); assert.equal(r2.curA0, G.stats().hp);
+});
+test('Abstieg: Leben läuft mit, Unruhe steigt, Beute im Sack; Seil sichert, Tod verliert den Sack, EP bleiben', () => {
+  descHero(); Game.descStart('c2'); const D0 = G.S.desc;
+  const j = Game.descNext()[0], r = Game.descEnter(j); assert.equal(r.kind, 'fight'); assert.ok(r.res.win, 'starker Held gewinnt Raum 1');
+  assert.equal(D0.unrest, 1); assert.equal(D0.rooms, 1); assert.ok(Math.abs(D0.hpf - r.res.r.endA / r.res.A.hp) < 1e-9, 'Leben = Restleben');
+  assert.ok(D0.sack.gold > 0); assert.equal(Game.descMult(), 1.4);
+  // Nächster Kampf startet mit diesem Leben
+  D0.hpf = 0.3; const j2 = Game.descNext().find(x => ['fight', 'elite'].includes(Game.descNodeAt(x).t));
+  if (j2 != null) { const r2 = Game.descEnter(j2); assert.equal(r2.res.r.curA0, Math.round(r2.res.A.hp * 0.3)); }
+  // Seil: alles im Sack wird gesichert
+  if (G.S.desc) { const gold0 = G.S.gold, sack = G.S.desc.sack.gold, it = makeItem(10); G.S.desc.sack.items.push(it);
+    G.S.desc.path = G.S.desc.path.slice(0, D.DESCENT.rope); G.S.desc.path.length = D.DESCENT.rope;
+    const prev = G.S.desc.rows[D.DESCENT.rope - 1], rp = G.S.desc.rows[D.DESCENT.rope].findIndex(n => n.t === 'rope');
+    G.S.desc.path[D.DESCENT.rope - 1] = prev.findIndex(n => !D.DESC_ROOMS[n.t].exit && Game.expLinked(n, G.S.desc.rows[D.DESCENT.rope][rp]));
+    for (let i = 0; i < D.DESCENT.rope - 1; i++) G.S.desc.path[i] = G.S.desc.rows[i].findIndex(n => !D.DESC_ROOMS[n.t].exit && (i === D.DESCENT.rope - 2 ? Game.expLinked(n, prev[G.S.desc.path[i + 1]]) : true));
+    const out = Game.descEnter(rp); assert.equal(out.kind, 'out'); assert.equal(G.S.desc, null);
+    assert.equal(G.S.gold, gold0 + sack); assert.ok(G.S.bag.some(x => x.id === it.id), 'Item im Beutel'); }
+  // Tod: Sack weg, EP bleiben
+  const S = descHero('witch', 14); S.attrs = { str: 5, dex: 5, int: 5, con: 6, lck: 3 }; Game.descStart('c2'); G.S.desc.hpf = 0.01; G.S.desc.sack.gold = 999;
+  const gold0 = G.S.gold, xp0 = G.S.xp, lvl0 = G.S.lvl, rr = Game.descEnter(Game.descNext()[0]);
+  assert.equal(rr.res.win, false); assert.equal(G.S.desc, null); assert.equal(G.S.gold, gold0, 'Sack-Gold verloren'); assert.equal(rr.res.desc.lost.gold, 999);
+  assert.ok(G.S.lvl > lvl0 || G.S.xp >= xp0, 'EP bleiben');
+});
+test('Abstieg: Brunnen kostet Gold (erst aus dem Sack), Schrein heilt, Schatzkammer füllt den Sack', () => {
+  descHero(); Game.descStart('c2'); const Dd = G.S.desc;
+  const wr = Dd.rows[D.DESCENT.well], wj = wr.findIndex(n => n.t === 'well'), pj = Dd.rows[D.DESCENT.well - 1].findIndex(n => !D.DESC_ROOMS[n.t].exit && Game.expLinked(n, wr[wj]));
+  Dd.path = Array.from({ length: D.DESCENT.well }, (_, i) => i === D.DESCENT.well - 1 ? pj : Dd.rows[i].findIndex(n => !D.DESC_ROOMS[n.t].exit));
+  // Weg gültig machen (Verbindungen)
+  for (let i = D.DESCENT.well - 2; i >= 0; i--) Dd.path[i] = Dd.rows[i].findIndex(n => !D.DESC_ROOMS[n.t].exit && Game.expLinked(n, Dd.rows[i + 1][Dd.path[i + 1]]));
+  const cost = Game.descWellCost(); Dd.sack.gold = Math.floor(cost / 2); G.S.gold = cost; const g0 = G.S.gold, s0 = Dd.sack.gold;
+  const out = Game.descEnter(wj); assert.equal(out.kind, 'out'); assert.equal(G.S.gold, g0 - (cost - s0), 'Rest aus eigenem Gold, Sack-Rest 0 kommt dazu');
+  descHero(); Game.descStart('c2'); G.S.desc.rows[1][0] = { t: 'shrine', x: G.S.desc.rows[1][0].x }; G.S.desc.path = [0]; G.S.desc.hpf = 0.4;
+  const sh = Game.descEnter(0); assert.equal(sh.kind, 'room'); assert.ok(Math.abs(G.S.desc.hpf - (0.4 + D.DESCENT.heal)) < 1e-9);
+  G.S.desc.rows[2][0] = { t: 'treasure', x: G.S.desc.rows[2][0].x }; G.S.desc.rows[1][0].x = G.S.desc.rows[2][0].x; const n0 = G.S.desc.sack.items.length;
+  const tr = Game.descEnter(0); assert.equal(tr.kind, 'room'); assert.ok(G.S.desc.sack.items.length > n0, 'Schatzkammer bringt ein Fundstück'); assert.ok(G.S.desc.hpf > 0);
+});
+test('Abstieg: Boss besiegt = draußen, Neuladen mitten im Abstieg verändert nichts', () => {
+  const SB = descHero('paladin', 10); SB.attrs.str += 600; SB.attrs.con += 400; Game.descStart('c2');
+  const s0 = JSON.stringify(G.S); G.save(); assert.equal(JSON.stringify(G.load()), s0); const Dd = G.S.desc;
+  Dd.path = Dd.rows.map(() => 0); for (let i = Dd.rows.length - 2; i >= 0; i--) Dd.path[i] = Dd.rows[i].findIndex(n => !D.DESC_ROOMS[n.t].exit && Game.expLinked(n, Dd.rows[i + 1][Dd.path[i + 1]]));
+  Dd.path[Dd.rows.length - 1] = Dd.rows[Dd.rows.length - 1].findIndex(n => !D.DESC_ROOMS[n.t].exit);
+  for (let i = Dd.rows.length - 2; i >= 0; i--) Dd.path[i] = Dd.rows[i].findIndex(n => !D.DESC_ROOMS[n.t].exit && Game.expLinked(n, Dd.rows[i + 1][Dd.path[i + 1]]));
+  assert.deepEqual(Game.descNext(), ['boss']);
+  const r = Game.descEnter('boss'); assert.ok(r.res.win, 'starker Held schlägt den Boss'); assert.ok(r.res.desc.out); assert.equal(G.S.desc, null);
+  assert.ok(r.res.desc.out.items.length >= 2, 'Boss bringt mindestens 2 Fundstücke');
+});
+test('Migration: Spielstand v10 bekommt den Abstieg', () => {
+  fresh(); const d = JSON.parse(JSON.stringify(G.S)); d.v = 10; delete d.desc; delete d.descDay;
+  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); const L = G.load(); assert.equal(L.v, 11); assert.equal(L.desc, null); assert.equal(L.descDay, null);
 });
