@@ -532,7 +532,7 @@ export function doService(tid, svId) {
 export { ATTRS };
 
 // --- Alchemie: Zutaten, Tränke brauen, Gürtel (wirkt nur in der Krypta) ---
-export const today = () => new Date().toDateString();
+export const today = () => new Date(Date.now()).toDateString();
 export const potion = id => POTIONS.find(p => p.id === id);
 export const beltSlots = () => loyalty('ysolde') >= ALCH.loyalNeed ? ALCH.slotsLoyal : ALCH.slots;
 export const potMax = p => p.rare ? ALCH.maxRare : ALCH.maxCommon;

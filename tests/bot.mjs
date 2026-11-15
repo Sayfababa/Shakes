@@ -30,6 +30,10 @@ function manage(log) {
     const sl = slotOf(it), keepForQuest = Object.keys(D.QUESTS).some(t => Q.available(t) && Q.current(t).obj.some(o => o.give === it.slot));
     if (!keepForQuest && (wrongWeapon(it) || score(it) <= score(S.equip[sl]))) G.sell(it.id);
   }
+  // Alchemie (wenn eingeschaltet): gewöhnliche Tränke auf Vorrat brauen, seltene mit Herz; Gold-Reserve fürs Ausrüsten behalten
+  if (POTS) for (const p of [...D.POTIONS].sort((a, b) => (b.rare || 0) - (a.rare || 0))) {
+    while ((S.pots[p.id] || 0) < (p.rare ? 1 : 3) && S.gold > 150 + G.brewCost(p.id).gold && G.canBrew(p.id).ok) { const g = S.gold; G.brew(p.id); log.brewed++; log.brewGold += g - S.gold; }
+  }
   // Quests abgeben
   for (const t of D.GIVERS) { const r = Q.complete(t, 'break'); if (r) log.quests.push(`${t}:${r.q.id}@${S.lvl}`); }
   // Dienste
@@ -53,16 +57,16 @@ function pickLocation() {
   return S.glut >= target.glut ? target.id : null;   // auf Glut warten statt billig zu farmen
 }
 
-let RISK = 0.8;
-export function run(cls = 'paladin', days = 7, risk = 0.8) {
-  RISK = risk;
+let RISK = 0.8, POTS = false;
+export function run(cls = 'paladin', days = 7, risk = 0.8, pots = false) {
+  RISK = risk; POTS = pots;
   clock = Date.UTC(2026, 0, 5, 8, 0, 0);
   G.newChar('Bot', cls); G.S.tut = 99;
-  const log = { delves: 0, delveLoss: 0, lostGold: 0, tracks: { safe: 0, norm: 0, blood: 0 }, quests: [], bought: 0, trips: 0, tripLoss: 0, crypt: 0, cryptLoss: 0, arena: 0, arenaLoss: 0, perDay: [] };
+  const log = { delves: 0, delveLoss: 0, lostGold: 0, tracks: { safe: 0, norm: 0, blood: 0 }, quests: [], bought: 0, trips: 0, tripLoss: 0, crypt: 0, cryptLoss: 0, arena: 0, arenaLoss: 0, perDay: [], brewed: 0, brewGold: 0, used: 0, potFights: 0 };
   const end = clock + days * 86400000;
   let nextDay = clock + 86400000, rival = null;
   while (clock < end) {
-    const S = G.S; G.tickGlut(); manage(log);
+    const S = G.S; G.tickGlut(); G.potDaily(); manage(log);
     let acted = false;
     if (S.active && clock >= S.active.end) { const r = Game.resolveTrip(); log.trips++; if (!r.win) log.tripLoss++; acted = true;
       // Tiefer gehen, solange die Chance gut ist und noch wenig auf dem Spiel steht
@@ -74,7 +78,8 @@ export function run(cls = 'paladin', days = 7, risk = 0.8) {
       if (G.startTrip(id, tr)) acted = true; } }
     if (clock >= S.crypt.cd) {
       const c = D.CRYPTS.find(c => G.cryptOpen(c) && G.cryptFloor(c) < 5 && Game.cryptChance(c) >= 0.4);
-      if (c) { const r = Game.cryptFight(c.id); if (r) { log.crypt++; if (!r.win) log.cryptLoss++; acted = true; } }
+      if (c) { const m = G.cryptEnemy(c); if (POTS) Game.bestBelt(m, 20); const r = Game.cryptFight(c.id, m);
+        if (r) { log.crypt++; if (!r.win) log.cryptLoss++; acted = true; log.used += r.rew.used?.length || 0; if (r.rew.used?.length) log.potFights++; } }
     }
     const champ = Q.available('vargo') && Q.current('vargo').champ && !Q.canComplete('vargo');
     const arenaWanted = champ || (Q.available('vargo') && Q.objectives('vargo').some((o, i) => !o.done && (Q.current('vargo').obj[i].arena || Q.current('vargo').obj[i].honor))) || S.glut > 80;
@@ -86,7 +91,8 @@ export function run(cls = 'paladin', days = 7, risk = 0.8) {
     if (clock >= nextDay) {
       log.perDay.push({ day: log.perDay.length + 1, lvl: S.lvl, gold: S.gold, quests: log.quests.length, shards: S.shards.length,
         cryptsDone: D.CRYPTS.filter(c => G.cryptFloor(c) >= 5).length, diff: D.DIFFICULTIES[S.crypt.diff].name,
-        trips: log.trips, tripLoss: log.tripLoss, crypt: log.crypt, cryptLoss: log.cryptLoss, omens: S.omens, title: S.title || '' });
+        trips: log.trips, tripLoss: log.tripLoss, crypt: log.crypt, cryptLoss: log.cryptLoss, omens: S.omens, title: S.title || '',
+        herbs: Object.values(S.herbs).reduce((a, b) => a + b, 0), pots: Object.values(S.pots).reduce((a, b) => a + b, 0), brewed: log.brewed, used: log.used });
       nextDay += 86400000;
     }
     // Zeit vorspulen bis zum nächsten möglichen Ereignis
@@ -97,13 +103,13 @@ export function run(cls = 'paladin', days = 7, risk = 0.8) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const [cls = 'paladin', days = 7, runs = 1, risk = 0.8] = process.argv.slice(2);
+  const [cls = 'paladin', days = 7, runs = 1, risk = 0.8] = process.argv.slice(2), pots = process.argv.includes('--pots');
   for (let i = 0; i < +runs; i++) {
-    const { log, S } = run(cls, +days, +risk);
+    const { log, S } = run(cls, +days, +risk, pots);
     console.log(`\n=== ${cls} · Lauf ${i + 1} ===`);
     console.table(log.perDay);
     console.log('Quests:', log.quests.join(' '));
     console.log(`Spuren ${JSON.stringify(log.tracks)} · Tiefe ${log.delves} (−${log.delveLoss}, verloren ${log.lostGold} Gold)`);
-    console.log(`Kämpfe: Streifzug ${log.trips} (−${log.tripLoss}) · Krypta ${log.crypt} (−${log.cryptLoss}) · Grube ${log.arena} (−${log.arenaLoss}) · gekauft ${log.bought} · Titel ${S.title || '-'}`);
+    console.log(`Kämpfe: Streifzug ${log.trips} (−${log.tripLoss}) · Krypta ${log.crypt} (−${log.cryptLoss}) · Grube ${log.arena} (−${log.arenaLoss}) · gekauft ${log.bought} · Titel ${S.title || '-'}${pots ? ` · gebraut ${log.brewed} (${log.brewGold} Gold) · getrunken ${log.used} in ${log.potFights} Kämpfen` : ''}`);
   }
 }

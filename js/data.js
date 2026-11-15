@@ -597,7 +597,7 @@ export const HERBS = {
 };
 // Welche Zutat ein Streifzug-Ort liefert (Chance je Sieg), Herz von Krypta-Bossen
 export const HERB_LOC = { friedhof: 'grabmoos', muehle: 'rotwurz', katakomben: 'silberstaub', moor: 'nachtschatten', kapelle: 'grabmoos', gruben: 'schwefel' };
-export const ALCH = { herbChance: 0.4, slots: 2, slotsLoyal: 3, loyalNeed: 2, charges: 3, maxCommon: 6, maxRare: 2, bossHearts: 2, floorHeart: 0.12,
+export const ALCH = { herbChance: 0.15, slots: 2, slotsLoyal: 3, loyalNeed: 2, charges: 3, maxCommon: 6, maxRare: 2, bossHearts: 2, floorHeart: 0.12,
   gold: [8, 2.5], goldRare: [30, 7] };   // Gold = a + Stufe × b
 export const POTIONS = [
   { id: 'rotwurz', name: 'Rotwurz-Trank', text: 'Heilt 12 % Leben.', fx: { heal: 0.12 }, trig: ['hp50', 'hp30'], cost: { rotwurz: 2 } },

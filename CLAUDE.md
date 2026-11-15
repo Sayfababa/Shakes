@@ -83,7 +83,7 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - Browser-Tests laufen mit `deviceScaleFactor: 1` und den Handys gleichzeitig (3× Auflösung kostete das Vierfache an Zeit).
 - `tests/logic.test.mjs` – node:test, Logik & Daten-Konsistenz (Quest-Ziele, Bilder, Migration, Softlocks).
 - `tests/personas.mjs [tage]` – Optimist/Realist/Pessimist spielen in echten Sitzungen ohne Schummeln; Auswertung in BOT-REVIEW.md.
-- `tests/bot.mjs [klasse] [tage]` – Bot spielt mit simulierter Uhr und zeigt Tempo pro Tag (Stufe, Quests, Splitter, Niederlagen). Für Balance-Fragen benutzen.
+- `tests/bot.mjs [klasse] [tage] [läufe] [risiko] [--pots]` – Bot spielt mit simulierter Uhr und zeigt Tempo pro Tag (Stufe, Quests, Splitter, Niederlagen). Für Balance-Fragen benutzen. `--pots`: Bot braut (gewöhnliche bis 3 Vorrat, seltene mit Herz) und packt vor jedem Krypta-Kampf den besten Gürtel; Tabelle zeigt Zutaten/Tränke/gebraut/getrunken. Eichung Alchemie (Zutaten-Chance 15 %): nach 4 Tagen ~5–30 Zutaten übrig, ~15 Tränke getrunken, Krypta-Niederlagen etwa halbiert, Fortschritt gleich schnell.
 - `tests/fuzz.mjs [züge] [läufe]` – tausende zufällige legale Spielzüge, prüft nach JEDEM Zug: kein doppeltes Item, Gold/Glut/EP/Material gültig, Beutel ohne Überlappung, Werte endlich, Siegel/Glut/Runen konsistent, Speichern=Laden.
 - `tests/uifuzz.cjs [taps]` – tippt zufällig auf alles in der App (3 iPhones, früh/spät), meldet JS-Fehler, Überstand, „undefined/NaN“ im Text, Sackgassen.
 - `tests/potions.mjs` – Balance jedes Tranks (je Auslöser) gegen Krypta-Ebenen und jeden Boss, gekoppelter Zufall; in run.sh mit `--check`.
