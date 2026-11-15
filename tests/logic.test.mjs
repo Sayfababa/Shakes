@@ -539,6 +539,11 @@ test('Expedition: Karte, Weg, ohne Glut, blockiert Kämpfe, Ereignisse bei der H
     assert.ok(xp / N < glutXp * 0.5, `Expedition ${Math.round(xp / N)} EP vs. Glut ${Math.round(glutXp)}`);
   } finally { Date.now = real; }
 });
+test('Expedition: alle Stations- und Ereignisbilder vorhanden', async () => {
+  const fs = await import('node:fs');
+  for (const k of [...Object.keys(D.EXP_NODES), 'goal']) assert.ok(fs.existsSync(`assets/expedition/${k}.webp`), k);
+  for (const e of D.EXP_EVENTS) { assert.ok(fs.existsSync(`assets/${e.img}`), e.img); assert.equal(e.ch.length, 3, e.id); }
+});
 test('Expedition: Segen/Fluch wirkt einmal auf den nächsten Krypta-Kampf', () => {
   const S = fresh('paladin'); S.lvl = 10; const c = D.CRYPTS[0]; S.bless = 0.2; const A = Game.blessed(G.stats()); assert.equal(A.hp, Math.round(G.stats().hp * 1.2));
   S.crypt.cd = 0; const r = Game.cryptFight(c.id); assert.ok(r); assert.equal(r.rew.bless, 0.2); assert.equal(S.bless, 0, 'verbraucht');

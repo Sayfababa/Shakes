@@ -99,7 +99,7 @@ let failures = 0;
     await p.reload(); await p.waitForTimeout(300); await tap('[data-v=trips]');
     if (!(await tap('.expbar.ready'))) { failures++; console.log(`FEHLER ${tag}: Expedition-Leiste fehlt/leuchtet nicht bei leerer Glut`); }
     await tap('[data-h="8"]'); await chk('exped');
-    for (let i = 0; i < 4; i++) { const nn = await p.$$('.node.next'); let n = nn[0]; for (const q of nn) if (await q.$('.q')) n = q; if (!n) break; await n.tap(); await p.waitForTimeout(60); }
+    for (let i = 0; i < 4; i++) { const nn = await p.$$('.node.next'); let n = nn[0]; for (const q of nn) if (await q.$('img[src*="event.webp"]')) n = q; if (!n) break; await n.tap(); await p.waitForTimeout(60); }
     await chk('exped2'); if (await p.$('[data-action=expgo][disabled]')) { failures++; console.log(`FEHLER ${tag}: Weg lässt sich nicht vollständig wählen`); }
     await tap('[data-action=expgo]'); await chk('expaway');
     await tap('[data-v=crypt]'); await chk('expcrypt'); if (await p.$('[data-action=crypt]')) { failures++; console.log(`FEHLER ${tag}: Krypta während Expedition offen`); }

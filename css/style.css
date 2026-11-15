@@ -784,7 +784,7 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .map svg .l1 line { stroke: #c9a45a; stroke-width: 3; vector-effect: non-scaling-stroke; }
 .node { position: absolute; width: 42px; height: 42px; padding: 0; translate: -50% -50%; transform: none !important; display: grid; place-items: center; min-height: 0;
   background: #07080b; box-shadow: inset 0 0 10px #000; border: 0; border-image: url('../assets/ui/slot.webp') 16 / 6px stretch; z-index: 1; }
-.node img { width: 78%; height: 78%; object-fit: contain; filter: drop-shadow(0 1px 1px #000); }
+.node img { width: 92%; height: 92%; object-fit: contain; filter: drop-shadow(0 1px 1px #000); }
 .node img.mon { width: 100%; height: 100%; object-fit: cover; filter: saturate(.7); }
 .node .q, .trail .q, .steps .q { font-family: 'Grenze Gotisch'; font-size: 1.5rem; color: var(--gold); text-shadow: 0 0 6px #000; line-height: 1; }
 .node.on { box-shadow: inset 0 0 10px #000, 0 0 0 2px var(--gold-hi), 0 0 12px rgba(226,192,122,.45); }

@@ -224,13 +224,8 @@ export function viewTrips(ask = false) {
 // --- Expedition ---
 const herbImg = id => `<img class="matimg" src="assets/potions/${HERBS[id].img}.webp" alt="">`;
 const expHoursDone = e => Math.floor((Date.now() - e.start) / 3600000);
-// Symbol einer Station (Platzhalter aus vorhandenen Bildern, bis eigene Stationsbilder da sind)
-function nodeArt(t, locId) {
-  const l = LOCATIONS.find(x => x.id === locId), p = expedPreview(locId, 1);
-  const src = { herb: `potions/${HERBS[p.herb].img}.webp`, mats: `forge/${p.matIds[0]}.webp`, ruin: 'items/amulet_a.webp', shrine: 'potions/weihwasser.webp',
-    camp: 'ui/coin.webp', goal: 'items/amulet_b.webp', danger: `monsters/${MONSTERS.find(m => m.name === l.mobs[0]).glyph}.jpg` }[t];
-  return t === 'event' ? '<span class="q">?</span>' : `<img class="${t === 'danger' ? 'mon' : ''}" src="assets/${src}" alt="">`;
-}
+// Symbol einer Station (assets/expedition/<typ>.webp, Prompt in assets/reference/expedition_prompt.md)
+const nodeArt = t => `<img src="assets/expedition/${t}.webp" alt="">`;
 function expAway(ask) {
   const e = S.exp, l = LOCATIONS.find(x => x.id === e.loc), left = Math.ceil((e.end - Date.now()) / 1000), hh = expHoursDone(e), k = expDoneCount(e);
   const trail = [...e.nodes, { t: 'goal' }].map((n, i) => `<i class="${i < k ? 'done' : i === k ? 'now' : ''}">${nodeArt(n.t, e.loc)}</i>`).join('<s></s>');
