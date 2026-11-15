@@ -608,3 +608,15 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .crypt .portrait, .crypt > svg, .crypt > img { max-height: none; align-self: center; }
 .col:has(> .crypt) > .crypt:not(.locked) { flex: 1 0 auto !important; }
 @media (max-height: 720px) { .crypt:not(.locked) { grid-template-columns: 15% 1fr !important; padding-top: 6px; padding-bottom: 6px; } .crypt h3 { font-size: .98rem; } }
+
+/* Händler: der Quest-Zettel wird nie abgeschnitten – er ist so hoch wie sein Text; die Ware passt sich in der Höhe an */
+.trader .note { flex: 0 0 auto !important; min-height: auto; overflow: visible; }
+.trader .note p { -webkit-line-clamp: unset; display: block; }
+.trader > .shop { flex: 0 1 auto !important; min-height: 0; margin-top: auto; }
+@media (min-height: 760px) { .trader > .shop { flex: 1 1 0 !important; display: flex; flex-direction: column; justify-content: center; }
+  .trader .shoprow { flex: 1 1 auto; min-height: 0; max-height: 236px; grid-template-rows: repeat(2, minmax(0, 1fr)); }
+  .trader .sitem { aspect-ratio: auto; height: auto; min-height: 0; } }
+@media (max-height: 720px) { .trader .note p { display: -webkit-box; -webkit-line-clamp: 3; } }
+@media (max-height: 600px) { .trader .note p { display: none; } .trader .note { padding-top: 8px; padding-bottom: 6px; } }   /* winzig: nur Titel, Ziele, Lohn */
+@media (max-height: 600px) { .trader .npcrow { grid-template-columns: 15% 1fr; padding-top: 4px; padding-bottom: 4px; } .trader .npcrow .lore, .trader .npcrow small { display: none; }
+  .trader .note button { min-height: 0; padding: 4px 12px; margin-top: 3px; } .trader .note ul { margin: 2px 0; } }
