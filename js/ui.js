@@ -1,6 +1,6 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
 import { AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
-import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH } from './data.js';
+import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED } from './data.js';
 import { potion, beltSlots, brewCost, canBrew, potMax } from './state.js';
 import { waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
@@ -8,12 +8,12 @@ import { current, available, objectives, canComplete } from './quests.js';
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
-import { gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo, potOffer, fightReport } from './game.js';
+import { gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo, potOffer, fightReport, expedPreview } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
 const P = cls => `assets/portraits/${CLASSES[cls].portrait}.jpg`;
 const rarName = (id, it) => it?.unique ? 'Einzigartig' : RARITIES.find(r => r.id === id)?.name || '';
-export const fmtT = s => `${Math.floor(s / 60)}:${String(Math.max(0, s % 60)).padStart(2, '0')}`;
+export const fmtT = s => s >= 3600 ? `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` : `${Math.floor(s / 60)}:${String(Math.max(0, s % 60)).padStart(2, '0')}`;
 export const fmtN = n => n.toLocaleString('de-DE');
 // Kampfkraft-Änderung durch ein Item (in %), null wenn nicht vergleichbar
 export const itemGain = it => { if (!it?.slot || Object.values(S.equip).includes(it)) return null; const p = powerWith(it); return (p.then - p.now) / Math.max(1, p.now); };
@@ -85,10 +85,10 @@ export function hud(tut = '') {
 }
 export function navBar(view) {
   const tabs = [['hero', 'Held'], ['trips', 'Streifzug'], ['traders', 'Händler'], ['crypt', 'Krypta'], ['arena', 'Grube']];
-  const map = { alch: 'traders', prep: 'crypt', forge: 'traders', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips' };
+  const map = { alch: 'traders', prep: 'crypt', forge: 'traders', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips', exped: 'trips' };
   // Nur echte Handlungsaufforderungen markieren – ein Dauer-Punkt auf jedem Tab sagt nichts mehr
   const badge = { hero: S.points + talentPoints() + waysPending() > 0, traders: Object.keys(TRADERS).some(canComplete), arena: canComplete('vargo'),
-    crypt: canComplete('ilse'), trips: !!S.haul || canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) || (!!S.active && Date.now() >= S.active.end) };
+    crypt: canComplete('ilse'), trips: !!S.haul || canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) || (!!S.active && Date.now() >= S.active.end) || (!!S.exp && Date.now() >= S.exp.end) };
   const on = map[view] || view;
   return `<nav class="tabs">${tabs.map(([k, n]) => `<a class="${on === k ? 'on' : ''} ${badge[k] ? 'badge' : ''}" data-action="go" data-v="${k}">${n}</a>`).join('')}</nav>`;
 }
@@ -200,13 +200,16 @@ export function viewTrips() {
                  : `<button class="red big-btn" data-action="resolve">Stellen</button>`}</section>
       ${say('prophet')}</div>`;
   }
+  if (S.exp) return `<div class="col">${expAway()}${say('prophet')}</div>`;
   const o = omen();
   const openLocs = LOCATIONS.filter(locOpen), nextLoc = LOCATIONS.find(l => !locOpen(l)), later = LOCATIONS.filter(l => !locOpen(l) && l !== nextLoc);
   const bl = bounties(), bDone = bl.filter(b => b.claimed).length, bReady = bl.some(b => !b.claimed && b.prog >= b.n);
   const bbar = `<div class="bountybar ${bReady ? 'ready' : ''}" data-action="go" data-v="bounties"><span>Steckbriefe heute</span><b>${bDone}/3</b>${bReady ? '<i>Lohn abholen</i>' : ''}</div>`;
+  const tired = !S.haul && openLocs.every(l => S.glut < l.glut);
+  const xbar = S.haul ? '' : `<div class="bountybar expbar ${tired ? 'ready' : ''}" data-action="go" data-v="exped"><span>Expedition</span><b>ohne Glut · 1–8 Std.</b>${tired ? '<i>Glut leer – schick ihn los</i>' : ''}</div>`;
   const cards = [...openLocs, ...(nextLoc ? [nextLoc] : [])];
   const ptsHint = S.points && openLocs.some(l => tripChance(l) < 0.65) ? `<div class="ptsline" data-action="go" data-v="stats">${S.points} Punkte frei – verteile sie, dann sinkt die Gefahr</div>` : '';
-  return `<div class="col">${S.haul ? haulPanel() : say('prophet', omenLine())}${bbar}${ptsHint}<div class="trips ${cards.length > 4 ? 'many' : ''}">${cards.map(l => { const open = locOpen(l), r = tripReward(l, 1, (l.sec[0] + l.sec[1]) / 2);
+  return `<div class="col">${S.haul ? haulPanel() : say('prophet', omenLine())}${bbar}${xbar}${ptsHint}<div class="trips ${cards.length > 4 ? 'many' : ''}">${cards.map(l => { const open = locOpen(l), r = tripReward(l, 1, (l.sec[0] + l.sec[1]) / 2);
     const isOmen = open && S.lvl >= 3 && o.loc === l.id && !o.done;
     const wanted = new Set(Object.keys(TRADERS).filter(available).flatMap(t => current(t).obj.filter(o => o.at === l.id || l.mobs.includes(o.kill)).map(() => t)));
     return `<section class="panel trip ${open ? '' : 'locked'} ${isOmen ? 'omen' : ''} ${S.glut < l.glut ? 'tired' : ''}" ${open ? `data-action="trip" data-id="${l.id}"` : ''}>
@@ -215,6 +218,46 @@ export function viewTrips() {
       ${open ? `<div class="mobpics">${l.mobs.map(n => monsterArt(MONSTERS.find(m => m.name === n).glyph)).join('')}</div>
       <div class="tripinfo">${threat(tripChance(l))}<span>Stufe ${locLvl(l)}</span><span>${fmtT(l.sec[0])}–${fmtT(l.sec[1])}</span><span>${l.glut} Glut</span><span>~${r.gold} Gold</span></div>` : `<div class="mobs">Erst ab Stufe ${l.lvl}</div>`}
     </section>`; }).join('')}</div>${later.length ? `<p class="unknown">Noch unentdeckt: ${later.map(l => `${l.name} <i>(Stufe ${l.lvl})</i>`).join(' · ')}</p>` : ''}</div>`;
+}
+
+// --- Expedition ---
+const herbImg = id => `<img class="matimg" src="assets/potions/${HERBS[id].img}.webp" alt="">`;
+const expHoursDone = e => Math.floor((Date.now() - e.start) / 3600000);
+function expAway() {
+  const e = S.exp, l = LOCATIONS.find(x => x.id === e.loc), f = EXPED.focus[e.focus], left = Math.ceil((e.end - Date.now()) / 1000), hh = expHoursDone(e);
+  return `<section class="panel waiting expaway"><h2>Expedition · ${l.name}</h2><p class="lore">${l.text}</p>
+    <p class="dim">${e.h} Std. · Ausrichtung <b>${f.name}</b></p><p class="small dim">Solange er fort ist, ruhen Krypta und Grube. Schmiede, Alchemie und Händler bleiben offen.</p>
+    ${left > 0 ? `<div class="big" data-until="${e.end}">${fmtT(left)}</div><div class="btns"><button data-action="expclaim">Heimrufen · ${hh ? `${hh} Std. zählen` : 'bringt noch nichts'}</button></div>`
+               : `<button class="red big-btn" data-action="expclaim">Heimholen</button>`}</section>`;
+}
+// Krypta/Grube, während der Held fort ist
+export function viewAway(npc) {
+  const e = S.exp, l = LOCATIONS.find(x => x.id === e.loc), left = Math.ceil((e.end - Date.now()) / 1000);
+  return `<div class="col">${say(npc)}<section class="panel waiting"><h2>Dein Held ist fort</h2><p class="lore">Expedition: ${l.name}. Kämpfen kann er erst, wenn er zurück ist.</p>
+    ${left > 0 ? `<div class="big" data-until="${e.end}">${fmtT(left)}</div>` : '<p class="up">Er ist zurück – hol ihn heim.</p>'}<div class="btns"><button data-action="go" data-v="trips">Zur Expedition</button></div></section></div>`;
+}
+export function viewExped(sel) {
+  const open = LOCATIONS.filter(locOpen), loc = open.some(l => l.id === sel.loc) ? sel.loc : open[open.length - 1].id, p = expedPreview(loc, sel.h, sel.f);
+  const icon = { beute: '<img class="matimg" src="assets/ui/coin.webp" alt="">', kraeuter: herbImg(p.herb), material: matImg(p.matIds[0]) };
+  const n = x => x < 1 ? (x > 0 ? '<1' : '0') : '~' + Math.round(x);
+  return `<div class="col exped">
+    <section class="panel"><h2>Expedition <span class="h2r">ohne Glut · keine Kämpfe</span></h2><div class="xlocs">${open.map(l => { const q = expedPreview(l.id, 1, 'beute');
+      return `<button class="xloc ${l.id === loc ? 'on' : ''}" data-action="expsel" data-l="${l.id}"><b>${l.name}</b><span>${herbImg(q.herb)}${q.matIds.map(matImg).join('')}</span></button>`; }).join('')}</div></section>
+    <section class="panel"><h2>Ausrichtung</h2><div class="xfoc">${Object.entries(EXPED.focus).map(([k, f]) => `<button class="xf ${k === sel.f ? 'on' : ''}" data-action="expsel" data-f="${k}">${icon[k]}<b>${f.name}</b><small>${f.text}</small></button>`).join('')}</div></section>
+    <section class="panel"><h2>Dauer</h2><nav class="subtabs">${EXPED.hours.map(h => `<a class="${h === sel.h ? 'on' : ''}" data-action="expsel" data-h="${h}">${h} Std.</a>`).join('')}</nav>
+      <p class="small xprev">Bringt etwa <b>${p.gold} Gold</b> · <b>${p.xp} EP</b> · ${n(p.herbs)} Zutaten · ${n(p.mats)} Material · ${n(p.items)} Fundstücke${sel.h >= EXPED.longH ? ' <span class="up">(eins sicher magisch)</span>' : ''}${p.herz ? ` · ${Math.round(p.herz * 100)} % Schwarzes Herz` : ''}</p></section>
+    <div class="btns"><button data-action="go" data-v="trips">Zurück</button><button class="red" data-action="expgo" data-l="${loc}">Aufbrechen</button></div>
+  </div>`;
+}
+export function viewExpRes(res) {
+  const w = res.rew, L = [];
+  if (res.h) L.push(`<b>+${w.gold} Gold</b> · <b>+${w.xp} EP</b>${w.up ? ' · <span class="up">Stufe aufgestiegen!</span>' : ''}`);
+  if (w.herbs.length) L.push(`<span class="xrow">${w.herbs.map(([k, c]) => `<span>${herbImg(k)}${HERBS[k].name} ×${c}</span>`).join('')}</span>`);
+  if (w.mats.length) L.push(`<span class="xrow">${w.mats.map(([k, c]) => `<span>${matImg(k)}${MATS[k]} ×${c}</span>`).join('')}</span>`);
+  for (const it of w.items || []) L.push(`<span class="r-${it.rarity}">${it.name}</span>${it.soldFull ? ' <span class="dim small">(Beutel voll – verkauft)</span>' : ''}`);
+  return `<div class="col"><section class="panel waiting expres"><h2>Heimgekehrt · ${res.place.name}</h2><p class="lore">„${res.tale}“</p>
+    <p class="dim small">${res.h ? `${res.h} Std. unterwegs${res.early ? ' · früh heimgerufen' : ''}` : 'Zu früh heimgerufen – er bringt nichts mit.'}</p>
+    <div class="xloot">${L.map(x => `<p>${x}</p>`).join('')}</div><button class="red big-btn" data-action="expok">Weiter</button></section></div>`;
 }
 
 // Ungesicherte Beute: Heimkehren oder tiefer gehen

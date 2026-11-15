@@ -616,3 +616,23 @@ export const POTIONS = [
   { id: 'vampirsud', rare: 1, name: 'Vampirsud', text: '+8 % Lebensraub im ganzen Kampf.', fx: { leech: 0.08 }, cost: { herz: 1, rotwurz: 1 } },
 ];
 export const TRIGGERS = { start: 'zu Kampfbeginn', hp50: 'Leben unter 50 %', hp30: 'Leben unter 30 %', dot: 'wenn vergiftet/blutend', low: 'Gegner unter 50 %', heal: 'wenn Gegner heilt' };
+
+// --- Expedition: der Held zieht ohne Glut los (1–8 Std.), keine Kämpfe in der Zeit. Für die Leerlaufzeit (Nacht, Arbeit). ---
+// Werte je Stunde, gemessen an einem Streifzug dieses Ortes (tripReward). Bewusst unter dem aktiven Spiel: die Glut lädt nebenher weiter.
+export const EXPED = {
+  hours: [1, 2, 4, 8], gold: 0.5, xp: 0.6, herb: 0.15, mat: 0.15, item: 0.04,
+  longH: 8,                                         // lange Reise: ein sicheres Fundstück (magisch oder besser)
+  focus: {
+    beute:    { name: 'Beute',    text: 'Gold und Fundstücke',      gold: 0.7, item: 0.18 },
+    kraeuter: { name: 'Kräuter',  text: 'Zutaten für Ysoldes Kessel', herb: 1.1, herz: 0.03 },
+    material: { name: 'Material', text: 'Stoff für Halvars Esse',    mat: 0.8 },
+  },
+};
+export const EXP_TALES = {
+  friedhof: ['Zwischen den Gräbern brannte die ganze Nacht ein Licht. Niemand hielt es.', 'Ein Grab stand offen. Darin lag nur Erde – und etwas, das glänzte.'],
+  muehle: ['Das Mühlrad drehte sich, obwohl kein Wasser floss.', 'Im Mehl fanden sich Spuren. Keine davon menschlich.'],
+  katakomben: ['Tief unten zählt jemand die Knochen. Er kam nie bis zum Ende.', 'Ein Gang, der gestern noch nicht da war. Er führte zurück.'],
+  moor: ['Die Gehenkten flüstern bei Nebel. Diesmal nannten sie einen Namen.', 'Der Steg trug bis zur Mitte. Weiter ging nur, wer nicht nach unten sah.'],
+  kapelle: ['Die Glocke hängt im Schutt und schweigt. Fast.', 'Kultisten beteten bis zum Morgen. Zu wem, blieb ungesagt.'],
+  gruben: ['Die Hitze ließ das Eisen am Gürtel glühen.', 'Aus der Tiefe kam ein Lachen. Es klang wie Feuer.'],
+};

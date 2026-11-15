@@ -772,3 +772,22 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .fslot.eq { outline: 2px solid rgba(110,160,60,.85); outline-offset: 0; box-shadow: inset 0 0 10px #000, 0 0 6px rgba(110,160,60,.45); } .fslot.eq i { color: #9fc870; }
 .fslot.eq.on { box-shadow: inset 0 0 0 1px var(--gold-hi), 0 0 8px rgba(226,192,122,.45); }
 .cop b { white-space: normal; text-align: center; }
+
+/* Expedition: Ziel, Ausrichtung, Dauer (Knöpfe/Reiter aus dem UI-Kit) */
+.exped > .panel { flex: none !important; }
+.xlocs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+.xloc { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 5px 8px; min-width: 0; text-align: left; }
+.xloc b { font-family: 'Alegreya SC'; font-weight: 500; font-size: .74rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.xloc span { display: flex; gap: 2px; } .xloc .matimg { width: 18px; height: 18px; }
+.xfoc { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.xf { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 5px 3px; line-height: 1.1; min-width: 0; }
+.xf .matimg { width: 28px; height: 28px; object-fit: contain; } .xf b { font-size: .8rem; } .xf small { font-family: 'Alegreya'; font-size: .62rem; color: var(--dim); text-transform: none; }
+.xloc.on, .xf.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold-hi), 0 0 8px rgba(226,192,122,.35); }
+.xprev { margin: 6px 0 0; line-height: 1.3; } .xprev b { color: var(--gold-hi); font-weight: 500; }
+.exped > .btns { margin-top: auto; }
+.expbar.ready i { color: var(--gold-hi); }
+.xloot p { margin: 4px 0; } .xrow { display: flex; flex-wrap: wrap; gap: 4px 10px; justify-content: center; } .xrow span { display: inline-flex; align-items: center; gap: 3px; }
+.xrow .matimg, .xloot .matimg { width: 22px; height: 22px; object-fit: contain; }
+@media (min-height: 760px) { .xloc { padding: 8px 10px; } .xloc b { font-size: .84rem; } .xloc .matimg { width: 22px; height: 22px; } .xf .matimg { width: 36px; height: 36px; } .xf b { font-size: .9rem; } .xf small { font-size: .7rem; } }
+@media (max-height: 620px) { .exped .panel { padding-top: 5px; padding-bottom: 5px; } .xf small { display: none; } .xloc { padding: 3px 6px; } .xf { padding: 3px; } .xf .matimg { width: 22px; height: 22px; } .exped h2 { font-size: 1rem; margin-bottom: 2px; } .exped .subtabs a { padding: 5px 2px; } .exped > .btns button { min-height: 32px; padding: 4px 8px; } }
+.exped.tight .xf small, .exped.tight .xloc span { display: none; } .exped.tight .xloc { padding: 4px 8px; } .exped.tight .panel { padding-top: 5px; padding-bottom: 5px; }

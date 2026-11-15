@@ -490,7 +490,7 @@ test('Kampf: Gegengift macht immun gegen neues Gift, Weihwasser stoppt Heilung',
 });
 test('Migration: Spielstand v7 bekommt Gürtel, Zutaten, Tränke', () => {
   fresh('witch'); const d = JSON.parse(JSON.stringify(G.S)); d.v = 7; delete d.belt; delete d.herbs; delete d.pots; delete d.potDay;
-  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); const L = G.load(); assert.equal(L.v, 8); assert.deepEqual(L.belt, [null, null, null]); assert.deepEqual(L.herbs, {});
+  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); const L = G.load(); assert.ok(L.v >= 8); assert.deepEqual(L.belt, [null, null, null]); assert.deepEqual(L.herbs, {});
 });
 test('Vorbereitung: ein Tippen packt/braut den passenden Trank, Bester Gürtel nimmt nur Vorrat', () => {
   const S = fresh('paladin'); S.lvl = 10; S.gold = 1000; S.herbs = { silberstaub: 4 }; S.pots = { rotwurz: 3, steinhaut: 3 };
@@ -507,4 +507,27 @@ test('Kampfbericht: Anteile ergeben ~100 %, Niederlage gibt einen Tipp; Absicht 
   const sum = R.his.reduce((a, [, v]) => a + v, 0); assert.ok(sum >= 90 && sum <= 101, 'Anteile ' + sum);
   if (r.winner !== 'a') assert.ok(R.tip);
   assert.ok(r.log.some(l => /Betäubung/.test(l.iB || '')), 'Glöckner zeigt seine Betäubung an');
+});
+
+test('Expedition: ohne Glut, blockiert Kämpfe, Ertrag nach Ausrichtung, früh heimrufen zählt volle Stunden', () => {
+  const S = fresh('witch'); S.lvl = 12; S.glut = 0; const now0 = Date.now(); let t = now0; const real = Date.now; Date.now = () => t;
+  try {
+    assert.ok(Game.expedOpen()); assert.ok(Game.startExped('katakomben', 8, 'kraeuter')); assert.equal(S.glut, 0, 'kostet keine Glut');
+    assert.equal(Game.startExped('friedhof', 1, 'beute'), false, 'nur eine zugleich'); S.glut = 100;
+    assert.equal(G.startTrip('friedhof'), false, 'kein Streifzug'); S.crypt.cd = 0;
+    assert.equal(Game.cryptFight('c1'), null, 'keine Krypta'); S.arenaTs = 0; assert.equal(Game.arenaFight(Game.makeRival()), null, 'keine Grube');
+    t += 8 * 3600e3 + 1000; const xp0 = S.xp, lvl0 = S.lvl, g0 = S.gold, h0 = Object.values(S.herbs).reduce((a, b) => a + b, 0);
+    const r = Game.claimExped(); assert.equal(r.h, 8); assert.equal(S.exp, null); assert.ok(S.gold > g0); assert.ok(S.lvl > lvl0 || S.xp > xp0);
+    assert.ok(Object.values(S.herbs).reduce((a, b) => a + b, 0) - h0 >= 5, 'Kräuter-Ausrichtung bringt Zutaten'); assert.ok(r.rew.items.some(it => ['magic', 'rare', 'legendary'].includes(it.rarity)), 'lange Reise: sicheres Fundstück');
+    assert.ok(Game.startExped('friedhof', 4, 'material')); t += 2.5 * 3600e3; const r2 = Game.claimExped(); assert.equal(r2.h, 2); assert.ok(r2.early);
+    assert.ok(Game.startExped('friedhof', 1, 'beute')); t += 10 * 60e3; const g1 = S.gold, r3 = Game.claimExped(); assert.equal(r3.h, 0); assert.equal(S.gold, g1, 'unter 1 Std. nichts');
+    const pb = Game.expedPreview('katakomben', 8, 'beute'), pk = Game.expedPreview('katakomben', 8, 'kraeuter'), pm = Game.expedPreview('katakomben', 8, 'material');
+    assert.ok(pb.gold > pk.gold && pb.items > pk.items); assert.ok(pk.herbs > pb.herbs); assert.ok(pm.mats > pb.mats);
+    const l = D.LOCATIONS.find(x => x.id === 'katakomben'), trips = 8 * 15 / l.glut, tr = G.tripReward(l, 1, 45);
+    assert.ok(pk.xp < trips * tr.xp * 0.5, 'Expedition bringt weniger EP als die Glut derselben Zeit');
+  } finally { Date.now = real; }
+});
+test('Migration: Spielstand v8 bekommt Expedition', () => {
+  fresh('witch'); const d = JSON.parse(JSON.stringify(G.S)); d.v = 8; delete d.exp;
+  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); const L = G.load(); assert.equal(L.v, 9); assert.equal(L.exp, null);
 });

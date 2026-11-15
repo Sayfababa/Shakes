@@ -1,6 +1,6 @@
 // Spielzüge ohne DOM: Kampf ausführen, Belohnung anwenden, strukturiertes Ergebnis liefern.
 // main.js zeigt das Ergebnis an; tests/ spielen damit ganze Verläufe durch.
-import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS } from './data.js';
+import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import { fight } from './combat.js';
@@ -93,7 +93,7 @@ export const bank = () => { const d = G.S.haul?.depth || 0, h = G.bankHaul(); if
 // --- Krypta-Kampf ---
 export function cryptFight(id, m0 = null) {
   const S = G.S, c = CRYPTS.find(x => x.id === id);
-  if (!c || now() < S.crypt.cd || !G.cryptOpen(c) || G.cryptFloor(c) >= 5) return null;
+  if (!c || S.exp || now() < S.crypt.cd || !G.cryptOpen(c) || G.cryptFloor(c) >= 5) return null;
   const m = m0 || G.cryptEnemy(c), boss = !!m.boss;
   S.crypt.cd = now() + CFG.cryptCdSec * 1000;
   const A = { ...G.stats(), belt: G.beltCombat() }, r = fight(A, m), win = r.winner === 'a', rew = newRew();
@@ -109,7 +109,7 @@ export function cryptFight(id, m0 = null) {
 
 // --- Grube ---
 export function arenaFight(R) {
-  const S = G.S; if (now() < S.arenaTs || !R || S.glut < CFG.arenaGlut) return null;
+  const S = G.S; if (S.exp || now() < S.arenaTs || !R || S.glut < CFG.arenaGlut) return null;
   S.arenaTs = now() + CFG.arenaCdSec * 1000; S.glut -= CFG.arenaGlut;
   const A = G.stats(), B = G.stats(R), r = fight(A, B), win = r.winner === 'a', rew = newRew();
   if (win) { S.honor += 10; S.wins++; rew.grade = gradeOf(r); pay(rew, Math.round(R.lvl * 3 * (1 + rew.grade.bonus)), 0); rew.honor = 10; Q.event({ type: 'arena' }); G.bountyEvent({ type: 'arena' }); G.journal(`${R.name} in der Grube besiegt.`); }
@@ -119,7 +119,7 @@ export function arenaFight(R) {
 
 // --- Champion einer Questkette (z. B. Vargos "Die Kette") ---
 export function champFight(tid) {
-  const S = G.S, q = Q.current(tid); if (!q?.champ || now() < S.arenaTs) return null;
+  const S = G.S, q = Q.current(tid); if (S.exp || !q?.champ || now() < S.arenaTs) return null;
   const c = q.champ, R = makeRival({ name: c.name, cls: c.cls, lvl: S.lvl + c.lvlAdd, rich: 1, minRarity: 2 });
   S.arenaTs = now() + CFG.arenaCdSec * 1000;
   const A = G.stats(), B = G.stats(R), r = fight(A, B), win = r.winner === 'a', rew = newRew();
@@ -221,4 +221,43 @@ export function fightReport(r, A, B) {
     else tip = used.length ? 'Knapp daneben. Bessere Ausrüstung oder ein stärkerer Trank (Rotwurz, Steinhaut).' : 'Ohne Tränke gekämpft. Rotwurz oder Steinhaut geben Luft.';
   }
   return { mine: parts(mine, names), his: parts(his, names), heal, used, tip };
+}
+
+// --- Expedition: ohne Glut, 1–8 Std., keine Kämpfe in der Zeit ---
+// Ertrag je Stunde gemessen an einem Streifzug dieses Ortes; Ausrichtung verschiebt ihn zu Gold/Fundstücken, Zutaten oder Material.
+const rollN = x => Math.floor(x) + (chance(x % 1) ? 1 : 0);
+export const expedOpen = () => { const S = G.S; return !S.exp && !S.active && !S.haul; };
+export function expedPreview(locId, h, focus) {
+  const l = LOCATIONS.find(x => x.id === locId), f = EXPED.focus[focus], t = G.tripReward(l, 1, 45);
+  return { gold: Math.round(t.gold * h * (EXPED.gold + (f.gold || 0))), xp: Math.round(t.xp * h * EXPED.xp),
+    herbs: +(h * (EXPED.herb + (f.herb || 0))).toFixed(1), mats: +(h * (EXPED.mat + (f.mat || 0))).toFixed(1),
+    items: +(h * (EXPED.item + (f.item || 0)) + (h >= EXPED.longH ? 1 : 0)).toFixed(1), herz: f.herz ? Math.min(1, h * f.herz) : 0,
+    herb: HERB_LOC[l.id], matIds: [...new Set(l.mobs.map(n => MONSTERS.find(m => m.name === n).mat).filter(Boolean))] };
+}
+export function startExped(locId, h, focus) {
+  const S = G.S, l = LOCATIONS.find(x => x.id === locId);
+  if (!l || !G.locOpen(l) || !EXPED.hours.includes(h) || !EXPED.focus[focus] || S.exp || S.active) return false;
+  if (S.haul) G.bankHaul();
+  S.exp = { loc: locId, h, focus, start: now(), end: now() + h * 3600000 };
+  return true;
+}
+// Heimholen (fertig) oder Heimrufen (früher: zählt nur volle Stunden, ohne Bonus der langen Reise)
+export function claimExped() {
+  const S = G.S, e = S.exp; if (!e) return null;
+  const done = now() >= e.end, h = done ? e.h : Math.floor((now() - e.start) / 3600000);
+  const l = LOCATIONS.find(x => x.id === e.loc), rew = newRew(), p = expedPreview(e.loc, h, e.focus), f = EXPED.focus[e.focus];
+  S.exp = null;
+  const tales = EXP_TALES[l.id] || [''], tale = tales[Math.floor(e.start / 1000) % tales.length];
+  if (!h) return { place: l, h, rew, tale, early: true };
+  pay(rew, p.gold, p.xp);
+  const herbs = rollN(p.herbs), others = Object.values(HERB_LOC).filter(x => x !== p.herb);
+  for (let i = 0; i < herbs; i++) { const id = chance(0.7) ? p.herb : pick(others); G.addHerb(id); const r = rew.herbs.find(x => x[0] === id); if (r) r[1]++; else rew.herbs.push([id, 1]); }
+  if (p.herz && chance(p.herz)) { G.addHerb('herz'); rew.herbs.push(['herz', 1]); }
+  for (let i = 0, n = rollN(p.mats); i < n && p.matIds.length; i++) { const m = pick(p.matIds); G.addMat(m, 1); const r = rew.mats.find(x => x[0] === m); if (r) r[1]++; else rew.mats.push([m, 1]); }
+  const lvl = G.locLvl(l), items = [], add = minRarity => { const it = makeItem(lvl, { luck: G.stats().lck, cls: CLASSES[S.cls], minRarity }); if (G.addToBag(it)) items.push(it); else { S.gold += it.value; rew.gold += it.value; items.push({ ...it, soldFull: true }); } };
+  for (let i = 0; i < h; i++) if (chance(EXPED.item + (f.item || 0))) add(1);
+  if (done && h >= EXPED.longH) add(2);
+  rew.items = items; rew.item = items[0] || null;
+  G.journal(`Zurück aus ${l.name}.`);
+  return { place: l, h, rew, tale, early: !done };
 }

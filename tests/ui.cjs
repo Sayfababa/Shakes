@@ -94,6 +94,16 @@ let failures = 0;
     await tap('[data-v=crypt]'); if (await tap('[data-action=crypt]')) { await chk('prep'); await tap('[data-action=prepPot]'); await tap('[data-action=bestBelt]'); await chk('prep2'); await tap('[data-action=trig]'); await tap('[data-action=cryptgo]'); await p.waitForTimeout(600); await chk('fightpot');
       if (!(await p.$('.pbelt img'))) { failures++; console.log(`FEHLER ${tag}: Tränke im Kampf nicht sichtbar`); } }
     else { failures++; console.log(`FEHLER ${tag}: Krypta nicht antippbar`); }
+    // Expedition: ohne Glut los, Krypta gesperrt, heimholen zeigt die Beute
+    await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.glut = 0; G.S.active = null; G.S.haul = null; G.S.exp = null; G.save(); });
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=trips]');
+    if (!(await tap('.expbar.ready'))) { failures++; console.log(`FEHLER ${tag}: Expedition-Leiste fehlt/leuchtet nicht bei leerer Glut`); }
+    await tap('[data-f=material]'); await tap('[data-h="2"]'); await chk('exped'); await tap('[data-action=expgo]'); await chk('expaway');
+    await tap('[data-v=crypt]'); await chk('expcrypt'); if (await p.$('[data-action=crypt]')) { failures++; console.log(`FEHLER ${tag}: Krypta während Expedition offen`); }
+    await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.exp.start -= 3 * 3600e3; G.S.exp.end -= 3 * 3600e3; });
+    await tap('[data-v=trips]'); await tap('[data-action=expclaim]'); await chk('expres');
+    if (!(await p.$('.xloot p'))) { failures++; console.log(`FEHLER ${tag}: Expedition ohne Ergebnis`); }
+    await tap('[data-action=expok]'); if (!(await p.$('.expbar'))) { failures++; console.log(`FEHLER ${tag}: nach Expedition kein Streifzug`); }
     if (errs.length) { failures++; console.log(`FEHLER ${tag} JS:`, errs); }
     await c.close();
   }));

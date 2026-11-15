@@ -5,6 +5,7 @@ import * as Game from './game.js';
 import * as UI from './ui.js';
 
 const app = document.getElementById('app'), tip = document.getElementById('tip');
+let expSel = { loc: null, h: 8, f: 'kraeuter' }, expRes = null;
 let forgeSel = { mat: null, slot: null, mode: 'rune', item: null, stat: null, msg: '' }, forgeRes = null, FG = null;
 let prepC = null, prepM = null, alchSel = POTIONS[0].id, alchBack = 'traders';
 let tripLoc = null, view = 'hero', pickCls = null, F = null, rival = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
@@ -14,15 +15,16 @@ function render() {
   if (!S) { app.innerHTML = `<main>${UI.viewCreate(pickCls)}</main>`; return; }
   G.tickGlut(); G.potDaily();
   const views = {
-    fight: () => UI.viewFight(F), trips: UI.viewTrips, stats: UI.viewStats, spells: UI.viewSpells, ways: () => UI.viewWays(waySel), talents: UI.viewTalents, crypt: UI.viewCrypts,
+    fight: () => UI.viewFight(F), trips: () => expRes ? UI.viewExpRes(expRes) : UI.viewTrips(), stats: UI.viewStats, spells: UI.viewSpells, ways: () => UI.viewWays(waySel), talents: UI.viewTalents, crypt: () => S.exp ? UI.viewAway('ilse') : UI.viewCrypts(),
     traders: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewTrader(trader),
-    trippick: () => UI.viewTripPick(tripLoc),
+    trippick: () => S.exp ? UI.viewTrips() : UI.viewTripPick(tripLoc),
     bounties: UI.viewBounties,
     forge: () => UI.viewForge(forgeSel, forgeRes),
     npc: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewNpc(npc),
-    arena: () => UI.viewArena(rival ||= Game.makeRival()), hero: UI.viewHero,
+    arena: () => S.exp ? UI.viewAway('vargo') : UI.viewArena(rival ||= Game.makeRival()), hero: UI.viewHero,
+    exped: () => S.exp ? UI.viewTrips() : UI.viewExped(expSel),
     alch: () => UI.viewAlch(alchSel, alchBack),
-    prep: () => prepM ? UI.viewPrep(CRYPTS.find(c => c.id === prepC), prepM) : UI.viewCrypts(),
+    prep: () => S.exp ? UI.viewAway('ilse') : prepM ? UI.viewPrep(CRYPTS.find(c => c.id === prepC), prepM) : UI.viewCrypts(),
   };
   if (view === 'fight' && !F) view = 'hero';
   tutCheck();
@@ -34,7 +36,7 @@ function render() {
 
 // Vorbereitung: Gürtel als Liste; reicht die Höhe nicht (kleine Handys, iOS-App), als Reihe nebeneinander
 function fitPrep() {
-  const pr = document.querySelector('.prep'), m = pr?.parentElement; if (!pr) return;
+  const pr = document.querySelector('.prep, .exped'), m = pr?.parentElement; if (!pr) return;
   pr.classList.remove('tight'); const low = () => pr.lastElementChild.getBoundingClientRect().bottom > m.getBoundingClientRect().bottom + 1;
   if (low()) pr.classList.add('tight');
 }
@@ -239,6 +241,10 @@ const actions = {
     const slot = Object.entries(S.equip).find(([, x]) => x === it)?.[0];
     if (G.craftItems().includes(it)) Object.assign(forgeSel, { mode: 'craft', item: it.id, stat: null, msg: '', changed: null }); else Object.assign(forgeSel, { mode: 'rune' });
     if (slot) forgeSel.slot = slot; view = 'forge'; render(); },
+  expsel: d => { if (d.l) expSel.loc = d.l; if (d.f) expSel.f = d.f; if (d.h) expSel.h = +d.h; render(); },
+  expgo: d => { if (Game.startExped(d.l, expSel.h, expSel.f)) { expSel.loc = d.l; view = 'trips'; } render(); },
+  expclaim: () => { expRes = Game.claimExped(); view = 'trips'; render(); },
+  expok: () => { expRes = null; render(); },
   forgemat: d => { forgeSel.mat = d.m; render(); },
   forgeslot: d => { forgeSel.slot = d.s; render(); },
   forgeagain: () => { forgeRes = null; render(); },
