@@ -5,7 +5,7 @@ import * as Game from './game.js';
 import * as UI from './ui.js';
 
 const app = document.getElementById('app'), tip = document.getElementById('tip');
-let expSel = { loc: null, h: 8, f: 'kraeuter' }, expRes = null;
+let expSel = { loc: null, h: 8, f: 'kraeuter' }, expRes = null, expAsk = false;
 let forgeSel = { mat: null, slot: null, mode: 'rune', item: null, stat: null, msg: '' }, forgeRes = null, FG = null;
 let prepC = null, prepM = null, alchSel = POTIONS[0].id, alchBack = 'traders';
 let tripLoc = null, view = 'hero', pickCls = null, F = null, rival = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
@@ -15,14 +15,14 @@ function render() {
   if (!S) { app.innerHTML = `<main>${UI.viewCreate(pickCls)}</main>`; return; }
   G.tickGlut(); G.potDaily();
   const views = {
-    fight: () => UI.viewFight(F), trips: () => expRes ? UI.viewExpRes(expRes) : UI.viewTrips(), stats: UI.viewStats, spells: UI.viewSpells, ways: () => UI.viewWays(waySel), talents: UI.viewTalents, crypt: () => S.exp ? UI.viewAway('ilse') : UI.viewCrypts(),
+    fight: () => UI.viewFight(F), trips: () => expRes ? UI.viewExpRes(expRes) : UI.viewTrips(expAsk), stats: UI.viewStats, spells: UI.viewSpells, ways: () => UI.viewWays(waySel), talents: UI.viewTalents, crypt: () => S.exp ? UI.viewAway('ilse') : UI.viewCrypts(),
     traders: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewTrader(trader),
     trippick: () => S.exp ? UI.viewTrips() : UI.viewTripPick(tripLoc),
     bounties: UI.viewBounties,
     forge: () => UI.viewForge(forgeSel, forgeRes),
     npc: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewNpc(npc),
     arena: () => S.exp ? UI.viewAway('vargo') : UI.viewArena(rival ||= Game.makeRival()), hero: UI.viewHero,
-    exped: () => S.exp ? UI.viewTrips() : UI.viewExped(expSel),
+    exped: () => S.exp ? UI.viewTrips(expAsk) : UI.viewExped(expSel),
     alch: () => UI.viewAlch(alchSel, alchBack),
     prep: () => S.exp ? UI.viewAway('ilse') : prepM ? UI.viewPrep(CRYPTS.find(c => c.id === prepC), prepM) : UI.viewCrypts(),
   };
@@ -184,7 +184,7 @@ const actions = {
   create: () => { const n = document.getElementById('nm').value.trim() || 'Namenloser'; G.newChar(n, pickCls);
     G.journal(`${n} erwacht im Grab. Drei Gestalten warten am Friedhofstor.`); view = 'traders'; render(); },
   wipe: () => { if (confirm('Charakter wirklich vernichten?')) { G.wipe(); pickCls = null; render(); } },
-  go: d => { view = d.v; turnin = null; if (d.v === 'forge') { forgeRes = null; stopForge(); } if (d.v === 'npc') npc = d.n || npc; if (view !== 'fight') { F = null; clearTimeout(fightTimer); } render(); },
+  go: d => { view = d.v; turnin = null; expAsk = false; if (d.v === 'forge') { forgeRes = null; stopForge(); } if (d.v === 'npc') npc = d.n || npc; if (view !== 'fight') { F = null; clearTimeout(fightTimer); } render(); },
   attr: d => { G.addAttr(d.k); render(); },
   learn: d => { if (G.learn(+d.b, +d.t)) render(); },
   respec: () => { const c = G.respecCost(); if (confirm(c ? `Für ${c} Gold alle Attribute und Talente zurücksetzen?` : 'Attribute und Talente zurücksetzen? (einmalig gratis)')) { G.respec(); render(); } },
@@ -243,7 +243,9 @@ const actions = {
     if (slot) forgeSel.slot = slot; view = 'forge'; render(); },
   expsel: d => { if (d.l) expSel.loc = d.l; if (d.f) expSel.f = d.f; if (d.h) expSel.h = +d.h; render(); },
   expgo: d => { if (Game.startExped(d.l, expSel.h, expSel.f)) { expSel.loc = d.l; view = 'trips'; } render(); },
-  expclaim: () => { expRes = Game.claimExped(); view = 'trips'; render(); },
+  expask: () => { expAsk = true; render(); },
+  expno: () => { expAsk = false; render(); },
+  expclaim: () => { expAsk = false; expRes = Game.claimExped(); view = 'trips'; render(); },
   expok: () => { expRes = null; render(); },
   forgemat: d => { forgeSel.mat = d.m; render(); },
   forgeslot: d => { forgeSel.slot = d.s; render(); },

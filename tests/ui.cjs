@@ -100,6 +100,9 @@ let failures = 0;
     if (!(await tap('.expbar.ready'))) { failures++; console.log(`FEHLER ${tag}: Expedition-Leiste fehlt/leuchtet nicht bei leerer Glut`); }
     await tap('[data-f=material]'); await tap('[data-h="2"]'); await chk('exped'); await tap('[data-action=expgo]'); await chk('expaway');
     await tap('[data-v=crypt]'); await chk('expcrypt'); if (await p.$('[data-action=crypt]')) { failures++; console.log(`FEHLER ${tag}: Krypta während Expedition offen`); }
+    await tap('[data-v=trips]'); await tap('[data-action=expask]'); await chk('expask');
+    if (!(await p.$('[data-action=expno]'))) { failures++; console.log(`FEHLER ${tag}: Heimrufen ohne Rückfrage`); }
+    await tap('[data-action=expno]'); if (!(await p.$('[data-action=expask]'))) { failures++; console.log(`FEHLER ${tag}: Weiter warten geht nicht`); }
     await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.exp.start -= 3 * 3600e3; G.S.exp.end -= 3 * 3600e3; });
     await tap('[data-v=trips]'); await tap('[data-action=expclaim]'); await chk('expres');
     if (!(await p.$('.xloot p'))) { failures++; console.log(`FEHLER ${tag}: Expedition ohne Ergebnis`); }

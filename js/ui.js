@@ -191,7 +191,7 @@ export function viewTalents() {
 }
 
 // --- Streifzüge ---
-export function viewTrips() {
+export function viewTrips(ask = false) {
   if (S.active) {
     const a = S.active, l = LOCATIONS.find(x => x.id === a.loc), left = Math.ceil((a.end - Date.now()) / 1000);
     return `<div class="col"><section class="panel waiting"><h2>${l.name}</h2><p class="lore">${l.text}</p>
@@ -200,7 +200,7 @@ export function viewTrips() {
                  : `<button class="red big-btn" data-action="resolve">Stellen</button>`}</section>
       ${say('prophet')}</div>`;
   }
-  if (S.exp) return `<div class="col">${expAway()}${say('prophet')}</div>`;
+  if (S.exp) return `<div class="col">${expAway(ask)}${say('prophet')}</div>`;
   const o = omen();
   const openLocs = LOCATIONS.filter(locOpen), nextLoc = LOCATIONS.find(l => !locOpen(l)), later = LOCATIONS.filter(l => !locOpen(l) && l !== nextLoc);
   const bl = bounties(), bDone = bl.filter(b => b.claimed).length, bReady = bl.some(b => !b.claimed && b.prog >= b.n);
@@ -223,11 +223,13 @@ export function viewTrips() {
 // --- Expedition ---
 const herbImg = id => `<img class="matimg" src="assets/potions/${HERBS[id].img}.webp" alt="">`;
 const expHoursDone = e => Math.floor((Date.now() - e.start) / 3600000);
-function expAway() {
+function expAway(ask) {
   const e = S.exp, l = LOCATIONS.find(x => x.id === e.loc), f = EXPED.focus[e.focus], left = Math.ceil((e.end - Date.now()) / 1000), hh = expHoursDone(e);
   return `<section class="panel waiting expaway"><h2>Expedition · ${l.name}</h2><p class="lore">${l.text}</p>
     <p class="dim">${e.h} Std. · Ausrichtung <b>${f.name}</b></p><p class="small dim">Solange er fort ist, ruhen Krypta und Grube. Schmiede, Alchemie und Händler bleiben offen.</p>
-    ${left > 0 ? `<div class="big" data-until="${e.end}">${fmtT(left)}</div><div class="btns"><button data-action="expclaim">Heimrufen · ${hh ? `${hh} Std. zählen` : 'bringt noch nichts'}</button></div>`
+    ${left > 0 ? `<div class="big" data-until="${e.end}">${fmtT(left)}</div><div class="btns">${ask
+      ? `<button data-action="expno">Weiter warten</button><button class="red" data-action="expclaim">Ja · ${hh ? `${hh}/${e.h} Std.` : 'ohne Beute'}${hh && e.h >= EXPED.longH ? ' · kein Fundstück' : ''}</button>`
+      : `<button data-action="expask">Heimrufen · ${hh ? `${hh} Std. zählen` : 'bringt noch nichts'}</button>`}</div>`
                : `<button class="red big-btn" data-action="expclaim">Heimholen</button>`}</section>`;
 }
 // Krypta/Grube, während der Held fort ist
