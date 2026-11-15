@@ -868,3 +868,9 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .descv .map .node { width: min(44px, calc(100cqh / var(--rows) * .7)); height: min(44px, calc(100cqh / var(--rows) * .7)); }
 .descv .map .node.goal { width: min(52px, calc(100cqh / var(--rows) * .82)); height: min(52px, calc(100cqh / var(--rows) * .82)); }
 .descv .map .node.start { width: min(32px, calc(100cqh / var(--rows) * .6)); height: min(32px, calc(100cqh / var(--rows) * .6)); }
+/* Umschmieden kompakt: viele Teile oder iOS-App mit fehlendem Stück unten – Boni dürfen nie abgeschnitten werden (fitPrep) */
+.craft.tight .cpick .fslot { width: 34px; height: 34px; } .craft.tight .cpick { gap: 2px; }
+.craft.tight .ccard { gap: 3px; } .craft.tight .cname { font-size: 1.05rem; } .craft.tight .caff { padding: 3px 8px; font-size: .86rem; }
+.craft.tight .cop { min-height: 62px; padding: 4px 2px; } .craft.tight .cop img { width: 28px; height: 28px; }
+.craft.tight > .panel { padding-top: 5px; padding-bottom: 5px; }
+.cop small i { font-style: normal; } .cop small i.down { color: var(--blood-hi); }

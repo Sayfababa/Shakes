@@ -38,8 +38,11 @@ function render() {
 
 // Vorbereitung: Gürtel als Liste; reicht die Höhe nicht (kleine Handys, iOS-App), als Reihe nebeneinander
 function fitPrep() {
-  const pr = document.querySelector('.prep, .exped, .expev, .expresv, .desc, .descv, .descres'), m = pr?.parentElement; if (!pr) return;
-  pr.classList.remove('tight'); const low = () => pr.lastElementChild.getBoundingClientRect().bottom > m.getBoundingClientRect().bottom + 1;
+  const pr = document.querySelector('.prep, .exped, .expev, .expresv, .desc, .descv, .descres, .craft'), m = pr?.parentElement; if (!pr) return;
+  pr.classList.remove('tight');
+  // zu hoch – oder (Umschmieden) Boni im Kasten abgeschnitten
+  const low = () => pr.lastElementChild.getBoundingClientRect().bottom > m.getBoundingClientRect().bottom + 1
+    || [...pr.querySelectorAll('.caff')].some(e => e.getBoundingClientRect().bottom > e.closest('.panel').getBoundingClientRect().bottom - 2);
   if (low()) pr.classList.add('tight');
 }
 // Tutorial: nächster Schritt, sobald die Bedingung erfüllt ist

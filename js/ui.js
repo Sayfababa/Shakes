@@ -487,7 +487,7 @@ function viewCraft(sel) {
       ${it.fx ? `<div class="small special-l">✦ ${effLine(it.fx)} <i class="dim">(bleibt)</i></div>` : ''}${it.runes?.length ? `<div class="small rune">${it.runes.map(r => r.name + ' +' + r.v).join(', ')} <i class="dim">(bleibt)</i></div>` : ''}
       ${it.crafted ? `<div class="small gold">Vollendet von ${it.crafted}</div>` : ''}</div>`; })();
   const ops = CRAFT.ops.map(op => { const err = it ? craftCheck(it, op.id, sel.stat) : 'Kein Item';
-    return `<button class="cop" data-action="craftop" data-o="${op.id}" ${err ? 'disabled' : ''} title="${op.text}">${matImg(op.mat)}<b>${op.name}</b><small>${MATS[op.mat]} ${S.mats[op.mat] || 0}/${op.n} · Glut ${op.glut}+</small></button>`; }).join('');
+    return `<button class="cop" data-action="craftop" data-o="${op.id}" ${err ? 'disabled' : ''} title="${op.text}">${matImg(op.mat)}<b>${op.name}</b><small>${MATS[op.mat]} <i class="${(S.mats[op.mat] || 0) < op.n ? 'down' : ''}">${S.mats[op.mat] || 0}/${op.n}</i> · Glut ${op.glut}+</small></button>`; }).join('');
   const why = it && CRAFT.ops.map(op => craftCheck(it, op.id, sel.stat)).find(e => e && !/Material|Bonus antippen/.test(e));
   return `<div class="col forge craft">${forgeTabs(sel)}
     <section class="panel"><div class="cpick">${list.map(x => `<div class="fslot r-${x.rarity} ${x.id === sel.item ? 'on' : ''} ${x.crafted ? 'full' : ''} ${Object.values(S.equip).includes(x) ? 'eq' : ''}" data-action="craftpick" data-id="${x.id}">${itemArt(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`).join('') || '<span class="dim small">Nichts zum Umschmieden. Magische Items fallen bei Monstern und Händlern.</span>'}</div></section>
