@@ -102,3 +102,10 @@ Passt zum Stil nur, was **düster, kurz lesbar, ohne Verwaltungsaufwand** ist. B
 - Jede neue Bonusart bekommt ein „Machtbudget“ je Gegenstandsstufe (wie `TIERS`), Kampfkraft rechnet sie ein.
 - Bots/Personas vor und nach dem Einbau: Finale weiterhin ~Tag 16–17, Niederlagen nicht deutlich anders.
 - Fuzz-Test erweitert um die neuen Felder (Fluch, Set, Erwachen), Speichern=Laden.
+
+### Umgesetzt: Kampf-Boni auf Items (statt Flüchen als erstem Schritt – Wunsch: Crafting soll Spaß machen)
+- Eigene Bonus-Pools je Teil: Waffe = Angriff (Krit-Chance, Krit-Schaden, Schaden %, Zauberschaden, Durchbohren, Lebensraub, Zauber-Bonus der Klasse), Nebenhand = Blocken/Zauber/Dornen, Rüstung = Leben %/Ausweichen/Dornen, Schmuck = Krit/Schaden/Zauber. Attribute überall.
+- Geeicht gegen das Hauptattribut (tests/calib.mjs): jeder Bonus der Stufe III bringt ~0,85–1,2× so viel Kampfkraft. Krit-Schaden allein ~0,35 (lohnt erst mit Krit-Chance – Absicht: Kombinieren beim Crafting).
+- Dabei aufgefallen und angeglichen: Zaubertempo (vorher ~0,1×) und Rüstung (~0,15×) waren fast wertlos; Glück leicht angehoben (bleibt wegen Beute-Glück darunter).
+- Gegenprobe mit echten Kämpfen (1500 je Bonus): Kampfkraft sagt die Siegchance gut voraus; Lebensraub wird leicht unterschätzt, Zaubertempo beim Barbaren leicht überschätzt.
+- Bots 6 Klassen × 14 Tage und Personas 20 Tage: Tempo unverändert (Finale Tag 16–17), Krypta-Niederlagen nicht höher.

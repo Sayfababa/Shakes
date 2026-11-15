@@ -34,13 +34,15 @@ function check(act) {
     if (!Number.isFinite(it.value) || it.value < 0) fail(`Wert kaputt: ${it.value}`, act);
     if (it.dmg && !(it.dmg[0] <= it.dmg[1])) fail(`Schaden min>max: ${it.dmg}`, act);
     if (it.sealed && !(it.sealed in G.baseMods(it))) fail(`Siegel auf fehlendem Bonus`, act);
+    if (!it.unique) for (const k of Object.keys(it.tiers || {})) { const af = D.AFFIXES.find(x => x.stat === k);
+      if (!af) fail(`Unbekannter Bonus ${k}`, act); else if ((af.slots && !af.slots.includes(it.slot)) || (af.kind && af.kind !== it.kind)) fail(`Bonus ${k} auf falschem Teil ${it.slot}`, act); }
   }
   for (const a of S.bag) {
     if (a.x < 0 || a.y < 0 || a.x + a.w > D.INV_W || a.y + a.h > D.INV_H) fail(`Item außerhalb des Beutels`, act);
     for (const b of S.bag) if (a !== b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) fail(`Beutel-Überlappung`, act);
   }
   for (const [slot, it] of Object.entries(S.equip)) if (it && it.slot !== (slot.startsWith('ring') ? 'ring' : slot)) fail(`Falscher Platz: ${it.slot} in ${slot}`, act);
-  const st = G.stats(); for (const k of ['hp', 'armor']) f(st[k], 'Wert ' + k); f(st.dmg[0], 'Schaden'); if (st.hp <= 0) fail(`Leben ≤ 0`, act);
+  const st = G.stats(); for (const k of ['hp', 'armor', 'crit', 'critMult', 'amp']) f(st[k], 'Wert ' + k); if (st.crit > D.CAPS.crit + 1e-9 || st.critMult > D.CAPS.critMult + 1e-9) fail('Obergrenze überschritten', act); f(st.dmg[0], 'Schaden'); if (st.hp <= 0) fail(`Leben ≤ 0`, act);
   f(G.power(), 'Kampfkraft');
   if (S.haul) { f(S.haul.gold, 'Beute-Gold'); if (S.haul.gold < 0) fail('Beute negativ', act); }
   for (const t of Object.keys(S.traders)) if (S.traders[t].q > D.QUESTS[t].length) fail(`Questindex zu hoch ${t}`, act);

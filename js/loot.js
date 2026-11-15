@@ -1,20 +1,24 @@
 import { CRAFT, BASES, RARITIES, AFFIXES, LEGEND_NAMES, CFG, TIERS, SPECIALS, SPECIAL_CHANCE, SPECIAL_MIN_LVL, UNIQUES, UNIQUE_CHANCE } from './data.js';
 import { roll, pick, weighted, uid, rand } from './rng.js';
 
+// Welche Boni kann dieses Teil tragen? Grundboni überall, Kampf-Boni nur auf passenden Plätzen, Zauber-Boni nur auf der Waffe der Klasse
+export const affixPool = it => AFFIXES.filter(a => (!a.slots || a.slots.includes(it.slot)) && (!a.kind || a.kind === it.kind));
 // Bonus-Stufe würfeln: hohe Stufen (I, II) erst ab bestimmter Gegenstandsstufe
 export function rollTier(ilvl) { return weighted(TIERS.filter(t => ilvl >= t.minLvl)); }
 // Wert eines Bonus: Grundwert × Stufe × kleine Streuung (±10 %)
+export const affixScale = (a, ilvl) => a.pct ? CFG.pctBase + ilvl * CFG.pctPerLvl : CFG.affixBase + ilvl * CFG.affixPerLvl;
 export const affixValue = (a, ilvl, tier, legendary = false) =>
-  Math.max(1, Math.round(a.per * (CFG.affixBase + ilvl * CFG.affixPerLvl) * tier.mult * (0.9 + rand() * 0.2) * (legendary ? 1.5 : 1)));
+  Math.max(1, Math.round(a.per * affixScale(a, ilvl) * tier.mult * (0.9 + rand() * 0.2) * (legendary ? 1.5 : 1)));
 // Wertspanne einer Stufe (für den Tooltip: "8–10")
 export const tierRange = (stat, ilvl, t) => { const a = AFFIXES.find(x => x.stat === stat), T = TIERS.find(x => x.t === t); if (!a || !T) return null;
-  const b = a.per * (CFG.affixBase + ilvl * CFG.affixPerLvl) * T.mult; return [Math.max(1, Math.round(b * 0.9)), Math.max(1, Math.round(b * 1.1))]; };
+  const b = a.per * affixScale(a, ilvl) * T.mult; return [Math.max(1, Math.round(b * 0.9)), Math.max(1, Math.round(b * 1.1))]; };
 
 // Erzeugt ein Item für Stufe `lvl`. luck verschiebt Seltenheiten nach oben.
-export function makeItem(lvl, { luck = 0, slot, slots, cls, minRarity = 0 } = {}) {
+export function makeItem(lvl, { luck = 0, slot, slots, cls, kind, minRarity = 0 } = {}) {
   const okLvl = b => !b.minLvl || lvl >= b.minLvl;   // höhere Grundgegenstände erst ab ihrer Stufe
   let pool = (slot ? BASES.filter(b => b.slot === slot) : slots ? BASES.filter(b => slots.includes(b.slot)) : BASES).filter(okLvl);
   if (cls && rand() < 0.6) pool = pool.filter(b => b.slot !== 'weapon' || b.kind === cls.weapon);
+  if (kind) pool = pool.filter(b => b.kind === kind);   // feste Waffenart (Bestellung beim Schmied)
   let base = pick(pool.length ? pool : BASES);
   const boost = 1 + Math.min(luck, 200) / 100;
   // Seltenes/Legendäres erst ab bestimmter Gegenstandsstufe (wie Stufen-Anforderungen bei Uniques)
@@ -37,7 +41,7 @@ export function makeItem(lvl, { luck = 0, slot, slots, cls, minRarity = 0 } = {}
     it.fx = { ...uniq.eff }; it.unique = uniq.name; it.lore = uniq.lore; it.name = uniq.name;
   } else {
     const n = Array.isArray(rar.affixes) ? roll(...rar.affixes) : rar.affixes;
-    chosen = [...AFFIXES].sort(() => rand() - 0.5).slice(0, n);
+    chosen = affixPool(it).sort(() => rand() - 0.5).slice(0, n);
     for (const a of chosen) { const T = rollTier(ilvl); it.mods[a.stat] = affixValue(a, ilvl, T, rar.id === 'legendary'); it.tiers[a.stat] = T.t; }
     const sc = SPECIAL_CHANCE[rar.id] || 0;
     if (sc && ilvl >= SPECIAL_MIN_LVL && rand() < sc) { const sp = pick(SPECIALS); it.fx = { ...sp.eff }; it.special = sp.id; }

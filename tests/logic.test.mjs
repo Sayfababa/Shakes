@@ -329,3 +329,60 @@ test('Name: kein HTML im Charakternamen', () => {
   G.newChar('<img src=x onerror=alert(1)>Böse"', 'paladin'); assert.ok(!/[<>"]/.test(G.S.name)); assert.ok(G.S.name.length <= 16);
   G.newChar('   ', 'paladin'); assert.equal(G.S.name, 'Namenloser');
 });
+
+// --- Kampf-Boni auf Items (critc, critd, dmgp, Zauber-Boni …) ---
+const { affixPool } = await import('../js/loot.js');
+test('Boni-Pools: Kampf-Boni nur auf passenden Plätzen, Zauber-Boni nur auf der Waffe der eigenen Klasse', () => {
+  for (let i = 0; i < 3000; i++) {
+    const it = makeItem(1 + (i % 40), { minRarity: 2 + (i % 3) });
+    for (const k of Object.keys(it.tiers)) {
+      const a = D.AFFIXES.find(x => x.stat === k); assert.ok(a, `unbekannter Bonus ${k}`);
+      if (!it.unique) assert.ok(!a.slots || a.slots.includes(it.slot), `${k} auf ${it.slot}`);
+      if (a.kind) assert.equal(a.kind, it.kind, `${k} auf fremder Waffe ${it.kind}`);
+    }
+  }
+  const staff = { slot: 'weapon', kind: 'staff' };
+  assert.ok(affixPool(staff).some(a => a.stat === 'sk_feuerball') && !affixPool(staff).some(a => a.stat === 'sk_schrei'));
+  assert.ok(!affixPool({ slot: 'boots' }).some(a => ['critd', 'penp', 'sk_feuerball'].includes(a.stat)));
+});
+
+test('Umschmieden bleibt im Pool des Teils (Chaos/Hinzufügen/Neu weihen)', () => {
+  const S = fresh('sorceress'); S.gold = 1e9; for (const k of Object.keys(D.MATS)) S.mats[k] = 999;
+  for (let r = 0; r < 40; r++) {
+    let it; do it = makeItem(25, { slot: r % 2 ? 'boots' : 'weapon', minRarity: 3 }); while (it.unique); it.kind = r % 2 ? it.kind : 'staff';
+    S.bag = []; G.addToBag(it);
+    for (let i = 0; i < 6; i++) G.craft(it.id, ['chaos', 'add', 'values'][i % 3]);
+    const pool = new Set(affixPool(it).map(a => a.stat));
+    for (const k of Object.keys(G.baseMods(it))) assert.ok(pool.has(k), `${k} auf ${it.slot}/${it.kind}`);
+  }
+});
+
+test('Krit-Schaden, Prozent-Schaden und Zauber-Bonus wirken in Werten und Kampfkraft; Obergrenzen halten', () => {
+  const S = fresh('sorceress'); S.lvl = 20; S.attrs.int += 60;
+  const p0 = G.power(), w = S.equip.weapon;
+  w.mods = { critd: 50 }; assert.equal(G.stats().critMult, 2.5); const p1 = G.power(); assert.ok(p1 > p0);
+  w.mods = { critd: 999 }; assert.equal(G.stats().critMult, D.CAPS.critMult);
+  w.mods = { critc: 999 }; assert.equal(G.stats().crit, D.CAPS.crit);
+  w.mods = { dmgp: 20 }; const d = G.stats().dmg; w.mods = {}; const d0 = G.stats().dmg; assert.ok(d[1] > d0[1]);
+  w.mods = { sk_feuerball: 40 }; assert.equal(G.stats().spells.find(s => s.id === 'feuerball').boost, 1.4); assert.ok(G.power() > p0);
+  // Klassen-/Talentwerte werden durch die Obergrenze nie gekürzt
+  const W = fresh('witch'); W.tal = {}; W.equip.weapon.mods = { leechp: 500 }; assert.equal(G.stats().leech, Math.max(0.2, D.CAPS.leech));
+});
+
+test('Krit-Schaden steckt im Kampf: höherer Multiplikator → mehr Schaden pro Krit', () => {
+  const S = fresh('assassin'); S.lvl = 15; S.attrs.dex += 50;
+  const mon = G.makeMonster(15, 1); mon.hp = 1e7; mon.cur = 1e7; mon.dex = 0; mon.armor = 0;
+  const avgCrit = mult => { const a = { ...G.stats(), crit: 0.6, critMult: mult, spells: [] }; let sum = 0, n = 0;
+    for (let i = 0; i < 40; i++) for (const l of fight(a, { ...mon }).log) if (l.who === 'a' && l.crit && l.dmg) { sum += l.dmg; n++; } return sum / n; };
+  assert.ok(avgCrit(3) > avgCrit(2) * 1.3);
+});
+
+test('Eichung: jeder Prozent-Bonus der Stufe III liegt nah am Hauptattribut (Stufe 20)', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const out = execFileSync('node', ['tests/calib.mjs'], { encoding: 'utf8' });
+  for (const k of ['critc', 'dmgp', 'spellp', 'penp', 'leechp', 'lifep', 'blockp', 'evadep', 'haste', 'sk_*']) {
+    const row = out.split('\n').find(l => l.startsWith(k)); assert.ok(row, k);
+    const v20 = parseFloat(row.trim().split(/\s+/).slice(-3)[0]);   // Spalte St.20
+    assert.ok(v20 > 0.7 && v20 < 1.4, `${k}: ${v20} weicht zu weit vom Hauptattribut ab`);
+  }
+});

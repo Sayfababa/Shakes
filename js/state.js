@@ -1,5 +1,5 @@
-import { AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS } from './data.js';
-import { makeItem, itemValue, rollTier, affixValue, renameMagic } from './loot.js';
+import { CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS } from './data.js';
+import { affixPool, makeItem, itemValue, rollTier, affixValue, renameMagic } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
@@ -95,6 +95,7 @@ export function effects(p = S) {
 }
 
 // Abgeleitete Kampfwerte
+const cap = (base = 0, add, max) => Math.max(base, Math.min(max, base + add));
 export function stats(p = S) {
   const st = { ...p.attrs, armor: 0, dmgBonus: 0 };
   for (const it of Object.values(p.equip)) {
@@ -104,13 +105,19 @@ export function stats(p = S) {
   }
   const c = CLASSES[p.cls], w = p.equip.weapon, e = effects(p);
   const fit = !w || w.kind === c.weapon;          // Klassenwaffe? Fremde Waffen schwächen Hieb und Zauber
-  const base = w?.dmg || [1, 3], dm = (1 + (e.dmgPct || 0)) * (fit ? 1 : CFG.offWeapon);
+  const P = k => (st[k] || 0) / 100;              // Prozent-Boni von Items (critc, dmgp, …)
+  const base = w?.dmg || [1, 3], dm = (1 + (e.dmgPct || 0) + P('dmgp')) * (fit ? 1 : CFG.offWeapon);
   return { ...e, ...st, name: p.name, cls: p.cls, lvl: p.lvl, main: c.main,
-    spells: SPELLS[p.cls].filter(s => p.lvl >= s.lvl), amp: (1 + st.int / (st.int + CFG.spellK)) * (fit ? 1 : CFG.offWeaponSpell), offWeapon: !fit,
+    spells: SPELLS[p.cls].filter(s => p.lvl >= s.lvl).map(s => st['sk_' + s.id] ? { ...s, boost: 1 + P('sk_' + s.id) } : s),
+    amp: (1 + st.int / (st.int + CFG.spellK)) * (1 + P('spellp')) * (fit ? 1 : CFG.offWeaponSpell), offWeapon: !fit,
+    // Item-Prozente stapeln nur bis zur Obergrenze; was Klasse/Talente schon geben, wird nie gekürzt
+    crit: cap(e.crit, P('critc'), CAPS.crit), critMult: cap(2 + (e.critDmg || 0), P('critd'), CAPS.critMult),
+    pen: cap(e.pen, P('penp'), CAPS.pen), leech: cap(e.leech, P('leechp'), CAPS.leech),
+    evade: cap(e.evade, P('evadep'), CAPS.evade), block: cap(e.block, P('blockp'), CAPS.block), thorns: cap(e.thorns, P('thornsp'), CAPS.thorns),
     haste: (e.haste || 0) + (st.haste || 0) / 100,
     armor: Math.round((st.armor + st.str * CFG.strArmor) * (1 + (e.armorPct || 0))),
     dmg: [Math.round((base[0] + st.dmgBonus) * dm), Math.round((base[1] + st.dmgBonus) * dm)],
-    hp: Math.round(st.con * c.hp * (CFG.hpBase + p.lvl * CFG.hpPerLvl) * (1 + (e.hpPct || 0))) };
+    hp: Math.round(st.con * c.hp * (CFG.hpBase + p.lvl * CFG.hpPerLvl) * (1 + (e.hpPct || 0) + P('lifep'))) };
 }
 
 // Monster skaliert auf Stufe; diff 0.8 .. 1.3
@@ -132,19 +139,21 @@ export function power(A = stats()) {
   const hit = 1 - Math.min(0.5, en / (en + A.dex * 3 + 40));
   const crit = Math.min(0.6, CFG.critBase + A.lck / (A.lck + 100 + L * 5) + (A.crit || 0));
   const strike = (A.dmg[0] + A.dmg[1]) / 2 * (1 + A[A.main] / CFG.mainDiv);
-  const onHit = (1 + crit * (1 + (A.bleed || 0))) * (1 + (A.execute || 0) * 0.2 + (A.poison || 0));   // gilt für Hieb und Zauber
+  const onHit = (1 + crit * ((A.critMult || 2) - 1 + (A.bleed || 0))) * (1 + (A.execute || 0) * 0.2 + (A.poison || 0));   // gilt für Hieb und Zauber
   let dpt = strike * (1 - red) * hit * onHit * (1 + (A.rage || 0) * 0.3);
   let heal = (A.regen || 0) * A.hp;
   for (const s of A.spells || []) {
     const sd = strike * A.amp * (1 - red) * hit * onHit;
-    const v = s.kind === 'multi' ? sd * s.mult * s.hits : s.kind === 'dot' ? sd * s.mult * 3 : s.kind === 'buff' ? dpt * s.v * 2
-      : s.kind === 'heal' || s.kind === 'shield' ? 0 : sd * s.mult * (s.kind === 'mark' ? 1.4 : s.kind === 'stun' ? 1.5 : 1);
+    const b = s.boost || 1;   // Zauber-Bonus von der Waffe
+    const v = b * (s.kind === 'multi' ? sd * s.mult * s.hits : s.kind === 'dot' ? sd * s.mult * 3 : s.kind === 'buff' ? dpt * s.v * 2
+      : s.kind === 'heal' || s.kind === 'shield' ? 0 : sd * s.mult * (s.kind === 'mark' ? 1.4 : s.kind === 'stun' ? 1.5 : 1));
     const ev = s.every / (1 + (A.haste || 0));
     dpt += (v * (1 + (A.echo || 0)) - dpt) / ev;
-    if (s.kind === 'heal' || s.kind === 'shield') heal += A.hp * s.pct * A.amp / ev;
+    if (s.kind === 'heal' || s.kind === 'shield') heal += A.hp * s.pct * A.amp * b / ev;
   }
   heal += dpt * (A.leech || 0);   // Lebensraub aus Hieben und Zaubern
   const taken = eDmg * (1 - Math.min(0.6, A.armor / (A.armor + 20 + L * 8))) * (1 - Math.min(0.5, A.dex / (A.dex + en * 3 + 40) + (A.evade || 0))) * (1 - Math.min(0.5, A.block || 0));
+  dpt += taken * (A.thorns || 0);   // Dornen: Teil jedes erlittenen Treffers geht zurück
   const ehp = A.hp * (1 + (A.ward || 0)) / (taken * Math.max(0.3, 1 - heal * 0.6 / Math.max(1, taken))) * eDmg;   // Leben, umgerechnet in "wie viele Gegner-Hiebe halte ich aus"
   return Math.round(Math.sqrt(Math.max(1, dpt) * ehp) * 20);
 }
@@ -355,14 +364,14 @@ export function craftCheck(it, opId, stat) {
   if (opId === 'seal') { if (it.sealed) return 'Schon ein Bonus versiegelt.'; if (!stat || !base[stat]) return 'Bonus antippen, der bleiben soll.'; }
   if ((opId === 'chaos' || opId === 'values' || opId === 'remove') && !free.length) return 'Kein unversiegelter Bonus.';
   if (opId === 'add' && keys.length >= CRAFT.maxAff[it.rarity]) return 'Kein Platz für weitere Boni.';
-  if (opId === 'add' && keys.length >= AFFIXES.length) return 'Alle Boni schon vorhanden.';
+  if (opId === 'add' && !affixPool(it).some(a => !(a.stat in base))) return 'Alle Boni schon vorhanden.';
   return null;
 }
 // Alle unversiegelten Boni neu (gleiche Anzahl), versiegelter bleibt – auch für Ysoldes „Neu weihen“
 function rerollUnsealed(it) {
   const base = baseMods(it), tiers = { ...(it.tiers || {}) }, free = Object.keys(base).filter(k => k !== it.sealed);
   for (const k of free) { delete base[k]; delete tiers[k]; }
-  for (const a of AFFIXES.filter(a => !(a.stat in base)).sort(() => rand() - 0.5).slice(0, free.length)) {
+  for (const a of affixPool(it).filter(a => !(a.stat in base)).sort(() => rand() - 0.5).slice(0, free.length)) {
     const T = rollTier(it.lvl); tiers[a.stat] = T.t; base[a.stat] = affixValue(a, it.lvl, T, it.rarity === 'legendary'); }
   it.tiers = tiers; setBase(it, base); renameMagic(it);
 }
@@ -380,9 +389,9 @@ export function craft(id, opId, stat) {
   const free = Object.keys(base).filter(k => k !== it.sealed);
   if (opId === 'seal') it.sealed = stat;
   else if (opId === 'chaos') { const n = free.length; for (const k of free) { delete base[k]; delete tiers[k]; }
-    const pool = AFFIXES.filter(a => !(a.stat in base)).sort(() => rand() - 0.5).slice(0, n); for (const a of pool) roll1(a.stat); }
+    const pool = affixPool(it).filter(a => !(a.stat in base)).sort(() => rand() - 0.5).slice(0, n); for (const a of pool) roll1(a.stat); }
   else if (opId === 'values') for (const k of free) roll1(k);
-  else if (opId === 'add') { const pool = AFFIXES.filter(a => !(a.stat in base)); roll1(pool[Math.floor(rand() * pool.length)].stat); }
+  else if (opId === 'add') { const pool = affixPool(it).filter(a => !(a.stat in base)); roll1(pool[Math.floor(rand() * pool.length)].stat); }
   else if (opId === 'remove') { const k = free[Math.floor(rand() * free.length)]; delete base[k]; delete tiers[k]; }
   it.tiers = tiers; setBase(it, base);
   S.mats[op.mat] -= op.n; S.gold -= gold;
@@ -459,7 +468,7 @@ export function doService(tid, svId) {
     return g;
   }
   if (sv.id === 'order') {
-    const w = makeItem(S.lvl + 1, { slot: 'weapon', cls: { weapon: CLASSES[S.cls].weapon }, minRarity: 2, luck: 40 });
+    const w = makeItem(S.lvl + 1, { slot: 'weapon', kind: CLASSES[S.cls].weapon, minRarity: 2, luck: 40 });
     if (w.kind !== CLASSES[S.cls].weapon) { const b = BASES.filter(x => x.kind === CLASSES[S.cls].weapon).pop(); Object.assign(w, { kind: b.kind, base: b.name, art: b.art, w: b.w, h: b.h, dmg: b.dmg.map(v => Math.round(v * (1 + S.lvl * 0.2))) }); }
     if (!addToBag(w)) { S.gold += goldOf(sv, 0); for (const [k, n] of Object.entries(cost)) S.mats[k] += n; return null; }
     return w;

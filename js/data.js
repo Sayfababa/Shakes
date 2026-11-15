@@ -54,11 +54,28 @@ export const AFFIXES = [
   { stat: 'dex', per: 1, pre: 'Flinker', suf: 'des Fuchses' },
   { stat: 'int', per: 1, pre: 'Kundiger', suf: 'des Gelehrten' },
   { stat: 'con', per: 1, pre: 'Zäher', suf: 'des Ochsen' },
-  { stat: 'lck', per: 0.7, pre: 'Glücklicher', suf: 'der Fortuna' },
-  { stat: 'armor', per: 1.5, pre: 'Gehärteter', suf: 'der Wacht' },
+  { stat: 'lck', per: 1.5, pre: 'Glücklicher', suf: 'der Fortuna' },
+  { stat: 'armor', per: 8, pre: 'Gehärteter', suf: 'der Wacht' },
   { stat: 'dmg', per: 0.6, pre: 'Grausamer', suf: 'des Schlachters' },
-  { stat: 'haste', per: 0.4, pre: 'Rascher', suf: 'der Beschwörung' },   // Zaubertempo in %: Zauber laden schneller
+  { stat: 'haste', per: 2, pre: 'Rascher', suf: 'der Beschwörung', pct: 1, label: 'Zaubertempo' },   // Zaubertempo in %: Zauber laden schneller
+  // Kampf-Boni in % (nur auf passenden Teilen, `slots`). Werte sind gegen das Hauptattribut geeicht (tests/calib.mjs):
+  // ein Bonus der Stufe III bringt etwa so viel Kampfkraft wie ein Hauptattribut-Bonus der Stufe III.
+  { stat: 'critc', per: 1.0, pre: 'Scharfer', suf: 'der Schärfe', pct: 1, label: 'Krit-Chance', slots: ['weapon', 'gloves', 'ring', 'amulet'] },
+  { stat: 'critd', per: 3.0, pre: 'Brutaler', suf: 'des Gemetzels', pct: 1, label: 'Krit-Schaden', slots: ['weapon', 'gloves', 'amulet'] },
+  { stat: 'dmgp', per: 0.95, pre: 'Wütender', suf: 'des Zorns', pct: 1, label: 'Schaden', slots: ['weapon', 'gloves', 'ring'] },
+  { stat: 'spellp', per: 1.2, pre: 'Arkaner', suf: 'der Zauberei', pct: 1, label: 'Zauberschaden', slots: ['weapon', 'offhand', 'helm', 'amulet'] },
+  { stat: 'penp', per: 1.8, pre: 'Bohrender', suf: 'des Durchbohrens', pct: 1, label: 'Rüstung ignorieren', slots: ['weapon'] },
+  { stat: 'leechp', per: 0.65, pre: 'Saugender', suf: 'des Egels', pct: 1, label: 'Lebensraub', slots: ['weapon', 'ring'] },
+  { stat: 'lifep', per: 1.9, pre: 'Lebendiger', suf: 'des Lebens', pct: 1, label: 'Leben', slots: ['chest', 'helm', 'belt'] },
+  { stat: 'blockp', per: 1.6, pre: 'Wehrhafter', suf: 'des Walls', pct: 1, label: 'Blocken', slots: ['offhand'] },
+  { stat: 'evadep', per: 1.5, pre: 'Schemenhafter', suf: 'des Nebels', pct: 1, label: 'Ausweichen', slots: ['boots', 'gloves'] },
+  { stat: 'thornsp', per: 3.5, pre: 'Dorniger', suf: 'der Dornen', pct: 1, label: 'Dornen', slots: ['chest', 'offhand'] },
 ];
+// Zauber-Boni (nur auf Waffen der Klasse, die den Zauber hat): "+N % Feuerball" stärkt Schaden/Heilung/Schild/Wirkung des Zaubers.
+// Werden am Dateiende aus SPELLS erzeugt (stat 'sk_<id>', cls).
+export const SKILL_PER = 3.5;
+// Obergrenzen für Prozent-Boni (Summe aus allem)
+export const CAPS = { crit: 0.6, critMult: 3, leech: 0.4, thorns: 0.6, evade: 0.5, block: 0.5, pen: 0.9 };
 export const LEGEND_NAMES = ['Grabesruh', 'Aschenkuss', 'Der Letzte Psalm', 'Witwenmacher', 'Knochenkrone', 'Sünde von Vhal', 'Rabenschwur', 'Blutglocke'];
 
 // --- Bonus-Stufen (wie Affix-Tiers): I ist die beste, gibt es erst auf hoher Gegenstandsstufe ---
@@ -353,6 +370,7 @@ export const CFG = {
   hpBase: 3, hpPerLvl: 0.25,          // Leben = Kon × Klassenfaktor × (hpBase + Stufe × hpPerLvl)  (Spieler und Monster)
   mainDiv: 20,                        // Schaden × (1 + Hauptattribut / mainDiv)
   affixBase: 1, affixPerLvl: 0.5,     // Affix-Wert = per × (affixBase + iLvl × affixPerLvl)
+  pctBase: 10, pctPerLvl: 0.25,       // Prozent-Boni (pct): per × (pctBase + iLvl × pctPerLvl) – wachsen flacher, sonst kippen sie spät
   rareMinLvl: 4, legendaryMinLvl: 10, // darunter keine/kaum seltene bzw. legendäre Beute
   bossHp: 2.2, bossDiff: 1.35,
   rushPerLvl: 3,                      // Eilen: 1 Gold je 20 s Restzeit × (1 + Stufe / rushPerLvl)
@@ -489,3 +507,7 @@ export const CRYPTS = [
 ];
 // Jeder erste Bosssieg (Krypta 1–4) bringt einen Glockensplitter. Vier öffnen "Die Glocke".
 export const SHARD_CRYPTS = ['c1', 'c2', 'c3', 'c4'];
+
+// Zauber-Boni aus SPELLS erzeugen (Waffe der Klasse → nur deren Zauber)
+for (const [cls, list] of Object.entries(SPELLS)) for (const sp of list)
+  AFFIXES.push({ stat: 'sk_' + sp.id, per: SKILL_PER, pre: 'Geweihter', suf: 'des Rituals', pct: 1, label: sp.name, slots: ['weapon'], cls, kind: CLASSES[cls].weapon });

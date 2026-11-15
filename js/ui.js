@@ -1,7 +1,10 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
-import { GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
+import { AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
 import { craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
+// Name eines Item-Bonus: Attribute, Rüstung/Schaden, Prozent-Boni ("% Krit-Chance", "% Feuerball")
+export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
+  const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
 import { gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
@@ -51,7 +54,7 @@ export function itemTip(it, cmp) {
   // Boni ohne Runen-Anteil, mit Stufe (I = beste)
   const runeOf = k => (it.runes || []).filter(r => r.stat === k).reduce((a, r) => a + r.v, 0);
   for (const [k, v] of Object.entries(it.mods)) { const b = v - runeOf(k); if (b <= 0) continue; const t = it.tiers?.[k];
-    L.push(`<span class="m ${t && t <= 2 ? 'hi' : ''}">+${b}${k === 'haste' ? ' % Zaubertempo' : ' ' + (k === 'armor' ? 'Rüstung' : k === 'dmg' ? 'Schaden' : ATTRS[k])}${t ? ` <i class="tier t${t}">${TIERS[t - 1].name}</i>` : ''}</span>`); }
+    L.push(`<span class="m ${t && t <= 2 ? 'hi' : ''}">+${b} ${STAT_NAME(k)}${t ? ` <i class="tier t${t}">${TIERS[t - 1].name}</i>` : ''}</span>`); }
   if (it.fx) L.push(`<span class="special">${it.unique ? '' : '✦ '}${effLine(it.fx)}</span>`);
   if (it.lore) L.push(`<span class="lore small">„${it.lore}“</span>`);
   if (it.crafted) L.push(`<span class="gold small">Geschmiedet von ${it.crafted}</span>`); else if (it.glutMax) L.push(`<span class="sub2">Schmiedeglut ${it.glut}/${it.glutMax}${it.sealed ? ' · 1 Bonus versiegelt' : ''}</span>`);
@@ -139,8 +142,8 @@ export function viewStats() {
     </section>
     <section class="panel"><h2>Kampf <span class="h2r">Kampfkraft <b>${fmtN(P0)}</b></span></h2>
       <div class="grid2"><div class="stat"><span>Leben</span><b>${fmtN(st.hp)}</b></div><div class="stat"><span>Schaden</span><b>${st.dmg[0]}–${st.dmg[1]}</b></div>
-      <div class="stat"><span>Rüstung</span><b>${st.armor}</b></div><div class="stat"><span>Siege / Tode</span><b>${S.wins} / ${S.deaths}</b></div></div>
-      <p class="dim small">${effLine(Object.fromEntries(Object.entries(st).filter(([k]) => EFFECT_NAMES[k] && !['dmgPct', 'hpPct', 'armorPct'].includes(k))))}</p>
+      <div class="stat"><span>Rüstung</span><b>${st.armor}</b></div><div class="stat"><span>Krit</span><b>${Math.round(Math.min(0.6, CFG.critBase + st.lck / (st.lck + 100 + S.lvl * 5) + st.crit) * 100)} % · ×${st.critMult.toFixed(2).replace('.', ',').replace(/0$/, '')}</b></div></div>
+      <p class="dim small">${effLine(Object.fromEntries(Object.entries(st).filter(([k, v]) => v && EFFECT_NAMES[k] && !['dmgPct', 'hpPct', 'armorPct', 'crit'].includes(k))))}</p>
       ${S.tampered ? '<p class="small down">Spielstand wurde von Hand verändert – für Handel gesperrt.</p>' : ''}</section>
     <section class="panel grow"><h2>Trophäen <span class="h2r">${S.trophies.length}</span></h2>
       ${S.trophies.map(t => `<div class="stat"><span>${t.name} <i class="dim">${t.diff}</i></span><span class="m small">${effLine(t.eff)}</span></div>`).join('') || '<p class="dim small">Besiege die Herren der Krypten.</p>'}</section>
@@ -153,9 +156,9 @@ export function viewSpells() {
   const st = stats();
   return `<div class="col"><section class="panel"><h2>Zauber <span class="h2r">Zauberkraft ×${st.amp.toFixed(2).replace('.', ',')}${st.haste ? ` · Tempo +${Math.round(st.haste * 100)} %` : ''}</span><button class="tiny" data-action="go" data-v="hero">Zurück</button></h2>
     <p class="small">Wirken von selbst und nutzen <b>alle deine Werte</b> wie ein Hieb. Stärker durch <b>Intelligenz</b>, schneller durch <b>Zaubertempo</b>.</p>${st.offWeapon ? '<p class="small down">Du trägst eine fremde Waffe – Zauber geschwächt.</p>' : ''}</section>
-    ${SPELLS[S.cls].map(sp => { const on = S.lvl >= sp.lvl;
+    ${SPELLS[S.cls].map(sp => { const on = S.lvl >= sp.lvl, bo = Math.round(((st.spells.find(x => x.id === sp.id)?.boost || 1) - 1) * 100);
       return `<section class="panel spell ${on ? '' : 'locked'}"><img class="sic" src="assets/spells/${sp.id}.webp" alt="">
-        <div><h3>${sp.name} <span class="h2r">${on ? `alle ${(sp.every / (1 + st.haste)).toFixed(1).replace('.0', '').replace('.', ',')} Züge` : `ab Stufe ${sp.lvl}`}</span></h3><p class="small">${sp.text}</p></div></section>`; }).join('')}
+        <div><h3>${sp.name} <span class="h2r">${on ? `alle ${(sp.every / (1 + st.haste)).toFixed(1).replace('.0', '').replace('.', ',')} Züge` : `ab Stufe ${sp.lvl}`}</span></h3><p class="small">${sp.text}${bo ? ` · <b class="up">+${bo} % durch Waffe</b>` : ''}</p></div></section>`; }).join('')}
     <section class="panel grow"><h2>Kampfbewertung <span class="h2r">je stärker, desto mehr Lohn</span></h2>${GRADES_TXT()}</section></div>`;
 }
 const GRADES_TXT = () => GRADES.map(g => `<div class="stat small"><span class="g-${g.id}">${g.name}</span><span>${g.min ? `≥ ${Math.round(g.min * 100)} % Leben` : 'sonst'} → ${g.bonus ? `+${Math.round(g.bonus * 100)} % Gold${g.id === 'dom' ? ', mehr Beute' : ''}` : 'kein Bonus'}</span></div>`).join('');
@@ -336,7 +339,6 @@ export function tutorial(step) {
 }
 
 // --- Schmiede: Runen einschmieden (Minispiel) ---
-const STAT_NAME = k => k === 'dmg' ? 'Schaden' : k === 'armor' ? 'Rüstung' : k === 'haste' ? '% Zaubertempo' : ATTRS[k];
 const matImg = k => `<img class="matimg" src="assets/forge/${k}.webp" alt="">`;
 export function viewForge(sel, res) {
   const tg = forgeTargets(), err = canForge(sel.slot, sel.mat), r = RUNES[sel.mat];

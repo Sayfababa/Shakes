@@ -38,7 +38,7 @@ export function fight(A, B) {
   function base(x) { return (x.dmg[0] + x.dmg[1]) / 2 * (1 + x[x.main] / CFG.mainDiv) * x.buff; }
   function hurt(y, d) { if (y.shield) { const s = Math.min(y.shield, d); y.shield -= s; d -= s; } y.cur -= d; }
   function spell(x, y, s) {
-    const amp = x.amp || 1, red = 1 - Math.min(0.6, y.armor / (y.armor + 20 + x.lvl * 8)) * (1 - Math.min(0.9, x.pen || 0));
+    const amp = (x.amp || 1) * (s.boost || 1), red = 1 - Math.min(0.6, y.armor / (y.armor + 20 + x.lvl * 8)) * (1 - Math.min(0.9, x.pen || 0));
     const dmgKind = !['heal', 'shield', 'buff'].includes(s.kind);
     if (dmgKind && chance(Math.min(0.5, y.dex / (y.dex + x.dex * 3 + 40) + (y.evade || 0)))) return say(x.side, `${x.name} wirkt ${s.name} – ${y.name} weicht aus.`, { spell: s.name, sid: s.id, miss: 'Ausgewichen' });
     let t = `${x.name} wirkt ${s.name}`, d = 0, anyCrit = false, extra = '';
@@ -59,7 +59,7 @@ export function fight(A, B) {
     } else if (s.kind === 'shield') {
       const h = Math.round(x.hp * s.pct * amp); x.shield += h; t += `: Schild ${h}.`; ev.shield = h;
     } else if (s.kind === 'buff') {
-      x.buff = Math.min(1 + (s.max || 9), x.buff + s.v); t += `: Schaden +${Math.round((x.buff - 1) * 100)} %.`; ev.buff = Math.round((x.buff - 1) * 100);
+      x.buff = Math.min(1 + (s.max || 9) * (s.boost || 1), x.buff + s.v * (s.boost || 1)); t += `: Schaden +${Math.round((x.buff - 1) * 100)} %.`; ev.buff = Math.round((x.buff - 1) * 100);
     }
     if (x.side === 'a') cast.push(s.name);
     say(x.side, t + extra, { spell: s.name, sid: s.id, dmg: d || undefined, crit: anyCrit, hits: hits.length > 1 ? hits : undefined, stun: s.kind === 'stun' || undefined });
@@ -71,7 +71,7 @@ export function fight(A, B) {
   function finish(x, y, raw) {
     let d = raw; if (x.execute && y.cur < y.hp * 0.3) d *= 1 + x.execute;
     const crit = chance(Math.min(0.6, CFG.critBase + x.lck / (x.lck + 100 + y.lvl * 5) + (x.crit || 0)));
-    if (crit) d *= 2;
+    if (crit) d *= x.critMult || 2;
     return { d: Math.max(1, Math.round(d)), crit };
   }
   // Was ein Treffer zusätzlich auslöst (für Hieb und Zauber) – neue Effekte hier eintragen, dann gelten sie für beides

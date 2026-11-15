@@ -620,3 +620,6 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 @media (max-height: 600px) { .trader .note p { display: none; } .trader .note { padding-top: 8px; padding-bottom: 6px; } }   /* winzig: nur Titel, Ziele, Lohn */
 @media (max-height: 600px) { .trader .npcrow { grid-template-columns: 15% 1fr; padding-top: 4px; padding-bottom: 4px; } .trader .npcrow .lore, .trader .npcrow small { display: none; }
   .trader .note button { min-height: 0; padding: 4px 12px; margin-top: 3px; } .trader .note ul { margin: 2px 0; } }
+/* Alle fünf Krypten offen: Trophäen-Zeile weg, Bild kleiner – sonst passt die letzte Karte nicht */
+.col:has(> .crypt):not(:has(> .crypt.locked)) .crypt .dim.small { display: none; }
+.col:has(> .crypt):not(:has(> .crypt.locked)) > .crypt:not(.locked) { grid-template-columns: 17% 1fr !important; padding-top: 6px; padding-bottom: 6px; }
