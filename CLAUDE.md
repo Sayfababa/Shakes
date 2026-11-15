@@ -85,6 +85,7 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 - `tests/bot.mjs [klasse] [tage]` – Bot spielt mit simulierter Uhr und zeigt Tempo pro Tag (Stufe, Quests, Splitter, Niederlagen). Für Balance-Fragen benutzen.
 - `tests/fuzz.mjs [züge] [läufe]` – tausende zufällige legale Spielzüge, prüft nach JEDEM Zug: kein doppeltes Item, Gold/Glut/EP/Material gültig, Beutel ohne Überlappung, Werte endlich, Siegel/Glut/Runen konsistent, Speichern=Laden.
 - `tests/uifuzz.cjs [taps]` – tippt zufällig auf alles in der App (3 iPhones, früh/spät), meldet JS-Fehler, Überstand, „undefined/NaN“ im Text, Sackgassen.
+- `tests/trader.cjs` – Händler-Layout: 3 Händler × alle Aufträge × offen/fertig × 8 Bildschirme (auch iOS-App, wo `vh` größer ist als die sichtbare Fläche). Kopf, Zettel, Dienste haben feste Höhe, Ware füllt den Rest → überall gleich groß.
 - `tests/ui.cjs` – Playwright auf iPhone SE + 13: alle Ansichten, JS-Fehler, nichts ragt heraus. Screenshots in `tests/out/` (nicht committen).
 - Neue Features: Logik in game.js/state.js (DOM-frei), dann Test ergänzen.
 

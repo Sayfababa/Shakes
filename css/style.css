@@ -656,13 +656,29 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .trader .note p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .trader .note.ready p { display: none; }
 .trader .npcrow .lore { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.5em; }
-.trader > .shop { flex: none !important; margin-top: auto; display: block; }
-.trader .shoprow { max-height: none; grid-template-rows: none; }
+/* Alles über der Ware hat feste Höhe → Ware füllt den Rest, bei jedem Händler und jedem Auftrag gleich groß, nie abgeschnitten */
+.trader { flex: 1 1 auto; min-height: 0; gap: 5px; }
+.trader .note { height: var(--noteH, 8.6rem); padding: 8px 14px 6px; }
+.trader .note h4 { font-size: 1.05rem; margin-bottom: 2px; }
+.trader .note p { font-size: .82rem; line-height: 1.22; }
+.trader .note ul { margin: 3px 0 2px; font-size: .82rem; }
+.trader .note .rew { margin-top: auto; padding-top: 3px; font-size: .7rem; }
+.trader .note button { min-height: 0; padding: 5px 14px; margin-top: 4px; align-self: flex-start; }
+.trader .note.ready .rew { margin-top: 2px; }
+.trader .note.sealed, .trader .note.done { justify-content: center; }
+.trader .npcrow { height: var(--npcH, 7.6rem); padding-top: 6px; padding-bottom: 6px; overflow: hidden; }
+.trader .services { padding: 5px 6px; }
+.trader > .shop { flex: 1 1 0 !important; min-height: 0; margin-top: 0; display: flex; flex-direction: column; padding-top: 6px; padding-bottom: 6px; }
+.trader .shop .invhead { flex: none; font-size: .9rem; margin-bottom: 4px; }
+.trader .shoprow { flex: 1 1 0; min-height: 0; max-height: none; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 5px; align-content: center; overflow: hidden; }
+.trader .sitem { max-height: 120px; }
+.trader .sitem { aspect-ratio: auto; height: auto; min-height: 0; }
 @media (min-height: 760px) {
-  .trader .svc { height: 52px; } .trader .svc b { font-size: .78rem; } .trader .svc small { font-size: .68rem; }
-  .trader .shoprow { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: auto; gap: 8px; }
-  .trader .sitem { aspect-ratio: auto; height: clamp(64px, 8.1vh, 84px); }
-  .trader .npcrow { grid-template-columns: 22% 1fr; }
+  .trader .svc { height: 50px; } .trader .svc b { font-size: .78rem; } .trader .svc small { font-size: .68rem; }
+  .trader .shoprow { gap: 8px; }
+  .trader .npcrow { grid-template-columns: 22% 1fr; --npcH: 7.4rem; }
+  .trader .note { --noteH: 8.4rem; } .trader .note h4 { font-size: 1.1rem; } .trader .note p, .trader .note ul { font-size: .86rem; }
 }
 @media (max-height: 600px) {   /* winzige Handys: Zettel nur Titel/Ziele/Lohn, Kopf ohne Spruch, Dienste flacher */
-  .trader .note p, .trader .npcrow .lore { display: none; } .trader .svc { height: 38px; } .trader .svc small { display: none; } }
+  .trader .note p, .trader .npcrow .lore { display: none; } .trader .svc { height: 38px; } .trader .svc small { display: none; }
+  .trader .note { --noteH: 8.4rem; } .trader .npcrow { --npcH: 3.9rem; } }

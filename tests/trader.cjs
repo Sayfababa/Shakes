@@ -1,0 +1,34 @@
+// Händler-Layout: alle Händler × alle Aufträge × (offen/fertig) × viele Bildschirme (auch iOS-App: vh größer als sichtbarer Bereich)
+const { chromium, devices } = require('playwright'); const { spawn } = require('child_process');
+const OUT = __dirname + '/out/trader'; require('fs').mkdirSync(OUT, { recursive: true });
+const srv = spawn('python3', ['-m', 'http.server', '8781'], { cwd: '/home/user/Shakes', stdio: 'ignore' });
+const SCR = [['ios932', 430, 932, 75], ['ios932b', 430, 932, 0], ['app', 430, 867, 0], ['real', 430, 800, 0], ['i13', 390, 664, 0], ['i13app', 390, 844, 60], ['se', 375, 667, 0], ['tiny', 320, 568, 0]];
+(async () => { await new Promise(r => setTimeout(r, 700)); const b = await chromium.launch(); let bad = 0;
+  await Promise.all(SCR.map(async ([nm, w, h, cut]) => {
+    const c = await b.newContext({ ...devices['iPhone 15 Pro Max'], viewport: { width: w, height: h }, deviceScaleFactor: 1 }); const p = await c.newPage();
+    await p.goto('http://localhost:8781/'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(300);
+    await p.tap('[data-c="witch"]'); await p.fill('#nm', 'Sayfa'); await p.tap('[data-action=create]'); await p.waitForTimeout(150);
+    if (cut) await p.addStyleTag({ content: `#app { bottom: ${cut}px !important; }` });
+    const sizes = new Set();
+    for (const t of ['halvar', 'ysolde', 'kaspar']) for (let qi = 0; qi < 7; qi++) for (const ready of [0, 1]) for (const lvl of [5, 25]) {
+      const ok = await p.evaluate(async ([t, qi, ready, lvl]) => { const D = await import('./js/data.js'); if (qi >= D.QUESTS[t].length + 1) return false;
+        const G = await import('./js/state.js'); Object.assign(G.S, { lvl, tut: 99, gold: 300 }); G.S.traders[t].q = qi; G.S.traders[t].prog = ready ? [99, 99, 99] : [0, 0, 0];
+        G.S.view = 'traders'; G.S.tv = t; return true; }, [t, qi, ready, lvl]);
+      if (!ok) continue;
+      await p.tap('[data-v=traders]').catch(() => {}); await p.tap(`[data-t=${t}]`); await p.waitForTimeout(60);
+      const r = await p.evaluate(() => { const m = document.querySelector('main').getBoundingClientRect(), out = [];
+        for (const e of document.querySelectorAll('main *')) { const q = e.getBoundingClientRect(); if (q.height && q.bottom > m.bottom + 1) { out.push('UNTER MAIN ' + e.className); break; } }
+        const n = document.querySelector('.note'), nb = n.getBoundingClientRect().bottom;
+        for (const e of n.querySelectorAll('h4, ul, li, .rew, button')) if (e.offsetParent && e.getBoundingClientRect().bottom > nb + 1) out.push('ZETTEL ZU KLEIN ' + e.tagName);
+        const k = document.querySelector('.npcrow'), kb = k.getBoundingClientRect().bottom;
+        for (const e of k.querySelectorAll('h2, .lore, .loyal, small, .bar')) if (e.offsetParent && e.getBoundingClientRect().bottom > kb - 2) out.push('KOPF ZU KLEIN ' + e.className);
+        const sh = document.querySelector('.shop').getBoundingClientRect();
+        for (const e of document.querySelectorAll('.sitem')) if (e.getBoundingClientRect().bottom > sh.bottom + 1) { out.push('WARE ABGESCHNITTEN'); break; }
+        const si = document.querySelector('.sitem')?.getBoundingClientRect(), sv = document.querySelector('.svc').getBoundingClientRect();
+        return { out: out.join(' '), s: si ? `${Math.round(si.width)}x${Math.round(si.height)}/${Math.round(sv.width)}x${Math.round(sv.height)}` : '-' }; });
+      sizes.add(r.s); if (r.out) { bad++; console.log(nm, t, qi, ready ? 'fertig' : 'offen', lvl, r.out); await p.screenshot({ path: `${OUT}/${nm}_${t}_${qi}_${ready}.png` }); }
+      
+    }
+    if (sizes.size > 1) { bad++; console.log(nm, 'Ware/Dienste ungleich groß:', [...sizes].join(' ')); }
+    await c.close(); }));
+  await b.close(); srv.kill(); console.log(bad ? `${bad} Probleme (Screenshots in tests/out/trader)` : 'Händler ok: 3 Händler × alle Aufträge × offen/fertig × 8 Bildschirme, gleich groß, nichts abgeschnitten.'); process.exit(bad ? 1 : 0); })();
