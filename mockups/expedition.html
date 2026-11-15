@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup – Expedition mit Wegen und Ereignissen</title>
+<link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+SC:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  html, body { overflow: auto; height: auto; }
+  .wrap { display: flex; gap: 28px; padding: 24px; align-items: flex-start; width: max-content; }
+  .phone { width: 390px; height: 800px; position: relative; display: flex; flex-direction: column; padding: 10px; gap: 7px;
+    border: 1px solid #2a2118; box-shadow: 0 0 0 6px #0b0907, 0 0 40px #000; background: var(--noise), var(--stonetex), radial-gradient(ellipse at 50% 20%, #241a12, #070504 70%); }
+  .phone > .panel { flex: none; }
+  .cap { font-family: 'Alegreya SC'; color: var(--gold); text-align: center; margin-bottom: 8px; font-size: 1rem; }
+  .note2 { width: 390px; color: var(--dim); font-size: .85rem; margin-top: 10px; line-height: 1.35; }
+  .note2 b { color: var(--gold); font-weight: 500; }
+  .hudm { display: flex; align-items: center; justify-content: space-between; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.5rem; }
+  .hudm small { font-family: 'Alegreya SC'; font-size: .8rem; color: var(--text); }
+  .tabsm { margin-top: auto; display: flex; gap: 3px; } .tabsm a { flex: 1; text-align: center; padding: 9px 2px; font-family: 'Alegreya SC'; font-size: .76rem; color: var(--dim); border-image: url('../assets/ui/tab.webp') 16 fill / 8px stretch; }
+  .tabsm a.on { color: var(--gold-hi); border-image-source: url('../assets/ui/tab_on.webp'); }
+  .chips { display: flex; gap: 4px; } .chips span { flex: 1; text-align: center; font-family: 'Alegreya SC'; font-size: .72rem; padding: 6px 2px; color: var(--dim); border-image: url('../assets/ui/tab.webp') 16 fill / 8px stretch; }
+  .chips span.on { color: var(--gold-hi); border-image-source: url('../assets/ui/tab_on.webp'); }
+  /* Karte */
+  .map { position: relative; height: 352px; margin-top: 4px; }
+  .map svg.lines { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .node { position: absolute; width: 46px; height: 46px; transform: translate(-50%, -50%); display: grid; place-items: center; cursor: pointer;
+    background: #07080b; box-shadow: inset 0 0 10px #000; border-image: url('../assets/ui/slot.webp') 16 / 6px stretch; }
+  .node img { width: 78%; height: 78%; object-fit: contain; filter: drop-shadow(0 1px 1px #000); }
+  .node img.mon { width: 100%; height: 100%; object-fit: cover; filter: saturate(.7); }
+  .node .q { font-family: 'Grenze Gotisch'; font-size: 1.6rem; color: var(--gold); text-shadow: 0 0 6px #000; }
+  .node.on { box-shadow: inset 0 0 10px #000, 0 0 0 2px var(--gold-hi), 0 0 12px rgba(226,192,122,.45); }
+  .node.next { box-shadow: inset 0 0 10px #000, 0 0 0 1px rgba(226,192,122,.5); animation: pulse 1.6s infinite; }
+  .node.off { opacity: .4; filter: grayscale(.6); }
+  .node.danger { box-shadow: inset 0 0 10px #000, 0 0 0 1px #8a1c13; }
+  .node.goal { width: 58px; height: 58px; }
+  .node label { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); white-space: nowrap; font-family: 'Alegreya SC'; font-size: .62rem; color: var(--dim); margin-top: 1px; text-shadow: 0 1px 0 #000; }
+  .node.on label { color: var(--gold); }
+  @keyframes pulse { 50% { box-shadow: inset 0 0 10px #000, 0 0 0 2px rgba(226,192,122,.8); } }
+  .sum { font-size: .82rem; line-height: 1.3; margin: 0; } .sum b { color: var(--gold-hi); font-weight: 500; }
+  .sum .warn { color: var(--blood-hi); }
+  /* Ereignis */
+  .trail { display: flex; align-items: center; gap: 4px; justify-content: center; }
+  .trail i { width: 26px; height: 26px; display: grid; place-items: center; background: #07080b; border-image: url('../assets/ui/slot.webp') 16 / 4px stretch; font-style: normal; }
+  .trail i img { width: 80%; height: 80%; object-fit: contain; } .trail i.done { opacity: .45; } .trail i.now { box-shadow: 0 0 0 2px var(--gold-hi); }
+  .trail i .q { font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1rem; }
+  .trail s { width: 10px; height: 1px; background: #5a4630; text-decoration: none; }
+  .evt h2 { text-align: center; } .evt .pic { width: 100%; height: 170px; object-fit: cover; display: block; border: 1px solid #3a2e22; filter: saturate(.75) contrast(1.05); }
+  .evt .lore { margin: 8px 2px; font-size: .95rem; line-height: 1.35; }
+  .choice { display: flex; flex-direction: column; align-items: stretch; text-align: left; padding: 8px 12px; margin-top: 6px; width: 100%; }
+  .choice b { font-family: 'Alegreya SC'; font-weight: 500; font-size: .9rem; color: var(--gold-hi); }
+  .choice small { font-family: 'Alegreya'; font-size: .76rem; color: var(--dim); text-transform: none; }
+  .choice small .up { color: #9fc870; } .choice small .down { color: var(--blood-hi); }
+  /* Ergebnis */
+  .steps p { display: grid; grid-template-columns: 30px 1fr; gap: 8px; align-items: center; margin: 0; padding: 5px 0; border-bottom: 1px solid #000; box-shadow: 0 1px 0 #2e241a; font-size: .84rem; line-height: 1.25; }
+  .steps p:last-child { border: 0; box-shadow: none; }
+  .steps i { width: 30px; height: 30px; display: grid; place-items: center; background: #07080b; border-image: url('../assets/ui/slot.webp') 16 / 4px stretch; font-style: normal; }
+  .steps i img { width: 80%; height: 80%; object-fit: contain; } .steps i .q { font-family: 'Grenze Gotisch'; color: var(--gold); }
+  .steps .up { color: #9fc870; } .steps .down { color: var(--blood-hi); } .steps em { color: var(--dim); }
+  .loot { display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: center; font-size: .85rem; }
+  .loot span { display: inline-flex; align-items: center; gap: 3px; } .loot img { width: 22px; height: 22px; object-fit: contain; }
+  .bless { text-align: center; font-size: .85rem; color: var(--gold-hi); }
+</style></head>
+<body>
+<div class="wrap">
+
+<!-- 1: Weg planen -->
+<div>
+  <div class="cap">1 · Vor dem Aufbruch: Weg planen</div>
+  <div class="phone">
+    <div class="hudm">Sayfa <small>Glut 0 · Stufe 9</small></div>
+    <section class="panel"><h2>Expedition <span class="h2r">Katakomben · ohne Glut</span></h2>
+      <div class="chips"><span>1 Std.</span><span>2 Std.</span><span>4 Std.</span><span class="on">8 Std.</span></div>
+      <div class="map">
+        <svg class="lines" viewBox="0 0 350 352" preserveAspectRatio="none">
+          <g stroke="#4a3a28" stroke-width="2" fill="none" stroke-dasharray="4 4">
+            <path d="M175 24 L95 92"/><path d="M175 24 L255 92"/>
+            <path d="M95 92 L55 162"/><path d="M95 92 L175 162"/><path d="M255 92 L175 162"/><path d="M255 92 L295 162"/>
+            <path d="M55 162 L115 232"/><path d="M175 162 L115 232"/><path d="M175 162 L235 232"/><path d="M295 162 L235 232"/>
+            <path d="M115 232 L175 312"/><path d="M235 232 L175 312"/>
+          </g>
+          <g stroke="#c9a45a" stroke-width="3" fill="none">
+            <path d="M175 24 L95 92"/><path d="M95 92 L175 162"/><path d="M175 162 L235 232"/><path d="M235 232 L175 312"/>
+          </g>
+        </svg>
+        <div class="node on" style="left:50%;top:24px"><img src="../assets/ui/marker.webp" alt=""><label>Aufbruch</label></div>
+        <div class="node on" style="left:27%;top:92px"><img src="../assets/potions/i_silberstaub.webp" alt=""><label>Kräuterfeld</label></div>
+        <div class="node" style="left:73%;top:92px"><span class="q">?</span><label>Ereignis</label></div>
+        <div class="node off" style="left:16%;top:162px"><img src="../assets/items/amulet_a.webp" alt=""><label>Ruine</label></div>
+        <div class="node on" style="left:50%;top:162px"><img src="../assets/potions/weihwasser.webp" alt=""><label>Schrein</label></div>
+        <div class="node danger" style="left:84%;top:162px"><img class="mon" src="../assets/monsters/ghul.jpg" alt=""><label>Gefahr</label></div>
+        <div class="node" style="left:33%;top:232px"><img src="../assets/ui/coin.webp" alt=""><label>Lager</label></div>
+        <div class="node on" style="left:67%;top:232px"><span class="q">?</span><label>Ereignis</label></div>
+        <div class="node goal on" style="left:50%;top:312px"><img src="../assets/items/amulet_b.webp" alt=""><label>Grabkammer</label></div>
+      </div>
+    </section>
+    <section class="panel"><h2>Dein Weg <span class="h2r">4 Stationen · 8 Std.</span></h2>
+      <p class="sum">Kräuterfeld <b>~4 Zutaten</b> · Schrein <b>Segen für die Krypta</b> · <b>1 Ereignis</b> · Grabkammer <b>sicheres Fundstück</b></p>
+      <p class="sum dim">Über die <span class="warn">Gefahr</span>: doppelte Beute dort, aber 1 von 3: die Hälfte geht verloren.</p>
+    </section>
+    <div class="btns"><button>Zurück</button><button class="red">Aufbrechen</button></div>
+    <nav class="tabsm"><a>Held</a><a class="on">Streifzug</a><a>Händler</a><a>Krypta</a><a>Grube</a></nav>
+  </div>
+  <p class="note2"><b>Planen statt Raten:</b> Jede Station zeigt vorher, was sie bringt. Tippen auf eine Station legt den Weg fest (gold). Gefahr ist rot markiert und sagt, was sie kosten kann – kein unfairer Verlust. Die Karte ist je Ort und Tag anders.</p>
+</div>
+
+<!-- 2: Heimkehr – Ereignis -->
+<div>
+  <div class="cap">2 · Heimkehr: er erzählt, du entscheidest</div>
+  <div class="phone">
+    <div class="hudm">Sayfa <small>Glut 120 · Stufe 9</small></div>
+    <section class="panel"><div class="trail">
+      <i class="done"><img src="../assets/potions/i_silberstaub.webp" alt=""></i><s></s>
+      <i class="done"><img src="../assets/potions/weihwasser.webp" alt=""></i><s></s>
+      <i class="now"><span class="q">?</span></i><s></s>
+      <i><img src="../assets/items/amulet_b.webp" alt=""></i></div></section>
+    <section class="panel evt"><h2>Der sterbende Grabräuber</h2>
+      <img class="pic" src="../assets/monsters/grabraeuber.jpg" alt="">
+      <p class="lore">Zwischen zwei Särgen lehnt einer, der schneller war als du – und langsamer als das, was ihn erwischt hat. „Wasser“, sagt er. „Und ich sag dir, wo es liegt.“</p>
+      <button class="choice"><b>Ihm helfen</b><small>1 Rotwurz-Trank · <span class="up">er verrät ein Versteck in der Grabkammer</span></small></button>
+      <button class="choice"><b>Ihn ausrauben</b><small><span class="up">+Gold</span> · <span class="down">dein nächstes Omen trübt sich</span></small></button>
+      <button class="choice"><b>Weitergehen</b><small>Nichts. Die Katakomben vergessen schnell.</small></button>
+    </section>
+    <nav class="tabsm"><a>Held</a><a class="on">Streifzug</a><a>Händler</a><a>Krypta</a><a>Grube</a></nav>
+  </div>
+  <p class="note2"><b>Kein Warten in der Nacht:</b> Der Held geht den Weg allein. Die „?“-Stationen hebt er auf und erzählt sie bei der Heimkehr – ein Tippen je Ereignis. Die Leiste oben zeigt, wo du auf dem Weg bist. Folgen stehen grob dabei (grün/rot), die genaue Wirkung bleibt ein wenig offen.</p>
+</div>
+
+<!-- 3: Ergebnis -->
+<div>
+  <div class="cap">3 · Heimgekehrt: der ganze Weg</div>
+  <div class="phone">
+    <div class="hudm">Sayfa <small>Glut 120 · Stufe 9</small></div>
+    <section class="panel"><h2>Heimgekehrt · Katakomben</h2>
+      <div class="steps">
+        <p><i><img src="../assets/potions/i_silberstaub.webp" alt=""></i><span>Kräuterfeld: <span class="up">Silberstaub ×3, Grabmoos ×1</span></span></p>
+        <p><i><img src="../assets/potions/weihwasser.webp" alt=""></i><span>Schrein der Ilse: <span class="up">Segen</span> <em>– nächster Krypta-Kampf +10 % Leben</em></span></p>
+        <p><i><span class="q">?</span></i><span>Grabräuber: geholfen. <em>„Unter dem dritten Sarg.“</em> <span class="down">−1 Rotwurz</span></span></p>
+        <p><i><img src="../assets/items/amulet_b.webp" alt=""></i><span>Grabkammer: <span class="r-rare">Knochenwacht (Amulett)</span> <span class="up">+ Versteck: Hexenhaar ×2</span></span></p>
+      </div>
+    </section>
+    <section class="panel"><h2>Beute</h2>
+      <div class="loot"><span><img src="../assets/ui/coin.webp" alt="">+214 Gold</span><span>+702 EP</span><span><img src="../assets/potions/i_silberstaub.webp" alt="">Silberstaub ×3</span><span><img src="../assets/potions/i_grabmoos.webp" alt="">Grabmoos ×1</span><span><img src="../assets/forge/haar.webp" alt="">Hexenhaar ×2</span></div>
+      <p class="bless">Geschichten der Katakomben: 3/6</p>
+    </section>
+    <div class="btns"><button class="red">Weiter</button></div>
+    <nav class="tabsm"><a>Held</a><a class="on">Streifzug</a><a>Händler</a><a>Krypta</a><a>Grube</a></nav>
+  </div>
+  <p class="note2"><b>Eigene Geschichte:</b> Jede Station eine Zeile – was passiert ist und was es gebracht hat. Entscheidungen wirken weiter (Versteck in der Grabkammer, Segen in der Krypta, Omen). „Geschichten 3/6“ gibt einen Grund, andere Orte und Wege zu probieren.</p>
+</div>
+
+</div>
+</body></html>
