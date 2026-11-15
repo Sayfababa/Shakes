@@ -1,11 +1,11 @@
-import { CFG, MATS, TUTORIAL, TRADERS, FORGE, CRYPTS, HERBS, POTIONS } from './data.js';
+import { CFG, MATS, TUTORIAL, TRADERS, FORGE, CRYPTS, HERBS, POTIONS, LOCATIONS } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import * as Game from './game.js';
 import * as UI from './ui.js';
 
 const app = document.getElementById('app'), tip = document.getElementById('tip');
-let expSel = { loc: null, h: 8, f: 'kraeuter' }, expRes = null, expAsk = false;
+let expSel = { loc: null, h: 8, path: [] }, expRes = null, expAsk = false;
 let forgeSel = { mat: null, slot: null, mode: 'rune', item: null, stat: null, msg: '' }, forgeRes = null, FG = null;
 let prepC = null, prepM = null, alchSel = POTIONS[0].id, alchBack = 'traders';
 let tripLoc = null, view = 'hero', pickCls = null, F = null, rival = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
@@ -36,7 +36,7 @@ function render() {
 
 // Vorbereitung: Gürtel als Liste; reicht die Höhe nicht (kleine Handys, iOS-App), als Reihe nebeneinander
 function fitPrep() {
-  const pr = document.querySelector('.prep, .exped'), m = pr?.parentElement; if (!pr) return;
+  const pr = document.querySelector('.prep, .exped, .expev, .expresv'), m = pr?.parentElement; if (!pr) return;
   pr.classList.remove('tight'); const low = () => pr.lastElementChild.getBoundingClientRect().bottom > m.getBoundingClientRect().bottom + 1;
   if (low()) pr.classList.add('tight');
 }
@@ -241,11 +241,15 @@ const actions = {
     const slot = Object.entries(S.equip).find(([, x]) => x === it)?.[0];
     if (G.craftItems().includes(it)) Object.assign(forgeSel, { mode: 'craft', item: it.id, stat: null, msg: '', changed: null }); else Object.assign(forgeSel, { mode: 'rune' });
     if (slot) forgeSel.slot = slot; view = 'forge'; render(); },
-  expsel: d => { if (d.l) expSel.loc = d.l; if (d.f) expSel.f = d.f; if (d.h) expSel.h = +d.h; render(); },
-  expgo: d => { if (Game.startExped(d.l, expSel.h, expSel.f)) { expSel.loc = d.l; view = 'trips'; } render(); },
+  expsel: d => { if (d.h) { expSel.h = +d.h; expSel.path = []; } render(); },
+  exploc: d => { const open = LOCATIONS.filter(G.locOpen), i = open.findIndex(l => l.id === expSel.loc), cur = i < 0 ? open.length - 1 : i;
+    expSel.loc = open[Math.max(0, Math.min(open.length - 1, cur + +d.d))].id; expSel.path = []; render(); },
+  exppath: d => { const r = +d.r, j = +d.j; if (d.l && d.l !== expSel.loc) { expSel.loc = d.l; expSel.path = []; } if (r > expSel.path.length) return; if (expSel.path[r] === j) expSel.path = expSel.path.slice(0, r); else expSel.path = [...expSel.path.slice(0, r), j]; render(); },
+  expgo: d => { if (Game.startExped(d.l, expSel.h, expSel.path)) { expSel.loc = d.l; expSel.path = []; view = 'trips'; } render(); },
   expask: () => { expAsk = true; render(); },
   expno: () => { expAsk = false; render(); },
-  expclaim: () => { expAsk = false; expRes = Game.claimExped(); view = 'trips'; render(); },
+  expclaim: () => { expAsk = false; Game.expBegin(); const r = Game.expAdvance(); if (r?.done) expRes = r.done; view = 'trips'; render(); },
+  expchoose: d => { const r = Game.expChoose(+d.i); if (r?.done) expRes = r.done; render(); },
   expok: () => { expRes = null; render(); },
   forgemat: d => { forgeSel.mat = d.m; render(); },
   forgeslot: d => { forgeSel.slot = d.s; render(); },

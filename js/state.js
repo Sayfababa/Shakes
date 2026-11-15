@@ -3,7 +3,7 @@ import { affixPool, makeItem, itemValue, rollTier, affixValue, renameMagic } fro
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 10;
 export let S = null; // aktueller Spielstand
 
 export const now = () => Date.now();
@@ -46,6 +46,10 @@ function migrate(d) {
   if (d.v === 6) { d.sp = {}; d.v = 7; }   // Zauber-Wege
   if (d.v === 7) { d.belt = [null, null, null]; d.herbs = {}; d.pots = {}; d.potDay = today(); d.v = 8; }   // Alchemie
   if (d.v === 8) { d.exp = null; d.v = 9; }   // Expedition
+  if (d.v === 9) {   // Expedition mit Weg: alte Ausrichtung → Stationen
+    if (d.exp) { const t = { beute: 'ruin', kraeuter: 'herb', material: 'mats' }[d.exp.focus] || 'herb', n = { 1: 1, 2: 2, 4: 3, 8: 4 }[d.exp.h] || 1;
+      d.exp = { loc: d.exp.loc, h: d.exp.h, start: d.exp.start, end: d.exp.end, nodes: Array.from({ length: n }, () => ({ t, x: 0.5 })), goal: 'Ziel' }; }
+    d.bless = 0; d.v = 10; }
   d.name = cleanName(d.name);
   return d.v === SAVE_VERSION ? d : null;
 }
@@ -57,7 +61,7 @@ export function newChar(name, cls) {
   S = { v: SAVE_VERSION, name, cls, lvl: 1, xp: 0, gold: 40, attrs: baseAttrs(cls), points: CFG.startPoints, tal: {}, sp: {}, respecs: 0,
     crypt: { diff: 0, prog: {}, cd: 0 }, trophies: [], traders: freshTraders(), mats: {}, omen: null, omens: 0, shards: [], tut: 0, title: null, haul: null, bounty: null,
     equip: {}, bag: [], glut: CFG.maxGlut, glutTs: now(), active: null,
-    journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0, belt: [null, null, null], herbs: {}, pots: {}, potDay: today(), exp: null };
+    journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0, belt: [null, null, null], herbs: {}, pots: {}, potDay: today(), exp: null, bless: 0 };
   const wb = BASES.find(b => b.kind === c.weapon);
   S.equip.weapon = { id: 'start', slot: 'weapon', kind: wb.kind, base: wb.name, art: wb.art, w: wb.w, h: wb.h, name: 'Rostige/r ' + wb.name,
     rarity: 'normal', lvl: 1, mods: {}, dmg: [...wb.dmg], value: 2 };

@@ -98,14 +98,19 @@ let failures = 0;
     await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.glut = 0; G.S.active = null; G.S.haul = null; G.S.exp = null; G.save(); });
     await p.reload(); await p.waitForTimeout(300); await tap('[data-v=trips]');
     if (!(await tap('.expbar.ready'))) { failures++; console.log(`FEHLER ${tag}: Expedition-Leiste fehlt/leuchtet nicht bei leerer Glut`); }
-    await tap('[data-f=material]'); await tap('[data-h="2"]'); await chk('exped'); await tap('[data-action=expgo]'); await chk('expaway');
+    await tap('[data-h="8"]'); await chk('exped');
+    for (let i = 0; i < 4; i++) { const nn = await p.$$('.node.next'); let n = nn[0]; for (const q of nn) if (await q.$('.q')) n = q; if (!n) break; await n.tap(); await p.waitForTimeout(60); }
+    await chk('exped2'); if (await p.$('[data-action=expgo][disabled]')) { failures++; console.log(`FEHLER ${tag}: Weg lässt sich nicht vollständig wählen`); }
+    await tap('[data-action=expgo]'); await chk('expaway');
     await tap('[data-v=crypt]'); await chk('expcrypt'); if (await p.$('[data-action=crypt]')) { failures++; console.log(`FEHLER ${tag}: Krypta während Expedition offen`); }
     await tap('[data-v=trips]'); await tap('[data-action=expask]'); await chk('expask');
     if (!(await p.$('[data-action=expno]'))) { failures++; console.log(`FEHLER ${tag}: Heimrufen ohne Rückfrage`); }
     await tap('[data-action=expno]'); if (!(await p.$('[data-action=expask]'))) { failures++; console.log(`FEHLER ${tag}: Weiter warten geht nicht`); }
-    await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.exp.start -= 3 * 3600e3; G.S.exp.end -= 3 * 3600e3; });
-    await tap('[data-v=trips]'); await tap('[data-action=expclaim]'); await chk('expres');
-    if (!(await p.$('.xloot p'))) { failures++; console.log(`FEHLER ${tag}: Expedition ohne Ergebnis`); }
+    await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.exp.start -= 9 * 3600e3; G.S.exp.end -= 9 * 3600e3; });
+    await tap('[data-v=trips]'); await tap('[data-action=expclaim]');
+    let evn = 0; while (evn < 5 && await p.$('[data-action=expchoose]')) { await chk('expevent'); await tap('[data-action=expchoose]:not([disabled])'); evn++; }
+    if (!evn) { failures++; console.log(`FEHLER ${tag}: Weg über „?“ ohne Ereignis`); }
+    await chk('expres'); if (!(await p.$('.steps p'))) { failures++; console.log(`FEHLER ${tag}: Expedition ohne Ergebnis`); }
     await tap('[data-action=expok]'); if (!(await p.$('.expbar'))) { failures++; console.log(`FEHLER ${tag}: nach Expedition kein Streifzug`); }
     if (errs.length) { failures++; console.log(`FEHLER ${tag} JS:`, errs); }
     await c.close();

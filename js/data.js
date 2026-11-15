@@ -618,16 +618,91 @@ export const POTIONS = [
 export const TRIGGERS = { start: 'zu Kampfbeginn', hp50: 'Leben unter 50 %', hp30: 'Leben unter 30 %', dot: 'wenn vergiftet/blutend', low: 'Gegner unter 50 %', heal: 'wenn Gegner heilt' };
 
 // --- Expedition: der Held zieht ohne Glut los (1–8 Std.), keine Kämpfe in der Zeit. Für die Leerlaufzeit (Nacht, Arbeit). ---
-// Werte je Stunde, gemessen an einem Streifzug dieses Ortes (tripReward). Bewusst unter dem aktiven Spiel: die Glut lädt nebenher weiter.
+// Vor dem Aufbruch wählt man einen Weg über eine kleine Karte (Gabelungen, Stationen), bei der Heimkehr erzählt er, was geschah;
+// Ereignisse („?“) entscheidet man dann. Werte je Stunde gemessen an einem Streifzug dieses Ortes (tripReward) – bewusst unter dem aktiven Spiel.
 export const EXPED = {
-  hours: [1, 2, 4, 8], gold: 0.5, xp: 0.6, herb: 0.15, mat: 0.15, item: 0.04,
-  longH: 8,                                         // lange Reise: ein sicheres Fundstück (magisch oder besser)
-  focus: {
-    beute:    { name: 'Beute',    text: 'Gold und Fundstücke',      gold: 0.7, item: 0.18 },
-    kraeuter: { name: 'Kräuter',  text: 'Zutaten für Ysoldes Kessel', herb: 1.1, herz: 0.03 },
-    material: { name: 'Material', text: 'Stoff für Halvars Esse',    mat: 0.8 },
-  },
+  hours: [1, 2, 4, 8], gold: 0.5, xp: 0.6,          // Grundertrag je Stunde (× Streifzug)
+  stations: { 1: 1, 2: 2, 4: 3, 8: 4 },             // Stationen je Dauer (+ Ziel)
+  widths: [2, 3, 2, 3],                              // Knoten je Reihe
+  longH: 8,                                          // lange Reise: Ziel bringt ein sicheres magisches Fundstück
+  blessMax: 0.25, curseMax: -0.15,                   // Segen/Fluch auf den nächsten Krypta-Kampf (Leben %)
 };
+// Stationen: Wert je Stunde Weg (hps = Stunden je Station). w = Häufigkeit auf der Karte, max = höchstens so oft je Karte.
+export const EXP_NODES = {
+  herb:   { name: 'Kräuterfeld', w: 3, text: 'Zutaten des Ortes', herb: 2 },
+  mats:   { name: 'Gebeinfeld', w: 3, text: 'Material des Ortes', mat: 1.6 },
+  ruin:   { name: 'Ruine', w: 2, text: 'Chance auf ein Fundstück', item: 0.35, gold: 0.3 },
+  event:  { name: 'Ereignis', w: 3, text: 'Du entscheidest bei der Heimkehr' },
+  camp:   { name: 'Lager', w: 1, max: 1, text: 'Sicher: Ruhe und Erfahrung', xp: 0.5 },
+  shrine: { name: 'Schrein', w: 1, max: 1, text: 'Segen: nächster Krypta-Kampf +10 % Leben', bless: 0.1 },
+  danger: { name: 'Gefahr', w: 1, max: 1, text: 'Viel Gold und ein Fundstück – aber 1 von 3: die Hälfte der Beute ist fort', gold: 1, item: 0.5, minR: 2, risk: 1 / 3 },
+};
+export const EXP_GOALS = { friedhof: 'Gruft von Vhal', muehle: 'Mahlstube', katakomben: 'Grabkammer', moor: 'Galgenhügel', kapelle: 'Altarraum', gruben: 'Schlund' };
+// Ereignisse: Wahl mit Hinweis (hint, was man vorher sieht) und Folge (out). Wirkungen (× Streifzug-Ertrag des Ortes):
+// gold, xp, herb (Zutat des Ortes), herbAny, mat, item (Mindest-Seltenheit), heart, bless (±), glut, cache (Versteck → Ziel bringt Material),
+// Kosten: pot (Trank aus dem Vorrat), pay (Gold × Streifzug). risk: { p, win, lose } – Ausgang beim Wählen.
+export const EXP_EVENTS = [
+  { id: 'raeuber', title: 'Der sterbende Grabräuber', img: 'monsters/grabraeuber.jpg',
+    text: 'Zwischen zwei Särgen lehnt einer, der schneller war als du – und langsamer als das, was ihn erwischt hat. „Wasser“, sagt er. „Und ich sag dir, wo es liegt.“',
+    ch: [{ t: 'Ihm helfen', hint: '1 Rotwurz-Trank · er verrät ein Versteck', pot: 'rotwurz', eff: { cache: 1 }, out: '„Unter dem dritten Sarg.“ Er hat nicht gelogen.' },
+         { t: 'Ihn ausrauben', hint: '+Gold · ein Fluch haftet an dir', eff: { gold: 1.5, bless: -0.05 }, out: 'Seine Finger waren kalt, bevor du fertig warst.' },
+         { t: 'Weitergehen', hint: 'Nichts.', eff: {}, out: 'Hinter dir hört das Atmen auf.' }] },
+  { id: 'gruft', title: 'Die offene Gruft', img: 'monsters/skelett.jpg',
+    text: 'Der Deckel liegt zerbrochen daneben. Unten glänzt etwas zwischen den Rippen eines, der nicht ganz still liegt.',
+    ch: [{ t: 'Hineingreifen', hint: 'Fundstück – oder etwas greift zurück', risk: { p: 0.6, win: { item: 2 }, lose: { bless: -0.08 } }, out: ['Du ziehst es heraus. Die Rippen schließen sich zu spät.', 'Etwas hat zurückgegriffen. Die Kälte bleibt in der Hand.'] },
+         { t: 'Versiegeln', hint: '+Erfahrung', eff: { xp: 1 }, out: 'Stein auf Stein. Was unten ist, bleibt unten.' },
+         { t: 'Weitergehen', hint: 'Nichts.', eff: {}, out: 'Das Glänzen folgt dir noch eine Weile.' }] },
+  { id: 'haendler', title: 'Händlerin im Nebel', img: 'monsters/gerlinde.jpg',
+    text: 'Eine Laterne, ein Karren, kein Pferd. Sie lächelt, als hätte sie dich erwartet. „Kräuter, Wanderer? Frisch. Fast.“',
+    ch: [{ t: 'Kräuter kaufen', hint: 'Gold · 3 Zutaten', pay: 0.8, eff: { herbAny: 3 }, out: 'Die Bündel riechen nach Erde und nach etwas Älterem.' },
+         { t: 'Nach dem Weg fragen', hint: '+Erfahrung', eff: { xp: 0.6 }, out: '„Links. Immer links.“ Es war richtig.' },
+         { t: 'Weitergehen', hint: 'Nichts.', eff: {}, out: 'Als du dich umdrehst, ist da nur Nebel.' }] },
+  { id: 'altar', title: 'Altar aus Knochen', img: 'monsters/kultist.jpg',
+    text: 'Frisches Blut auf altem Stein. Jemand hat hier vor Kurzem gebetet – und etwas hat geantwortet.',
+    ch: [{ t: 'Opfern', hint: 'vielleicht ein Schwarzes Herz', risk: { p: 0.35, win: { heart: 1 }, lose: { xp: 0.3 } }, out: ['Der Stein öffnet sich. Darin schlägt etwas Schwarzes.', 'Nichts antwortet. Nur dein eigener Herzschlag.'] },
+         { t: 'Zerschlagen', hint: '+viel Erfahrung', eff: { xp: 1.5 }, out: 'Die Knochen schreien nicht. Fast nicht.' },
+         { t: 'Weitergehen', hint: 'Nichts.', eff: {}, out: 'Das Blut ist noch warm, als du gehst.' }] },
+  { id: 'nest', title: 'Das Nest', img: 'monsters/pestratte.jpg',
+    text: 'Ein Hügel aus Fell, Zähnen und Lumpen. Er atmet. Darin: Dinge, die Ratten nicht fressen.',
+    ch: [{ t: 'Ausräuchern', hint: '+Material', eff: { mat: 3 }, out: 'Was übrig bleibt, nimmt Halvar gern.' },
+         { t: 'Hindurchwühlen', hint: 'Fundstück – oder Bisse', risk: { p: 0.5, win: { item: 1, gold: 0.5 }, lose: { bless: -0.05 } }, out: ['Zwischen den Knochen: etwas Brauchbares.', 'Die Bisse heilen. Langsam.'] },
+         { t: 'Weitergehen', hint: 'Nichts.', eff: {}, out: 'Das Rascheln folgt dir bis zur Biegung.' }] },
+  { id: 'prophet', title: 'Der Seher am Wegrand', img: 'npcs/prophet.jpg',
+    text: 'Er sitzt da, als säße er schon immer da. „Ich sehe dich, Kind der Asche. Willst du hören, was kommt?“',
+    ch: [{ t: 'Zuhören', hint: 'Segen für die Krypta', eff: { bless: 0.08 }, out: '„Die dritte Tür. Nicht die zweite.“ Du wirst es dir merken.' },
+         { t: 'Ihm Gold geben', hint: 'Gold · +viel Erfahrung', pay: 0.5, eff: { xp: 2 }, out: 'Er beißt auf die Münze. Dann erzählt er bis zum Morgen.' },
+         { t: 'Weitergehen', hint: 'Nichts.', eff: {}, out: 'Er lacht dir nach. Lange.' }] },
+  { id: 'hund', title: 'Der Knochenhund', img: 'monsters/knochenhund.jpg',
+    text: 'Er folgt dir seit einer Stunde. Er greift nicht an. Er wartet.',
+    ch: [{ t: 'Füttern', hint: '1 Zutat · er führt dich zu etwas', herbCost: 1, eff: { mat: 2, item: 1 }, out: 'Er frisst, dann trottet er voraus. Zu einem Toten mit vollen Taschen.' },
+         { t: 'Verjagen', hint: '+Erfahrung', eff: { xp: 0.8 }, out: 'Ein Stein, ein Knurren. Dann bist du allein.' },
+         { t: 'Weitergehen', hint: 'Nichts.', eff: {}, out: 'Irgendwann ist er nicht mehr hinter dir.' }] },
+  { id: 'lager', title: 'Verlassenes Lager', img: 'monsters/fallen.jpg',
+    text: 'Die Glut ist noch warm. Decken, ein Kessel, ein Rucksack. Niemand da.',
+    ch: [{ t: 'Rasten', hint: '+10 Glut', eff: { glut: 10 }, out: 'Du schläfst. Niemand kommt zurück. Gut so.' },
+         { t: 'Durchsuchen', hint: 'Gold – oder eine Falle', risk: { p: 0.55, win: { gold: 2 }, lose: { xp: 0.2 } }, out: ['Ein Beutel unter dem Kessel.', 'Der Rucksack war ein Köder. Du kommst davon.'] },
+         { t: 'Weitergehen', hint: 'Nichts.', eff: {}, out: 'Du lässt das Feuer brennen.' }] },
+  { id: 'kessel', title: 'Der Hexenkessel', img: 'monsters/sumpfhexe.jpg',
+    text: 'Es brodelt grün, obwohl kein Feuer brennt. Daneben Flaschen, sauber aufgereiht.',
+    ch: [{ t: 'Trinken', hint: 'starker Segen – oder Fluch', risk: { p: 0.5, win: { bless: 0.15 }, lose: { bless: -0.1 } }, out: ['Es brennt. Dann wird alles klar.', 'Es brennt. Dann wird alles schwarz.'] },
+         { t: 'Abfüllen', hint: '+2 Zutaten', eff: { herbAny: 2 }, out: 'Ysolde wird wissen, was es ist.' },
+         { t: 'Weitergehen', hint: 'Nichts.', eff: {}, out: 'Der Kessel blubbert lauter, als du gehst.' }] },
+  { id: 'glocke', title: 'Eine Glocke läutet', img: 'monsters/bellringer.jpg',
+    text: 'Irgendwo unter der Erde schlägt eine Glocke. Einmal. Zweimal. Dann wartet sie.',
+    ch: [{ t: 'Dem Klang folgen', hint: 'seltenes Fundstück – oder nichts', risk: { p: 0.4, win: { item: 3 }, lose: { xp: 0.5 } }, out: ['Unter der Glocke liegt, was sie bewacht hat.', 'Der Gang endet. Die Glocke schweigt. Du lernst daraus.'] },
+         { t: 'Ohren verstopfen', hint: '+Erfahrung', eff: { xp: 0.5 }, out: 'Beim dritten Schlag bist du schon weit weg.' },
+         { t: 'Weitergehen', hint: 'Nichts.', eff: {}, out: 'Sie läutet noch, als du heimkommst. Nur du hörst sie.' }] },
+  { id: 'kniet', title: 'Der Kniende', img: 'monsters/wiedergaenger.jpg',
+    text: 'Ein Wiedergänger kniet vor einem Grab und rührt sich nicht. An seiner Hand ein Ring.',
+    ch: [{ t: 'Für ihn beten', hint: 'kleiner Segen · +Erfahrung', eff: { bless: 0.06, xp: 0.5 }, out: 'Er sinkt in sich zusammen. Endlich.' },
+         { t: 'Den Ring nehmen', hint: 'magisches Fundstück · ein Fluch', eff: { item: 2, bless: -0.06 }, out: 'Er sieht dir nach. Mit leeren Augen.' },
+         { t: 'Weitergehen', hint: 'Nichts.', eff: {}, out: 'Er kniet noch immer.' }] },
+  { id: 'ghul', title: 'Der fressende Ghul', img: 'monsters/ghul.jpg',
+    text: 'Er hockt über etwas, das einmal ein Pilger war. Er hat dich noch nicht bemerkt.',
+    ch: [{ t: 'Vorbeischleichen', hint: '+Erfahrung', eff: { xp: 1 }, out: 'Ein Schritt nach dem anderen. Er schmatzt weiter.' },
+         { t: 'Verscheuchen', hint: 'Material – oder Verlust', risk: { p: 0.6, win: { mat: 4 }, lose: { gold: -0.5 } }, out: ['Er flieht. Der Pilger trug Nützliches.', 'Er flieht – mit deinem Beutel.'] },
+         { t: 'Weitergehen', hint: 'Nichts.', eff: {}, out: 'Das Schmatzen hörst du noch lange.' }] },
+];
 export const EXP_TALES = {
   friedhof: ['Zwischen den Gräbern brannte die ganze Nacht ein Licht. Niemand hielt es.', 'Ein Grab stand offen. Darin lag nur Erde – und etwas, das glänzte.'],
   muehle: ['Das Mühlrad drehte sich, obwohl kein Wasser floss.', 'Im Mehl fanden sich Spuren. Keine davon menschlich.'],

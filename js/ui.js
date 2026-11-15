@@ -1,6 +1,6 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
 import { AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
-import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED } from './data.js';
+import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES } from './data.js';
 import { potion, beltSlots, brewCost, canBrew, potMax } from './state.js';
 import { waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
@@ -8,7 +8,7 @@ import { current, available, objectives, canComplete } from './quests.js';
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
-import { gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo, potOffer, fightReport, expedPreview } from './game.js';
+import { gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
 const P = cls => `assets/portraits/${CLASSES[cls].portrait}.jpg`;
@@ -200,6 +200,7 @@ export function viewTrips(ask = false) {
                  : `<button class="red big-btn" data-action="resolve">Stellen</button>`}</section>
       ${say('prophet')}</div>`;
   }
+  if (S.exp?.ret) return viewExpEvent();
   if (S.exp) return `<div class="col">${expAway(ask)}${say('prophet')}</div>`;
   const o = omen();
   const openLocs = LOCATIONS.filter(locOpen), nextLoc = LOCATIONS.find(l => !locOpen(l)), later = LOCATIONS.filter(l => !locOpen(l) && l !== nextLoc);
@@ -223,12 +224,20 @@ export function viewTrips(ask = false) {
 // --- Expedition ---
 const herbImg = id => `<img class="matimg" src="assets/potions/${HERBS[id].img}.webp" alt="">`;
 const expHoursDone = e => Math.floor((Date.now() - e.start) / 3600000);
+// Symbol einer Station (Platzhalter aus vorhandenen Bildern, bis eigene Stationsbilder da sind)
+function nodeArt(t, locId) {
+  const l = LOCATIONS.find(x => x.id === locId), p = expedPreview(locId, 1);
+  const src = { herb: `potions/${HERBS[p.herb].img}.webp`, mats: `forge/${p.matIds[0]}.webp`, ruin: 'items/amulet_a.webp', shrine: 'potions/weihwasser.webp',
+    camp: 'ui/coin.webp', goal: 'items/amulet_b.webp', danger: `monsters/${MONSTERS.find(m => m.name === l.mobs[0]).glyph}.jpg` }[t];
+  return t === 'event' ? '<span class="q">?</span>' : `<img class="${t === 'danger' ? 'mon' : ''}" src="assets/${src}" alt="">`;
+}
 function expAway(ask) {
-  const e = S.exp, l = LOCATIONS.find(x => x.id === e.loc), f = EXPED.focus[e.focus], left = Math.ceil((e.end - Date.now()) / 1000), hh = expHoursDone(e);
-  return `<section class="panel waiting expaway"><h2>Expedition · ${l.name}</h2><p class="lore">${l.text}</p>
-    <p class="dim">${e.h} Std. · Ausrichtung <b>${f.name}</b></p><p class="small dim">Solange er fort ist, ruhen Krypta und Grube. Schmiede, Alchemie und Händler bleiben offen.</p>
+  const e = S.exp, l = LOCATIONS.find(x => x.id === e.loc), left = Math.ceil((e.end - Date.now()) / 1000), hh = expHoursDone(e), k = expDoneCount(e);
+  const trail = [...e.nodes, { t: 'goal' }].map((n, i) => `<i class="${i < k ? 'done' : i === k ? 'now' : ''}">${nodeArt(n.t, e.loc)}</i>`).join('<s></s>');
+  return `<section class="panel waiting expaway"><h2>Expedition · ${l.name}</h2><div class="trail">${trail}</div><p class="lore">${l.text}</p>
+    <p class="small dim">Solange er fort ist, ruhen Krypta und Grube. Schmiede, Alchemie und Händler bleiben offen.</p>
     ${left > 0 ? `<div class="big" data-until="${e.end}">${fmtT(left)}</div><div class="btns">${ask
-      ? `<button data-action="expno">Weiter warten</button><button class="red" data-action="expclaim">Ja · ${hh ? `${hh}/${e.h} Std.` : 'ohne Beute'}${hh && e.h >= EXPED.longH ? ' · kein Fundstück' : ''}</button>`
+      ? `<button data-action="expno">Weiter warten</button><button class="red" data-action="expclaim">Ja · ${hh ? `${hh}/${e.h} Std.` : 'ohne Beute'}${hh && e.h >= EXPED.longH ? ' · kein Ziel' : ''}</button>`
       : `<button data-action="expask">Heimrufen · ${hh ? `${hh} Std. zählen` : 'bringt noch nichts'}</button>`}</div>`
                : `<button class="red big-btn" data-action="expclaim">Heimholen</button>`}</section>`;
 }
@@ -238,28 +247,63 @@ export function viewAway(npc) {
   return `<div class="col">${say(npc)}<section class="panel waiting"><h2>Dein Held ist fort</h2><p class="lore">Expedition: ${l.name}. Kämpfen kann er erst, wenn er zurück ist.</p>
     ${left > 0 ? `<div class="big" data-until="${e.end}">${fmtT(left)}</div>` : '<p class="up">Er ist zurück – hol ihn heim.</p>'}<div class="btns"><button data-action="go" data-v="trips">Zur Expedition</button></div></section></div>`;
 }
+// Weg planen: Karte mit Gabelungen. sel = { loc, h, path }
 export function viewExped(sel) {
-  const open = LOCATIONS.filter(locOpen), loc = open.some(l => l.id === sel.loc) ? sel.loc : open[open.length - 1].id, p = expedPreview(loc, sel.h, sel.f);
-  const icon = { beute: '<img class="matimg" src="assets/ui/coin.webp" alt="">', kraeuter: herbImg(p.herb), material: matImg(p.matIds[0]) };
+  const open = LOCATIONS.filter(locOpen), loc = open.some(l => l.id === sel.loc) ? sel.loc : open[open.length - 1].id, li = open.findIndex(l => l.id === loc);
+  const map = expedMap(loc, sel.h), path = sel.path.slice(0, map.rows.length), full = path.length === map.rows.length, p = expedPreview(loc, sel.h, full ? path : null);
+  const nR = map.rows.length + 2, Y = r => (r + 0.5) / nR * 100;   // Start oben, Ziel unten
+  const pos = (r, n) => ({ x: n.x * 100, y: Y(r) });
+  const can = (r, j) => r === path.length && (r === 0 || expLinked(map.rows[r - 1][path[r - 1]], map.rows[r][j]));
+  let lines = '', gold = '';
+  const ln = (a, b, on) => { const s = `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>`; if (on) gold += s; else lines += s; };
+  const st = { x: 50, y: Y(0) };
+  map.rows[0].forEach((n, j) => ln(st, pos(1, n), path[0] === j));
+  for (let r = 1; r < map.rows.length; r++) map.rows[r].forEach((n, j) => map.rows[r - 1].forEach((m, k) => { if (expLinked(m, n)) ln(pos(r, m), pos(r + 1, n), path[r - 1] === k && path[r] === j); }));
+  const last = map.rows.length, gp = { x: 50, y: Y(last + 1) };
+  map.rows[last - 1].forEach((n, j) => ln(pos(last, n), gp, full && path[last - 1] === j));
+  const node = (r, n, j) => { const on = path[r] === j, nx = can(r, j), d = EXP_NODES[n.t];
+    const tap = on || nx || (r < path.length && (r === 0 || expLinked(map.rows[r - 1][path[r - 1]], n)));
+    return `<button class="node ${on ? 'on' : ''} ${nx ? 'next' : ''} ${!on && !nx ? 'off' : ''} ${n.t === 'danger' ? 'danger' : ''}" style="left:${n.x * 100}%;top:${Y(r + 1)}%" ${tap ? `data-action="exppath" data-l="${loc}" data-r="${r}" data-j="${j}"` : ''} title="${d.text}">${nodeArt(n.t, loc)}<label>${d.name}</label></button>`; };
+  const nodes = map.rows.map((row, r) => row.map((n, j) => node(r, n, j)).join('')).join('');
+  const nm = full ? path.map((j, r) => EXP_NODES[map.rows[r][j].t].name) : [];
+  const hint = path.length < map.rows.length ? (() => { const r = path.length, opts = map.rows[r].filter((n, j) => can(r, j)); return `Wähle die ${r + 1}. Station: ${[...new Set(opts.map(n => EXP_NODES[n.t].name))].join(' oder ')}.`; })() : '';
   const n = x => x < 1 ? (x > 0 ? '<1' : '0') : '~' + Math.round(x);
   return `<div class="col exped">
-    <section class="panel"><h2>Expedition <span class="h2r">ohne Glut · keine Kämpfe</span></h2><div class="xlocs">${open.map(l => { const q = expedPreview(l.id, 1, 'beute');
-      return `<button class="xloc ${l.id === loc ? 'on' : ''}" data-action="expsel" data-l="${l.id}"><b>${l.name}</b><span>${herbImg(q.herb)}${q.matIds.map(matImg).join('')}</span></button>`; }).join('')}</div></section>
-    <section class="panel"><h2>Ausrichtung</h2><div class="xfoc">${Object.entries(EXPED.focus).map(([k, f]) => `<button class="xf ${k === sel.f ? 'on' : ''}" data-action="expsel" data-f="${k}">${icon[k]}<b>${f.name}</b><small>${f.text}</small></button>`).join('')}</div></section>
-    <section class="panel"><h2>Dauer</h2><nav class="subtabs">${EXPED.hours.map(h => `<a class="${h === sel.h ? 'on' : ''}" data-action="expsel" data-h="${h}">${h} Std.</a>`).join('')}</nav>
-      <p class="small xprev">Bringt etwa <b>${p.gold} Gold</b> · <b>${p.xp} EP</b> · ${n(p.herbs)} Zutaten · ${n(p.mats)} Material · ${n(p.items)} Fundstücke${sel.h >= EXPED.longH ? ' <span class="up">(eins sicher magisch)</span>' : ''}${p.herz ? ` · ${Math.round(p.herz * 100)} % Schwarzes Herz` : ''}</p></section>
-    <div class="btns"><button data-action="go" data-v="trips">Zurück</button><button class="red" data-action="expgo" data-l="${loc}">Aufbrechen</button></div>
+    <section class="panel expmap"><h2>Expedition <span class="h2r">ohne Glut · keine Kämpfe</span></h2>
+      <div class="xhead"><button class="tiny" data-action="exploc" data-d="-1" ${li <= 0 ? 'disabled' : ''}>‹</button><b>${LOCATIONS.find(l => l.id === loc).name}</b><button class="tiny" data-action="exploc" data-d="1" ${li >= open.length - 1 ? 'disabled' : ''}>›</button></div>
+      <nav class="subtabs">${EXPED.hours.map(h => `<a class="${h === sel.h ? 'on' : ''}" data-action="expsel" data-h="${h}">${h} Std.</a>`).join('')}</nav>
+      <div class="map" style="--rows:${nR}"><svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none"><g class="l0">${lines}</g><g class="l1">${gold}</g></svg>
+        <span class="node start on" style="left:50%;top:${Y(0)}%"><img src="assets/ui/marker.webp" alt=""><label>Aufbruch</label></span>
+        ${nodes}<span class="node goal ${full ? 'on' : ''}" style="left:50%;top:${Y(last + 1)}%">${nodeArt('goal', loc)}<label>${map.goal.name}</label></span></div></section>
+    <section class="panel xsum"><h2>Dein Weg <span class="h2r">${map.rows.length} Stationen · ${sel.h} Std.</span></h2>
+      ${full ? `<p class="small">${nm.join(' → ')} → ${map.goal.name}</p><p class="small xprev">Bringt etwa <b>${p.gold} Gold</b> · <b>${p.xp} EP</b> · ${n(p.herbs)} Zutaten · ${n(p.mats)} Material · ${n(p.items)} Fundstücke${p.events ? ` · <b>${p.events} Ereignis${p.events > 1 ? 'se' : ''}</b>` : ''}${p.bless ? ' · <span class="up">Segen</span>' : ''}${sel.h >= EXPED.longH ? ' <span class="up">(Ziel: sicher magisch)</span>' : ''}</p>${p.danger ? `<p class="small hot">Gefahr: ${EXP_NODES.danger.text}.</p>` : ''}`
+             : `<p class="small dim">${hint} Jede Station zeigt vorher, was sie bringt.</p>`}</section>
+    <div class="btns"><button data-action="go" data-v="trips">Zurück</button><button class="red" data-action="expgo" data-l="${loc}" ${full ? '' : 'disabled'}>Aufbrechen</button></div>
   </div>`;
+}
+// Heimkehr: ein Ereignis wartet auf deine Wahl
+export function viewExpEvent() {
+  const e = S.exp, R = e.ret, nd = R.list[R.i], ev = expEvent(nd.ev);
+  const trail = R.list.map((n, i) => `<i class="${i < R.i ? 'done' : i === R.i ? 'now' : ''}">${nodeArt(n.t, e.loc)}</i>`).join('<s></s>');
+  return `<div class="col expev"><section class="panel"><div class="trail">${trail}</div></section>
+    <section class="panel evt"><h2>${ev.title}</h2><img class="pic" src="assets/${ev.img}" alt=""><p class="lore">${ev.text}</p>
+      ${ev.ch.map((c, i) => { const err = expChoiceOk(c), cost = expPayCost(c);
+        return `<button class="choice" data-action="expchoose" data-i="${i}" ${err ? 'disabled' : ''}><b>${c.t}</b><small>${c.hint}${cost ? ` (${cost} Gold)` : ''}${err ? ` · <span class="down">${err}</span>` : ''}</small></button>`; }).join('')}
+    </section></div>`;
 }
 export function viewExpRes(res) {
   const w = res.rew, L = [];
-  if (res.h) L.push(`<b>+${w.gold} Gold</b> · <b>+${w.xp} EP</b>${w.up ? ' · <span class="up">Stufe aufgestiegen!</span>' : ''}`);
-  if (w.herbs.length) L.push(`<span class="xrow">${w.herbs.map(([k, c]) => `<span>${herbImg(k)}${HERBS[k].name} ×${c}</span>`).join('')}</span>`);
-  if (w.mats.length) L.push(`<span class="xrow">${w.mats.map(([k, c]) => `<span>${matImg(k)}${MATS[k]} ×${c}</span>`).join('')}</span>`);
-  for (const it of w.items || []) L.push(`<span class="r-${it.rarity}">${it.name}</span>${it.soldFull ? ' <span class="dim small">(Beutel voll – verkauft)</span>' : ''}`);
-  return `<div class="col"><section class="panel waiting expres"><h2>Heimgekehrt · ${res.place.name}</h2><p class="lore">„${res.tale}“</p>
-    <p class="dim small">${res.h ? `${res.h} Std. unterwegs${res.early ? ' · früh heimgerufen' : ''}` : 'Zu früh heimgerufen – er bringt nichts mit.'}</p>
-    <div class="xloot">${L.map(x => `<p>${x}</p>`).join('')}</div><button class="red big-btn" data-action="expok">Weiter</button></section></div>`;
+  if (res.h || w.gold || w.xp) L.push(`<b>+${w.gold} Gold</b> · <b>+${w.xp} EP</b>${w.up ? ' · <span class="up">Stufe aufgestiegen!</span>' : ''}`);
+  const chips = [...w.herbs.map(([k, c]) => `<span title="${HERBS[k].name}">${herbImg(k)}<i class="nm">${HERBS[k].name} </i>×${c}</span>`), ...w.mats.map(([k, c]) => `<span title="${MATS[k]}">${matImg(k)}<i class="nm">${MATS[k]} </i>×${c}</span>`)];
+  if (chips.length) L.push(`<span class="xrow">${chips.join('')}</span>`);
+  if (w.items?.length) L.push(w.items.map(it => `<span class="r-${it.rarity}">${it.name}</span>${it.soldFull ? ' <span class="dim small">(verkauft)</span>' : ''}`).join(' · '));
+  if (res.bless) L.push(res.bless > 0 ? `<span class="up">Segen: nächster Krypta-Kampf +${Math.round(res.bless * 100)} % Leben</span>` : `<span class="down">Fluch: nächster Krypta-Kampf ${Math.round(res.bless * 100)} % Leben</span>`);
+  const steps = res.steps.map(s => `<p><i>${nodeArt(s.t, res.place.id)}</i><span>${s.name}${s.choice ? ` – ${s.choice}` : ''}: ${s.out ? `<em>${s.out}</em> ` : ''}<span class="${s.cls}">${s.text}</span></span></p>`).join('');
+  return `<div class="col expresv"><section class="panel expres"><h2>Heimgekehrt · ${res.place.name}</h2>
+    ${steps ? `<div class="steps">${steps}</div>` : `<p class="lore">„${res.tale}“</p>`}
+    <p class="dim small">${res.h ? `${res.h} Std. unterwegs${res.early ? ' · früh heimgerufen' : ''}` : 'Zu früh heimgerufen – er bringt nichts mit.'}</p></section>
+    <section class="panel"><h2>Beute</h2><div class="xloot">${L.map(x => `<p>${x}</p>`).join('') || '<p class="dim">nichts</p>'}</div></section>
+    <div class="btns"><button class="red" data-action="expok">Weiter</button></div></div>`;
 }
 
 // Ungesicherte Beute: Heimkehren oder tiefer gehen
@@ -496,6 +540,6 @@ export function viewPrep(c, m) {
         const act = o.kind === 'pack' ? `${nm} einpacken` : o.kind === 'brew' ? `${nm} brauen · ${o.gold} G` : o.kind === 'in' ? `${nm} im Gürtel` : `${nm} · ${o.short || o.text}`;
         return `<span class="etag ${o.kind}" ${o.kind === 'pack' || o.kind === 'brew' ? `data-action="prepPot" data-id="${id}"` : ''}><b>${t}</b>${act}</span>`; }).join('')}</div>` : ''}</section>
     <section class="panel"><h2>Dein Gürtel <span class="gbtns"><button class="tiny" data-action="bestBelt">Bester Gürtel</button><button class="tiny" data-action="alch" data-b="prep">Alle Tränke</button></span></h2><div class="beltrow">${[0, 1, 2].slice(0, beltSlots()).map(beltCell).join('')}</div></section>
-    <section class="panel chance"><span class="cl">Siegchance<small class="dim">ohne Tränke ${pc(p0)}</small></span><b>${pc(pW)}</b><button class="red" data-action="cryptgo" ${cd ? 'disabled' : ''}>Kämpfen</button></section>
+    <section class="panel chance"><span class="cl">Siegchance<small class="dim">ohne Tränke ${pc(p0)}</small>${S.bless ? `<small class="${S.bless > 0 ? 'up' : 'down'}">${S.bless > 0 ? 'Segen' : 'Fluch'} ${S.bless > 0 ? '+' : ''}${Math.round(S.bless * 100)} % Leben</small>` : ''}</span><b>${pc(pW)}</b><button class="red" data-action="cryptgo" ${cd ? 'disabled' : ''}>Kämpfen</button></section>
   </div>`;
 }

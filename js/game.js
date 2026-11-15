@@ -1,6 +1,6 @@
 // Spielzüge ohne DOM: Kampf ausführen, Belohnung anwenden, strukturiertes Ergebnis liefern.
 // main.js zeigt das Ergebnis an; tests/ spielen damit ganze Verläufe durch.
-import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES } from './data.js';
+import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import { fight } from './combat.js';
@@ -96,8 +96,8 @@ export function cryptFight(id, m0 = null) {
   if (!c || S.exp || now() < S.crypt.cd || !G.cryptOpen(c) || G.cryptFloor(c) >= 5) return null;
   const m = m0 || G.cryptEnemy(c), boss = !!m.boss;
   S.crypt.cd = now() + CFG.cryptCdSec * 1000;
-  const A = { ...G.stats(), belt: G.beltCombat() }, r = fight(A, m), win = r.winner === 'a', rew = newRew();
-  G.usePotions(r.used); rew.used = r.used;
+  const A = blessed({ ...G.stats(), belt: G.beltCombat() }), r = fight(A, m), win = r.winner === 'a', rew = newRew();
+  G.usePotions(r.used); rew.used = r.used; if (S.bless) { rew.bless = S.bless; S.bless = 0; }
   if (!win) { S.deaths++; G.journal(`${m.name} in ${c.name} hat mich niedergestreckt.`); return { A, B: m, r, win, rew, crypt: c }; }
   S.wins++; Q.event({ type: 'kill', mob: m.name }); if (boss) Q.event({ type: 'boss', crypt: c.id }); G.bountyEvent({ type: 'crypt' }); G.bountyEvent({ type: 'kill', mob: m.name });
   Object.assign(rew, G.cryptWin(c)); rew.grade = gradeOf(r); const gb = 1 + rew.grade.bonus;
@@ -131,8 +131,10 @@ export function champFight(tid) {
 // --- Gefahr vorher zeigen (GameGene-Leitlinie "Do not make a loss feel unfair") ---
 // Schätzt die Siegchance per Probe-Kämpfen. Zwischengespeichert, bis sich die eigenen Werte ändern.
 const threatCache = new Map();
-export function winChance(key, makeEnemy, n = 24, belt = null) {
-  const A = belt ? { ...G.stats(), belt } : G.stats(), sig = key + '|' + JSON.stringify([A.hp, A.dmg, A.armor, A[A.main], A.dex, A.lvl, S_omen(), belt?.map(b => b.id + b.trig)]);
+// Segen/Fluch aus der Expedition: nächster Krypta-Kampf mit ±Leben
+export const blessed = A => G.S.bless ? { ...A, hp: Math.max(1, Math.round(A.hp * (1 + G.S.bless))) } : A;
+export function winChance(key, makeEnemy, n = 24, belt = null, bl = false) {
+  const A0 = belt ? { ...G.stats(), belt } : G.stats(), A = bl ? blessed(A0) : A0, sig = key + '|' + JSON.stringify([A.hp, A.dmg, A.armor, A[A.main], A.dex, A.lvl, S_omen(), belt?.map(b => b.id + b.trig)]);
   if (threatCache.has(sig)) return threatCache.get(sig);
   let w = 0; for (let i = 0; i < n; i++) if (fight(A, makeEnemy()).winner === 'a') w++;
   const p = w / n; if (threatCache.size > 200) threatCache.clear(); threatCache.set(sig, p); return p;
@@ -142,7 +144,7 @@ export const tripChance = (l, track = 'norm') => winChance('trip:' + l.id + trac
   const om = G.omenFor(l.id), od = om && !om.done ? om.def : null;
   return G.makeMonster(trackLvl(l, trackOf(track)), trackOf(track).diff * [0.92, 1, 1, 1.08][roll(0, 3)] * (od?.diff || 1), MONSTERS.find(m => m.name === pick(l.mobs)));
 });
-export const cryptChance = (c, belt = G.beltCombat()) => winChance('crypt:' + c.id + ':' + G.cryptFloor(c) + ':' + G.S.crypt.diff, () => G.cryptEnemy(c), 24, belt);
+export const cryptChance = (c, belt = G.beltCombat()) => winChance('crypt:' + c.id + ':' + G.cryptFloor(c) + ':' + G.S.crypt.diff, () => G.cryptEnemy(c), 24, belt, true);
 export const threatLabel = p => p >= 0.9 ? ['gering', 'low'] : p >= 0.65 ? ['mäßig', 'mid'] : p >= 0.35 ? ['hoch', 'high'] : ['tödlich', 'deadly'];
 
 // Werte eines Gegners aus Sicht des Helden (Vorbereitung): gleiche Formeln wie combat.js
@@ -224,40 +226,145 @@ export function fightReport(r, A, B) {
 }
 
 // --- Expedition: ohne Glut, 1–8 Std., keine Kämpfe in der Zeit ---
-// Ertrag je Stunde gemessen an einem Streifzug dieses Ortes; Ausrichtung verschiebt ihn zu Gold/Fundstücken, Zutaten oder Material.
+// Vor dem Aufbruch: Karte mit Gabelungen (je Ort, Dauer und Tag gleich), Weg = eine Station je Reihe + Ziel.
+// Heimkehr: Stationen der Reihe nach; bei „?“ wartet die Heimkehr auf eine Wahl. Beute sammelt sich (acc) und wird am Ende ausgezahlt.
 const rollN = x => Math.floor(x) + (chance(x % 1) ? 1 : 0);
+const mulberry = a => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const hashStr = str => { let h = 2166136261; for (const ch of str) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
+const ROWX = { 2: [0.27, 0.73], 3: [0.16, 0.5, 0.84] };
 export const expedOpen = () => { const S = G.S; return !S.exp && !S.active && !S.haul; };
-export function expedPreview(locId, h, focus) {
-  const l = LOCATIONS.find(x => x.id === locId), f = EXPED.focus[focus], t = G.tripReward(l, 1, 45);
-  return { gold: Math.round(t.gold * h * (EXPED.gold + (f.gold || 0))), xp: Math.round(t.xp * h * EXPED.xp),
-    herbs: +(h * (EXPED.herb + (f.herb || 0))).toFixed(1), mats: +(h * (EXPED.mat + (f.mat || 0))).toFixed(1),
-    items: +(h * (EXPED.item + (f.item || 0)) + (h >= EXPED.longH ? 1 : 0)).toFixed(1), herz: f.herz ? Math.min(1, h * f.herz) : 0,
-    herb: HERB_LOC[l.id], matIds: [...new Set(l.mobs.map(n => MONSTERS.find(m => m.name === n).mat).filter(Boolean))] };
+export const expEvent = id => EXP_EVENTS.find(e => e.id === id);
+export function expedMap(locId, h, day = Math.floor(now() / 86400000)) {
+  const r = mulberry(hashStr(`${locId}|${h}|${day}|${G.S.name}`)), n = EXPED.stations[h], used = {}, evs = new Set(), rows = [];
+  const pickT = () => { const pool = Object.entries(EXP_NODES).filter(([k, x]) => !x.max || (used[k] || 0) < x.max); let w = r() * pool.reduce((a, [, x]) => a + x.w, 0);
+    for (const [k, x] of pool) if ((w -= x.w) < 0) return k; return pool[0][0]; };
+  for (let i = 0; i < n; i++) {
+    const wd = EXPED.widths[i % EXPED.widths.length], row = [];
+    for (let j = 0; j < wd; j++) { let t = pickT(); if (row.some(x => x.t === t) && r() < 0.7) t = pickT(); used[t] = (used[t] || 0) + 1;
+      const node = { t, x: ROWX[wd][j] }; if (t === 'event') { let e; do e = EXP_EVENTS[Math.floor(r() * EXP_EVENTS.length)].id; while (evs.has(e) && evs.size < EXP_EVENTS.length); evs.add(e); node.ev = e; } row.push(node); }
+    rows.push(row);
+  }
+  if (n >= 2 && !rows.flat().some(x => x.t === 'event')) { const nd = rows[n - 1][0]; nd.t = 'event'; nd.ev = EXP_EVENTS[Math.floor(r() * EXP_EVENTS.length)].id; }
+  return { rows, goal: { t: 'goal', name: EXP_GOALS[locId] || 'Ziel', x: 0.5 } };
 }
-export function startExped(locId, h, focus) {
+export const expLinked = (a, b) => Math.abs(a.x - b.x) <= 0.4;
+// Weg gültig? path = Index je Reihe
+export function expPathOk(map, path) {
+  if (!Array.isArray(path) || path.length !== map.rows.length) return false;
+  return path.every((j, i) => map.rows[i][j] && (i === 0 || expLinked(map.rows[i - 1][path[i - 1]], map.rows[i][j])));
+}
+// Schätzung für die Anzeige (ohne Ereignisse, ohne Gefahr-Verlust)
+export function expedPreview(locId, h, path = null) {
+  const l = LOCATIONS.find(x => x.id === locId), t = G.tripReward(l, 1, 45), map = expedMap(locId, h), hps = h / map.rows.length;
+  const nodes = path && expPathOk(map, path) ? path.map((j, i) => map.rows[i][j]) : [];
+  const p = { gold: Math.round(t.gold * h * EXPED.gold), xp: Math.round(t.xp * h * EXPED.xp), herbs: 0, mats: 0, items: 0, events: 0, bless: 0, danger: false,
+    herb: HERB_LOC[l.id], matIds: [...new Set(l.mobs.map(nm => MONSTERS.find(m => m.name === nm).mat).filter(Boolean))] };
+  for (const nd of nodes) { const d = EXP_NODES[nd.t];
+    if (d.herb) p.herbs += d.herb * hps; if (d.mat) p.mats += d.mat * hps; if (d.item) p.items += Math.min(0.95, d.item * hps); if (d.gold) p.gold += Math.round(t.gold * d.gold * hps);
+    if (d.xp) p.xp += Math.round(t.xp * d.xp * hps); if (d.bless) p.bless += d.bless; if (nd.t === 'event') p.events++; if (nd.t === 'danger') p.danger = true; }
+  p.items += h >= EXPED.longH ? 1 : 0.5; return p;
+}
+export function startExped(locId, h, path) {
   const S = G.S, l = LOCATIONS.find(x => x.id === locId);
-  if (!l || !G.locOpen(l) || !EXPED.hours.includes(h) || !EXPED.focus[focus] || S.exp || S.active) return false;
+  if (!l || !G.locOpen(l) || !EXPED.hours.includes(h) || S.exp || S.active) return false;
+  const map = expedMap(locId, h); if (!expPathOk(map, path)) return false;
   if (S.haul) G.bankHaul();
-  S.exp = { loc: locId, h, focus, start: now(), end: now() + h * 3600000 };
+  S.exp = { loc: locId, h, start: now(), end: now() + h * 3600000, nodes: path.map((j, i) => ({ ...map.rows[i][j] })), goal: map.goal.name };
   return true;
 }
-// Heimholen (fertig) oder Heimrufen (früher: zählt nur volle Stunden, ohne Bonus der langen Reise)
-export function claimExped() {
-  const S = G.S, e = S.exp; if (!e) return null;
-  const done = now() >= e.end, h = done ? e.h : Math.floor((now() - e.start) / 3600000);
-  const l = LOCATIONS.find(x => x.id === e.loc), rew = newRew(), p = expedPreview(e.loc, h, e.focus), f = EXPED.focus[e.focus];
-  S.exp = null;
+// Stationen, die bis jetzt geschafft sind (das Ziel erst, wenn die Zeit ganz um ist)
+export const expDoneCount = e => Math.min(e.nodes.length, Math.floor((now() - e.start) / (e.h * 3600000 / e.nodes.length)));
+// Heimkehr beginnen (fertig = Heimholen, sonst Heimrufen: volle Stunden + geschaffte Stationen)
+export function expBegin() {
+  const S = G.S, e = S.exp; if (!e || e.ret) return e?.ret || null;
+  const done = now() >= e.end, k = done ? e.nodes.length : expDoneCount(e), hrs = done ? e.h : Math.floor((now() - e.start) / 3600000);
+  e.ret = { i: 0, list: [...e.nodes.slice(0, k), ...(done ? [{ t: 'goal', name: e.goal }] : [])], steps: [], hrs, early: !done,
+    acc: { gold: 0, xp: 0, herbs: {}, mats: {}, items: [], glut: 0, bless: 0 }, cache: 0 };
+  const l = LOCATIONS.find(x => x.id === e.loc), t = G.tripReward(l, 1, 45);
+  e.ret.acc.gold += Math.round(t.gold * hrs * EXPED.gold); e.ret.acc.xp += Math.round(t.xp * hrs * EXPED.xp);
+  return e.ret;
+}
+const expCtx = () => { const e = G.S.exp, l = LOCATIONS.find(x => x.id === e.loc); return { e, l, t: G.tripReward(l, 1, 45), hps: e.h / e.nodes.length, p: expedPreview(e.loc, e.h) }; };
+const addTo = (o, k, n) => { if (n > 0) o[k] = (o[k] || 0) + n; };
+// Wirkung (Ereignis) anwenden → Text für die Zeile
+function expApply(eff, c) {
+  const a = c.e.ret.acc, bits = [];
+  if (eff.gold) { const g = Math.round(c.t.gold * eff.gold); a.gold = Math.max(0, a.gold + g); bits.push(g > 0 ? `+${g} Gold` : `${g} Gold`); }
+  if (eff.xp) { const x = Math.round(c.t.xp * eff.xp); a.xp += x; bits.push(`+${x} EP`); }
+  if (eff.herb) { addTo(a.herbs, c.p.herb, eff.herb); bits.push(`${HERBS[c.p.herb].name} ×${eff.herb}`); }
+  if (eff.herbAny) for (let i = 0; i < eff.herbAny; i++) { const id = pick(Object.values(HERB_LOC)); addTo(a.herbs, id, 1); bits.push(HERBS[id].name); }
+  if (eff.mat && c.p.matIds.length) for (let i = 0; i < eff.mat; i++) { const m = pick(c.p.matIds); addTo(a.mats, m, 1); bits.push(MATS[m]); }
+  if (eff.item) { a.items.push(eff.item); bits.push(eff.item >= 3 ? 'seltenes Fundstück' : eff.item >= 2 ? 'magisches Fundstück' : 'Fundstück'); }
+  if (eff.heart) { addTo(a.herbs, 'herz', eff.heart); bits.push('Schwarzes Herz'); }
+  if (eff.bless) { a.bless += eff.bless; bits.push(eff.bless > 0 ? `Segen +${Math.round(eff.bless * 100)} %` : `Fluch ${Math.round(eff.bless * 100)} %`); }
+  if (eff.glut) { a.glut += eff.glut; bits.push(`+${eff.glut} Glut`); }
+  if (eff.cache) { c.e.ret.cache += eff.cache; bits.push('Versteck'); }
+  return bits;
+}
+// Station ohne Wahl auflösen
+function expNode(nd, c) {
+  const a = c.e.ret.acc, d = EXP_NODES[nd.t], hps = c.hps, bits = [];
+  if (nd.t === 'goal') {
+    const r = c.e.h >= EXPED.longH ? 2 : chance(0.5) ? 1 : 0; if (r) { a.items.push(r); bits.push(r >= 2 ? 'magisches Fundstück' : 'Fundstück'); }
+    if (c.e.ret.cache) { const n = 2 + c.e.ret.cache; for (let i = 0; i < n && c.p.matIds.length; i++) addTo(a.mats, pick(c.p.matIds), 1); bits.push(`Versteck: ${n} Material`); }
+    return { t: 'goal', name: nd.name, text: bits.join(' · ') || 'leer – jemand war schneller', cls: bits.length ? 'up' : '' };
+  }
+  if (d.herb) { const n = rollN(d.herb * hps); for (let i = 0; i < n; i++) addTo(a.herbs, chance(0.75) ? c.p.herb : pick(Object.values(HERB_LOC)), 1); bits.push(`${n} Zutaten`); }
+  if (d.mat && c.p.matIds.length) { const n = rollN(d.mat * hps); for (let i = 0; i < n; i++) addTo(a.mats, pick(c.p.matIds), 1); bits.push(`${n} Material`); }
+  if (d.gold) { const g = Math.round(c.t.gold * d.gold * hps); a.gold += g; bits.push(`+${g} Gold`); }
+  if (d.xp) { const x = Math.round(c.t.xp * d.xp * hps); a.xp += x; bits.push(`+${x} EP`); }
+  if (d.item && chance(Math.min(0.95, d.item * hps))) { a.items.push(d.minR || 1); bits.push(d.minR >= 2 ? 'magisches Fundstück' : 'Fundstück'); }
+  if (d.bless) { a.bless += d.bless; bits.push(`Segen +${Math.round(d.bless * 100)} %`); }
+  if (d.risk && chance(d.risk)) {   // Gefahr: die Hälfte der bisherigen Beute ist fort
+    a.gold = Math.floor(a.gold / 2); for (const o of [a.herbs, a.mats]) for (const k in o) o[k] = Math.floor(o[k] / 2); a.items = a.items.filter((_, i) => i % 2);
+    return { t: nd.t, name: d.name, text: 'Überfallen – die Hälfte der Beute ist fort', cls: 'down' };
+  }
+  if (!bits.length) bits.push('nichts gefunden');
+  return { t: nd.t, name: d.name, text: bits.join(' · '), cls: nd.t === 'danger' ? 'up' : '' };
+}
+// Ist eine Wahl möglich? (Kosten)
+export function expChoiceOk(ch) {
+  const S = G.S; if (ch.pot && !(S.pots[ch.pot] > 0)) return `Kein ${POTIONS.find(p => p.id === ch.pot).name}`;
+  if (ch.herbCost && Object.entries(S.herbs).filter(([k]) => k !== 'herz').reduce((a, [, n]) => a + n, 0) + Object.values(S.exp?.ret?.acc.herbs || {}).reduce((a, b) => a + b, 0) < ch.herbCost) return 'Keine Zutat';
+  if (ch.pay) { const { t } = expCtx(); if (S.gold + (S.exp?.ret?.acc.gold || 0) < Math.round(t.gold * ch.pay)) return 'Zu wenig Gold'; }
+  return '';
+}
+export const expPayCost = ch => ch.pay ? Math.round(expCtx().t.gold * ch.pay) : 0;
+// Weiter bis zum nächsten Ereignis oder zum Ende. → { ev } | { done: res }
+export function expAdvance() {
+  const S = G.S, e = S.exp; if (!e?.ret) return null; const c = expCtx(), R = e.ret;
+  while (R.i < R.list.length) { const nd = R.list[R.i]; if (nd.t === 'event') return { ev: expEvent(nd.ev) }; R.steps.push(expNode(nd, c)); R.i++; }
+  return { done: expFinish() };
+}
+export function expChoose(ci) {
+  const S = G.S, e = S.exp, R = e?.ret, nd = R?.list[R.i]; if (!nd || nd.t !== 'event') return null;
+  const ev = expEvent(nd.ev), ch = ev.ch[ci]; if (!ch || expChoiceOk(ch)) return null; const c = expCtx();
+  if (ch.pot) S.pots[ch.pot]--;
+  if (ch.herbCost) { const own = Object.keys(S.herbs).find(k => k !== 'herz' && S.herbs[k] > 0); if (own) S.herbs[own]--; else { const k = Object.keys(R.acc.herbs).find(x => R.acc.herbs[x] > 0); R.acc.herbs[k]--; } }
+  if (ch.pay) { const g = Math.round(c.t.gold * ch.pay); if (S.gold >= g) S.gold -= g; else { R.acc.gold -= g - S.gold; S.gold = 0; } }
+  let out = ch.out, eff = ch.eff || {}, cls = '';
+  if (ch.risk) { const win = chance(ch.risk.p); eff = win ? ch.risk.win : ch.risk.lose; out = ch.out[win ? 0 : 1]; cls = win ? 'up' : 'down'; }
+  const bits = expApply(eff, c); if (!cls) cls = Object.values(eff).some(v => v < 0) ? 'down' : bits.length ? 'up' : '';
+  R.steps.push({ t: 'event', name: ev.title, choice: ch.t, out, text: bits.join(' · '), cls }); R.i++;
+  return expAdvance();
+}
+function expFinish() {
+  const S = G.S, e = S.exp, R = e.ret, a = R.acc, l = LOCATIONS.find(x => x.id === e.loc), rew = newRew();
+  pay(rew, Math.max(0, a.gold), a.xp);
+  for (const [k, n] of Object.entries(a.herbs)) if (n > 0) { G.addHerb(k, n); rew.herbs.push([k, n]); }
+  for (const [k, n] of Object.entries(a.mats)) if (n > 0) { G.addMat(k, n); rew.mats.push([k, n]); }
+  const lvl = G.locLvl(l); rew.items = [];
+  for (const minRarity of a.items) { const it = makeItem(lvl, { luck: G.stats().lck, cls: CLASSES[S.cls], minRarity }); if (G.addToBag(it)) rew.items.push(it); else { S.gold += it.value; rew.gold += it.value; rew.items.push({ ...it, soldFull: true }); } }
+  rew.item = rew.items[0] || null;
+  if (a.glut) S.glut = Math.min(CFG.maxGlut, S.glut + a.glut);
+  if (a.bless) S.bless = Math.max(EXPED.curseMax, Math.min(EXPED.blessMax, (S.bless || 0) + a.bless));
   const tales = EXP_TALES[l.id] || [''], tale = tales[Math.floor(e.start / 1000) % tales.length];
-  if (!h) return { place: l, h, rew, tale, early: true };
-  pay(rew, p.gold, p.xp);
-  const herbs = rollN(p.herbs), others = Object.values(HERB_LOC).filter(x => x !== p.herb);
-  for (let i = 0; i < herbs; i++) { const id = chance(0.7) ? p.herb : pick(others); G.addHerb(id); const r = rew.herbs.find(x => x[0] === id); if (r) r[1]++; else rew.herbs.push([id, 1]); }
-  if (p.herz && chance(p.herz)) { G.addHerb('herz'); rew.herbs.push(['herz', 1]); }
-  for (let i = 0, n = rollN(p.mats); i < n && p.matIds.length; i++) { const m = pick(p.matIds); G.addMat(m, 1); const r = rew.mats.find(x => x[0] === m); if (r) r[1]++; else rew.mats.push([m, 1]); }
-  const lvl = G.locLvl(l), items = [], add = minRarity => { const it = makeItem(lvl, { luck: G.stats().lck, cls: CLASSES[S.cls], minRarity }); if (G.addToBag(it)) items.push(it); else { S.gold += it.value; rew.gold += it.value; items.push({ ...it, soldFull: true }); } };
-  for (let i = 0; i < h; i++) if (chance(EXPED.item + (f.item || 0))) add(1);
-  if (done && h >= EXPED.longH) add(2);
-  rew.items = items; rew.item = items[0] || null;
-  G.journal(`Zurück aus ${l.name}.`);
-  return { place: l, h, rew, tale, early: !done };
+  S.exp = null; G.journal(`Zurück aus ${l.name}.`);
+  return { place: l, h: R.hrs, early: R.early, steps: R.steps, rew, bless: a.bless, glut: a.glut, tale };
+}
+// Alte Schnittstelle (Tests/Bots): Heimkehr ganz durchlaufen, bei Ereignissen die erste mögliche Wahl
+export function claimExped(pickChoice = ev => ev.ch.findIndex(c => !expChoiceOk(c))) {
+  if (!G.S.exp) return null; expBegin(); let r = expAdvance();
+  while (r && r.ev) { const want = pickChoice(r.ev), ok = r.ev.ch[want] && !expChoiceOk(r.ev.ch[want]); r = expChoose(ok ? want : r.ev.ch.findIndex(c => !expChoiceOk(c))); }
+  return r?.done || null;
 }

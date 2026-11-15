@@ -509,25 +509,44 @@ test('Kampfbericht: Anteile ergeben ~100 %, Niederlage gibt einen Tipp; Absicht 
   assert.ok(r.log.some(l => /Betäubung/.test(l.iB || '')), 'Glöckner zeigt seine Betäubung an');
 });
 
-test('Expedition: ohne Glut, blockiert Kämpfe, Ertrag nach Ausrichtung, früh heimrufen zählt volle Stunden', () => {
-  const S = fresh('witch'); S.lvl = 12; S.glut = 0; const now0 = Date.now(); let t = now0; const real = Date.now; Date.now = () => t;
+const anyPath = (map, prefer) => { const path = []; for (let i = 0; i < map.rows.length; i++) { const opts = map.rows[i].map((n, j) => j).filter(j => !i || Game.expLinked(map.rows[i - 1][path[i - 1]], map.rows[i][j]));
+  path.push(opts.find(j => map.rows[i][j].t === prefer) ?? opts[0]); } return path; };
+test('Expedition: Karte, Weg, ohne Glut, blockiert Kämpfe, Ereignisse bei der Heimkehr, früh heimrufen', () => {
+  const S = fresh('witch'); S.lvl = 12; S.glut = 0; let t = Date.now(); const real = Date.now; Date.now = () => t;
   try {
-    assert.ok(Game.expedOpen()); assert.ok(Game.startExped('katakomben', 8, 'kraeuter')); assert.equal(S.glut, 0, 'kostet keine Glut');
-    assert.equal(Game.startExped('friedhof', 1, 'beute'), false, 'nur eine zugleich'); S.glut = 100;
+    for (const h of D.EXPED.hours) for (const loc of ['friedhof', 'katakomben']) { const m = Game.expedMap(loc, h); assert.equal(m.rows.length, D.EXPED.stations[h]);
+      assert.deepEqual(Game.expedMap(loc, h), m, 'Karte am selben Tag gleich'); for (let i = 1; i < m.rows.length; i++) for (const n of m.rows[i - 1]) assert.ok(m.rows[i].some(x => Game.expLinked(n, x)), 'jede Station hat einen Weiterweg');
+      if (h >= 2) assert.ok(m.rows.flat().some(n => n.t === 'event'), 'mindestens ein Ereignis'); assert.ok(m.rows.flat().filter(n => n.t === 'danger').length <= 1); }
+    const map = Game.expedMap('katakomben', 8), path = anyPath(map, 'event');
+    assert.equal(Game.startExped('katakomben', 8, [9, 9, 9, 9]), false, 'ungültiger Weg'); assert.equal(Game.startExped('katakomben', 8, path.slice(0, 2)), false, 'halber Weg');
+    assert.ok(Game.startExped('katakomben', 8, path)); assert.equal(S.glut, 0, 'kostet keine Glut');
+    assert.equal(Game.startExped('friedhof', 1, [0]), false, 'nur eine zugleich'); S.glut = 100;
     assert.equal(G.startTrip('friedhof'), false, 'kein Streifzug'); S.crypt.cd = 0;
     assert.equal(Game.cryptFight('c1'), null, 'keine Krypta'); S.arenaTs = 0; assert.equal(Game.arenaFight(Game.makeRival()), null, 'keine Grube');
-    t += 8 * 3600e3 + 1000; const xp0 = S.xp, lvl0 = S.lvl, g0 = S.gold, h0 = Object.values(S.herbs).reduce((a, b) => a + b, 0);
-    const r = Game.claimExped(); assert.equal(r.h, 8); assert.equal(S.exp, null); assert.ok(S.gold > g0); assert.ok(S.lvl > lvl0 || S.xp > xp0);
-    assert.ok(Object.values(S.herbs).reduce((a, b) => a + b, 0) - h0 >= 5, 'Kräuter-Ausrichtung bringt Zutaten'); assert.ok(r.rew.items.some(it => ['magic', 'rare', 'legendary'].includes(it.rarity)), 'lange Reise: sicheres Fundstück');
-    assert.ok(Game.startExped('friedhof', 4, 'material')); t += 2.5 * 3600e3; const r2 = Game.claimExped(); assert.equal(r2.h, 2); assert.ok(r2.early);
-    assert.ok(Game.startExped('friedhof', 1, 'beute')); t += 10 * 60e3; const g1 = S.gold, r3 = Game.claimExped(); assert.equal(r3.h, 0); assert.equal(S.gold, g1, 'unter 1 Std. nichts');
-    const pb = Game.expedPreview('katakomben', 8, 'beute'), pk = Game.expedPreview('katakomben', 8, 'kraeuter'), pm = Game.expedPreview('katakomben', 8, 'material');
-    assert.ok(pb.gold > pk.gold && pb.items > pk.items); assert.ok(pk.herbs > pb.herbs); assert.ok(pm.mats > pb.mats);
-    const l = D.LOCATIONS.find(x => x.id === 'katakomben'), trips = 8 * 15 / l.glut, tr = G.tripReward(l, 1, 45);
-    assert.ok(pk.xp < trips * tr.xp * 0.5, 'Expedition bringt weniger EP als die Glut derselben Zeit');
+    t += 8 * 3600e3 + 1000; const g0 = S.gold, xp0 = S.xp, lvl0 = S.lvl;
+    Game.expBegin(); let r = Game.expAdvance(); let evs = 0;
+    while (r?.ev) { evs++; assert.ok(r.ev.ch.length >= 2); const save = JSON.stringify(S.exp.ret); assert.ok(save.length > 10, 'Heimkehr steht im Spielstand'); r = Game.expChoose(r.ev.ch.length - 1); }
+    assert.ok(evs >= 1, 'Weg über Ereignis'); const res = r.done; assert.equal(S.exp, null); assert.ok(S.gold > g0); assert.ok(S.lvl > lvl0 || S.xp > xp0);
+    assert.equal(res.steps.length, path.length + 1, 'jede Station + Ziel eine Zeile'); assert.ok(res.rew.items.some(it => ['magic', 'rare', 'legendary'].includes(it.rarity)), '8 Std.: Ziel bringt sicheres Fundstück');
+    // früh heimrufen: volle Stunden, nur geschaffte Stationen, kein Ziel
+    assert.ok(Game.startExped('friedhof', 4, anyPath(Game.expedMap('friedhof', 4)))); t += 2.5 * 3600e3; const r2 = Game.claimExped(); assert.equal(r2.h, 2); assert.ok(r2.early); assert.ok(r2.steps.length <= 2 && !r2.steps.some(s => s.t === 'goal'));
+    assert.ok(Game.startExped('friedhof', 1, [0])); t += 10 * 60e3; const g1 = S.gold, r3 = Game.claimExped(); assert.equal(r3.h, 0); assert.equal(S.gold, g1, 'unter 1 Std. nichts');
+    // Kosten: Rotwurz fehlt → Wahl gesperrt
+    S.pots = {}; assert.ok(Game.expChoiceOk(D.EXP_EVENTS.find(e => e.id === 'raeuber').ch[0]));
+    // Balance: Erfahrung über 8 Std. unter der Hälfte dessen, was die Glut in derselben Zeit bringt (Schnitt vieler Wege)
+    let xp = 0, N = 60; const l = D.LOCATIONS.find(x => x.id === 'katakomben'), tr = G.tripReward(l, 1, 45), glutXp = 8 * 15 / l.glut * tr.xp;
+    for (let k = 0; k < N; k++) { t += 86400e3; const m = Game.expedMap('katakomben', 8); assert.ok(Game.startExped('katakomben', 8, anyPath(m, ['camp', 'ruin', 'event'][k % 3]))); t += 8 * 3600e3 + 1; xp += Game.claimExped(ev => 1).rew.xp; S.lvl = 12; }
+    assert.ok(xp / N < glutXp * 0.5, `Expedition ${Math.round(xp / N)} EP vs. Glut ${Math.round(glutXp)}`);
   } finally { Date.now = real; }
 });
-test('Migration: Spielstand v8 bekommt Expedition', () => {
-  fresh('witch'); const d = JSON.parse(JSON.stringify(G.S)); d.v = 8; delete d.exp;
-  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); const L = G.load(); assert.equal(L.v, 9); assert.equal(L.exp, null);
+test('Expedition: Segen/Fluch wirkt einmal auf den nächsten Krypta-Kampf', () => {
+  const S = fresh('paladin'); S.lvl = 10; const c = D.CRYPTS[0]; S.bless = 0.2; const A = Game.blessed(G.stats()); assert.equal(A.hp, Math.round(G.stats().hp * 1.2));
+  S.crypt.cd = 0; const r = Game.cryptFight(c.id); assert.ok(r); assert.equal(r.rew.bless, 0.2); assert.equal(S.bless, 0, 'verbraucht');
+});
+test('Migration: Spielstand v8 bekommt Expedition, v9-Expedition (Ausrichtung) wird zum Weg', () => {
+  fresh('witch'); let d = JSON.parse(JSON.stringify(G.S)); d.v = 8; delete d.exp; delete d.bless;
+  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); let L = G.load(); assert.equal(L.v, 10); assert.equal(L.exp, null); assert.equal(L.bless, 0);
+  fresh('witch'); d = JSON.parse(JSON.stringify(G.S)); d.v = 9; delete d.bless; d.exp = { loc: 'friedhof', h: 8, focus: 'kraeuter', start: Date.now() - 9 * 3600e3, end: Date.now() - 3600e3 };
+  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); L = G.load(); assert.equal(L.exp.nodes.length, 4); assert.ok(L.exp.nodes.every(n => n.t === 'herb'));
+  G.S.exp = L.exp; const r = Game.claimExped(); assert.ok(r && r.rew.herbs.length, 'alte Expedition lässt sich heimholen');
 });

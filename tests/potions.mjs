@@ -3,7 +3,7 @@
 // Aufruf: node tests/potions.mjs [klasse|all] [stufe] [kämpfe] [--check]
 globalThis.localStorage = { _d: {}, getItem(k) { return this._d[k] ?? null; }, setItem(k, v) { this._d[k] = String(v); }, removeItem(k) { delete this._d[k]; } };
 // Gekoppelter Zufall: jeder Kampf mit und ohne Trank bekommt dieselben Würfel (sonst Rauschen ±5 Punkte)
-let seed = 1; const mul = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+let seed = 0x5eed; const mul = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 Math.random = () => mul();
 const D = await import('../js/data.js');
 const G = await import('../js/state.js');
@@ -25,7 +25,7 @@ function hero(cls, L) {
 const floors = (L, k) => Array.from({ length: N }, (_, i) => { const c = D.CRYPTS[i % 4]; return G.makeMonster(L, k * (1 + (i % 4) * 0.05), D.MONSTERS.find(m => m.name === c.floors[i % 4])); });
 const boss = (c, L, k) => Array.from({ length: Math.ceil(N / 2) }, () => { const mo = G.makeMonster(L, D.CFG.bossDiff * k, c.boss);
   mo.hp = Math.round(mo.hp * D.CFG.bossHp); mo.boss = true; mo.rage = 0.2; mo.crit = 0.05; const { mirror, ...m } = c.boss.mech; Object.assign(mo, m); return mo; });
-const rate = (list, belt) => { const A = { ...G.stats(), belt }; let w = 0; list.forEach((m, i) => { seed = 7919 * (i + 1); if (fight(A, m).winner === 'a') w++; }); seed = Date.now() & 0xffff; return w / list.length; };
+const rate = (list, belt) => { const A = { ...G.stats(), belt }; let w = 0; list.forEach((m, i) => { seed = 7919 * (i + 1); if (fight(A, m).winner === 'a') w++; }); seed = 0x5eed; return w / list.length; };   // fester Zufall danach → Test reproduzierbar (kein Rauschen von Lauf zu Lauf)
 const tune = mk => { let lo = 0.2, hi = 3, k = 1; for (let i = 0; i < 9; i++) { k = (lo + hi) / 2; if (rate(mk(k).slice(0, 200), []) > 0.5) lo = k; else hi = k; } return mk(k); };
 const pf = x => ((x >= 0 ? '+' : '') + (x * 100).toFixed(1)).padStart(7);
 

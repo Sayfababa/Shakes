@@ -17,7 +17,9 @@ let prevExp = null, prevFights = 0;
 function check(act) {
   const S0 = G.S, nf = S0.wins + S0.deaths;
   if (S0.exp && S0.active) fail('Expedition und Streifzug gleichzeitig', act);
-  if (S0.exp && (!D.EXPED.hours.includes(S0.exp.h) || !D.EXPED.focus[S0.exp.focus] || S0.exp.end - S0.exp.start !== S0.exp.h * 3600e3)) fail('Expedition kaputt', act);
+  if (S0.exp && (!D.EXPED.hours.includes(S0.exp.h) || S0.exp.nodes.length !== D.EXPED.stations[S0.exp.h] || S0.exp.nodes.some(n => !D.EXP_NODES[n.t]) || S0.exp.end - S0.exp.start !== S0.exp.h * 3600e3)) fail('Expedition kaputt', act);
+  if (S0.exp?.ret && (S0.exp.ret.i > S0.exp.ret.list.length || S0.exp.ret.acc.gold < 0)) fail('Heimkehr kaputt', act);
+  if (S0.bless && (S0.bless > D.EXPED.blessMax + 1e-9 || S0.bless < D.EXPED.curseMax - 1e-9)) fail(`Segen außerhalb: ${S0.bless}`, act);
   if (prevExp && S0.exp && nf !== prevFights) fail('Kampf während der Expedition', act);
   prevExp = S0.exp; prevFights = nf;
   const S = G.S, f = (v, n) => { if (typeof v !== 'number' || !Number.isFinite(v)) fail(`${n} ist keine Zahl: ${v}`, act); };
@@ -96,8 +98,11 @@ const actions = {
   pack: () => Game.packPotion(pick(D.POTIONS).id, [pick(D.POTIONS).id]),
   best: () => { if (Math.random() < 0.1) { const c = pick(D.CRYPTS.slice(0, 4)); if (G.cryptFloor(c) < 5) Game.bestBelt(G.cryptEnemy(c), 4); } },
   potday: () => { G.S.potDay = 'x'; G.potDaily(); },
-  exped: () => { if (Math.random() < 0.3) Game.startExped(pick(D.LOCATIONS.filter(G.locOpen)).id, pick(D.EXPED.hours), pick(Object.keys(D.EXPED.focus))); },
-  expclaim: () => { if (G.S.exp && Math.random() < 0.7) Game.claimExped(); },
+  exped: () => { if (Math.random() < 0.3) { const loc = pick(D.LOCATIONS.filter(G.locOpen)).id, h = pick(D.EXPED.hours), m = Game.expedMap(loc, h), path = [];
+    for (let i = 0; i < m.rows.length; i++) { const o = m.rows[i].map((n, j) => j).filter(j => !i || Game.expLinked(m.rows[i - 1][path[i - 1]], m.rows[i][j])); path.push(pick(o)); }
+    Game.startExped(loc, h, Math.random() < 0.1 ? path.slice(1) : path); } },
+  expclaim: () => { if (G.S.exp && Math.random() < 0.5) { Game.expBegin(); Game.expAdvance(); } },
+  expchoose: () => { if (G.S.exp?.ret) Game.expChoose(Math.floor(Math.random() * 3)); },
   loot: () => { if (Math.random() < 0.2) G.addToBag(makeItem(G.S.lvl, { minRarity: Math.floor(Math.random() * 5) })); },
 };
 const names = Object.keys(actions);
