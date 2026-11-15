@@ -1,5 +1,5 @@
 // Code: network-first (Updates kommen sofort an). Bilder: aus dem Cache, im Hintergrund aktualisieren.
-const C = 'aschenkrone-v2';
+const C = 'aschenkrone-v3';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {
@@ -9,5 +9,6 @@ self.addEventListener('fetch', e => {
     e.respondWith(caches.match(req).then(hit => { const net = fetch(req).then(put).catch(() => hit); return hit || net; }));
     return;
   }
-  e.respondWith(fetch(req).then(put).catch(() => caches.match(req)));
+  // no-cache: beim Server nachfragen statt 10 Min. aus dem Browser-Speicher (GitHub Pages: max-age=600)
+  e.respondWith(fetch(req, { cache: 'no-cache' }).then(put).catch(() => caches.match(req)));
 });
