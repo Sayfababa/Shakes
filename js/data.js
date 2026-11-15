@@ -677,7 +677,7 @@ export const EXP_EVENTS = [
     ch: [{ t: 'Füttern', hint: '1 Zutat · er führt dich zu etwas', herbCost: 1, eff: { mat: 2, item: 1 }, out: 'Er frisst, dann trottet er voraus. Zu einem Toten mit vollen Taschen.' },
          { t: 'Verjagen', hint: '+Erfahrung', eff: { xp: 0.8 }, out: 'Ein Stein, ein Knurren. Dann bist du allein.' },
          { t: 'Weitergehen', hint: 'Nichts.', eff: {}, out: 'Irgendwann ist er nicht mehr hinter dir.' }] },
-  { id: 'lager', title: 'Verlassenes Lager', img: 'monsters/fallen.jpg',
+  { id: 'lager', title: 'Verlassenes Lager', img: 'expedition/ev_lager.webp',
     text: 'Die Glut ist noch warm. Decken, ein Kessel, ein Rucksack. Niemand da.',
     ch: [{ t: 'Rasten', hint: '+10 Glut', eff: { glut: 10 }, out: 'Du schläfst. Niemand kommt zurück. Gut so.' },
          { t: 'Durchsuchen', hint: 'Gold – oder eine Falle', risk: { p: 0.55, win: { gold: 2 }, lose: { xp: 0.2 } }, out: ['Ein Beutel unter dem Kessel.', 'Der Rucksack war ein Köder. Du kommst davon.'] },
