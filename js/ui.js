@@ -177,7 +177,7 @@ export function viewTrips() {
     const a = S.active, l = LOCATIONS.find(x => x.id === a.loc), left = Math.ceil((a.end - Date.now()) / 1000);
     return `<div class="col"><section class="panel waiting"><h2>${l.name}</h2><p class="lore">${l.text}</p>
       <div class="waitmob">${monsterArt(MONSTERS.find(m => m.name === a.mob).glyph)}</div><p class="dim">Du folgst einer Spur: <b>${a.mob}</b>.</p>
-      ${left > 0 ? `<div class="big" data-until="${a.end}">${fmtT(left)}</div><div class="btns"><button data-action="rush" ${S.gold < rushCost() ? 'disabled' : ''}>Eilen · ${rushCost()} Gold</button><button class="red" data-action="go" data-v="forge">Zur Schmiede</button></div>`
+      ${left > 0 ? `<div class="big" data-until="${a.end}">${fmtT(left)}</div><div class="btns"><button data-action="rush" ${S.gold < rushCost() ? 'disabled' : ''}>Eilen · ${rushCost()} Gold</button></div>`
                  : `<button class="red big-btn" data-action="resolve">Stellen</button>`}</section>
       ${say('prophet')}</div>`;
   }
@@ -263,7 +263,7 @@ export function viewTrader(tid) {
         <div class="loyal"><span>Treue <b>${LOYALTY[L]}</b></span><div class="bar rep"><i style="width:${L + 1 < t.need.length ? pct(st.rep - t.need[L], t.need[L + 1] - t.need[L]) : 100}%"></i></div><small>${next}</small></div></div>
     </section>
     ${note}
-    <section class="panel services">${tid === 'halvar' ? `<button class="svc red" data-action="go" data-v="forge"><b>Schmiede</b><small>Runen einschmieden</small></button>` : ''}${(SERVICES[tid] || []).map(sv => { const st = serviceState(sv);
+    <section class="panel services">${tid === 'halvar' ? `<button class="svc red" data-action="go" data-v="forge"><b>Schmiede</b></button>` : ''}${(SERVICES[tid] || []).map(sv => { const st = serviceState(sv);
       return `<button class="svc" data-action="service" data-t="${tid}" data-s="${sv.id}" ${st.can ? '' : 'disabled'}>
         <b>${sv.name}${sv.max && st.it ? ` +${st.step}` : ''}</b><small>${st.reason || st.costText}${st.questMat && !st.reason ? ` <i class="hot">– ${MATS[st.questMat]} für Auftrag!</i>` : ''}</small></button>`; }).join('')}</section>
     <section class="panel shop"><div class="invhead"><span>Ware</span><small class="dim">bessere Ware mit höherer Treue</small></div>
