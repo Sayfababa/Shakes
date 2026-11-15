@@ -521,7 +521,7 @@ export function viewAlch(sel, back) {
     <section class="panel"><h2>Alchemie <span class="h2r">Tränke wirken nur in der Krypta</span><button class="tiny" data-action="${back === 'prep' || back === 'desc' ? `go" data-v="${back}` : 'trader" data-t="ysolde'}">Zurück</button></h2>
       <div class="belt">${[0, 1, 2].map(i => beltRow(i, true)).join('')}</div></section>
     <section class="panel herbs">${Object.entries(HERBS).map(([k, h]) => `<span class="herb" title="${h.name}">${potImg(h.img)}<i>${S.herbs[k] || 0}</i></span>`).join('')}</section>
-    <section class="panel potgrid">${POTIONS.map(x => `<span class="ptile ${x.rare ? 'rare' : ''} ${x.id === p.id ? 'on' : ''}" data-action="potsel" data-id="${x.id}">${potImg(x.id)}${S.pots[x.id] ? `<i>${S.pots[x.id]}</i>` : ''}</span>`).join('')}</section>
+    <section class="panel potgrid">${POTIONS.map(x => `<span class="ptile ${x.rare ? 'rare' : ''} ${x.id === p.id ? 'on' : ''} ${canBrew(x.id).ok ? 'can' : ''}" data-action="potsel" data-id="${x.id}">${potImg(x.id)}${S.pots[x.id] ? `<i>${S.pots[x.id]}</i>` : ''}</span>`).join('')}</section>
     <section class="panel potdet"><h3 class="${p.rare ? 'r-rare' : ''}">${p.name} <span class="h2r">${p.rare ? 'selten · 1 Ladung' : `gewöhnlich · ${ALCH.charges} Ladungen`}</span></h3>
       <p class="small">${p.text}${p.rare ? '' : ` Zündet: ${p.trig.map(t => TRIGGERS[t]).join(' oder ')}.`}</p>
       <p class="small dim">Vorrat ${S.pots[p.id] || 0}/${potMax(p)} · Kosten: ${Object.entries(c.herbs).map(([k, n]) => `${HERBS[k].name} ×${n} <i class="${(S.herbs[k] || 0) < n ? 'down' : ''}">(${S.herbs[k] || 0})</i>`).join(', ')}, ${c.gold} Gold</p>
