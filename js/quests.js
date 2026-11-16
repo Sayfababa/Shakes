@@ -68,7 +68,7 @@ export function complete(tid, choiceId) {
   if (q.choice) { choice = q.choice.find(c => c.id === choiceId); perks.push(choice.perk); S.title = choice.title; }
   if (r.title) S.title = r.title;
   for (const p of perks) S.trophies.push({ key: 'perk:' + p.name, name: p.name, diff: 'Segen', eff: p.eff });
-  st.q++; st.prog = []; st.shop = [];
+  st.q++; st.prog = []; st.shop = (st.shop || []).filter(x => x.lock);
   journal(`${giverName(tid)}: „${q.title}“ erledigt.`);
   return { q, gold: r.gold, xp: r.xp, rep: r.rep, item, up, perks, choice, loyaltyUp: TRADERS[tid] ? loyalty(tid) > before : false };
 }

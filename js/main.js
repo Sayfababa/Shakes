@@ -218,9 +218,10 @@ const actions = {
   trader: d => { trader = d.t; turnin = null; view = 'traders'; render(); },
   buy: d => { const S = G.S, shop = S.traders[d.t].shop, i = shop.findIndex(x => x.id === d.id), it = shop[i];
     if (!it || S.gold < it.price) return;
-    const bought = { ...it }; delete bought.price;
+    const bought = { ...it }; delete bought.price; delete bought.lock;
     if (!G.addToBag(bought)) return alert('Kein Platz im Beutel.');
     S.gold -= it.price; shop.splice(i, 1); render(); },
+  shoplock: d => { if (G.lockShop(d.t, d.id)) render(); },
   turnin: d => { const r = Q.complete(d.t, d.c); if (r) { turnin = r; turninBy = d.t; if (!TRADERS[d.t]) view = 'npc'; render(); } },
   npc: d => { npc = d.n || d.t; turnin = null; view = 'npc'; render(); },
   tutskip: () => { G.S.tut = 99; render(); },
@@ -338,6 +339,7 @@ function showTouchTip(el) {
   const it = findItem(el.dataset.tip); if (!it) return;
   const d = el.dataset, a = d.action, attrs = Object.entries(d).filter(([k]) => k !== 'tip').map(([k, v]) => `data-${k}="${v}"`).join(' ');
   let btns = `<button ${attrs}>${ACT_LABEL[a] || 'OK'}</button>`;
+  if (a === 'buy') btns += `<button data-action="shoplock" data-t="${d.t}" data-id="${it.id}">${it.lock ? 'Entsperren' : 'Sperren'}</button>`;
   if (a === 'equip') btns += `<button class="red" data-action="sell" data-id="${it.id}">Verkaufen · ${it.value}</button>`;
   const slot = Object.entries(G.S.equip).find(([, x]) => x === it)?.[0];   // Schmieden: Umschmieden (magisch+), sonst Runen (nur angelegt)
   if ((a === 'equip' || a === 'unequip') && (G.craftItems().includes(it) || slot)) btns += `<button data-action="forgeitem" data-id="${it.id}">Schmieden</button>`;

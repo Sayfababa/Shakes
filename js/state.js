@@ -266,13 +266,19 @@ export function loyalty(id) {
 }
 export function rollShop(id) {
   const t = TRADERS[id], L = loyalty(id);
-  S.traders[id].shop = Array.from({ length: CFG.shopSize }, () => {
+  const kept = S.traders[id].shop.filter(x => x.lock);   // gesperrte Ware bleibt liegen
+  S.traders[id].shop = kept.concat(Array.from({ length: CFG.shopSize - kept.length }, () => {
     const it = makeItem(S.lvl + L, { luck: S.attrs.lck + L * 25, slots: t.slots, cls: CLASSES[S.cls], minRarity: Math.min(3, L) });
     it.price = Math.round(it.value * (4.5 - L * 0.4)); return it;
-  });
+  }));
   S.traders[id].ts = now();
 }
-export function shopFor(id) { const st = S.traders[id]; if (!st.shop.length || now() > st.ts + CFG.shopRefreshSec * 1000) rollShop(id); return st.shop; }
+// Ein Stück je Händler zurücklegen: überlebt neue Ware und Auftragsabgabe
+export function lockShop(id, itemId) {
+  const shop = S.traders[id]?.shop || [], it = shop.find(x => x.id === itemId); if (!it) return false;
+  const was = !!it.lock; for (const x of shop) delete x.lock; if (!was) it.lock = true; save(); return true;
+}
+export function shopFor(id) { const st = S.traders[id]; if (!st.shop.some(x => !x.lock) || now() > st.ts + CFG.shopRefreshSec * 1000) rollShop(id); return st.shop; }
 
 export function tickGlut() {
   const per = CFG.glutRegenMin * 60000, n = Math.floor((now() - S.glutTs) / per);
