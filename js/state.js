@@ -3,7 +3,7 @@ import { affixPool, makeItem, itemValue, rollTier, affixValue, renameMagic } fro
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
-export const SAVE_VERSION = 13;
+export const SAVE_VERSION = 14;
 export let S = null; // aktueller Spielstand
 
 export const now = () => Date.now();
@@ -61,6 +61,7 @@ function migrate(d) {
     ACTS.forEach((a, i) => { if (d.lvl >= ACT.doneAt[i] || (a.crypt && won(a.crypt))) d.acts.prog[a.id] = ACT.zones + 1; });
     for (let i = ACTS.length - 1; i > 0; i--) if (d.acts.prog[ACTS[i].id]) for (let j = 0; j < i; j++) d.acts.prog[ACTS[j].id] = ACT.zones + 1;
     d.v = 13; }
+  if (d.v === 13) { d.wander = null; d.v = 14; }   // Umherziehen
   d.name = cleanName(d.name);
   return d.v === SAVE_VERSION ? d : null;
 }
@@ -72,7 +73,7 @@ export function newChar(name, cls) {
   S = { v: SAVE_VERSION, name, cls, lvl: 1, xp: 0, gold: 40, attrs: baseAttrs(cls), points: CFG.startPoints, tal: {}, sp: {}, respecs: 0,
     crypt: { diff: 0, prog: {}, cd: 0 }, trophies: [], traders: freshTraders(), mats: {}, omen: null, omens: 0, shards: [], tut: 0, title: null, haul: null, bounty: null,
     equip: {}, bag: [], glut: CFG.maxGlut, glutTs: now(), active: null,
-    journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0, belt: [null, null, null], herbs: {}, pots: {}, potDay: today(), exp: null, bless: 0, desc: null, descDay: null, pit: freshPit(), acts: { prog: {} } };
+    journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0, belt: [null, null, null], herbs: {}, pots: {}, potDay: today(), exp: null, bless: 0, desc: null, descDay: null, pit: freshPit(), acts: { prog: {} }, wander: null };
   const wb = BASES.find(b => b.kind === c.weapon);
   S.equip.weapon = { id: 'start', slot: 'weapon', kind: wb.kind, base: wb.name, art: wb.art, w: wb.w, h: wb.h, name: 'Rostige/r ' + wb.name,
     rarity: 'normal', lvl: 1, mods: {}, dmg: [...wb.dmg], value: 2 };

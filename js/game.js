@@ -1,6 +1,6 @@
 // Spielzüge ohne DOM: Kampf ausführen, Belohnung anwenden, strukturiertes Ergebnis liefern.
 // main.js zeigt das Ergebnis an; tests/ spielen damit ganze Verläufe durch.
-import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS, DESCENT, DESC_ROOMS, ELITE, PIT, PIT_STYLES, PIT_RIVALS, PIT_RANKS, PIT_SHOP, PIT_RULES, DIFFICULTIES, ACTS, ACT, CRYPT } from './data.js';
+import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS, DESCENT, DESC_ROOMS, ELITE, PIT, PIT_STYLES, PIT_RIVALS, PIT_RANKS, PIT_SHOP, PIT_RULES, DIFFICULTIES, ACTS, ACT, CRYPT, WANDER } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import { fight } from './combat.js';
@@ -93,7 +93,7 @@ export const bank = () => { const d = G.S.haul?.depth || 0, h = G.bankHaul(); if
 // --- Krypta-Kampf ---
 export function cryptFight(id, m0 = null) {
   const S = G.S, c = CRYPTS.find(x => x.id === id);
-  if (!c || S.exp || S.desc || now() < S.crypt.cd || !G.cryptOpen(c) || S.glut < G.cryptGlut(c)) return null;
+  if (!c || S.exp || S.desc || S.wander || now() < S.crypt.cd || !G.cryptOpen(c) || S.glut < G.cryptGlut(c)) return null;
   const m = m0 || G.cryptEnemy(c), t = G.cryptTier(c);
   S.crypt.cd = now() + CFG.cryptCdSec * 1000; S.glut -= G.cryptGlut(c);
   const A = blessed({ ...G.stats(), belt: G.beltCombat() }), r = fight(A, m), win = r.winner === 'a', rew = newRew();
@@ -124,7 +124,7 @@ export const actZoneGlut = a => LOCATIONS.find(l => l.id === a.loc).glut;
 // Darf dieses Gebiet gespielt werden? neu = frei, schon geschafft = Glut
 export function actCan(a, z) {
   const S = G.S, p = G.actProg(a);
-  if (S.exp) return 'Der Held ist auf Expedition.'; if (S.desc) return 'Der Held ist im Abgrund.';
+  if (S.exp) return 'Der Held ist auf Expedition.'; if (S.desc) return 'Der Held ist im Abgrund.'; if (S.wander) return 'Der Held zieht umher.';
   if (!G.actOpen(a) || z > Math.min(p, ACT.zones)) return 'Noch nicht erreicht.';
   if (z < p && S.glut < actZoneGlut(a)) return `Wiederholen kostet ${actZoneGlut(a)} Glut.`;
   return '';
@@ -164,7 +164,7 @@ export function arenaFight(R) {
 
 // --- Champion einer Questkette (z. B. Vargos "Die Kette") ---
 export function champFight(tid) {
-  const S = G.S, q = Q.current(tid); if (S.exp || S.desc || !q?.champ || now() < S.arenaTs) return null;
+  const S = G.S, q = Q.current(tid); if (S.exp || S.desc || S.wander || !q?.champ || now() < S.arenaTs) return null;
   const c = q.champ, R = makeRival({ name: c.name, cls: c.cls, lvl: S.lvl + c.lvlAdd, rich: 1, minRarity: 2 });
   S.arenaTs = now() + CFG.arenaCdSec * 1000;
   const A = G.stats(), B = G.stats(R), r = fight(A, B), win = r.winner === 'a', rew = newRew();
@@ -277,7 +277,7 @@ const rollN = x => Math.floor(x) + (chance(x % 1) ? 1 : 0);
 const mulberry = a => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 const hashStr = str => { let h = 2166136261; for (const ch of str) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
 const ROWX = { 2: [0.27, 0.73], 3: [0.16, 0.5, 0.84] };
-export const expedOpen = () => { const S = G.S; return !S.exp && !S.desc && !S.active && !S.haul; };
+export const expedOpen = () => { const S = G.S; return !S.exp && !S.desc && !S.active && !S.haul && !S.wander; };
 export const expEvent = id => EXP_EVENTS.find(e => e.id === id);
 export function expedMap(locId, h, day = Math.floor(now() / 86400000)) {
   const r = mulberry(hashStr(`${locId}|${h}|${day}|${G.S.name}`)), n = EXPED.stations[h], used = {}, evs = new Set(), rows = [];
@@ -311,7 +311,7 @@ export function expedPreview(locId, h, path = null) {
 }
 export function startExped(locId, h, path) {
   const S = G.S, l = LOCATIONS.find(x => x.id === locId);
-  if (!l || !G.locOpen(l) || !EXPED.hours.includes(h) || S.exp || S.desc || S.active) return false;
+  if (!l || !G.locOpen(l) || !EXPED.hours.includes(h) || S.exp || S.desc || S.active || S.wander) return false;
   const map = expedMap(locId, h); if (!expPathOk(map, path)) return false;
   if (S.haul) G.bankHaul();
   S.exp = { loc: locId, h, start: now(), end: now() + h * 3600000, nodes: path.map((j, i) => ({ ...map.rows[i][j] })), goal: map.goal.name };
@@ -419,7 +419,7 @@ export function claimExped(pickChoice = ev => ev.ch.findIndex(c => !expChoiceOk(
 export const descOpen = c => !!c && G.S.trophies.some(t => t.key.split(':')[0] === c.id);
 export const descCrypts = () => CRYPTS.filter(descOpen);
 export const descLeft = () => { const d = G.S.descDay; return Math.max(0, DESCENT.daily - (d?.d === G.today() ? d.n : 0)); };
-export const descBusy = () => { const S = G.S; return S.exp ? 'Dein Held ist auf Expedition.' : S.active ? 'Erst den Streifzug beenden.' : S.haul ? 'Erst die Beute des Streifzugs sichern.' : ''; };
+export const descBusy = () => { const S = G.S; return S.exp ? 'Dein Held ist auf Expedition.' : S.wander ? 'Dein Held zieht umher.' : S.active ? 'Erst den Streifzug beenden.' : S.haul ? 'Erst die Beute des Streifzugs sichern.' : ''; };
 export const descCanStart = c => { const S = G.S; return descOpen(c) && !S.desc && !descBusy() && descLeft() > 0; };
 export const descLvl = c => Math.max(c.lvl + 1, G.S.lvl + DESCENT.lvlAdd);
 const descNowLvl = () => Math.max(G.S.desc.lvl, G.S.lvl + DESCENT.lvlAdd);   // wer unten aufsteigt, trifft stärkere Gegner
@@ -544,7 +544,7 @@ export const pitPlace = () => G.S.pit.lad.indexOf('me') + 1;
 export const pitLvlAt = p => Math.max(1, Math.round(PIT.lvlBottom + (PIT.size + 1 - p) / PIT.size * (PIT.lvlTop - PIT.lvlBottom)));
 export const pitRank = (p = pitPlace()) => [...PIT_RANKS].reverse().find(r => p <= r.max);
 export const pitRival = id => PIT_RIVALS.find(r => r.id === id);
-export const pitBusy = () => G.S.exp ? 'Der Held ist auf Expedition.' : G.S.desc ? 'Der Held ist im Abgrund.' : now() < G.S.pit.ts ? 'Pause' : '';
+export const pitBusy = () => G.S.exp ? 'Der Held ist auf Expedition.' : G.S.wander ? 'Der Held zieht umher.' : G.S.desc ? 'Der Held ist im Abgrund.' : now() < G.S.pit.ts ? 'Pause' : '';
 const foeCache = new Map();
 // Ein Rivale als Kampfwerte: Stufe/Ausrüstung aus seinem Platz, dazu sein fester Stil
 export function pitFoe(id, place) {
@@ -628,3 +628,47 @@ export function pitBuy(tier, k) {
   S.honor -= w.price; w.sold = true; P.buys++; return '';
 }
 export function pitTitle(t) { const S = G.S; if (t && !S.pit.titles.includes(t)) return false; S.title = t || null; return true; }
+
+// --- Umherziehen: Idle bei offener App. Rechnet nach Uhrzeit (Hintergrund-Tab), steht still, wenn die App zu war. ---
+export const wanderAct = () => [...ACTS].reverse().find(a => G.actProg(a) > 0) || null;
+export const wanderBusy = () => { const S = G.S; return S.exp ? 'Der Held ist auf Expedition.' : S.desc ? 'Der Held ist im Abgrund.' : S.wander ? 'Er zieht schon umher.' : !wanderAct() ? 'Erst ein Gebiet im Akt schaffen.' : ''; };
+const wanderKind = () => { let r = rand() * WANDER.kinds.reduce((a, k) => a + k.w, 0); for (const k of WANDER.kinds) if ((r -= k.w) < 0) return k.id; return 'fight'; };
+const wanderZone = a => Math.min(G.actProg(a), ACT.zones + 1) - 1;
+function wanderNext(W) { const a = ACTS.find(x => x.id === W.a), k = wanderKind(); W.cur = { k, mob: k === 'fight' ? actZoneMob(a, Math.floor(rand() * Math.min(wanderZone(a) + 1, ACT.zones))) : null }; }
+export function wanderStart() {
+  const S = G.S; if (wanderBusy()) return false; const a = wanderAct();
+  S.wander = { a: a.id, start: now(), t: now(), last: now(), n: 0, log: [], acc: { gold: 0, xp: 0, herbs: {}, mats: {}, items: [] } }; wanderNext(S.wander); return true;
+}
+export const wanderDone = (W = G.S.wander) => !!W && W.t - W.start >= WANDER.maxSec * 1000;
+// Ein Punkt: halber Ertrag eines Wiederholungs-Kampfs im höchsten geschafften Gebiet
+function wanderNode(W) {
+  const S = G.S, a = ACTS.find(x => x.id === W.a), l = LOCATIONS.find(x => x.id === a.loc), lv = G.actZoneLvl(a, Math.min(wanderZone(a), ACT.zones));
+  const xp0 = (20 + lv * 12) * WANDER.loot, gold0 = (6 + lv * 4) * WANDER.loot, A = W.acc, c = W.cur, bits = [];
+  const mats = l.mobs.map(n => MONSTERS.find(m => m.name === n)?.mat).filter(Boolean);
+  if (c.k === 'fight') { const x = Math.round(xp0), g = Math.round(gold0); G.gainXp(x); A.xp += x; A.gold += g; bits.push(`+${x} EP · ${g} Gold`);
+    const mt = MONSTERS.find(m => m.name === c.mob)?.mat; if (mt && chance(WANDER.matP)) { addTo(A.mats, mt, 1); bits.push(MATS[mt]); }
+    if (chance(WANDER.itemP)) { A.items.push(1); bits.push('Fundstück'); } }
+  else if (c.k === 'herb') { const h = chance(0.8) ? HERB_LOC[l.id] : pick(Object.values(HERB_LOC)); if (h && chance(WANDER.herbP)) { addTo(A.herbs, h, 1); bits.push(HERBS[h].name); } }
+  else if (c.k === 'mats') { if (mats.length && chance(WANDER.matP)) { const m = pick(mats); addTo(A.mats, m, 1); bits.push(MATS[m]); } }
+  else if (c.k === 'ruin') { const g = Math.round(gold0 * WANDER.ruinGold); A.gold += g; bits.push(`${g} Gold`); if (chance(WANDER.ruinItem)) { A.items.push(chance(0.25) ? 2 : 1); bits.push('Fundstück'); } }
+  else { const x = Math.round(xp0 * WANDER.campXp); G.gainXp(x); A.xp += x; bits.push(`+${x} EP`); }
+  W.n++; W.log.unshift({ n: W.n, k: c.k, mob: c.mob, text: bits.join(' · ') || 'nichts' }); W.log.length = Math.min(W.log.length, WANDER.keep);
+}
+// Takt aus main.js (jede Sekunde, solange die App offen ist). Gibt die Zahl neu fertiger Punkte zurück.
+export function wanderTick(ts = now()) {
+  const W = G.S?.wander; if (!W) return 0;
+  const gap = ts - W.last; if (gap > WANDER.gap * 1000) { W.t += gap; W.start += gap; }   // App war zu: nicht nachholen
+  W.last = ts; let k = 0;
+  while (!wanderDone(W) && W.t + WANDER.sec * 1000 <= ts) { wanderNode(W); W.t += WANDER.sec * 1000; k++; if (!wanderDone(W)) wanderNext(W); }
+  return k;
+}
+export function wanderClaim() {
+  const S = G.S, W = S.wander; if (!W) return null; const a = ACTS.find(x => x.id === W.a), A = W.acc, rew = newRew();
+  rew.gold = A.gold; S.gold += A.gold; rew.xp = A.xp;
+  for (const [k, n] of Object.entries(A.herbs)) { G.addHerb(k, n); rew.herbs.push([k, n]); }
+  for (const [k, n] of Object.entries(A.mats)) { G.addMat(k, n); rew.mats.push([k, n]); }
+  const lv = G.actZoneLvl(a, Math.min(wanderZone(a), ACT.zones)); rew.items = [];
+  for (const minRarity of A.items) { const it = makeItem(lv, { luck: G.stats().lck, cls: CLASSES[S.cls], minRarity }); if (G.addToBag(it)) rew.items.push(it); else { S.gold += it.value; rew.gold += it.value; rew.items.push({ ...it, soldFull: true }); } }
+  rew.item = rew.items[0] || null; rew.n = W.n; rew.min = Math.round((W.t - W.start) / 60000); S.wander = null; G.journal(`Vom Umherziehen zurück: ${rew.n} Punkte.`);
+  return rew;
+}

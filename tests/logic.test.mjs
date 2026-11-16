@@ -671,3 +671,10 @@ test('Migration v12 → v13: Akte nach Stufe/Trophäen, ungesicherte Beute gesic
   assert.equal(L.v, G.SAVE_VERSION); assert.equal(L.haul, null); assert.equal(L.gold, g0 + 77); assert.equal(L.crypt.prog.c1, 1);
   assert.ok(G.actDone(D.ACTS[0]) && G.actDone(D.ACTS[1])); assert.ok(!G.actDone(D.ACTS[3]));
 });
+test('Umherziehen: 2-Min-Punkte, max. 2 Std., steht still bei geschlossener App, blockiert Kämpfe, Sack beim Heimrufen', () => {
+  const S = fresh('barbarian'); assert.ok(Game.wanderBusy()); S.acts.prog.a1 = 4; assert.ok(Game.wanderStart()); assert.ok(Game.actCan(D.ACTS[0], 0)); assert.equal(Game.pitBusy(), 'Der Held zieht umher.');
+  const t0 = S.wander.start; assert.equal(Game.wanderTick(t0 + 5 * 60000), 0, 'nach Pause > gap: nichts nachgeholt');
+  let t = t0 + 5 * 60000; for (let i = 0; i < 8; i++) { t += 30000; Game.wanderTick(t); } assert.equal(S.wander.n, 2, '4 Min. offen = 2 Punkte');
+  for (let i = 0; i < 400; i++) { t += 30000; Game.wanderTick(t); } assert.equal(S.wander.n, D.WANDER.maxSec / D.WANDER.sec); assert.ok(Game.wanderDone());
+  const g = S.gold, r = Game.wanderClaim(); assert.equal(S.wander, null); assert.equal(S.gold, g + r.gold - r.items.filter(i => i.soldFull).reduce((a, i) => a + 0, 0) || S.gold >= g); assert.equal(Game.actCan(D.ACTS[0], 0), '');
+});

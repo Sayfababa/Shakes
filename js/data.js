@@ -813,3 +813,15 @@ export const ACTS = [
 // Krypten: nur noch der Boss, frei nach dem Akt-Boss. Jede besiegte Stufe → nächste ist schwerer, Beute besser.
 // Stufe `dTier[d]` erreicht = Trophäe/Ziel der alten Schwierigkeit d (Albtraum, Hölle) für Questziele `bossd`.
 export const CRYPT = { glut: 10, glutPerTier: 1, lvlAdd: 2, tierLvl: 3, tierMult: 0.06, rarAt: [0, 2, 5], items: [1, 2, 3], dTier: [0, 3, 6] };
+
+// --- Umherziehen (Idle, nur bei offener App): der Held zieht Punkt für Punkt durch den höchsten Akt ---
+// Je Punkt `sec` Sekunden, höchstens `maxSec` am Stück. Beute = `loot` × ein Wiederholungs-Kampf (EP sofort, Rest im Sack).
+// Ist die App länger als `gap` Sek. weg (zu/schläft), steht der Held still – die Zeit wird verschoben, nicht nachgeholt.
+export const WANDER = { sec: 120, maxSec: 7200, gap: 90, keep: 7, loot: 0.5, matP: 0.6, herbP: 0.6, itemP: 0.08, ruinItem: 0.3, ruinGold: 2, campXp: 0.4,
+  kinds: [
+    { id: 'fight', w: 4, verb: 'Kämpft gegen' },
+    { id: 'herb', w: 2, verb: 'Pflügt ein Kräuterfeld', name: 'Kräuterfeld', img: 'herb' },
+    { id: 'mats', w: 2, verb: 'Gräbt im Gebeinfeld', name: 'Gebeinfeld', img: 'mats' },
+    { id: 'ruin', w: 1.2, verb: 'Durchsucht eine Ruine', name: 'Ruine', img: 'ruin' },
+    { id: 'camp', w: 0.8, verb: 'Rastet am Feuer', name: 'Rast', img: 'camp' },
+  ] };

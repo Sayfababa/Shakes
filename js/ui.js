@@ -1,6 +1,6 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
 import { AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
-import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
+import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
 import { potion, beltSlots, brewCost, canBrew, potMax } from './state.js';
 import { waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
@@ -8,7 +8,7 @@ import { current, available, objectives, canComplete } from './quests.js';
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
-import { actEnemy, actChance, actCan, actZoneGlut, actZoneMob, pitWeek, pitPlace, pitRank, pitFoes, pitChance, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
+import { wanderAct, wanderBusy, wanderDone, actEnemy, actChance, actCan, actZoneGlut, actZoneMob, pitWeek, pitPlace, pitRank, pitFoes, pitChance, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
   descCrypts, descLeft, descCanStart, descBusy, descLvl, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
@@ -85,7 +85,7 @@ export function hud(tut = '') {
     ${tut || `<div class="xpline"><div class="bar xp"><i style="width:${pct(S.xp, xpNeed(S.lvl))}%"></i></div><small>${S.xp} / ${xpNeed(S.lvl)} EP</small></div>`}</header>`;
 }
 export function readyDots(t = Date.now()) {
-  return { trips: !!S.exp && t >= S.exp.end && !S.exp.ret,
+  return { trips: (!!S.exp && t >= S.exp.end && !S.exp.ret) || wanderDone(),
     crypt: (S.crypt.cd > 0 && t >= S.crypt.cd && CRYPTS.some(c => cryptOpen(c))) || (S.pit?.ts > 0 && t >= S.pit.ts) };
 }
 export function navBar(view) {
@@ -207,11 +207,13 @@ export function viewTrips(ask = false) {
                  : `<button class="red big-btn" data-action="resolve">Stellen</button>`}</section>
       ${say('prophet')}</div>`;
   }
+  if (S.wander) return viewWander();
   if (S.exp?.ret) return viewExpEvent();
   if (S.exp) return `<div class="col">${expAway(ask)}${say('prophet')}</div>`;
   const bl = bounties(), bDone = bl.filter(b => b.claimed).length, bReady = bl.some(b => !b.claimed && b.prog >= b.n);
   const bbar = `<div class="bountybar ${bReady ? 'ready' : ''}" data-action="go" data-v="bounties"><span>Steckbriefe heute</span><b>${bDone}/3</b>${bReady ? '<i>Lohn abholen</i>' : ''}</div>`;
-  const tired = S.glut < 5, xbar = `<div class="bountybar expbar ${tired ? 'ready' : ''}" data-action="go" data-v="exped"><span>Expedition</span><b>ohne Glut · 1–8 Std.</b>${tired ? '<i>Glut leer – schick ihn los</i>' : ''}</div>`;
+  const tired = S.glut < 5, xbar = `<div class="bountybar expbar ${tired ? 'ready' : ''}" data-action="go" data-v="exped"><span>Expedition</span><b>ohne Glut · 1–8 Std.</b>${tired ? '<i>Glut leer – schick ihn los</i>' : ''}</div>`
+    + (wanderAct() ? `<div class="bountybar expbar" data-action="wstart"><span>Umherziehen</span><b>App offen · ½ Beute · 2 Std.</b></div>` : '');
   const cur = curAct(), o = omen();
   return `<div class="col acts">${say('prophet', omenLine())}${bbar}${xbar}${ACTS.map((a, i) => { const p = actProg(a), done = actDone(a), open = actOpen(a), l = LOCATIONS.find(x => x.id === a.loc);
     const isOmen = open && S.lvl >= 3 && o.loc === a.loc && !o.done;
@@ -710,4 +712,31 @@ export function viewZonePrep(a, z, m) {
     <p class="small">${boss ? `<i>${a.boss.mechText}</i>` : m.elite ? `<b class="hot">Elite:</b> ${m.elite.join(', ')}` : ''}${replay ? ` <span class="dim">Wiederholen · </span><i class="ico glut"></i>${actZoneGlut(a)}` : ' <span class="up">Neu · kostet nichts</span>'}</p></div>`;
   return prepCore(m, head, pW, p0, `<button class="red" data-action="actgo" ${why ? 'disabled' : ''}>${why && why.startsWith('Wiederholen') ? 'Glut fehlt' : 'Kämpfen'}</button>`)
     .replace('<section class="panel prephead">', `<section class="panel prephead"><button class="tiny pback" data-action="act" data-id="${a.id}">Zurück</button>`);
+}
+
+// --- Umherziehen ---
+const wImg = c => c.k === 'fight' ? `assets/monsters/${MONSTERS.find(m => m.name === c.mob)?.glyph || 'ghul'}.jpg` : `assets/expedition/${WANDER.kinds.find(k => k.id === c.k).img}.webp`;
+const wLine = c => c.k === 'fight' ? `Kampf: ${c.mob}` : WANDER.kinds.find(k => k.id === c.k).name;
+export function viewWander(res = null) {
+  if (res) return `<div class="col wander"><section class="panel"><h2>Zurück vom Umherziehen</h2><p class="small dim">${res.n} Punkte in ${res.min} Min.</p></section>
+    <section class="panel wlog"><p><span>Erfahrung</span><b>+${res.xp} EP</b></p><p><span>Gold</span><b>${res.gold}</b></p>
+      ${res.items.length ? `<p><span>Fundstücke</span><b>${res.items.map(it => `<span class="r-${it.rarity}">${it.name}</span>`).join(', ')}</b></p>` : ''}
+      ${res.herbs.length ? `<p><span>Zutaten</span><b>${res.herbs.map(([k, n]) => `${HERBS[k].name} ×${n}`).join(' · ')}</b></p>` : ''}
+      ${res.mats.length ? `<p><span>Material</span><b>${res.mats.map(([k, n]) => `${MATS[k]} ×${n}`).join(' · ')}</b></p>` : ''}</section>
+    <div class="btns"><button class="red" data-action="wok">Weiter</button></div></div>`;
+  const W = S.wander, a = ACTS.find(x => x.id === W.a), l = LOCATIONS.find(x => x.id === a.loc), done = wanderDone(W), c = W.cur, k = WANDER.kinds.find(x => x.id === c.k);
+  const end = W.t + WANDER.sec * 1000, left = Math.max(0, Math.ceil((end - Date.now()) / 1000)), passed = WANDER.sec - left;
+  const A = W.acc, herbs = Object.values(A.herbs).reduce((x, y) => x + y, 0), mats = Object.values(A.mats).reduce((x, y) => x + y, 0);
+  const head = done ? `<section class="panel waiting"><h2>Der Held wartet am Lagerfeuer</h2><p class="lore">${Math.round(WANDER.maxSec / 3600)} Std. umhergezogen – mehr trägt der Sack nicht.</p></section>`
+    : `<section class="panel wscene"><img class="bg" src="${wImg(c)}" alt=""><span class="wt" data-until="${end}">${fmtT(left)}</span><img class="portrait whero" src="${P(S.cls)}" alt="">
+      <div class="wact"><b>${c.k === 'fight' ? `${k.verb} ${c.mob}` : k.verb}</b><small>${l.name} · Punkt ${W.n + 1}</small><div class="wbar"><i style="animation-duration:${WANDER.sec}s;animation-delay:-${passed}s"></i></div></div></section>`;
+  return `<div class="col wander">${head}
+    <section class="panel wlog">${W.log.length ? W.log.map(x => `<p><span>${x.n} · ${wLine(x)}</span><b>${x.text}</b></p>`).join('') : '<p class="dim small">Noch nichts gefunden.</p>'}</section>
+    <section class="panel wsack"><span>Im Sack</span><b>${[`${A.gold} Gold`, A.items.length && `${A.items.length} Fundst.`, herbs && `${herbs} Zutat${herbs === 1 ? '' : 'en'}`, mats && `${mats} Mat.`].filter(Boolean).join(' · ')}</b></section>
+    <p class="small dim wcap">${done ? 'Fertig.' : `Unterwegs seit ${Math.round((W.t - W.start) / 60000)} Min. · läuft nur, solange die App offen ist`}</p>
+    <div class="btns"><button class="red" data-action="wclaim">${done ? 'Sack abholen' : 'Heimrufen · Sack abholen'}</button></div></div>`;
+}
+export function viewWanderAway(npc) {
+  return `<div class="col">${say(npc)}<section class="panel waiting"><h2>Dein Held zieht umher</h2><p class="lore">Kämpfen kann er erst, wenn du ihn heimrufst.</p>
+    <div class="btns"><button data-action="go" data-v="trips">Zum Umherziehen</button></div></section></div>`;
 }

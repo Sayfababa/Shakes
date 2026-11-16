@@ -9,7 +9,7 @@ const app = document.getElementById('app'), tip = document.getElementById('tip')
 let expSel = { loc: null, h: 8, path: [] }, expRes = null, expAsk = false;
 let forgeSel = { mat: null, slot: null, mode: 'rune', item: null, stat: null, msg: '' }, forgeRes = null, FG = null;
 let descSt = { c: null, j: null, msg: '', res: null };
-let actSel = null, zoneSel = null, prepC = null, prepM = null, alchSel = POTIONS[0].id, alchBack = 'traders';
+let wanderRes = null, actSel = null, zoneSel = null, prepC = null, prepM = null, alchSel = POTIONS[0].id, alchBack = 'traders';
 let tripLoc = null, view = 'hero', pickCls = null, F = null, pitSel = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
 
 function render() {
@@ -20,22 +20,22 @@ function render() {
   if (['crypt', 'prep'].includes(view) && S.crypt.cd && Date.now() >= S.crypt.cd) S.crypt.cd = 0;
   if (['arena', 'pitprep', 'pitshop'].includes(view) && S.pit.ts && Date.now() >= S.pit.ts) S.pit.ts = 0;
   const views = {
-    fight: () => UI.viewFight(F), trips: () => expRes ? UI.viewExpRes(expRes) : S.desc ? UI.viewDescAway('prophet') : UI.viewTrips(expAsk), stats: UI.viewStats, spells: UI.viewSpells, ways: () => UI.viewWays(waySel), talents: UI.viewTalents, crypt: () => S.exp ? UI.viewAway('ilse') : S.desc || descSt.res ? UI.viewDesc(descSt) : UI.viewCrypts(),
-    desc: () => S.exp ? UI.viewAway('ilse') : UI.viewDesc(descSt),
+    fight: () => UI.viewFight(F), trips: () => wanderRes ? UI.viewWander(wanderRes) : expRes ? UI.viewExpRes(expRes) : S.desc ? UI.viewDescAway('prophet') : UI.viewTrips(expAsk), stats: UI.viewStats, spells: UI.viewSpells, ways: () => UI.viewWays(waySel), talents: UI.viewTalents, crypt: () => S.wander && !S.desc ? UI.viewWanderAway('ilse') : S.exp ? UI.viewAway('ilse') : S.desc || descSt.res ? UI.viewDesc(descSt) : UI.viewCrypts(),
+    desc: () => S.wander && !S.desc ? UI.viewWanderAway('ilse') : S.exp ? UI.viewAway('ilse') : UI.viewDesc(descSt),
     traders: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewTrader(trader),
     trippick: () => S.desc ? UI.viewDescAway('prophet') : S.exp ? UI.viewTrips() : UI.viewTripPick(tripLoc),
     bounties: UI.viewBounties,
     forge: () => UI.viewForge(forgeSel, forgeRes),
     npc: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewNpc(npc),
-    arena: () => S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : UI.viewArena(), hero: UI.viewHero,
-    pitprep: () => S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : pitSel && prepM ? UI.viewPitPrep(pitSel, prepM) : UI.viewArena(),
+    arena: () => S.wander && !S.desc ? UI.viewWanderAway('vargo') : S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : UI.viewArena(), hero: UI.viewHero,
+    pitprep: () => S.wander && !S.desc ? UI.viewWanderAway('vargo') : S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : pitSel && prepM ? UI.viewPitPrep(pitSel, prepM) : UI.viewArena(),
     pitshop: () => UI.viewPitShop(),
     opts: () => UI.viewOpts(Sound.opt, Sound.LEVELS),
-    act: () => S.exp || S.desc ? (S.desc ? UI.viewDescAway('prophet') : UI.viewTrips()) : UI.viewAct(ACTS.find(a => a.id === actSel) || G.curAct()),
-    zoneprep: () => S.exp || S.desc || !prepM || zoneSel == null ? UI.viewTrips() : UI.viewZonePrep(ACTS.find(a => a.id === actSel), zoneSel, prepM),
+    act: () => S.exp || S.desc || S.wander ? (S.desc ? UI.viewDescAway('prophet') : UI.viewTrips()) : UI.viewAct(ACTS.find(a => a.id === actSel) || G.curAct()),
+    zoneprep: () => S.exp || S.desc || S.wander || !prepM || zoneSel == null ? UI.viewTrips() : UI.viewZonePrep(ACTS.find(a => a.id === actSel), zoneSel, prepM),
     exped: () => S.desc ? UI.viewDescAway('prophet') : S.exp ? UI.viewTrips(expAsk) : UI.viewExped(expSel),
     alch: () => UI.viewAlch(alchSel, alchBack),
-    prep: () => S.exp ? UI.viewAway('ilse') : S.desc ? UI.viewDesc(descSt) : prepM ? UI.viewPrep(CRYPTS.find(c => c.id === prepC), prepM) : UI.viewCrypts(),
+    prep: () => S.wander && !S.desc ? UI.viewWanderAway('ilse') : S.exp ? UI.viewAway('ilse') : S.desc ? UI.viewDesc(descSt) : prepM ? UI.viewPrep(CRYPTS.find(c => c.id === prepC), prepM) : UI.viewCrypts(),
   };
   if (view === 'fight' && !F) view = 'hero';
   tutCheck();
@@ -47,7 +47,7 @@ function render() {
 
 // Vorbereitung: Gürtel als Liste; reicht die Höhe nicht (kleine Handys, iOS-App), als Reihe nebeneinander
 function fitPrep() {
-  const pr = document.querySelector('.prep, .pit, .pitshopv, .acts, .actv, .exped, .expev, .expresv, .desc, .descv, .descres, .craft, .crypts'), m = pr?.parentElement; if (!pr) return;
+  const pr = document.querySelector('.prep, .pit, .pitshopv, .acts, .actv, .wander, .exped, .expev, .expresv, .desc, .descv, .descres, .craft, .crypts'), m = pr?.parentElement; if (!pr) return;
   pr.classList.remove('tight');
   // zu hoch – oder (Umschmieden) Boni im Kasten abgeschnitten
   const low = () => pr.lastElementChild.getBoundingClientRect().bottom > m.getBoundingClientRect().bottom + 1
@@ -264,6 +264,9 @@ const actions = {
   beltout: d => { const i = G.S.belt.findIndex(b => b?.id === d.id); if (i >= 0) G.setBelt(i, null); render(); },
   beltdel: d => { G.setBelt(+d.i, null); render(); },
   trig: d => { const b = G.S.belt[+d.i], ts = b && G.potion(b.id).trig; if (!ts) return; G.setTrig(+d.i, ts[(ts.indexOf(b.trig) + 1) % ts.length]); render(); },
+  wstart: () => { const why = Game.wanderBusy(); if (why) return alert(why); Game.wanderStart(); G.save(); view = 'trips'; render(); },
+  wclaim: () => { wanderRes = Game.wanderClaim(); G.save(); render(); },
+  wok: () => { wanderRes = null; render(); },
   act: d => { actSel = d.id; prepM = null; view = 'act'; render(); },
   zone: d => { const a = ACTS.find(x => x.id === d.a); if (!a) return; actSel = a.id; zoneSel = +d.z; prepM = Game.actEnemy(a, zoneSel); view = 'zoneprep'; render(); },
   actgo: () => { if (!prepM) return; const m = prepM, res = Game.actFight(actSel, zoneSel, m); if (!res) return render(); prepM = null; showFight(res, 'act'); },
@@ -396,6 +399,7 @@ app.addEventListener('mouseleave', () => { if (tip.className !== 'touch') hideTi
 
 // Countdown-Takt: nur die Zahlen ändern; bei 0 einmal neu zeichnen
 setInterval(() => {
+  if (G.S?.wander && Game.wanderTick(Date.now())) { G.save(); if (view === 'trips' && tip.hidden) return render(); }
   if (!G.S || !tip.hidden) return;
   const nav = document.querySelector('nav.tabs'), dots = JSON.stringify(UI.readyDots());
   if (nav && nav.dataset.dots !== dots) { if (nav.dataset.dots) nav.outerHTML = UI.navBar(view).replace('<nav class="tabs"', `<nav class="tabs" data-dots='${dots}'`); else nav.dataset.dots = dots; }
@@ -418,4 +422,4 @@ addEventListener('resize', fitApp); addEventListener('orientationchange', () => 
 document.addEventListener('click', e => { if (!e.target.closest('.hud .ttl')) return;
   const cs = getComputedStyle(document.documentElement), t = document.querySelector('.tabs')?.getBoundingClientRect();
   alert(`innen ${innerWidth}×${innerHeight} · Bildschirm ${screen.width}×${screen.height} · sichtbar ${Math.round(visualViewport?.height || 0)} · Tabs unten ${Math.round(t?.bottom || 0)} · ${STANDALONE ? 'App' : 'Browser'}`); });
-G.load(); render();
+G.load(); if (G.S?.wander) Game.wanderTick(Date.now()); render();

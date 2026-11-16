@@ -40,7 +40,10 @@ let failures = 0;
       await tap('.actv .two [data-action=zone]'); if (!i) await chk('zoneprep');
       await tap('[data-action=actgo]'); if (!i) await chk('fight'); await tap('[data-action=skip]'); if (!i) await chk('result'); }
     await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.acts.prog.a1 = 8; G.save(); }); await p.reload(); await p.waitForTimeout(300);
-    await tap('[data-v=trips]'); await tap('.act[data-action=act]'); await chk('actboss'); await tap('.zone.boss'); await chk('zoneboss'); await tap('.pback'); await tap('.zone.done'); await chk('zonereplay');
+    await tap('[data-v=trips]'); await tap('.act[data-action=act]'); await tap('[data-v=trips]'); await tap('[data-action=wstart]'); await chk('wander');
+    await p.evaluate(async () => { const G = await import('./js/state.js'); const W = G.S.wander; W.t -= 7 * 120000; W.start -= 7 * 120000; W.last = Date.now(); }); await p.waitForTimeout(1500); await chk('wander7');
+    await tap('[data-v=crypt]'); await chk('wanderaway'); await tap('[data-v=trips]'); await tap('[data-action=wclaim]'); await chk('wanderres'); await tap('[data-action=wok]');
+    await tap('.act[data-action=act]'); await chk('actboss'); await tap('.zone.boss'); await chk('zoneboss'); await tap('.pback'); await tap('.zone.done'); await chk('zonereplay');
     for (const v of ['trips', 'hero', 'stats', 'talents', 'spells', 'crypt', 'forge', 'alch']) { await tap('[data-v=hero]'); await tap(`[data-v=${v}]`); await chk(v); }
     await tap('[data-v=crypt]'); await tap('.ctabs [data-v=arena]'); await chk('arena'); await tap('.riv'); await chk('pitprep'); await tap('.ctabs [data-v=arena]'); await tap('[data-v=pitshop]'); await chk('pitshop'); await tap('.ctabs [data-v=desc]'); await chk('desclocked');
     await tap('[data-v=hero]'); await tap('[data-v=spells]'); if (await tap('[data-action=ways]')) await chk('ways'); else { failures++; console.log(`FEHLER ${tag}: Zauber-Wege nicht erreichbar`); }
