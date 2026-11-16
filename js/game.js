@@ -1,6 +1,6 @@
 // Spielzüge ohne DOM: Kampf ausführen, Belohnung anwenden, strukturiertes Ergebnis liefern.
 // main.js zeigt das Ergebnis an; tests/ spielen damit ganze Verläufe durch.
-import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS, DESCENT, DESC_ROOMS, ELITE, PIT, PIT_STYLES, PIT_RIVALS, PIT_RANKS, PIT_SHOP, PIT_RULES, DIFFICULTIES } from './data.js';
+import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS, DESCENT, DESC_ROOMS, ELITE, PIT, PIT_STYLES, PIT_RIVALS, PIT_RANKS, PIT_SHOP, PIT_RULES, DIFFICULTIES, ACTS, ACT, CRYPT } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import { fight } from './combat.js';
@@ -93,18 +93,63 @@ export const bank = () => { const d = G.S.haul?.depth || 0, h = G.bankHaul(); if
 // --- Krypta-Kampf ---
 export function cryptFight(id, m0 = null) {
   const S = G.S, c = CRYPTS.find(x => x.id === id);
-  if (!c || S.exp || S.desc || now() < S.crypt.cd || !G.cryptOpen(c) || G.cryptFloor(c) >= 5) return null;
-  const m = m0 || G.cryptEnemy(c), boss = !!m.boss;
+  if (!c || S.exp || S.desc || now() < S.crypt.cd || !G.cryptOpen(c)) return null;
+  const m = m0 || G.cryptEnemy(c), t = G.cryptTier(c);
   S.crypt.cd = now() + CFG.cryptCdSec * 1000;
   const A = blessed({ ...G.stats(), belt: G.beltCombat() }), r = fight(A, m), win = r.winner === 'a', rew = newRew();
   G.usePotions(r.used); rew.used = r.used; if (S.bless) { rew.bless = S.bless; S.bless = 0; }
   if (!win) { S.deaths++; G.journal(`${m.name} in ${c.name} hat mich niedergestreckt.`); return { A, B: m, r, win, rew, crypt: c }; }
-  S.wins++; Q.event({ type: 'kill', mob: m.name }); if (boss) Q.event({ type: 'boss', crypt: c.id }); G.bountyEvent({ type: 'crypt' }); G.bountyEvent({ type: 'kill', mob: m.name });
+  S.wins++; Q.event({ type: 'kill', mob: m.name }); Q.event({ type: 'boss', crypt: c.id }); G.bountyEvent({ type: 'crypt' }); G.bountyEvent({ type: 'kill', mob: m.name });
   Object.assign(rew, G.cryptWin(c)); rew.grade = gradeOf(r); const gb = 1 + rew.grade.bonus;
-  pay(rew, Math.round((10 + m.lvl * 5) * (boss ? 4 : 1) * gb), Math.round((25 + m.lvl * 14) * (boss ? 3 : 1.2)));
-  dropMat(m, rew); dropHerb('herz', boss ? 1 : ALCH.floorHeart, boss ? ALCH.bossHearts : 1, rew); dropItem(m.lvl, boss ? 1 : 0.35, boss ? (['c1', 'c2'].includes(c.id) ? 2 : 3) : 1, rew);
-  G.journal(boss ? `${m.name} ist gefallen. ${c.name} schweigt.` : `${m.name} in ${c.name} erschlagen.`);
+  pay(rew, Math.round((10 + m.lvl * 5) * 4 * gb), Math.round((25 + m.lvl * 14) * 3));
+  dropMat(m, rew); dropHerb('herz', 1, ALCH.bossHearts, rew);
+  const k = CRYPT.rarAt.filter(x => t >= x).length - 1;   // höhere Stufe → mehr und bessere Beute
+  rew.items = []; for (let i = 0; i < CRYPT.items[k]; i++) { const it = makeItem(m.lvl, { luck: G.stats().lck + t * 15, cls: CLASSES[S.cls], minRarity: Math.min(4, 2 + k + (i === 0 && t >= CRYPT.rarAt[2] ? 1 : 0)) }); rew.items.push(it); if (!G.addToBag(it)) { S.gold += it.value; it.soldFull = true; } }
+  rew.item = rew.items[0];
+  G.journal(`${m.name} ist gefallen (Stufe ${t + 1}).`);
   return { A, B: m, r, win, rew, crypt: c };
+}
+
+// --- Die Akte ---
+export const actZoneMob = (a, z) => LOCATIONS.find(l => l.id === a.loc).mobs[z % 3];
+const zoneElite = (a, z) => { if (!ACT.elites.includes(z)) return null; const i = ACTS.indexOf(a) * 3 + z, M = ELITE.mods; return [M[i % M.length], M[(i + 2) % M.length]]; };
+export function actEnemy(a, z) {
+  const lvl = G.actZoneLvl(a, z); if (z >= ACT.zones) return G.makeBoss(a, lvl, ACT.bossMult);
+  const el = zoneElite(a, z), m = G.makeMonster(lvl, el ? ACT.eliteDiff : 1, MONSTERS.find(x => x.name === actZoneMob(a, z)));
+  if (el) { m.hp = Math.round(m.hp * ACT.eliteHp); m.elite = el.map(e => e.name); m.name = 'Elite: ' + m.name;
+    for (const e of el) { Object.assign(m, e.eff || {}); for (const [k, v] of Object.entries(e.mult || {})) m[k] = Math.round(m[k] * v); } }
+  return m;
+}
+export const actZoneGlut = a => LOCATIONS.find(l => l.id === a.loc).glut;
+// Darf dieses Gebiet gespielt werden? neu = frei, schon geschafft = Glut
+export function actCan(a, z) {
+  const S = G.S, p = G.actProg(a);
+  if (S.exp) return 'Der Held ist auf Expedition.'; if (S.desc) return 'Der Held ist im Abgrund.';
+  if (!G.actOpen(a) || z > Math.min(p, ACT.zones)) return 'Noch nicht erreicht.';
+  if (z < p && S.glut < actZoneGlut(a)) return `Wiederholen kostet ${actZoneGlut(a)} Glut.`;
+  return '';
+}
+export const actChance = (a, z, belt = G.beltCombat()) => winChance('act:' + a.id + ':' + z, () => actEnemy(a, z), 24, belt);
+export function actFight(id, z, m0 = null) {
+  const S = G.S, a = ACTS.find(x => x.id === id); if (!a || actCan(a, z)) return null;
+  const p = G.actProg(a), replay = z < p, boss = z >= ACT.zones, l = LOCATIONS.find(x => x.id === a.loc);
+  if (replay) S.glut -= actZoneGlut(a);
+  const m = m0 || actEnemy(a, z), om = G.omenFor(l.id), od = om && !om.done ? om.def : null;
+  const A = { ...G.stats(), belt: G.beltCombat() }, r = fight(A, m), win = r.winner === 'a', rew = newRew();
+  G.usePotions(r.used); rew.used = r.used;
+  if (!win) { S.deaths++; G.journal(`${m.name} in ${l.name} hat mich niedergestreckt.`); return { A, B: m, r, win, rew, act: a, zone: z }; }
+  S.wins++; const mob = boss ? m.name : actZoneMob(a, z);
+  Q.event({ type: 'kill', mob, loc: l.id }); G.bountyEvent({ type: 'kill', mob }); G.bountyEvent({ type: 'trip', track: m.elite ? 'blood' : 'norm' });
+  rew.grade = gradeOf(r); const gb = 1 + rew.grade.bonus, lv = m.lvl;
+  const xf = replay ? ACT.replay : boss ? ACT.bossXp : ACT.firstXp, gf = replay ? ACT.replay : boss ? ACT.bossGold : ACT.firstGold;
+  pay(rew, Math.round((6 + lv * 4) * gf * gb * (od?.gold || 1)), Math.round((20 + lv * 12) * xf * (od?.xp || 1)));
+  dropMat(m, rew); dropHerb(HERB_LOC[l.id], ALCH.herbChance * (m.elite ? 2 : 1), 1, rew);
+  if (boss) { rew.items = []; for (let i = 0; i < ACT.bossItems; i++) { const it = makeItem(lv, { luck: G.stats().lck + 20, cls: CLASSES[S.cls], minRarity: i ? 2 : 3 }); rew.items.push(it); if (!G.addToBag(it)) { S.gold += it.value; it.soldFull = true; } } rew.item = rew.items[0]; }
+  else { const pos = z / ACT.zones, minR = m.elite ? 2 : pos >= 0.6 ? 2 : pos >= 0.3 ? 1 : 0;
+    dropItem(lv, m.elite || od?.loot ? 1 : Math.min(1, ACT.itemP + rew.grade.bonus / 2), minR, rew); }
+  if (od && G.fulfillOmen()) { Q.event({ type: 'omen' }); rew.omen = true; }
+  if (!replay) { S.acts.prog[a.id] = z + 1; if (boss) { rew.actDone = a; G.journal(`${a.boss.name} ist gefallen. Akt ${a.n} ist geschafft.`); } }
+  return { A, B: m, r, win, rew, act: a, zone: z };
 }
 
 // --- Grube ---
@@ -144,7 +189,7 @@ export const tripChance = (l, track = 'norm') => winChance('trip:' + l.id + trac
   const om = G.omenFor(l.id), od = om && !om.done ? om.def : null;
   return G.makeMonster(trackLvl(l, trackOf(track)), trackOf(track).diff * [0.92, 1, 1, 1.08][roll(0, 3)] * (od?.diff || 1), MONSTERS.find(m => m.name === pick(l.mobs)));
 });
-export const cryptChance = (c, belt = G.beltCombat()) => winChance('crypt:' + c.id + ':' + G.cryptFloor(c) + ':' + G.S.crypt.diff, () => G.cryptEnemy(c), 24, belt, true);
+export const cryptChance = (c, belt = G.beltCombat()) => winChance('crypt:' + c.id + ':' + G.cryptTier(c), () => G.cryptEnemy(c), 24, belt, true);
 export const threatLabel = p => p >= 0.9 ? ['gering', 'low'] : p >= 0.65 ? ['mäßig', 'mid'] : p >= 0.35 ? ['hoch', 'high'] : ['tödlich', 'deadly'];
 
 // Werte eines Gegners aus Sicht des Helden (Vorbereitung): gleiche Formeln wie combat.js
@@ -376,7 +421,7 @@ export const descCrypts = () => CRYPTS.filter(descOpen);
 export const descLeft = () => { const d = G.S.descDay; return Math.max(0, DESCENT.daily - (d?.d === G.today() ? d.n : 0)); };
 export const descBusy = () => { const S = G.S; return S.exp ? 'Dein Held ist auf Expedition.' : S.active ? 'Erst den Streifzug beenden.' : S.haul ? 'Erst die Beute des Streifzugs sichern.' : ''; };
 export const descCanStart = c => { const S = G.S; return descOpen(c) && !S.desc && !descBusy() && descLeft() > 0; };
-export const descLvl = c => Math.max(G.cryptLvl(c, 3), G.S.lvl + DESCENT.lvlAdd);
+export const descLvl = c => Math.max(G.cryptLvl(c, 0) - 2, G.S.lvl + DESCENT.lvlAdd);
 const descNowLvl = () => Math.max(G.S.desc.lvl, G.S.lvl + DESCENT.lvlAdd);   // wer unten aufsteigt, trifft stärkere Gegner
 export const descMult = (u = G.S.desc?.unrest || 0) => Math.round((1 + u * DESCENT.unrestLoot) * 10) / 10;
 const descDiff = u => DESCENT.diff * (1 + u * DESCENT.unrestDiff) * DIFFICULTIES[G.S.crypt.diff].mult;

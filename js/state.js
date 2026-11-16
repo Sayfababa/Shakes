@@ -1,9 +1,9 @@
-import { PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, ALCH } from './data.js';
+import { ACTS, ACT, CRYPT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, ALCH } from './data.js';
 import { affixPool, makeItem, itemValue, rollTier, affixValue, renameMagic } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
-export const SAVE_VERSION = 12;
+export const SAVE_VERSION = 13;
 export let S = null; // aktueller Spielstand
 
 export const now = () => Date.now();
@@ -53,6 +53,14 @@ function migrate(d) {
     d.bless = 0; d.v = 10; }
   if (d.v === 10) { d.desc = null; d.descDay = null; d.v = 11; }   // Der Abstieg
   if (d.v === 11) { d.pit = freshPit(d.title); d.v = 12; }   // Grube als Rangleiter
+  if (d.v === 12) {   // Akte statt Orte, Krypten nur Boss mit Stufen; ungesicherte Beute wird gesichert
+    if (d.haul) { const h = d.haul; d.gold += h.gold || 0; for (const [k, n] of Object.entries(h.mats || {})) d.mats[k] = (d.mats[k] || 0) + n; const S0 = S; S = d; for (const it of h.items || []) addToBag(it); S = S0; }
+    d.haul = null; d.active = null; d.acts = { prog: {} };
+    const won = c => (d.trophies || []).some(t => t.key.startsWith(c + ':'));
+    d.crypt = { diff: 0, prog: Object.fromEntries(CRYPTS.filter(c => won(c.id)).map(c => [c.id, 1])), cd: 0 };
+    for (const a of ACTS) if (d.lvl >= a.top + 2 || (a.crypt && won(a.crypt))) d.acts.prog[a.id] = ACT.zones + 1;
+    for (let i = ACTS.length - 1; i > 0; i--) if (d.acts.prog[ACTS[i].id]) for (let j = 0; j < i; j++) d.acts.prog[ACTS[j].id] = ACT.zones + 1;
+    d.v = 13; }
   d.name = cleanName(d.name);
   return d.v === SAVE_VERSION ? d : null;
 }
@@ -64,7 +72,7 @@ export function newChar(name, cls) {
   S = { v: SAVE_VERSION, name, cls, lvl: 1, xp: 0, gold: 40, attrs: baseAttrs(cls), points: CFG.startPoints, tal: {}, sp: {}, respecs: 0,
     crypt: { diff: 0, prog: {}, cd: 0 }, trophies: [], traders: freshTraders(), mats: {}, omen: null, omens: 0, shards: [], tut: 0, title: null, haul: null, bounty: null,
     equip: {}, bag: [], glut: CFG.maxGlut, glutTs: now(), active: null,
-    journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0, belt: [null, null, null], herbs: {}, pots: {}, potDay: today(), exp: null, bless: 0, desc: null, descDay: null, pit: freshPit() };
+    journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0, belt: [null, null, null], herbs: {}, pots: {}, potDay: today(), exp: null, bless: 0, desc: null, descDay: null, pit: freshPit(), acts: { prog: {} } };
   const wb = BASES.find(b => b.kind === c.weapon);
   S.equip.weapon = { id: 'start', slot: 'weapon', kind: wb.kind, base: wb.name, art: wb.art, w: wb.w, h: wb.h, name: 'Rostige/r ' + wb.name,
     rarity: 'normal', lvl: 1, mods: {}, dmg: [...wb.dmg], value: 2 };
@@ -329,33 +337,36 @@ export function sell(id) { const it = removeFromBag(id); if (it) S.gold += it.va
 export function journal(t) { S.journal.unshift({ t, ts: now() }); S.journal.length = Math.min(S.journal.length, 30); }
 
 // --- Krypten ---
-export const cryptLvl = (c, floor) => c.lvl + DIFFICULTIES[S.crypt.diff].lvlAdd + Math.floor(floor * 0.6);
-export const cryptFloor = c => S.crypt.prog[c.id] || 0;           // 0..5 (5 = Boss besiegt)
-export const cryptOpen = c => S.lvl >= c.lvl + DIFFICULTIES[S.crypt.diff].lvlAdd - 2 && (S.shards.length >= (c.shards || 0));
-export function cryptEnemy(c) {
-  const f = cryptFloor(c), lvl = cryptLvl(c, f), boss = f === 4, d = DIFFICULTIES[S.crypt.diff];
-  return boss ? makeBoss(c, lvl, d.mult) : makeMonster(lvl, (1 + f * 0.05) * d.mult, MONSTERS.find(x => x.name === c.floors[f]));
-}
-// Boss einer Krypta (auch im Abstieg): mehr Leben + eigenes Muster statt nur größerer Zahlen
+// Krypten: nur der Boss, frei nach dem Boss „seines“ Akts. prog[c] = besiegte Stufen; jede Stufe schwerer, Beute besser.
+export const cryptAct = c => ACTS.find(a => a.crypt === c.id);
+export const cryptTier = c => S.crypt.prog[c.id] || 0;
+export const cryptLvl = (c, t = cryptTier(c)) => cryptAct(c).top + CRYPT.lvlAdd + t * CRYPT.tierLvl;
+export const cryptFloor = c => cryptTier(c) > 0 ? 5 : cryptOpen(c) ? 4 : 0;   // für alte Questziele (Ebene n / Räume)
+export const cryptOpen = c => actDone(cryptAct(c)) && S.shards.length >= (c.shards || 0);
+export const cryptEnemy = c => makeBoss(c, cryptLvl(c), 1 + cryptTier(c) * CRYPT.tierMult);
+// Boss einer Krypta/eines Akts (auch im Abstieg): mehr Leben + eigenes Muster statt nur größerer Zahlen
 export function makeBoss(c, lvl, mult = 1) {
   const mo = makeMonster(lvl, CFG.bossDiff * mult, c.boss);
   mo.hp = Math.round(mo.hp * CFG.bossHp); mo.boss = true; mo.rage = 0.2; mo.crit = 0.05;
-  const { mirror, ...mech } = c.boss.mech || {};
-  Object.assign(mo, mech);
+  const { mirror, armorMult, ...mech } = c.boss.mech || {};
+  Object.assign(mo, mech); if (armorMult) mo.armor = Math.round(mo.armor * armorMult);
   if (mirror) { const me = effects(); for (const k of ['crit', 'evade', 'block', 'leech', 'bleed', 'rage', 'pen', 'regen', 'thorns', 'execute']) if (me[k]) mo[k] = me[k]; }
   return mo;
 }
 export function cryptWin(c) {
-  const f = cryptFloor(c); S.crypt.prog[c.id] = f + 1;
-  const out = { bossKilled: f === 4 };
-  if (out.bossKilled) {
-    const key = c.id + ':' + S.crypt.diff;
-    if (SHARD_CRYPTS.includes(c.id) && !S.shards.includes(c.id)) { S.shards.push(c.id); out.shard = S.shards.length; }
-    if (!S.trophies.some(t => t.key === key)) { out.trophy = { key, name: c.boss.name, diff: DIFFICULTIES[S.crypt.diff].name, eff: c.trophy }; S.trophies.push(out.trophy); }
-    if (CRYPTS.every(x => cryptFloor(x) >= 5) && S.crypt.diff < DIFFICULTIES.length - 1) { S.crypt.diff++; S.crypt.prog = {}; out.diffUp = DIFFICULTIES[S.crypt.diff].name; }
-  }
+  const t = cryptTier(c); S.crypt.prog[c.id] = t + 1;
+  const out = { bossKilled: true, tier: t + 1, first: t === 0 };
+  if (t === 0 && SHARD_CRYPTS.includes(c.id) && !S.shards.includes(c.id)) { S.shards.push(c.id); out.shard = S.shards.length; }
+  CRYPT.dTier.forEach((dt, d) => { const key = c.id + ':' + d;
+    if (t >= dt && !S.trophies.some(x => x.key === key)) { out.trophy = { key, name: c.boss.name, diff: DIFFICULTIES[d].name, eff: c.trophy }; S.trophies.push(out.trophy); } });
   return out;
 }
+// --- Akte ---
+export const actProg = a => S.acts.prog[a.id] || 0;                // 0..ACT.zones+1 (zones = Boss offen, zones+1 = Boss tot)
+export const actDone = a => !!a && actProg(a) > ACT.zones;
+export const actOpen = a => { const i = ACTS.indexOf(a); return i === 0 || actDone(ACTS[i - 1]); };
+export const actZoneLvl = (a, z) => z >= ACT.zones ? a.top : Math.round(a.lvl + (a.top - 1 - a.lvl) * z / (ACT.zones - 1));
+export const curAct = () => ACTS.find(a => actOpen(a) && !actDone(a)) || ACTS[ACTS.length - 1];
 
 // --- Tägliches Omen ---
 const dayNo = () => { const t = Date.now(); return Math.floor((t - new Date(t).getTimezoneOffset() * 60000) / 86400000); };

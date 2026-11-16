@@ -946,3 +946,32 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .optrow > span { font-family: 'Alegreya SC'; color: var(--gold); } .optrow small { margin-left: 8px; font-family: 'Alegreya'; }
 .optbtns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; } .optbtns button.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
 .hud-row .ttl { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .hud-row .res, .hud-row .lvl { white-space: nowrap; flex: none; }
+/* === Die Akte === */
+.acts .act { display: grid; grid-template-columns: 50px 1fr auto; gap: 2px 10px; align-items: center; padding: 6px 9px; cursor: pointer; position: relative; }
+.acts .act .portrait { width: 50px; height: 50px; grid-row: span 3; }
+.acts .act h3 { margin: 0; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.02rem; position: relative; padding-right: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.acts .act .an { font-family: 'Alegreya SC'; color: var(--gold-hi); font-size: .76rem; text-align: right; }
+.acts .act small { color: var(--dim); font-size: .74rem; grid-column: 2 / -1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.acts .act .pr { display: flex; gap: 2px; grid-column: 2 / -1; } .acts .act .pr i { flex: 1; height: 5px; background: #1a1410; box-shadow: inset 0 0 0 1px #3a3226; }
+.acts .act .pr i.on { background: #b08a3e; } .acts .act .pr i.boss { flex: 1.6; } .acts .act .pr i.boss.on { background: #a8241a; }
+.acts .act.done { opacity: .78; } .acts .act.cur { box-shadow: inset 0 0 0 2px #b08a3e; } .acts .act.locked { opacity: .45; filter: grayscale(.8); cursor: default; }
+.acts.tight .act small { display: none; } .acts.tight .act .portrait { width: 38px; height: 38px; } .acts.tight .act { grid-template-columns: 38px 1fr auto; padding: 4px 8px; }
+.actv .ahead h2 { margin: 0; font-family: 'Grenze Gotisch'; color: var(--gold-hi); font-size: 1.25rem; } .actv .ahead small { color: var(--dim); font-size: .78rem; }
+.actv .path { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column-reverse; justify-content: space-between; padding: 6px 10px; overflow: hidden; }
+.zone { display: grid; grid-template-columns: 32px 1fr auto; gap: 8px; align-items: center; padding: 2px 0; position: relative; cursor: pointer; }
+.zone::after { content: ''; position: absolute; left: 15px; bottom: 100%; height: 100%; width: 2px; background: #3a3226; z-index: 0; }
+.zone.boss::after { display: none; }
+.zone .dot { width: 32px; height: 32px; z-index: 1; position: relative; border-image: url('../assets/ui/slot.webp') 16 / 5px stretch; background: #07080b; display: grid; place-items: center; overflow: hidden; }
+.zone .dot .portrait { width: 100%; height: 100%; border: 0; box-shadow: none; }
+.zone .dot .ok { width: 8px; height: 13px; border: solid #6f9a4c; border-width: 0 2px 2px 0; rotate: 45deg; translate: 0 -2px; }
+.zone b { font-family: 'Alegreya SC'; font-weight: 500; font-size: .84rem; color: var(--text); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.zone small { display: block; color: var(--dim); font-size: .7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.zone > div { min-width: 0; } .zone .r { font: .76rem 'Alegreya SC'; color: #e0c27a; text-align: right; }
+.zone.done b { color: #8a7a5a; } .zone.cur .dot { box-shadow: 0 0 0 2px var(--gold-hi), 0 0 12px rgba(224,194,122,.5); } .zone.cur b { color: var(--gold-hi); }
+.zone.elite b { color: #8fb6ff; } .zone.boss b { color: #e86a55; font-family: 'Grenze Gotisch'; font-size: 1.02rem; } .zone.fog { opacity: .42; cursor: default; }
+.loot { display: inline-flex; gap: 3px; } .loot i { width: 8px; height: 8px; box-shadow: inset 0 0 0 1px #000; }
+.lg { background: #888; } .lw { background: #ddd; } .lm { background: #6969ff; } .ly { background: #ffff64; } .ll { background: #c7b377; }
+.btns.two { display: flex; gap: 6px; } .btns.two button { flex: 1; }
+.actv { height: 100%; } .actv .path { justify-content: stretch; }
+.actv .zone { flex: 1 1 0; min-height: 0; }
+@media (max-height: 720px) { .actv .ahead small { display: none; } .actv .zone small { font-size: .64rem; } .actv .zone .dot { width: 26px; height: 26px; } .actv .zone { grid-template-columns: 26px 1fr auto; gap: 6px; } .actv .zone::after { left: 12px; } .actv .zone b { font-size: .78rem; } }

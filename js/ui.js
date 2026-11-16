@@ -1,14 +1,14 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
 import { AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
-import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, DESCENT, DESC_ROOMS, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
+import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
 import { potion, beltSlots, brewCost, canBrew, potMax } from './state.js';
-import { waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
+import { waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 // Name eines Item-Bonus: Attribute, Rüstung/Schaden, Prozent-Boni ("% Krit-Chance", "% Feuerball")
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
-import { pitWeek, pitPlace, pitRank, pitFoes, pitChance, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
+import { actEnemy, actChance, actCan, actZoneGlut, actZoneMob, pitWeek, pitPlace, pitRank, pitFoes, pitChance, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
   descCrypts, descLeft, descCanStart, descBusy, descLvl, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
@@ -23,7 +23,7 @@ const pct = (a, b) => Math.max(0, Math.min(100, (a / b) * 100));
 const effLine = e => Object.entries(e).map(([k, v]) => `${EFFECT_NAMES[k]}${k === 'first' || k === 'toll' ? '' : ' +' + Math.round(v * 100) + '%'}`).join(', ');
 
 // Gemalte Monster/Bosse in assets/monsters/<glyph>.jpg, sonst SVG-Silhouette
-const MON_IMG = new Set(['gerlinde', 'aldemar', 'butcher', 'bellringer', 'ghul', 'fallen', 'skelett', 'grabraeuber', 'pestratte', 'kultist',
+const MON_IMG = new Set(['totengraeber', 'muellerin', 'knochenordner', 'strickmutter', 'kultist1', 'aschenkoenig', 'gerlinde', 'aldemar', 'butcher', 'bellringer', 'ghul', 'fallen', 'skelett', 'grabraeuber', 'pestratte', 'kultist',
   'blutfuerst', 'sumpfhexe', 'knochenhund', 'gehaeuteter', 'hoellenbrut', 'wiedergaenger']);
 export const monsterArt = g => g === 'self' ? `<img class="portrait monster crownless" src="${P(S.cls)}" alt="">` : MON_IMG.has(g) ? `<img class="portrait monster" src="assets/monsters/${g}.jpg" alt="">`
   : `<div class="portrait monster"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#070403"/>${MON[g] || MON.skull}</svg></div>`;
@@ -86,7 +86,7 @@ export function hud(tut = '') {
 }
 export function navBar(view) {
   const tabs = [['hero', 'Held'], ['trips', 'Streifzug'], ['traders', 'Händler'], ['forge', 'Schmiede'], ['alch', 'Alchemie'], ['crypt', 'Krypta']];
-  const map = { opts: 'hero', prep: 'crypt', desc: 'crypt', arena: 'crypt', pitprep: 'crypt', pitshop: 'crypt', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips', exped: 'trips' };
+  const map = { opts: 'hero', act: 'trips', zoneprep: 'trips', prep: 'crypt', desc: 'crypt', arena: 'crypt', pitprep: 'crypt', pitshop: 'crypt', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips', exped: 'trips' };
   // Nur echte Handlungsaufforderungen markieren – ein Dauer-Punkt auf jedem Tab sagt nichts mehr
   const badge = { hero: S.points + talentPoints() + waysPending() > 0, traders: Object.keys(TRADERS).some(canComplete), arena: canComplete('vargo'),
     crypt: canComplete('ilse') || canComplete('vargo'), trips: !!S.haul || canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) || (!!S.active && Date.now() >= S.active.end) || (!!S.exp && Date.now() >= S.exp.end) };
@@ -203,23 +203,19 @@ export function viewTrips(ask = false) {
   }
   if (S.exp?.ret) return viewExpEvent();
   if (S.exp) return `<div class="col">${expAway(ask)}${say('prophet')}</div>`;
-  const o = omen();
-  const openLocs = LOCATIONS.filter(locOpen), nextLoc = LOCATIONS.find(l => !locOpen(l));
   const bl = bounties(), bDone = bl.filter(b => b.claimed).length, bReady = bl.some(b => !b.claimed && b.prog >= b.n);
   const bbar = `<div class="bountybar ${bReady ? 'ready' : ''}" data-action="go" data-v="bounties"><span>Steckbriefe heute</span><b>${bDone}/3</b>${bReady ? '<i>Lohn abholen</i>' : ''}</div>`;
-  const tired = !S.haul && openLocs.every(l => S.glut < l.glut);
-  const xbar = S.haul ? '' : `<div class="bountybar expbar ${tired ? 'ready' : ''}" data-action="go" data-v="exped"><span>Expedition</span><b>ohne Glut · 1–8 Std.</b>${tired ? '<i>Glut leer – schick ihn los</i>' : ''}</div>`;
-  const cards = [...openLocs, ...(nextLoc ? [nextLoc] : [])];
-  const ptsHint = S.points && openLocs.some(l => tripChance(l) < 0.65) ? `<div class="ptsline" data-action="go" data-v="stats">${S.points} Punkte frei – verteile sie, dann sinkt die Gefahr</div>` : '';
-  return `<div class="col">${S.haul ? haulPanel() : say('prophet', omenLine())}${bbar}${xbar}${ptsHint}<div class="trips ${cards.length > 4 ? 'many' : ''}">${cards.map(l => { const open = locOpen(l), r = tripReward(l, 1, (l.sec[0] + l.sec[1]) / 2);
-    const isOmen = open && S.lvl >= 3 && o.loc === l.id && !o.done;
-    const wanted = new Set(Object.keys(TRADERS).filter(available).flatMap(t => current(t).obj.filter(o => o.at === l.id || l.mobs.includes(o.kill)).map(() => t)));
-    return `<section class="panel trip ${open ? 'tf-' + threatLabel(tripChance(l))[1] : 'locked'} ${isOmen ? 'omen' : ''} ${S.glut < l.glut ? 'tired' : ''}" ${open ? `data-action="trip" data-id="${l.id}"` : ''}>
-      ${open ? `<span class="tlvl" title="Stufe">${locLvl(l)}</span>` : ''}${isOmen ? `<span class="omentag">Omen: ${o.def.short}</span>` : ''}
-      <h3>${l.name}${open && wanted.size ? '<span class="qmark" title="Auftrag">!</span>' : ''}</h3><p class="lore small">${l.text}</p>
-      ${open ? `<div class="mobpics">${l.mobs.map(n => monsterArt(MONSTERS.find(m => m.name === n).glyph)).join('')}</div>
-      <div class="tripinfo"><span><i class="ico glut"></i>${l.glut}</span><span><i class="ico coin"></i>~${r.gold}</span></div>` : `<div class="mobs">Erst ab Stufe ${l.lvl}</div>`}
-    </section>`; }).join('')}</div></div>`;
+  const tired = S.glut < 5, xbar = `<div class="bountybar expbar ${tired ? 'ready' : ''}" data-action="go" data-v="exped"><span>Expedition</span><b>ohne Glut · 1–8 Std.</b>${tired ? '<i>Glut leer – schick ihn los</i>' : ''}</div>`;
+  const cur = curAct(), o = omen();
+  return `<div class="col acts">${say('prophet', omenLine())}${bbar}${xbar}${ACTS.map((a, i) => { const p = actProg(a), done = actDone(a), open = actOpen(a), l = LOCATIONS.find(x => x.id === a.loc);
+    const isOmen = open && S.lvl >= 3 && o.loc === a.loc && !o.done;
+    const wanted = open && Object.keys(TRADERS).filter(available).some(t => current(t).obj.some(ob => ob.at === a.loc || l.mobs.includes(ob.kill)));
+    if (!open && i > ACTS.indexOf(cur) + 1) return '';
+    return `<section class="panel act ${done ? 'done' : ''} ${a === cur && !done ? 'cur' : ''} ${open ? '' : 'locked'}" ${open ? `data-action="act" data-id="${a.id}"` : ''}>
+      ${monsterArt(a.boss.glyph)}<h3>Akt ${a.n} · ${l.name}${wanted ? '<span class="qmark">!</span>' : ''}</h3><span class="an">${isOmen ? '<b class="hot">Omen</b>' : done ? 'geschafft' : open ? `${Math.min(p, ACT.zones + 1)} / ${ACT.zones + 1}` : 'gesperrt'}</span>
+      ${open ? `<div class="pr">${Array.from({ length: ACT.zones + 1 }, (_, z) => `<i class="${z < p ? 'on' : ''} ${z === ACT.zones ? 'boss' : ''}"></i>`).join('')}</div>` : ''}
+      <small>${done ? `${a.boss.name} ist gefallen · Gebiete wiederholbar` : open ? (p >= ACT.zones ? `Boss: ${a.boss.name}` : `Weiter: ${a.zones[p]} · Stufe ${actZoneLvl(a, p)}`) : `${ACTS[i - 1].boss.name} muss fallen`}</small></section>`; }).join('')}</div>`;
+
 }
 
 // --- Expedition ---
@@ -383,16 +379,14 @@ export function viewTrader(tid) {
 
 // --- Krypten ---
 export function viewCrypts() {
-  const d = DIFFICULTIES[S.crypt.diff], cd = Math.max(0, Math.ceil((S.crypt.cd - Date.now()) / 1000));
-  return `<div class="col crypts">${cryptTabs('crypt')}${say('ilse')}<div class="crypthead"><span>Die Krypten · ${d.name}</span><span>${cd ? `Erholung <span data-until="${S.crypt.cd}">${fmtT(cd)}</span>` : 'bereit'}</span></div>
-    ${CRYPTS.map(c => { const f = cryptFloor(c), open = cryptOpen(c), done = f >= 5;
-      const troph = S.trophies.some(t => t.key === c.id + ':' + S.crypt.diff);
-      return `<section class="panel crypt ${!open ? 'locked' : ''} ${done ? 'done' : ''}" ${open && !done && !cd ? `data-action="crypt" data-id="${c.id}"` : ''}>
+  const cd = Math.max(0, Math.ceil((S.crypt.cd - Date.now()) / 1000));
+  return `<div class="col crypts">${cryptTabs('crypt')}${say('ilse')}<div class="crypthead"><span>Die Krypten · nur der Boss, Stufe um Stufe</span><span>${cd ? `Erholung <span data-until="${S.crypt.cd}">${fmtT(cd)}</span>` : 'bereit'}</span></div>
+    ${CRYPTS.map(c => { const open = cryptOpen(c), t = cryptTier(c), a = cryptAct(c), troph = S.trophies.some(x => x.key === c.id + ':0');
+      return `<section class="panel crypt ${!open ? 'locked' : ''}" ${open && !cd ? `data-action="crypt" data-id="${c.id}"` : ''}>
         ${monsterArt(c.boss.glyph)}
-        <div><h3>${c.name}</h3>
-          <p class="small">${!open ? (c.shards && S.shards.length < c.shards ? `Versiegelt · Glockensplitter ${S.shards.length}/${c.shards}` : `Versiegelt bis Stufe ${c.lvl + d.lvlAdd - 2}`) : done ? `${c.boss.name} ist gefallen.` : f === 4 ? `<span class="hot">${c.boss.name}</span> · <i>${c.boss.mechText}</i>` : `Ebene ${f + 1}: ${c.floors[f]} · Stufe ${cryptLvl(c, f)}`}${open && !done ? ' · ' + threat(cryptChance(c)) : ''}</p>
-          <div class="floors">${[0, 1, 2, 3, 4].map(i => `<i class="${i < f ? 'on' : ''} ${i === 4 ? 'boss' : ''}"></i>`).join('')}</div>
-          <div class="dim small">Trophäe: ${effLine(c.trophy)}${troph ? ' · errungen' : ''}</div></div></section>`; }).join('')}</div>`;
+        <div><h3>${c.name}${open ? ` <span class="h2r">Stufe ${t + 1}</span>` : ''}</h3>
+          <p class="small">${!open ? (!actDone(a) ? `Erst nach Akt ${a.n}: ${a.boss.name}` : `Versiegelt · Glockensplitter ${S.shards.length}/${c.shards}`) : `<span class="hot">${c.boss.name.split(',')[0]}</span> · Stufe ${cryptLvl(c)} · <i>${c.boss.mechText}</i> · ${threat(cryptChance(c))}`}</p>
+          <div class="dim small">Trophäe: ${effLine(c.trophy)}${troph ? ' · errungen' : ''}${open && t ? ` · ${t}× besiegt` : ''}</div></div></section>`; }).join('')}</div>`;
 }
 
 function fightSummary(F) {
@@ -522,7 +516,7 @@ export function viewAlch(sel, back) {
 // Vor dem Krypta-Kampf: Gegner, seine Werte, dein Gürtel, Siegchance mit/ohne Tränke
 export function viewPrep(c, m) {
   const f = cryptFloor(c), pW = cryptChance(c), p0 = cryptChance(c, []);
-  const head = `${monsterArt(m.glyph)}<div><h2>${m.name.split(',')[0]}</h2><p class="dim small">${c.name} · ${f === 4 ? 'Boss' : 'Ebene ' + (f + 1)} · Stufe ${m.lvl}</p>${threat(pW)}</div>`;
+  const head = `${monsterArt(m.glyph)}<div><h2>${m.name.split(',')[0]}</h2><p class="dim small">${c.name} · Stufe ${cryptTier(c) + 1} · Gegner-Stufe ${m.lvl}</p>${threat(pW)}</div>`;
   return prepCore(m, head, pW, p0, `<button class="red" data-action="cryptgo" ${S.crypt.cd > Date.now() ? 'disabled' : ''}>Kämpfen</button>`, S.bless);
 }
 // Vorbereitung: Kopf + Werte mit Trank-Hinweisen + Gürtel + Siegchance (Krypta und Grube)
@@ -688,4 +682,26 @@ export function viewOpts(opt, levels) {
     ${row('sfx', 'Kampfgeräusche')}${row('music', 'Musik', 'kommt später')}
     <p class="small dim">Am iPhone: Stummschalter aus, sonst bleibt es still.</p></section>
     <div class="btns"><button data-action="go" data-v="hero">Zurück</button></div></div>`;
+}
+
+// --- Akt: Weg von unten (Einstieg) nach oben (Boss) ---
+export function viewAct(a) {
+  const p = actProg(a), l = LOCATIONS.find(x => x.id === a.loc), nz = Math.min(p, ACT.zones), lootDots = (z, el, boss) => {
+    const r = boss ? ['ly', 'll'] : el ? ['lm', 'ly'] : z / ACT.zones >= 0.6 ? ['lw', 'lm'] : z / ACT.zones >= 0.3 ? ['lw', 'lm'] : ['lg', 'lw'];
+    return `<span class="loot">${r.map(c => `<i class="${c}"></i>`).join('')}</span>`; };
+  const row = z => { const boss = z === ACT.zones, el = ACT.elites.includes(z), done = z < p, cur = z === nz && !actDone(a), fog = z > nz;
+    const name = boss ? a.boss.name : a.zones[z], sub = boss ? a.boss.mechText : `${el ? 'Elite · ' : ''}${actZoneMob(a, z)} · Stufe ${actZoneLvl(a, z)}`;
+    return `<div class="zone ${done ? 'done' : ''} ${cur ? 'cur' : ''} ${fog ? 'fog' : ''} ${el ? 'elite' : ''} ${boss ? 'boss' : ''}" ${fog ? '' : `data-action="zone" data-a="${a.id}" data-z="${z}"`}>
+      <span class="dot">${boss || cur ? monsterArt(boss ? a.boss.glyph : MONSTERS.find(m => m.name === actZoneMob(a, z)).glyph) : done ? '<i class="ok"></i>' : ''}</span>
+      <div><b>${name}</b><small>${sub}</small></div><span class="r">${cur ? pcT(actChance(a, z)) : lootDots(z, el, boss)}</span></div>`; };
+  return `<div class="col actv"><section class="panel ahead"><h2>Akt ${a.n} · ${l.name}</h2><small>${l.text}</small></section>
+    <section class="panel path">${Array.from({ length: ACT.zones + 1 }, (_, z) => row(z)).join('')}</section>
+    <div class="btns two"><button data-action="go" data-v="trips">Zurück</button>${actDone(a) ? `<button disabled>Akt geschafft</button>` : `<button class="red" data-action="zone" data-a="${a.id}" data-z="${nz}">Weiter · ${nz >= ACT.zones ? 'Boss' : a.zones[nz]}</button>`}</div></div>`;
+}
+export function viewZonePrep(a, z, m) {
+  const boss = z >= ACT.zones, p = actProg(a), replay = z < p, why = actCan(a, z), pW = actChance(a, z), p0 = actChance(a, z, []);
+  const head = `${monsterArt(boss ? a.boss.glyph : m.glyph)}<div><h2>${boss ? a.boss.name : a.zones[z]}</h2><p class="dim small">Akt ${a.n} · ${boss ? 'Boss' : `Gebiet ${z + 1}`} / ${ACT.zones + 1} · ${m.name.split(',')[0]} · Stufe ${m.lvl}</p>
+    <p class="small">${boss ? `<i>${a.boss.mechText}</i>` : m.elite ? `<b class="hot">Elite:</b> ${m.elite.join(', ')}` : ''}${replay ? ` <span class="dim">Wiederholen · </span><i class="ico glut"></i>${actZoneGlut(a)}` : ' <span class="up">Neu · kostet nichts</span>'}</p></div>`;
+  return prepCore(m, head, pW, p0, `<button class="red" data-action="actgo" ${why ? 'disabled' : ''}>${why && why.startsWith('Wiederholen') ? 'Glut fehlt' : 'Kämpfen'}</button>`)
+    .replace('<section class="panel chance"', '<div class="btns"><button data-action="act" data-id="' + a.id + '">Zurück</button></div><section class="panel chance"');
 }

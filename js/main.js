@@ -1,4 +1,4 @@
-import { CFG, MATS, TUTORIAL, TRADERS, FORGE, CRYPTS, HERBS, POTIONS, LOCATIONS, DESC_ROOMS } from './data.js';
+import { CFG, MATS, TUTORIAL, TRADERS, FORGE, CRYPTS, HERBS, POTIONS, LOCATIONS, DESC_ROOMS, ACTS } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import * as Game from './game.js';
@@ -9,7 +9,7 @@ const app = document.getElementById('app'), tip = document.getElementById('tip')
 let expSel = { loc: null, h: 8, path: [] }, expRes = null, expAsk = false;
 let forgeSel = { mat: null, slot: null, mode: 'rune', item: null, stat: null, msg: '' }, forgeRes = null, FG = null;
 let descSt = { c: null, j: null, msg: '', res: null };
-let prepC = null, prepM = null, alchSel = POTIONS[0].id, alchBack = 'traders';
+let actSel = null, zoneSel = null, prepC = null, prepM = null, alchSel = POTIONS[0].id, alchBack = 'traders';
 let tripLoc = null, view = 'hero', pickCls = null, F = null, pitSel = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
 
 function render() {
@@ -28,6 +28,8 @@ function render() {
     pitprep: () => S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : pitSel && prepM ? UI.viewPitPrep(pitSel, prepM) : UI.viewArena(),
     pitshop: () => UI.viewPitShop(),
     opts: () => UI.viewOpts(Sound.opt, Sound.LEVELS),
+    act: () => S.exp || S.desc ? (S.desc ? UI.viewDescAway('prophet') : UI.viewTrips()) : UI.viewAct(ACTS.find(a => a.id === actSel) || G.curAct()),
+    zoneprep: () => S.exp || S.desc || !prepM || zoneSel == null ? UI.viewTrips() : UI.viewZonePrep(ACTS.find(a => a.id === actSel), zoneSel, prepM),
     exped: () => S.desc ? UI.viewDescAway('prophet') : S.exp ? UI.viewTrips(expAsk) : UI.viewExped(expSel),
     alch: () => UI.viewAlch(alchSel, alchBack),
     prep: () => S.exp ? UI.viewAway('ilse') : S.desc ? UI.viewDesc(descSt) : prepM ? UI.viewPrep(CRYPTS.find(c => c.id === prepC), prepM) : UI.viewCrypts(),
@@ -42,7 +44,7 @@ function render() {
 
 // Vorbereitung: Gürtel als Liste; reicht die Höhe nicht (kleine Handys, iOS-App), als Reihe nebeneinander
 function fitPrep() {
-  const pr = document.querySelector('.prep, .pit, .pitshopv, .exped, .expev, .expresv, .desc, .descv, .descres, .craft, .crypts'), m = pr?.parentElement; if (!pr) return;
+  const pr = document.querySelector('.prep, .pit, .pitshopv, .acts, .actv, .exped, .expev, .expresv, .desc, .descv, .descres, .craft, .crypts'), m = pr?.parentElement; if (!pr) return;
   pr.classList.remove('tight');
   // zu hoch – oder (Umschmieden) Boni im Kasten abgeschnitten
   const low = () => pr.lastElementChild.getBoundingClientRect().bottom > m.getBoundingClientRect().bottom + 1
@@ -93,6 +95,9 @@ function haulRewText(res) {
   for (const [k, n] of w.mats) L.push(`${MATS[k]} ×${n}`);
   for (const [k, n] of w.herbs || []) L.push(`${HERBS[k].name} ×${n}`);
   if (w.item) L.push(`<span class="r-${w.item.rarity}">${w.item.name}</span>${betterTxt(w.item)}`);
+  for (const it of (w.items || []).slice(1)) L.push(`Beute: <span class="r-${it.rarity}">${it.name}</span>${it.soldFull ? ' <i class="dim">(Beutel voll – verkauft)</i>' : betterTxt(it)}`);
+  if (w.actDone) L.push(`<b class="gold">Akt ${w.actDone.n} geschafft.</b> Der nächste Akt ist offen${w.actDone.crypt ? ', und eine Krypta wartet' : ''}.`);
+  if (w.tier) L.push(`<b class="gold">Krypta-Stufe ${w.tier} bezwungen.</b> Die nächste ist schwerer – und reicher.`);
   if (w.rankUp) L.push(`<b class="gold">Neuer Rang: ${w.rankUp.name}</b> · Titel „${w.rankUp.title}“ + Segen`);
   if (w.omen) L.push('<b class="gold">Das Omen hat sich erfüllt.</b>');
   L.push(`<i class="dim">Ungesichert (Tiefe ${h.depth}): ${h.gold} Gold, ${h.xp} EP${h.items.length ? `, ${h.items.length} Fundstück(e)` : ''}</i>`);
@@ -113,7 +118,8 @@ function loseText(res) {
   if (res.pit) return 'Vargo lacht. Platz bleibt – 15 Minuten Pause.';
   if (res.rew.honor) return `${res.rew.honor} Ehre`;
   if (res.desc?.lost) { const l = res.desc.lost; return `Der Sack bleibt unten: ${l.gold} Gold${l.items.length ? `, ${l.items.length} Fundstück${l.items.length > 1 ? 'e' : ''}` : ''}.`; }
-  if (res.crypt) return 'Die Krypta behält dich. Diesmal. Dein Fortschritt bleibt.';
+  if (res.crypt) return 'Die Krypta behält dich. Diesmal. Deine Stufe bleibt.';
+  if (res.act) return 'Nichts verloren. Werde stärker und versuch es wieder.';
   return 'Die Asche spuckt dich wieder aus.';
 }
 function rewText(w) {
@@ -246,7 +252,7 @@ const actions = {
   prepPot: d => { if (!prepM) return; const keep = Game.enemyInfo(prepM).tags.map(t => t[1]); if (!Game.packPotion(d.id, keep)) return alert('Geht gerade nicht.'); render(); },
   bestBelt: () => { if (!prepM) return; if (!Game.bestBelt(prepM)) alert('Du hast noch keine Tränke. Brau welche bei Mutter Ysolde.'); render(); },
   cryptgo: () => { const m = prepM; prepM = null; showFight(Game.cryptFight(prepC, m), 'crypt'); },
-  alch: d => { alchBack = d.b === 'prep' ? (view === 'pitprep' ? 'pitprep' : 'prep') : d.b === 'desc' ? d.b : 'traders'; view = 'alch'; render(); },
+  alch: d => { alchBack = d.b === 'prep' ? (['pitprep', 'zoneprep'].includes(view) ? view : 'prep') : d.b === 'desc' ? d.b : 'traders'; view = 'alch'; render(); },
   potsel: d => { alchSel = d.id; render(); },
   brew: d => { if (G.brew(d.id)) { alchSel = d.id; render(); } },
   beltin: d => { const n = G.beltSlots(); let i = G.S.belt.slice(0, n).findIndex(b => !b);
@@ -255,6 +261,9 @@ const actions = {
   beltout: d => { const i = G.S.belt.findIndex(b => b?.id === d.id); if (i >= 0) G.setBelt(i, null); render(); },
   beltdel: d => { G.setBelt(+d.i, null); render(); },
   trig: d => { const b = G.S.belt[+d.i], ts = b && G.potion(b.id).trig; if (!ts) return; G.setTrig(+d.i, ts[(ts.indexOf(b.trig) + 1) % ts.length]); render(); },
+  act: d => { actSel = d.id; prepM = null; view = 'act'; render(); },
+  zone: d => { const a = ACTS.find(x => x.id === d.a); if (!a) return; actSel = a.id; zoneSel = +d.z; prepM = Game.actEnemy(a, zoneSel); view = 'zoneprep'; render(); },
+  actgo: () => { if (!prepM) return; const m = prepM, res = Game.actFight(actSel, zoneSel, m); if (!res) return render(); prepM = null; showFight(res, 'act'); },
   pitsel: d => { const B = Game.pitTarget(d.id, !!d.ch); if (!B) return; pitSel = { id: d.id, ch: !!d.ch }; prepM = B; view = 'pitprep'; render(); },
   pitgo: () => { const s = pitSel; if (!s) return; const res = Game.pitFight(s.id, s.ch); if (!res) return render(); pitSel = null; prepM = null; showFight(res, 'arena'); },
   optset: d => { Sound.setOpt(d.k, +d.v); Sound.unlock(); if (d.k === 'sfx') Sound.play('hit'); render(); },

@@ -335,11 +335,11 @@ export const SERVICES = {
 export const TUTORIAL = [
   { tab: 'traders', when: 'view:traders', text: 'Du bist erwacht. Drei Gestalten warten am Friedhofstor. Tippe unten auf <b>Händler</b>.' },
   { tab: 'traders', when: 'view:kaspar', text: 'Jeder Händler hat Aufträge. Sieh dir <b>Bruder Kaspar</b> an – er will, dass du seinen Friedhof säuberst.' },
-  { tab: 'trips', when: 'active', text: 'Öffne <b>Streifzug</b>, wähle den <b>Friedhof</b> und eine <b>Spur</b>. Die Gefahr steht dabei – die leichte Spur ist sicher.' },
-  { tab: 'trips', when: 'wins', text: 'Warte oder <b>eile</b> für 1 Gold, dann <b>Stellen</b>. Nach dem Sieg: <b>Heimkehren</b> sichert die Beute, <b>Tiefer</b> vermehrt sie – oder du verlierst sie.' },
+  { tab: 'trips', when: 'active', text: 'Öffne <b>Streifzug</b> und tippe auf <b>Akt I</b>. Jedes Gebiet ist ein Kampf – neue kosten nichts.' },
+  { tab: 'trips', when: 'wins', text: 'Tippe auf das leuchtende Gebiet und dann <b>Kämpfen</b>. Ganz oben wartet der Boss des Akts.' },
   { tab: 'hero', when: 'spent', text: 'Beute landet im <b>Beutel</b>. Unter <b>Held</b> antippen und anlegen. Unter <b>Werte</b> verteilst du deine Punkte.' },
   { tab: 'traders', when: 'turnin', text: 'Erfülle den Auftrag und gib ihn beim Händler <b>ab</b>. Das bringt Ruf – mit Treue wird seine Ware besser.' },
-  { tab: 'crypt', when: 'view:crypt', text: 'In den <b>Krypten</b> warten Bosse. Jeder bringt eine Trophäe und einen <b>Glockensplitter</b>.' },
+  { tab: 'crypt', when: 'view:crypt', text: 'Jeder Akt-Boss öffnet eine <b>Krypta</b>. Ihr Boss lässt sich Stufe um Stufe schwerer bezwingen – mit immer besserer Beute.' },
   { tab: 'trips', when: 'view:npc', text: 'Der <b>Bettlerprophet</b> verkündet jeden Tag ein Omen. Tippe auf ihn, wenn du ihn siehst. Viel Glück, Verdammter.' },
 ];
 
@@ -792,3 +792,24 @@ export const PIT_RULES = [
   { id: 'thorn', name: 'Dornenring', text: 'Jeder Hieb kommt teilweise zurück.', both: { thorns: 0.15 } },
   { id: 'slow', name: 'Lange Nacht', text: 'Beide mit doppeltem Leben.', bothMult: { hp: 2 } },
 ];
+
+// --- Die Akte (Streifzug): 6 Akte, je 8 Gebiete + Boss. Neue Gebiete kosten nichts, Wiederholen kostet Glut (farmen). ---
+// Stufe der Gebiete steigt von lvl bis top; der Boss öffnet den nächsten Akt und die Krypta `crypt` (deren Boss dann in Stufen wiederholbar).
+export const ACT = { zones: 8, elites: [3, 6], firstXp: 3, firstGold: 2, bossXp: 6, bossGold: 5, replay: 1, itemP: 0.45, eliteDiff: 1.15, eliteHp: 1.25, bossMult: 0.95, bossItems: 2 };
+export const ACTS = [
+  { id: 'a1', n: 'I', loc: 'friedhof', lvl: 1, top: 4, crypt: 'c1', zones: ['Das Friedhofstor', 'Die Reihen der Armen', 'Das offene Grab', 'Die Wacht am Beinhaus', 'Der Weidenhang', 'Die Gräbergasse', 'Der Mauerbruch', 'Das Leichenhaus'],
+    boss: { name: 'Ansgar, der Totengräber', glyph: 'totengraeber', mech: { ward: 0.25, bleed: 0.3 }, mechText: 'Gräbt sich ein: kämpft hinter einem Wall aus Erde' } },
+  { id: 'a2', n: 'II', loc: 'muehle', lvl: 4, top: 7, crypt: 'c2', zones: ['Der Mühlbach', 'Das Speichertor', 'Die Kornkammer', 'Der Rattenkeller', 'Das Wasserrad', 'Der Mahlboden', 'Die Sackkammer', 'Der Mühlstein'],
+    boss: { name: 'Die Müllerin', glyph: 'muellerin', mech: { rage: 0.6, armorMult: 1.3 }, mechText: 'Mahlt sich in Raserei – je länger der Kampf, desto härter' } },
+  { id: 'a3', n: 'III', loc: 'katakomben', lvl: 7, top: 11, crypt: 'c3', zones: ['Der Einstieg', 'Die Ossuarien', 'Die Schädelwand', 'Der Brunnenschacht', 'Die Knochenhalle', 'Die Kammer der Ordnung', 'Der tiefe Gang', 'Das Zählwerk'],
+    boss: { name: 'Der Knochenordner', glyph: 'knochenordner', mech: { block: 0.35, armorMult: 1.4 }, mechText: 'Knochenschild: blockt viele Hiebe – Zauber treffen immer' } },
+  { id: 'a4', n: 'IV', loc: 'moor', lvl: 11, top: 16, crypt: 'c4', zones: ['Der Bohlenweg', 'Die Galgenweiden', 'Das stille Wasser', 'Die Hütte im Schilf', 'Der Strickbaum', 'Die Irrlichter', 'Das versunkene Dorf', 'Die Mutterweide'],
+    boss: { name: 'Die Mutter der Stricke', glyph: 'strickmutter', mech: { poison: 0.2, toll: 1 }, mechText: 'Würgt: Gift, und jeder dritte Schlag betäubt dich' } },
+  { id: 'a5', n: 'V', loc: 'kapelle', lvl: 16, top: 22, crypt: 'c5', zones: ['Der Kirchhof', 'Das Portal', 'Das Kirchenschiff', 'Die Sakristei', 'Der Glockenturm', 'Die Krypta der Äbte', 'Der Chor', 'Der Altar'],
+    boss: { name: 'Der Erste Kultist', glyph: 'kultist1', mech: { thorns: 0.3, regen: 0.02 }, mechText: 'Wer zuschlägt, trifft sich selbst – Dornen' } },
+  { id: 'a6', n: 'VI', loc: 'gruben', lvl: 22, top: 30, crypt: null, zones: ['Der Schlackenhang', 'Die Aschefelder', 'Der Schwefelsee', 'Die Brücke aus Ketten', 'Die Esse', 'Der Thronweg', 'Die Glutgruben', 'Der Aschenthron'],
+    boss: { name: 'Der Aschenkönig', glyph: 'aschenkoenig', mech: { execute: 0.5, regen: 0.025, crit: 0.12 }, mechText: 'Glut: heilt sich in der Asche und schlachtet Geschwächte' } },
+];
+// Krypten: nur noch der Boss, frei nach dem Akt-Boss. Jede besiegte Stufe → nächste ist schwerer, Beute besser.
+// Stufe `dTier[d]` erreicht = Trophäe/Ziel der alten Schwierigkeit d (Albtraum, Hölle) für Questziele `bossd`.
+export const CRYPT = { lvlAdd: 2, tierLvl: 3, tierMult: 0.06, rarAt: [0, 2, 5], items: [1, 2, 3], dTier: [0, 3, 6] };

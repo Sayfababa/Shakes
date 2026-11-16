@@ -478,7 +478,7 @@ test('Kampf: Trank zündet bei seinem Auslöser, wird in der Krypta verbraucht',
   const A = { ...G.stats(), belt: G.beltCombat() }, B = { ...G.makeMonster(1, 3), hp: 99999, rage: 0, crit: 0, lck: 0 }; B.dmg = [Math.round(A.hp * 0.08), Math.round(A.hp * 0.1)]; B[B.main] = 0;
   const r = fight(A, B); assert.deepEqual(r.used, ['rotwurz']); const e = r.log.find(l => l.pot === 'rotwurz');
   assert.ok(e && e.hpA > 0); assert.ok(r.log[r.log.indexOf(e) - 1].hpA < A.hp * 0.5, 'erst unter 50 % Leben');
-  S.crypt.cd = 0; const res = Game.cryptFight('c1'); assert.ok(res); assert.ok(S.pots.rotwurz === 2 - res.rew.used.length);
+  S.crypt.cd = 0; S.acts.prog.a1 = D.ACT.zones + 1; const res = Game.cryptFight('c1'); assert.ok(res); assert.ok(S.pots.rotwurz === 2 - res.rew.used.length);
 });
 test('Kampf: Gegengift macht immun gegen neues Gift, Weihwasser stoppt Heilung', () => {
   fresh('paladin'); const A = { ...G.stats(), hp: 99999, belt: [{ id: 'g', name: 'G', fx: { cure: 50 }, trig: 'dot' }] };
@@ -545,7 +545,7 @@ test('Expedition: alle Stations- und Ereignisbilder vorhanden', async () => {
   for (const e of D.EXP_EVENTS) { assert.ok(fs.existsSync(`assets/${e.img}`), e.img); assert.equal(e.ch.length, 3, e.id); }
 });
 test('Expedition: Segen/Fluch wirkt einmal auf den nächsten Krypta-Kampf', () => {
-  const S = fresh('paladin'); S.lvl = 10; const c = D.CRYPTS[0]; S.bless = 0.2; const A = Game.blessed(G.stats()); assert.equal(A.hp, Math.round(G.stats().hp * 1.2));
+  const S = fresh('paladin'); S.lvl = 10; S.acts.prog.a1 = D.ACT.zones + 1; const c = D.CRYPTS[0]; S.bless = 0.2; const A = Game.blessed(G.stats()); assert.equal(A.hp, Math.round(G.stats().hp * 1.2));
   S.crypt.cd = 0; const r = Game.cryptFight(c.id); assert.ok(r); assert.equal(r.rew.bless, 0.2); assert.equal(S.bless, 0, 'verbraucht');
 });
 test('Migration: Spielstand v8 bekommt Expedition, v9-Expedition (Ausrichtung) wird zum Weg', () => {
@@ -652,4 +652,22 @@ test('Grube: Leiter, Platztausch, Rang, Laden, Herausforderung, Migration', () =
   const ch = Game.pitChallenge(); S.pit.ts = 0; const t0 = ch.tries; Game.pitFight(ch.rid, true); assert.equal(ch.tries, t0 - 1);
   const d = JSON.parse(JSON.stringify(S)); d.v = 11; delete d.pit; localStorage.setItem('aschenkrone_v1', JSON.stringify(d));
   const L = G.load(); assert.equal(L.v, G.SAVE_VERSION); assert.equal(L.pit.lad.length, D.PIT.size + 1);
+});
+test('Akte: neue Gebiete frei, Wiederholen kostet Glut, Boss öffnet nächsten Akt + Krypta, Krypta-Stufen', () => {
+  const S = fresh('barbarian'); S.lvl = 40; S.attrs.str += 500; S.attrs.con += 400; S.equip.weapon = { id: 'w', slot: 'weapon', kind: 'axe', mods: {}, dmg: [200, 260] }; const a = D.ACTS[0];
+  assert.equal(Game.actCan(a, 1), 'Noch nicht erreicht.'); assert.ok(!G.actOpen(D.ACTS[1])); assert.ok(!G.cryptOpen(D.CRYPTS[0]));
+  const g = S.glut; for (let z = 0; z <= D.ACT.zones; z++) { const r = Game.actFight(a.id, z); assert.ok(r?.win, 'Gebiet ' + z); }
+  assert.equal(S.glut, g, 'neue Gebiete kosten keine Glut'); assert.ok(G.actDone(a)); assert.ok(G.actOpen(D.ACTS[1])); assert.ok(G.cryptOpen(D.CRYPTS[0]));
+  Game.actFight(a.id, 2); assert.equal(S.glut, g - Game.actZoneGlut(a), 'Wiederholen kostet Glut');
+  S.glut = 0; assert.ok(Game.actCan(a, 2)); assert.equal(Game.actFight(a.id, 2), null);
+  const c = D.CRYPTS[0], l0 = G.cryptLvl(c); S.crypt.cd = 0; const r = Game.cryptFight(c.id); assert.ok(r.win); assert.equal(G.cryptTier(c), 1); assert.ok(G.cryptLvl(c) > l0, 'nächste Stufe schwerer');
+  assert.ok(S.trophies.some(t => t.key === 'c1:0')); assert.ok(r.rew.items.length >= 1);
+  for (let t = 1; t <= D.CRYPT.dTier[1]; t++) { S.crypt.cd = 0; assert.ok(Game.cryptFight(c.id)?.win, "Stufe " + t); } assert.ok(S.trophies.some(t => t.key === 'c1:1'), 'Albtraum-Trophäe ab Stufe');
+});
+test('Migration v12 → v13: Akte nach Stufe/Trophäen, ungesicherte Beute gesichert', () => {
+  const S = fresh('paladin'); S.lvl = 12; S.trophies.push({ key: 'c1:0', name: 'x', eff: {} }); const d = JSON.parse(JSON.stringify(S)); d.v = 12; delete d.acts;
+  d.haul = { loc: 'friedhof', track: 'norm', depth: 1, gold: 77, mats: { zahn: 2 }, items: [] }; const g0 = d.gold;
+  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); const L = G.load();
+  assert.equal(L.v, G.SAVE_VERSION); assert.equal(L.haul, null); assert.equal(L.gold, g0 + 77); assert.equal(L.crypt.prog.c1, 1);
+  assert.ok(G.actDone(D.ACTS[0]) && G.actDone(D.ACTS[1])); assert.ok(!G.actDone(D.ACTS[3]));
 });

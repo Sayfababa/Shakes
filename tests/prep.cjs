@@ -13,7 +13,7 @@ const CASES = [[0, 0, 3, 0, 0], [1, 4, 7, 0, 0], [1, 4, 60, 1, 1], [3, 4, 30, 1,
     if (cut) await p.addStyleTag({ content: `#app { bottom: ${cut}px !important; }` });
     for (const [ci, fl, lvl, loy, potsOn] of CASES) {
       const id = await p.evaluate(async ([ci, fl, lvl, loy, potsOn]) => { const D = await import('./js/data.js'); const G = await import('./js/state.js'); const S = G.S;
-        Object.assign(S, { lvl, tut: 99, gold: 3000 }); const cr = D.CRYPTS[ci]; S.crypt.cd = 0; S.crypt.prog[cr.id] = fl; S.shards = ['a', 'b', 'c', 'd'];
+        Object.assign(S, { lvl, tut: 99, gold: 3000 }); const cr = D.CRYPTS[ci]; S.crypt.cd = 0; S.crypt.prog[cr.id] = fl; S.shards = ['a', 'b', 'c', 'd']; for (const a of D.ACTS) S.acts.prog[a.id] = D.ACT.zones + 1;
         S.traders.ysolde.rep = loy ? 99999 : 0; S.pots = potsOn ? { rotwurz: 3, steinhaut: 3, falkenauge: 1, gegengift: 3 } : {}; S.belt = [null, null, null]; S.view = 'hero'; return cr.id; }, [ci, fl, lvl, loy, potsOn]);
       await p.tap('[data-v=hero]'); await p.tap('[data-v=crypt]'); await p.waitForTimeout(60);
       if (!(await p.$(`[data-action=crypt][data-id=${id}]`))) { console.log(nm, 'Krypta nicht antippbar', id); continue; }

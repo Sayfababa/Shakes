@@ -35,12 +35,12 @@ let failures = 0;
     await p.goto('http://localhost:8765/'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(500);
     await tap('[data-c="witch"]'); await chk('create'); await p.fill('#nm', 'Test'); await tap('[data-action=create]'); await chk('tut1');
     await tap('[data-t=kaspar]'); await chk('kaspar');
-    for (let i = 0; i < 8; i++) { await tap('[data-v=trips]'); if (await tap('[data-action=bank]')) await tap('[data-v=trips]');
-      await tap('.trip[data-action=trip]'); if (!i) await chk('trackpick'); await tap(`[data-tr=${i === 3 ? 'blood' : 'safe'}]`); if (!i) await chk('wait');
-      await tap('[data-action=rush]'); await tap('[data-action=resolve]'); if (!i) await chk('fight'); await tap('[data-action=skip]'); if (!i) await chk('result');
-      if (i === 1 && await tap('[data-action=delve]')) { await tap('[data-action=skip]'); await chk('delve'); }
-      if (i === 2) { await tap('[data-v=trips]'); await chk('haulpanel'); }
-      await tap('[data-action=bank]'); }
+    for (let i = 0; i < 6; i++) { await tap('[data-v=trips]'); if (!i) await chk('acts');
+      if (!(await tap('.act[data-action=act]'))) { failures++; console.log(`FEHLER ${tag}: Akt nicht antippbar`); break; } if (!i) await chk('act');
+      await tap('.actv .two [data-action=zone]'); if (!i) await chk('zoneprep');
+      await tap('[data-action=actgo]'); if (!i) await chk('fight'); await tap('[data-action=skip]'); if (!i) await chk('result'); }
+    await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.acts.prog.a1 = 8; G.save(); }); await p.reload(); await p.waitForTimeout(300);
+    await tap('[data-v=trips]'); await tap('.act[data-action=act]'); await chk('actboss'); await tap('.zone.done'); await chk('zonereplay');
     for (const v of ['trips', 'hero', 'stats', 'talents', 'spells', 'crypt', 'forge', 'alch']) { await tap('[data-v=hero]'); await tap(`[data-v=${v}]`); await chk(v); }
     await tap('[data-v=crypt]'); await tap('.ctabs [data-v=arena]'); await chk('arena'); await tap('.riv'); await chk('pitprep'); await tap('.ctabs [data-v=arena]'); await tap('[data-v=pitshop]'); await chk('pitshop'); await tap('.ctabs [data-v=desc]'); await chk('desclocked');
     await tap('[data-v=hero]'); await tap('[data-v=spells]'); if (await tap('[data-action=ways]')) await chk('ways'); else { failures++; console.log(`FEHLER ${tag}: Zauber-Wege nicht erreichbar`); }
@@ -85,7 +85,7 @@ let failures = 0;
     const fi = await p.evaluate(() => [document.querySelector('.cpick .fslot.on')?.dataset.id, document.querySelectorAll('.cpick .fslot.eq').length]);
     if (fi[0] !== rid || !fi[1]) { failures++; console.log(`FEHLER ${tag}: Schmieden aus dem Item-Fenster`, fi); }
     // Alchemie: brauen, in den Gürtel, Vorbereitung vor der Krypta, Kampf mit Trank
-    await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.herbs = { rotwurz: 6, grabmoos: 6, silberstaub: 6, nachtschatten: 6, schwefel: 6, herz: 2 }; G.S.gold += 2000; G.S.crypt.cd = 0; G.save(); });
+    await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.herbs = { rotwurz: 6, grabmoos: 6, silberstaub: 6, nachtschatten: 6, schwefel: 6, herz: 2 }; G.S.gold += 2000; G.S.crypt.cd = 0; G.S.acts.prog.a1 = 9; G.save(); });
     await p.reload(); await p.waitForTimeout(300); await tap('[data-v=traders]'); await tap('[data-t=ysolde]');
     if (!(await tap('[data-action=alch]'))) { failures++; console.log(`FEHLER ${tag}: Alchemie nicht erreichbar`); }
     await tap('[data-action=potsel][data-id=rotwurz]'); await tap('[data-action=brew]'); await tap('[data-action=beltin]');

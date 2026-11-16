@@ -116,6 +116,8 @@ const actions = {
   expclaim: () => { if (G.S.exp && Math.random() < 0.5) { Game.expBegin(); Game.expAdvance(); } },
   expchoose: () => { if (G.S.exp?.ret) Game.expChoose(Math.floor(Math.random() * 3)); },
   descstart: () => { if (Math.random() < 0.3) { const c = pick(D.CRYPTS); if (Math.random() < 0.3 && !G.S.trophies.some(t => t.key === c.id + ':0')) G.S.trophies.push({ key: c.id + ':0', name: c.boss.name, diff: 'x', eff: c.trophy }); Game.descStart(c.id); } },
+  actfight: () => { const a = pick(D.ACTS.filter(G.actOpen)); if (a) Game.actFight(a.id, Math.floor(Math.random() * (Math.min(G.actProg(a), D.ACT.zones) + 1))); },
+  actboss: () => { const a = G.curAct(); if (Math.random() < 0.3) G.S.acts.prog[a.id] = D.ACT.zones + 1; },
   descenter: () => { if (G.S.desc) { const nx = Game.descNext(); Game.descEnter(Math.random() < 0.05 ? 7 : pick(nx)); } },
   descenter2: () => { if (G.S.desc) Game.descEnter(pick(Game.descNext())); },
   descstair: () => { if (G.S.desc && Math.random() < 0.15) Game.descStair(); },
