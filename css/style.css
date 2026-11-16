@@ -2,7 +2,7 @@
 :root {
   --ink: #0a0806; --stone: #14100c; --edge: #3b2f22; --edge-hi: #6b5a44;
   --text: #cdbd9c; --dim: #7f715b; --gold: #c09a55; --gold-hi: #e2c07a; --blood: #7d150d; --blood-hi: #c0301e;
-  --r-broken: #8a8a8a; --r-normal: #e0dccf; --r-magic: #7b7bff; --r-rare: #f2e05a; --r-legendary: #d0903e; --r-set: #2ec42e;
+  --r-broken: #8a8a8a; --r-normal: #e0dccf; --r-magic: #6969ff; --r-rare: #ffff64; --r-legendary: #c7b377; --r-set: #00c400;
   --gap: 4px; --u: clamp(21px, 3.85vh, 32px);
   --noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   --stonetex: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='s'><feTurbulence type='fractalNoise' baseFrequency='.035' numOctaves='4'/><feColorMatrix values='0 0 0 0 .09 0 0 0 0 .07 0 0 0 0 .05 0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23s)'/></svg>");
@@ -975,7 +975,7 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .btns.two { display: flex; gap: 6px; } .btns.two button { flex: 1; }
 .actv { height: 100%; } .actv .path { justify-content: stretch; }
 .actv .zone { flex: 1 1 0; min-height: 0; }
-@media (max-height: 720px) { .actv .ahead small { display: none; } .actv .zone small { font-size: max(11px, .64rem); } .actv .zone .dot { width: 26px; height: 26px; } .actv .zone { grid-template-columns: 26px 1fr auto; gap: 6px; } .actv .zone::after { left: 12px; } .actv .zone b { font-size: .78rem; } }
+@media (max-height: 720px) { .actv .ahead small { display: block; line-height: 1.15; } .actv .ahead { padding-top: 4px; padding-bottom: 4px; } .actv .zone small { font-size: max(11px, .64rem); } .actv .zone .dot { width: 26px; height: 26px; } .actv .zone { grid-template-columns: 26px 1fr auto; gap: 6px; } .actv .zone::after { left: 12px; } .actv .zone b { font-size: .78rem; } }
 .prephead { position: relative; } .prephead .pback { position: absolute; top: 6px; right: 8px; z-index: 2; } .prephead h2 { padding-right: 70px; }
 /* Grüner Punkt: Wartezeit abgelaufen, wieder bereit (rot bleibt für Aufträge) */
 .tabs a.ready { position: relative; }
@@ -1007,3 +1007,22 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .node.seen:not(.on) { box-shadow: inset 0 0 10px #000, 0 0 0 3px var(--tc), 0 0 10px var(--tc); }
 .tc-herb { color: #5fae3c; } .tc-mats { color: #cfc6b0; } .tc-ruin { color: #d0822a; } .tc-fight, .tc-danger { color: #e05a44; } .tc-camp { color: #6fa8e0; } .tc-shrine { color: #7fd0c0; } .tc-event { color: #b48ae8; } .tc-goal { color: var(--gold-hi); }
 .ninfo { margin: 3px 0 0; } .ninfo b { font-family: 'Alegreya SC'; font-weight: 500; }
+
+/* --- Beute-Moment: Fundstück-Kärtchen im Kampfergebnis. Lichtsäule (einmal) für selten, legendär, einzigartig --- */
+.drops { display: flex; flex-direction: column; gap: 3px; margin: 2px 0; }
+.drop { --dc: var(--r-normal); position: relative; display: grid; grid-template-columns: 38px 1fr; gap: 8px; align-items: center; padding: 3px 6px; text-align: left;
+  background: #07080b; box-shadow: inset 0 0 0 1px #2a2620, inset 0 0 10px #000; animation: dropin .35s both; animation-delay: calc(var(--i) * .18s + .25s); }
+.drop.d-broken { --dc: var(--r-broken); } .drop.d-magic { --dc: var(--r-magic); } .drop.d-rare { --dc: var(--r-rare); } .drop.d-legendary { --dc: var(--r-legendary); } .drop.d-unique { --dc: #ff9a3a; }
+.drop.d-magic, .drop.d-rare, .drop.d-legendary, .drop.d-unique { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dc) 45%, #000), inset 0 0 12px color-mix(in srgb, var(--dc) 22%, #000); }
+.drop .dimg { width: 38px; height: 38px; display: grid; place-items: center; overflow: hidden; } .drop .dimg img, .drop .dimg svg { position: static; width: 38px; height: 38px; max-width: none; object-fit: contain; filter: drop-shadow(0 1px 2px #000); }
+.drop .dtxt { min-width: 0; line-height: 1.15; } .drop b { display: block; font-family: 'Alegreya SC'; font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.drop small { color: var(--dim); } .drop .better-txt { font-style: normal; font-size: inherit; }
+.drop.beam::before { content: ''; position: absolute; left: 25px; bottom: 50%; width: 4px; height: 0; translate: -50% 0; pointer-events: none; background: var(--dc); box-shadow: 0 0 10px 3px var(--dc); opacity: 0;
+  animation: beam 1.3s ease-out both; animation-delay: calc(var(--i) * .18s + .45s); }
+.drop.beam .dimg { animation: dropglow 1.3s ease-out both; animation-delay: calc(var(--i) * .18s + .45s); }
+@keyframes dropin { from { opacity: 0; translate: 0 -8px; } to { opacity: 1; translate: 0 0; } }
+@keyframes beam { 0% { height: 0; opacity: 0; } 18% { height: 120px; opacity: .9; } 100% { height: 150px; opacity: 0; } }
+@keyframes dropglow { 0%, 100% { filter: none; } 25% { filter: drop-shadow(0 0 8px var(--dc)) brightness(1.5); } }
+/* Tod des Gegners: sackt zusammen, kurzer Blutrand (vorher nur grau) */
+.fighter.dead .pwrap > .portrait { animation: slump .7s ease-in both; }
+@keyframes slump { 0% { translate: 0 0; rotate: 0deg; box-shadow: 0 0 0 2px var(--blood-hi), 0 0 18px var(--blood); } 100% { translate: 0 5px; rotate: -3deg; } }

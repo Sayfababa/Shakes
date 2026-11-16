@@ -209,6 +209,11 @@ test('Rat bei schlechter Siegchance: Punkte, dann Beutel, sonst stärker werden'
   const it = makeItem(8, { slot: 'chest', minRarity: 3 }); G.addToBag(it); assert.match(Game.weakAdvice(0.1), /Beutel/);
 });
 
+test('Jeder Akt hat Einleitung, Boss-Satz und Nachruf; jeder Händler mehrere Sätze', () => {
+  for (const a of D.ACTS) for (const k of ['intro', 'say', 'outro']) assert.ok(a[k]?.length > 10 && a[k].length < 110, `${a.id}.${k}`);
+  for (const t of Object.values(D.TRADERS)) { assert.ok(t.lines.length >= 3); for (const l of t.lines) assert.ok(l.length <= 80, l); }
+});
+
 test('Glücksgriff gibt ein mindestens magisches Item gegen Gold', () => {
   const S = fresh(); S.gold = 5000; const it = G.doService('ysolde', 'gamble');
   assert.ok(it && ['magic', 'rare', 'legendary'].includes(it.rarity)); assert.ok(S.gold < 5000);

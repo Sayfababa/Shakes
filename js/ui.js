@@ -376,7 +376,7 @@ export function viewTrader(tid) {
   return `<div class="col trader">
     <nav class="subtabs">${Object.entries(TRADERS).map(([k, x]) => `<a class="${k === tid ? 'on' : ''} ${canComplete(k) ? 'badge' : ''}" data-action="trader" data-t="${k}">${x.name}</a>`).join('')}</nav>
     <section class="panel npcrow">${npcArt(t.glyph)}
-      <div><h2>${t.name} <span class="h2r">${t.role}</span></h2><p class="lore">„${t.quote}“</p>
+      <div><h2>${t.name} <span class="h2r">${t.role}</span></h2><p class="lore">„${(t.lines || [t.quote])[Math.floor(Date.now() / 60000) % (t.lines?.length || 1)]}“</p>
         <div class="loyal"><span>Treue <b>${LOYALTY[L]}</b></span><div class="bar rep"><i style="width:${L + 1 < t.need.length ? pct(st.rep - t.need[L], t.need[L + 1] - t.need[L]) : 100}%"></i></div><small>${next}</small></div></div>
     </section>
     ${note}
@@ -400,6 +400,15 @@ export function viewCrypts() {
           <div class="dim small">Trophäe: ${effLine(c.trophy)}${troph ? ' · errungen' : ''}${open && t ? ` · ${t}× besiegt` : ''}</div></div></section>`; }).join('')}</div>`;
 }
 
+// Beute-Moment: jedes Fundstück als Kärtchen (Bild, Name in Seltenheitsfarbe); Seltenes und besser bekommt eine Lichtsäule
+const dropTier = it => it.unique ? 'unique' : it.rarity;
+export function lootCards(items = []) {
+  if (!items.length) return '';
+  return `<div class="drops">${items.map((it, i) => { const g = it.soldFull ? 0 : itemGain(it), beam = it.unique || ['rare', 'legendary'].includes(it.rarity);
+    return `<div class="drop d-${dropTier(it)} ${beam ? 'beam' : ''}" style="--i:${i}" ${it.soldFull ? '' : `data-tip="${it.id}" data-action="equip" data-id="${it.id}"`}>
+      <span class="dimg">${itemArt(it)}</span><span class="dtxt"><b class="r-${it.rarity} ${it.unique ? 'uniq-txt' : ''}">${it.name}</b>
+      <small>${rarName(it.rarity, it)}${it.special ? ' · Sonderbonus' : ''}${it.soldFull ? ' · Beutel voll, verkauft' : g > 0.01 ? ` · <i class="better-txt">▲ +${Math.round(g * 100)} %</i>` : ''}</small></span></div>`; }).join('')}</div>`;
+}
 function fightSummary(F) {
   const g = gradeOf(F), R = fightReport(F, F.A, F.B), pl = x => x.map(([n, v]) => `${n} ${v} %`).join(' · ');
   return `<div class="fsum">${g ? `<b class="g-${g.id}">${g.name}</b>${g.bonus ? ` · +${Math.round(g.bonus * 100)} % Gold` : ''} · ` : ''}${Math.round((F.left || 0) * 100)} % Leben übrig
@@ -420,7 +429,7 @@ export function viewFight(F) {
     ${side(F.A, hpA, F.hpA, last.who === 'b', 'fA', last.cA)}
     <div><div class="log" id="log">${shown.map(l => `<div class="${l.who} ${l.crit ? 'crit' : ''} ${l.spell ? 'spell' : ''}">${l.t}</div>`).join('')}</div>
       ${done ? `<div class="result ${F.winner === 'a' ? 'win' : 'lose'}">${F.winner === 'a' ? 'Sieg' : 'Gefallen'}</div>${fightSummary(F)}
-        <div class="loot-drop">${F.reward || ''}</div>${F.back === 'trips' && S.haul ? haulActions() : `<button class="red" data-action="go" data-v="${F.back}">Weiter</button>`}`
+        ${lootCards(F.loot)}<div class="loot-drop">${F.reward || ''}</div>${F.back === 'trips' && S.haul ? haulActions() : `<button class="red" data-action="go" data-v="${F.back}">Weiter</button>`}`
         : `<button data-action="skip">Überspringen</button>`}</div>
     ${side(F.B, hpB, F.hpB, last.who === 'a', 'fB', last.cB)}
   </div></div>`;
@@ -709,7 +718,7 @@ export function viewAct(a) {
     return `<div class="zone ${done ? 'done' : ''} ${cur ? 'cur' : ''} ${fog ? 'fog' : ''} ${el ? 'elite' : ''} ${boss ? 'boss' : ''}" ${fog ? '' : `data-action="zone" data-a="${a.id}" data-z="${z}"`}>
       <span class="dot">${boss || cur ? monsterArt(boss ? a.boss.glyph : MONSTERS.find(m => m.name === actZoneMob(a, z)).glyph) : done ? '<i class="ok"></i>' : ''}</span>
       <div><b>${name}</b><small>${sub}</small></div><span class="r">${cur ? pcT(actChance(a, z)) : lootDots(z, el, boss)}</span></div>`; };
-  return `<div class="col actv"><section class="panel ahead"><h2>Akt ${a.n} · ${l.name}</h2><small>${l.text}</small></section>
+  return `<div class="col actv"><section class="panel ahead"><h2>Akt ${a.n} · ${l.name}</h2><small class="lore">${actDone(a) ? a.outro : p >= ACT.zones ? `„${a.boss.name.split(',')[0]}: ${a.say}“` : a.intro}</small></section>
     <section class="panel path">${Array.from({ length: ACT.zones + 1 }, (_, z) => row(z)).join('')}</section>
     <div class="btns two"><button data-action="go" data-v="trips">Zurück</button>${actDone(a) ? `<button disabled>Akt geschafft</button>` : `<button class="red" data-action="zone" data-a="${a.id}" data-z="${nz}">Weiter · ${nz >= ACT.zones ? 'Boss' : a.zones[nz]}</button>`}</div></div>`;
 }

@@ -195,11 +195,14 @@ export const LOCATIONS = [
 // --- Händler (Treue-Stufen wie bei Fraktions-Händlern) -------------------
 // Treue-Stufe n braucht rep >= need[n] und Spielerstufe >= lvl[n]. Höhere Treue = bessere Ware.
 export const TRADERS = {
-  halvar: { name: 'Halvar', role: 'Schmied', glyph: 'halvar', slots: ['weapon', 'offhand'],
+  halvar: { name: 'Halvar', role: 'Schmied', glyph: 'halvar', lines: ['Der Stahl ist alt. Er schneidet trotzdem. Wie ich.', 'Eisen lügt nicht. Menschen schon.', 'Bring mir Zähne und Asche. Den Rest mache ich.'],
+    slots: ['weapon', 'offhand'],
     quote: 'Der Stahl ist alt. Er schneidet trotzdem. Wie ich.', need: [0, 200, 700, 1600], lvl: [1, 6, 14, 22] },
-  ysolde: { name: 'Mutter Ysolde', role: 'Kräuterhexe', glyph: 'ysolde', slots: ['amulet', 'ring', 'belt'],
+  ysolde: { name: 'Mutter Ysolde', role: 'Kräuterhexe', glyph: 'ysolde', lines: ['Bring mir, was die Toten nicht mehr brauchen, Kind.', 'Alles ist Gift. Es kommt nur darauf an, wer es trinkt.', 'Du riechst nach Grab. Das vergeht nicht mehr.'],
+    slots: ['amulet', 'ring', 'belt'],
     quote: 'Bring mir, was die Toten nicht mehr brauchen, Kind.', need: [0, 200, 700, 1600], lvl: [1, 7, 15, 23] },
-  kaspar: { name: 'Bruder Kaspar', role: 'Totengräber', glyph: 'kaspar', slots: ['helm', 'chest', 'gloves', 'boots'],
+  kaspar: { name: 'Bruder Kaspar', role: 'Totengräber', glyph: 'kaspar', lines: ['Ich grabe sie ein. Und manchmal wieder aus. Die Rüstung braucht keiner mehr.', 'Sechs Fuß tief hat früher gereicht.', 'Die Toten zahlen schlecht. Aber sie feilschen nicht.'],
+    slots: ['helm', 'chest', 'gloves', 'boots'],
     quote: 'Ich grabe sie ein. Und manchmal wieder aus. Die Rüstung braucht keiner mehr.', need: [0, 200, 700, 1600], lvl: [1, 5, 12, 20] },
 };
 // Weitere Figuren (Portraits in assets/npcs/)
@@ -804,19 +807,26 @@ export const PIT_RULES = [
 // Stufe der Gebiete steigt von lvl bis top, `diff` macht spätere Akte zäher (ohne mehr EP); der Boss öffnet den nächsten Akt und die Krypta `crypt` (deren Boss dann in Stufen wiederholbar).
 export const ACT = { doneAt: [6, 9, 11, 15, 17, 19], zones: 8, elites: [3, 6], firstXp: 3, firstGold: 2, bossXp: 6, bossGold: 5, replay: 1, itemP: 0.45, eliteDiff: 1.15, eliteHp: 1.25, bossMult: 0.95, bossItems: 2 };
 export const ACTS = [
-  { id: 'a1', n: 'I', loc: 'friedhof', lvl: 1, top: 6, diff: 1.0, eliteDiff: 0.9, eliteHp: 1.0, bossMult: 0.52, crypt: 'c1', zones: ['Das Friedhofstor', 'Die Reihen der Armen', 'Das offene Grab', 'Die Wacht am Beinhaus', 'Der Weidenhang', 'Die Gräbergasse', 'Der Mauerbruch', 'Das Leichenhaus'],
+  { id: 'a1', n: 'I', intro: 'Die Glocke hat sie geweckt. Ansgar gräbt nicht mehr für die Toten – er gräbt sie aus.', say: 'Jedes Grab hier habe ich geschaufelt. Deins auch.', outro: 'Ansgar fällt in die Grube, die er selbst ausgehoben hat. Das Tor zur Gruft steht offen.',
+    loc: 'friedhof', lvl: 1, top: 6, diff: 1.0, eliteDiff: 0.9, eliteHp: 1.0, bossMult: 0.52, crypt: 'c1', zones: ['Das Friedhofstor', 'Die Reihen der Armen', 'Das offene Grab', 'Die Wacht am Beinhaus', 'Der Weidenhang', 'Die Gräbergasse', 'Der Mauerbruch', 'Das Leichenhaus'],
     boss: { name: 'Ansgar, der Totengräber', glyph: 'totengraeber', mech: { ward: 0.25, bleed: 0.3 }, mechText: 'Gräbt sich ein: kämpft hinter einem Wall aus Erde' } },
-  { id: 'a2', n: 'II', loc: 'muehle', lvl: 6, top: 12, diff: 1.05, eliteDiff: 0.95, eliteHp: 1.0, crypt: 'c2', zones: ['Der Mühlbach', 'Das Speichertor', 'Die Kornkammer', 'Der Rattenkeller', 'Das Wasserrad', 'Der Mahlboden', 'Die Sackkammer', 'Der Mühlstein'],
+  { id: 'a2', n: 'II', intro: 'Das Rad dreht sich ohne Wasser. Was die Müllerin mahlt, war einmal ein Dorf.', say: 'Alles wird Mehl. Auch du.', outro: 'Das Mahlwerk steht still. Zum ersten Mal seit dem Glockenschlag ist es leise an der Mühle.',
+    loc: 'muehle', lvl: 6, top: 12, diff: 1.05, eliteDiff: 0.95, eliteHp: 1.0, crypt: 'c2', zones: ['Der Mühlbach', 'Das Speichertor', 'Die Kornkammer', 'Der Rattenkeller', 'Das Wasserrad', 'Der Mahlboden', 'Die Sackkammer', 'Der Mühlstein'],
     boss: { name: 'Die Müllerin', glyph: 'muellerin', mech: { rage: 0.6, armorMult: 1.3 }, mechText: 'Mahlt sich in Raserei – je länger der Kampf, desto härter' } },
-  { id: 'a3', n: 'III', loc: 'katakomben', lvl: 12, top: 18, diff: 1.12, crypt: 'c3', zones: ['Der Einstieg', 'Die Ossuarien', 'Die Schädelwand', 'Der Brunnenschacht', 'Die Knochenhalle', 'Die Kammer der Ordnung', 'Der tiefe Gang', 'Das Zählwerk'],
+  { id: 'a3', n: 'III', intro: 'Unter Vhal liegen mehr Tote, als oben je gelebt haben. Jemand hat begonnen, sie zu zählen.', say: 'Du fehlst in meinen Büchern. Das lässt sich richten.', outro: 'Die Schädelwand bricht. Niemand zählt mehr, und die Knochen bleiben liegen.',
+    loc: 'katakomben', lvl: 12, top: 18, diff: 1.12, crypt: 'c3', zones: ['Der Einstieg', 'Die Ossuarien', 'Die Schädelwand', 'Der Brunnenschacht', 'Die Knochenhalle', 'Die Kammer der Ordnung', 'Der tiefe Gang', 'Das Zählwerk'],
     boss: { name: 'Der Knochenordner', glyph: 'knochenordner', mech: { block: 0.35, armorMult: 1.4 }, mechText: 'Knochenschild: blockt viele Hiebe – Zauber treffen immer' } },
-  { id: 'a4', n: 'IV', loc: 'moor', lvl: 18, top: 24, diff: 1.25, crypt: 'c4', zones: ['Der Bohlenweg', 'Die Galgenweiden', 'Das stille Wasser', 'Die Hütte im Schilf', 'Der Strickbaum', 'Die Irrlichter', 'Das versunkene Dorf', 'Die Mutterweide'],
+  { id: 'a4', n: 'IV', intro: 'Im Moor hängt man nicht, um zu sterben. Man hängt, um zu bleiben.', say: 'Komm näher, Kind. Für dich habe ich noch einen Strick.', outro: 'Die Mutterweide sinkt ins Wasser. Die Stricke lösen sich, einer nach dem anderen.',
+    loc: 'moor', lvl: 18, top: 24, diff: 1.25, crypt: 'c4', zones: ['Der Bohlenweg', 'Die Galgenweiden', 'Das stille Wasser', 'Die Hütte im Schilf', 'Der Strickbaum', 'Die Irrlichter', 'Das versunkene Dorf', 'Die Mutterweide'],
     boss: { name: 'Die Mutter der Stricke', glyph: 'strickmutter', mech: { poison: 0.22, regen: 0.015 }, mechText: 'Würgt: Gift, das sich stapelt – und das Moor heilt sie' } },
-  { id: 'a5', n: 'V', loc: 'kapelle', lvl: 24, top: 30, diff: 1.45, crypt: 'c5', zones: ['Der Kirchhof', 'Das Portal', 'Das Kirchenschiff', 'Die Sakristei', 'Der Glockenturm', 'Die Krypta der Äbte', 'Der Chor', 'Der Altar'],
+  { id: 'a5', n: 'V', intro: 'Sie haben den Altar umgedreht und beten zur Glocke. Die Glocke antwortet.', say: 'Ich habe sie als Erster gehört. Ich werde sie als Letzter hören.', outro: 'Der Erste Kultist verstummt mitten im Gebet. Unter dem Altar führt eine Treppe nach unten.',
+    loc: 'kapelle', lvl: 24, top: 30, diff: 1.45, crypt: 'c5', zones: ['Der Kirchhof', 'Das Portal', 'Das Kirchenschiff', 'Die Sakristei', 'Der Glockenturm', 'Die Krypta der Äbte', 'Der Chor', 'Der Altar'],
     boss: { name: 'Der Erste Kultist', glyph: 'kultist1', mech: { thorns: 0.3, regen: 0.02 }, mechText: 'Wer zuschlägt, trifft sich selbst – Dornen' } },
-  { id: 'a6', n: 'VI', loc: 'gruben', lvl: 30, top: 36, diff: 1.65, crypt: null, zones: ['Der Schlackenhang', 'Die Aschefelder', 'Der Schwefelsee', 'Die Brücke aus Ketten', 'Die Esse', 'Der Thronweg', 'Die Glutgruben', 'Der Aschenthron'],
+  { id: 'a6', n: 'VI', intro: 'Hier wurde deine Krone gegossen. Die Glut hat nicht vergessen, wem sie gehört.', say: 'Du trugst sie einen Sommer. Ich trage sie, seit die Welt brennt.', outro: 'Der Aschenthron ist leer. Die Asche ist noch warm – wie eine Einladung.',
+    loc: 'gruben', lvl: 30, top: 36, diff: 1.65, crypt: null, zones: ['Der Schlackenhang', 'Die Aschefelder', 'Der Schwefelsee', 'Die Brücke aus Ketten', 'Die Esse', 'Der Thronweg', 'Die Glutgruben', 'Der Aschenthron'],
     boss: { name: 'Der Aschenkönig', glyph: 'aschenkoenig', mech: { execute: 0.5, regen: 0.025, crit: 0.12 }, mechText: 'Glut: heilt sich in der Asche und schlachtet Geschwächte' } },
 ];
+// (intro = Einleitung im Akt-Kopf, say = Satz des Bosses, sobald er als Nächstes wartet, outro = Nachruf nach seinem Fall)
 // Krypten: nur noch der Boss, frei nach dem Akt-Boss. Jede besiegte Stufe → nächste ist schwerer, Beute besser.
 // Stufe `dTier[d]` erreicht = Trophäe/Ziel der alten Schwierigkeit d (Albtraum, Hölle) für Questziele `bossd`.
 export const CRYPT = { glut: 10, glutPerTier: 1, lvlAdd: 2, tierLvl: 3, tierMult: 0.06, rarAt: [0, 2, 5], items: [1, 2, 3], dTier: [0, 3, 6] };

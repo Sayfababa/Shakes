@@ -78,7 +78,8 @@ function descResult(r) {
 function showFight(res, back, extra = '') {
   if (!res) return render();
   const { A, B, r, win, rew } = res;
-  F = { A, B, ...r, step: 0, back, gold: win ? rew?.sack?.gold || rew?.gold || 0 : 0, reward: (win ? (res.haul ? haulRewText(res) : res.desc ? descRewText(res) : rewText(rew)) : loseText(res)) + extra };
+  const loot = !win || res.desc ? [] : rew.items?.length ? rew.items : rew.item ? [rew.item] : [];   // Abgrund: Beute liegt im Sack, nicht im Beutel
+  F = { A, B, ...r, step: 0, back, loot, gold: win ? rew?.sack?.gold || rew?.gold || 0 : 0, reward: (win ? (res.haul ? haulRewText(res) : res.desc ? descRewText(res) : rewText(rew)) : loseText(res)) + extra };
   view = 'fight'; G.save();
   clearTimeout(fightTimer);
   const tick = () => { F.step++; if (F.step >= F.log.length) return render(); fightStep(); const l = F.log[F.step - 1]; fightTimer = setTimeout(tick, l?.spell ? 780 : l?.crit ? 560 : 400); };
@@ -132,7 +133,9 @@ function rewText(w) {
   else if (w.honor) L.push(`+${w.honor} Ehre`);
   for (const [k, n] of w.mats) L.push(`${MATS[k]} ×${n}`);
   for (const [k, n] of w.herbs || []) L.push(`${HERBS[k].name} ×${n}`);
-  if (w.item) L.push(`Beute: <span class="r-${w.item.rarity}">${w.item.name}</span>${w.item.soldFull ? ' <i class="dim">(Beutel voll – verkauft)</i>' : betterTxt(w.item)}`);
+  if (w.actDone) L.push(`<b class="gold">Akt ${w.actDone.n} geschafft.</b> <i class="lore">${w.actDone.outro}</i>`);
+  if (w.tier) L.push(`<b class="gold">Krypta-Stufe ${w.tier} bezwungen.</b> Die nächste ist schwerer – und reicher.`);
+  if (w.rankUp) L.push(`<b class="gold">Neuer Rang: ${w.rankUp.name}</b> · Titel „${w.rankUp.title}“ + Segen`);
   if (w.omen) L.push('<b class="gold">Das Omen hat sich erfüllt.</b>');
   if (w.trophy) L.push(`<b class="r-legendary">Trophäe: ${w.trophy.name}</b>`);
   if (w.shard) L.push(`<b class="gold">Glockensplitter ${w.shard}/4</b>`);
