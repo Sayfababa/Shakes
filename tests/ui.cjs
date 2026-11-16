@@ -27,6 +27,10 @@ let failures = 0;
       // Abgeschnittener Inhalt in Karten (z. B. Ortskarte: „Stufe/Zeit“ unten weg)
       const clip = await p.evaluate(() => [...document.querySelectorAll('main .trip *, main .crypt *, main .tcard *')].filter(e => { const r = e.getBoundingClientRect(), q = e.closest('.trip, .crypt, .tcard').getBoundingClientRect(); return r.height && r.bottom > q.bottom + 1; }).map(e => e.className || e.tagName));
       if (clip.length) { failures++; console.log(`FEHLER ${tag} ${n}: abgeschnitten: ${clip.slice(0, 3).join(' | ')}`); }
+      // Schrift nie unter 11 px (sichtbarer Text)
+      const tiny = await p.evaluate(() => { const out = new Set(); for (const e of document.querySelectorAll('#app *')) { if (![...e.childNodes].some(x => x.nodeType === 3 && x.textContent.trim())) continue; const r = e.getBoundingClientRect(); if (!r.width || !r.height) continue;
+        const f = parseFloat(getComputedStyle(e).fontSize); if (f < 10.9) out.add(`${e.tagName.toLowerCase()}.${(e.className || '').toString().split(' ')[0]} ${f.toFixed(1)}px`); } return [...out]; });
+      if (tiny.length) { failures++; console.log(`FEHLER ${tag} ${n}: Schrift unter 11 px: ${tiny.slice(0, 4).join(' | ')}`); }
       await p.screenshot({ path: `${OUT}/${tag}-${n}.png` });
     };
     // Tippen mit kurzer Frist: gesperrte/verdeckte Knöpfe blockieren den Test nicht 30 s, sondern werden gemeldet

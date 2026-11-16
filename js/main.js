@@ -213,7 +213,8 @@ function combatFx(l) {
   if (l.status) pop(l.status === 'Gereinigt' ? me : foe, l.status, 'miss status', delay + 200);
 }
 
-let waySel = null;
+let waySel = null, sellSure = null;
+const precious = it => ['rare', 'legendary'].includes(it.rarity) || !!it.special || !!it.unique || !!it.runes?.length;
 const actions = {
   ways: d => { waySel = d.s; view = 'ways'; render(); },
   way: d => { const cur = G.S.sp?.[d.s]?.[+d.t]; if (cur === +d.i) return;
@@ -229,7 +230,10 @@ const actions = {
   respec: () => { const c = G.respecCost(); if (confirm(c ? `Für ${c} Gold alle Attribute und Talente zurücksetzen?` : 'Attribute und Talente zurücksetzen? (einmalig gratis)')) { G.respec(); render(); } },
   equip: d => { const p = G.power(); if (!G.equip(d.id)) alert('Kein Platz im Beutel.'); render(); toast(p); },
   unequip: d => { const p = G.power(); G.unequip(d.s); render(); toast(p); },
-  sell: d => { G.sell(d.id); render(); },
+  // Wertvolles (selten und besser, Sonderbonus) erst beim zweiten Tipp verkaufen – es gibt keinen Rückkauf
+  sell: d => { const it = findItem(d.id); if (!it) return;
+    if (precious(it) && d.sure !== '1') { sellSure = it.id; return showTouchTip({ dataset: { tip: it.id, action: 'equip', id: it.id } }); }
+    sellSure = null; G.sell(d.id); render(); },
   sort: () => { G.sortBag(); render(); },
   trader: d => { trader = d.t; turnin = null; view = 'traders'; render(); },
   buy: d => { const S = G.S, shop = S.traders[d.t].shop, i = shop.findIndex(x => x.id === d.id), it = shop[i];
@@ -369,7 +373,7 @@ function showTouchTip(el) {
   const d = el.dataset, a = d.action, attrs = Object.entries(d).filter(([k]) => k !== 'tip').map(([k, v]) => `data-${k}="${v}"`).join(' ');
   let btns = `<button ${attrs}>${ACT_LABEL[a] || 'OK'}</button>`;
   if (a === 'buy') btns += `<button data-action="shoplock" data-t="${d.t}" data-id="${it.id}">${it.lock ? 'Entsperren' : 'Sperren'}</button>`;
-  if (a === 'equip') btns += `<button class="red" data-action="sell" data-id="${it.id}">Verkaufen · ${it.value}</button>`;
+  if (a === 'equip') btns += sellSure === it.id ? `<button class="red" data-action="sell" data-id="${it.id}" data-sure="1">Wirklich? · ${it.value}</button>` : `<button class="red" data-action="sell" data-id="${it.id}">Verkaufen · ${it.value}</button>`;
   const slot = Object.entries(G.S.equip).find(([, x]) => x === it)?.[0];   // Schmieden: Umschmieden (magisch+), sonst Runen (nur angelegt)
   if ((a === 'equip' || a === 'unequip') && (G.craftItems().includes(it) || slot)) btns += `<button data-action="forgeitem" data-id="${it.id}">Schmieden</button>`;
   tip.innerHTML = UI.itemTip(it, compareTo(it)) + `<div class="act">${btns}<button data-action="noop">Zurück</button></div>`;
@@ -389,7 +393,7 @@ function findItem(id) {
   const shops = Object.values(S.traders).flatMap(t => t.shop);
   return [...S.bag, ...shops, ...Object.values(S.equip).filter(Boolean), ...Object.values(G.S.pit?.shop || {}).flat().filter(w => w.item).map(w => w.item), ...(S.desc?.sack.items || [])].find(x => x.id === id);
 }
-function hideTip() { tip.hidden = true; tip.className = ''; }
+function hideTip() { tip.hidden = true; tip.className = ''; sellSure = null; }
 app.addEventListener('mousemove', e => {
   if (TOUCH || tip.className === 'touch') return;   // offenes Touch-Fenster nie durch Mausbewegung schließen
   const el = e.target.closest('[data-tip]'); if (!el) return hideTip();
@@ -422,8 +426,7 @@ function fitApp() {
   document.documentElement.classList.toggle('shortvp', full - innerHeight > 40); fitPrep();
 }
 addEventListener('resize', fitApp); addEventListener('orientationchange', () => setTimeout(fitApp, 300)); fitApp(); document.fonts?.ready.then(fitPrep);
-// Anzeige-Info: Titel antippen zeigt die Maße (zum Fehlersuchen am Handy)
-document.addEventListener('click', e => { if (!e.target.closest('.hud .ttl')) return;
-  const cs = getComputedStyle(document.documentElement), t = document.querySelector('.tabs')?.getBoundingClientRect();
-  alert(`innen ${innerWidth}×${innerHeight} · Bildschirm ${screen.width}×${screen.height} · sichtbar ${Math.round(visualViewport?.height || 0)} · Tabs unten ${Math.round(t?.bottom || 0)} · ${STANDALONE ? 'App' : 'Browser'}`); });
+// Anzeige-Info (Einstellungen → „Anzeige-Maße“): zum Fehlersuchen am Handy
+actions.dbg = () => { const t = document.querySelector('.tabs')?.getBoundingClientRect();
+  alert(`innen ${innerWidth}×${innerHeight} · Bildschirm ${screen.width}×${screen.height} · sichtbar ${Math.round(visualViewport?.height || 0)} · Tabs unten ${Math.round(t?.bottom || 0)} · ${STANDALONE ? 'App' : 'Browser'}`); };
 G.load(); if (G.S?.wander) Game.wanderTick(Date.now()); render();

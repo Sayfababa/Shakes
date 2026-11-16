@@ -1,9 +1,9 @@
 import { ACTS, ACT, CRYPT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, ALCH } from './data.js';
-import { affixPool, makeItem, itemValue, rollTier, affixValue, renameMagic } from './loot.js';
+import { affixPool, makeItem, itemValue, rollTier, affixValue, renameMagic, adj, fixName } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
-export const SAVE_VERSION = 15;
+export const SAVE_VERSION = 16;
 export let S = null; // aktueller Spielstand
 
 export const now = () => Date.now();
@@ -75,6 +75,9 @@ function migrate(d) {
     for (const b of d.bounty?.list || []) { if (b.id === 'blood') b.id = 'elite'; if (b.id === 'deep') Object.assign(b, { id: 'zones', n: BOUNTIES.find(x => x.id === 'zones').n, prog: 0 }); }
     if (d.omen && !d.omen.done) d.omen = null;
     d.v = 15; }
+  if (d.v === 15) {   // Gegenstandsnamen mit richtigem Geschlecht
+    for (const it of [...d.bag, ...Object.values(d.equip), ...Object.values(d.traders).flatMap(t => t.shop || []), ...(d.desc?.sack.items || []), ...Object.values(d.pit?.shop || {}).flat().map(w => w.item)]) fixName(it);
+    d.v = 16; }
   d.name = cleanName(d.name);
   return d.v === SAVE_VERSION ? d : null;
 }
@@ -88,7 +91,7 @@ export function newChar(name, cls) {
     equip: {}, bag: [], glut: CFG.maxGlut, glutTs: now(), active: null,
     journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0, belt: [null, null, null], herbs: {}, pots: {}, potDay: today(), exp: null, bless: 0, desc: null, descDay: null, pit: freshPit(), acts: { prog: {} }, wander: null };
   const wb = BASES.find(b => b.kind === c.weapon);
-  S.equip.weapon = { id: 'start', slot: 'weapon', kind: wb.kind, base: wb.name, art: wb.art, w: wb.w, h: wb.h, name: 'Rostige/r ' + wb.name,
+  S.equip.weapon = { id: 'start', slot: 'weapon', kind: wb.kind, base: wb.name, art: wb.art, w: wb.w, h: wb.h, name: adj('Rostiger', wb.name) + ' ' + wb.name,
     rarity: 'normal', lvl: 1, mods: {}, dmg: [...wb.dmg], value: 2 };
   save();
   return S;

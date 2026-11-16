@@ -1,4 +1,4 @@
-import { CRAFT, BASES, RARITIES, AFFIXES, LEGEND_NAMES, CFG, TIERS, SPECIALS, SPECIAL_CHANCE, SPECIAL_MIN_LVL, UNIQUES, UNIQUE_CHANCE } from './data.js';
+import { GENUS, CRAFT, BASES, RARITIES, AFFIXES, LEGEND_NAMES, CFG, TIERS, SPECIALS, SPECIAL_CHANCE, SPECIAL_MIN_LVL, UNIQUES, UNIQUE_CHANCE } from './data.js';
 import { roll, pick, weighted, uid, rand } from './rng.js';
 
 // Welche Boni kann dieses Teil tragen? Grundboni überall, Kampf-Boni nur auf passenden Plätzen, Zauber-Boni nur auf der Waffe der Klasse
@@ -71,16 +71,21 @@ export function itemValue(it, rar = RARITIES.find(r => r.id === it.rarity)) {
   return Math.round((4 + it.lvl * 3) * rar.mult ** 3 * (1 + Object.keys(it.mods).length * 0.4 + tierBonus) * (it.special ? 2 : 1) * (it.unique ? 3 : 1));
 }
 
+// Eigenschaftswort an das Geschlecht des Grundgegenstands anpassen: „Starker“ + Kappe → „Starke Kappe“
+const END = { f: 'e', n: 'es', p: 'e' };
+export const adj = (pre, base) => { if (!pre) return pre; const g = Object.keys(END).find(k => GENUS[k].includes(base)); return g ? pre.replace(/er$/, END[g]) : pre; };
+// Namen alter Spielstände richten („Rostige/r Beil“, „Starker Kappe“)
+export function fixName(it) { if (!it?.name) return; if (it.rarity === 'magic') renameMagic(it); it.name = it.name.replace(/^(Rostig|Schartig)e\/r (.+)$/, (_, a, b) => adj(a + 'er', b) + ' ' + b); }
 export const renameMagic = it => { if (it.rarity !== 'magic') return; const st = Object.keys(it.tiers || {}); const aff = st.map(k => AFFIXES.find(a => a.stat === k)).filter(Boolean);
   const sp = it.special ? SPECIALS.find(s => s.id === it.special) : null;
-  it.name = [aff[0]?.pre, it.base, sp ? null : aff[1]?.suf].filter(Boolean).join(' ') + (sp ? ' ' + sp.name : ''); };
+  it.name = [adj(aff[0]?.pre, it.base), it.base, sp ? null : aff[1]?.suf].filter(Boolean).join(' ') + (sp ? ' ' + sp.name : ''); };
 function nameOf(it, base, aff) {
   const sp = it.special ? SPECIALS.find(s => s.id === it.special) : null;
   let n;
   if (it.rarity === 'legendary') n = pick(LEGEND_NAMES);
-  else if (it.rarity === 'broken') n = 'Schartige/r ' + base.name;
+  else if (it.rarity === 'broken') n = adj('Schartiger', base.name) + ' ' + base.name;
   else if (it.rarity === 'rare') n = `${pick(['Gram', 'Grab', 'Blut', 'Aschen', 'Schatten', 'Toten'])}${pick(['biss', 'wacht', 'ruf', 'hauch', 'schrei', 'last'])} (${base.name})`;
-  else if (it.rarity === 'magic') n = [aff[0]?.pre, base.name, sp ? null : aff[1]?.suf].filter(Boolean).join(' ');
+  else if (it.rarity === 'magic') n = [adj(aff[0]?.pre, base.name), base.name, sp ? null : aff[1]?.suf].filter(Boolean).join(' ');
   else n = base.name;
   return sp && it.rarity !== 'rare' && it.rarity !== 'legendary' ? `${n} ${sp.name}` : n;
 }

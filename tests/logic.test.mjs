@@ -191,6 +191,24 @@ test('Umherziehen übertrifft die Glut nicht: 2 Std. bringen in jedem Akt 0,5–
     assert.ok(mats / N < 12 && herbs / N < 8, `Akt ${a.n}: Material ${mats / N}, Zutaten ${herbs / N}`); }
 });
 
+test('Gegenstandsnamen: richtiges Geschlecht, nie ein Schrägstrich; alte Namen werden gerichtet', async () => {
+  const { adj, fixName } = await import('../js/loot.js');
+  assert.equal(adj('Starker', 'Kappe'), 'Starke'); assert.equal(adj('Rostiger', 'Beil'), 'Rostiges'); assert.equal(adj('Zäher', 'Stiefel'), 'Zähe'); assert.equal(adj('Scharfer', 'Dolch'), 'Scharfer');
+  for (const k of Object.keys(D.GENUS)) for (const n of D.GENUS[k]) assert.ok(D.BASES.some(b => b.name === n), 'unbekannt: ' + n);
+  for (const cls of Object.keys(D.CLASSES)) assert.ok(!fresh(cls).equip.weapon.name.includes('/'));
+  for (let i = 0; i < 400; i++) { const it = makeItem(1 + i % 30); assert.ok(!it.name.includes('/'), it.name); if (it.rarity === 'magic' && D.GENUS.f.includes(it.base)) assert.ok(!/er /.test(it.name.split(it.base)[0]), it.name); }
+  const old = { name: 'Rostige/r Beil', rarity: 'normal', base: 'Beil' }; fixName(old); assert.equal(old.name, 'Rostiges Beil');
+  const S = fresh(); const d = JSON.parse(JSON.stringify(S)); d.v = 15; d.equip.weapon.name = 'Rostige/r Kurzschwert'; d.bag.push({ id: 'x', slot: 'helm', name: 'Schartige/r Kappe', rarity: 'broken', base: 'Kappe', mods: {}, x: 0, y: 0, w: 2, h: 2 });
+  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); localStorage.removeItem('aschenkrone_v1_sig'); const L = G.load();
+  assert.equal(L.equip.weapon.name, 'Rostiges Kurzschwert'); assert.equal(L.bag[0].name, 'Schartige Kappe');
+});
+
+test('Rat bei schlechter Siegchance: Punkte, dann Beutel, sonst stärker werden', () => {
+  const S = fresh(); assert.equal(Game.weakAdvice(0.9), null); assert.match(Game.weakAdvice(0.1), /Punkte verteilen/);
+  S.points = 0; S.lvl = 1; assert.match(Game.weakAdvice(0.1), /wiederholen/);
+  const it = makeItem(8, { slot: 'chest', minRarity: 3 }); G.addToBag(it); assert.match(Game.weakAdvice(0.1), /Beutel/);
+});
+
 test('Glücksgriff gibt ein mindestens magisches Item gegen Gold', () => {
   const S = fresh(); S.gold = 5000; const it = G.doService('ysolde', 'gamble');
   assert.ok(it && ['magic', 'rare', 'legendary'].includes(it.rarity)); assert.ok(S.gold < 5000);

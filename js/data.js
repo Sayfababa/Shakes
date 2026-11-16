@@ -76,6 +76,12 @@ export const AFFIXES = [
 export const SKILL_PER = 3.5;
 // Obergrenzen für Prozent-Boni (Summe aus allem)
 export const CAPS = { crit: 0.6, critMult: 3, leech: 0.4, thorns: 0.6, evade: 0.5, block: 0.5, pen: 0.9 };
+// Grammatisches Geschlecht der Grundgegenstände für Namen („Starke Kappe“, „Rostiges Beil“). Nicht Genanntes ist männlich. p = Mehrzahl.
+export const GENUS = {
+  f: ['Kappe', 'Totenmaske', 'Schärpe', 'Kriegsaxt', 'Klauenklinge', 'Henkersaxt', 'Runenklinge', 'Sichelklinge'],
+  n: ['Lederwams', 'Kettenhemd', 'Amulett', 'Beil', 'Kurzschwert', 'Bastardschwert', 'Grabszepter', 'Blutszepter'],
+  p: ['Lederhandschuhe', 'Panzerhandschuhe', 'Stiefel', 'Kriegsstiefel'],
+};
 export const LEGEND_NAMES = ['Grabesruh', 'Aschenkuss', 'Der Letzte Psalm', 'Witwenmacher', 'Knochenkrone', 'Sünde von Vhal', 'Rabenschwur', 'Blutglocke'];
 
 // --- Bonus-Stufen (wie Affix-Tiers): I ist die beste, gibt es erst auf hoher Gegenstandsstufe ---

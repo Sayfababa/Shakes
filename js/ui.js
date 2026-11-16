@@ -8,7 +8,7 @@ import { current, available, objectives, canComplete } from './quests.js';
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
-import { wanderMap, wanderAct, wanderBusy, wanderDone, actEnemy, actChance, actCan, actZoneGlut, actZoneMob, pitWeek, pitPlace, pitRank, pitFoes, pitChance, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
+import { weakAdvice, wanderMap, wanderAct, wanderBusy, wanderDone, actEnemy, actChance, actCan, actZoneGlut, actZoneMob, pitWeek, pitPlace, pitRank, pitFoes, pitChance, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
   descCrypts, descLeft, descCanStart, descBusy, descLvl, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
@@ -51,7 +51,7 @@ function questNote(tid) {
 
 // --- Items ---
 export function itemTip(it, cmp) {
-  const L = [`<div class="n r-${it.rarity}">${it.name}${it.up ? ` +${it.up}` : ''}</div><div class="sub2">${rarName(it.rarity, it)} · ${SLOTS[it.slot]} · Stufe ${it.lvl}</div>`];
+  const L = [`<div class="n r-${it.rarity}">${it.name}${it.up ? ` +${it.up}` : ''}</div><div class="sub2">${rarName(it.rarity, it)} · ${it.base && !it.name.includes(it.base) ? it.base : SLOTS[it.slot]} · Stufe ${it.lvl}</div>`];
   if (it.dmg) L.push(`Schaden <b>${it.dmg[0]}–${it.dmg[1]}</b>`);
   if (it.armor) L.push(`Rüstung <b>${it.armor}</b>`);
   // Boni ohne Runen-Anteil, mit Stufe (I = beste)
@@ -157,7 +157,7 @@ export function viewStats() {
       ${S.tampered ? '<p class="small down">Spielstand wurde von Hand verändert – für Handel gesperrt.</p>' : ''}</section>
     <section class="panel"><h2>Trophäen <span class="h2r">${S.trophies.length}</span></h2>
       ${S.trophies.map(t => `<div class="stat"><span>${t.name} <i class="dim">${t.diff}</i></span><span class="m small">${effLine(t.eff)}</span></div>`).join('') || '<p class="dim small">Besiege die Herren der Krypten.</p>'}</section></div>
-    <div class="btns"><button data-action="go" data-v="hero">Zurück</button><button data-action="respec" ${S.gold < rc ? 'disabled' : ''}>Läutern ${rc ? rc : 'gratis'}</button><button class="dim" data-action="wipe">Neu</button></div>
+    <div class="btns"><button data-action="go" data-v="hero">Zurück</button><button data-action="respec" ${S.gold < rc ? 'disabled' : ''}>Läutern ${rc ? rc : 'gratis'}</button></div>
   </div>`;
 }
 
@@ -445,6 +445,8 @@ export function tutorial(step) {
 }
 
 // --- Schmiede: Runen einschmieden (Minispiel) ---
+// Enge Kacheln (8 nebeneinander): lange Wörter kürzen statt abschneiden – „Konstitution“ → „Kons.“
+const short5 = n => n.length > 5 ? n.slice(0, 4) + '.' : n;
 const matImg = k => `<img class="matimg" src="assets/forge/${k}.webp" alt="">`;
 export function viewForge(sel, res) {
   const tg = forgeTargets(), err = canForge(sel.slot, sel.mat), r = RUNES[sel.mat];
@@ -462,7 +464,7 @@ export function viewForge(sel, res) {
       <p class="small fhint">${r && sel.slot ? `${r.name} auf <b>${S.equip[sel.slot]?.name || ''}</b>: <span class="up">+${range[0]} bis +${range[1]} ${STAT_NAME(r.stat)}</span>` : '„Zwei Brocken Material, fünf Schläge. Triff die weiße Glut – dann hält die Rune.“ – Halvar'}</p>
       ${err ? `<button disabled>${sel.mat && sel.slot ? err : 'Material und Gegenstand wählen'}</button>` : `<button class="red big-btn" id="forgebtn" data-action="forgestart">Ans Feuer</button>`}</section>
     <section class="panel"><h2>Material <span class="h2r">je ${FORGE.cost}</span></h2><div class="mtiles">${Object.entries(RUNES).map(([k, x]) => { const n = S.mats[k] || 0;
-      return `<button class="mtile ${sel.mat === k ? 'on' : ''}" data-action="forgemat" data-m="${k}" ${n < FORGE.cost ? 'disabled' : ''} title="${MATS[k]}">${matImg(k)}<b>${n}</b><small>${STAT_NAME(x.stat).replace('% ', '')}</small>${forgeQuestMat(k) ? '<i class="qm">!</i>' : ''}</button>`; }).join('')}</div>
+      return `<button class="mtile ${sel.mat === k ? 'on' : ''}" data-action="forgemat" data-m="${k}" ${n < FORGE.cost ? 'disabled' : ''} title="${MATS[k]}">${matImg(k)}<b>${n}</b><small>${short5(STAT_NAME(x.stat).replace('% ', ''))}</small>${forgeQuestMat(k) ? '<i class="qm">!</i>' : ''}</button>`; }).join('')}</div>
       ${sel.mat ? `<p class="small dim msel">${MATS[sel.mat]}${forgeQuestMat(sel.mat) ? ' · <span class="hot">wird für einen Auftrag gebraucht</span>' : ''}</p>` : ''}</section>
     <section class="panel"><h2>Gegenstand <span class="h2r">${FORGE.maxRunes} Runen je Teil</span></h2><div class="fslots">${tg.map(t => `<div class="fslot r-${t.it.rarity} ${sel.slot === t.slot ? 'on' : ''} ${t.free ? '' : 'full'}" data-action="forgeslot" data-s="${t.slot}">${itemArt(t.it)}<i>${FORGE.maxRunes - t.free}/${FORGE.maxRunes}</i></div>`).join('')}</div></section></div>`;
 }
@@ -482,7 +484,7 @@ function viewCraft(sel) {
       ${it.fx ? `<div class="small special-l">✦ ${effLine(it.fx)} <i class="dim">(bleibt)</i></div>` : ''}${it.runes?.length ? `<div class="small rune">${it.runes.map(r => r.name + ' +' + r.v).join(', ')} <i class="dim">(bleibt)</i></div>` : ''}
       ${it.crafted ? `<div class="small gold">Vollendet von ${it.crafted}</div>` : ''}</div>`; })();
   const ops = CRAFT.ops.map(op => { const err = it ? craftCheck(it, op.id, sel.stat) : 'Kein Item';
-    return `<button class="cop" data-action="craftop" data-o="${op.id}" ${err ? 'disabled' : ''} title="${op.text}">${matImg(op.mat)}<b>${op.name}</b><small>${MATS[op.mat]} <i class="${(S.mats[op.mat] || 0) < op.n ? 'down' : ''}">${S.mats[op.mat] || 0}/${op.n}</i> · Glut ${op.glut}+</small></button>`; }).join('');
+    return `<button class="cop" data-action="craftop" data-o="${op.id}" ${err ? 'disabled' : ''} title="${op.text} (${MATS[op.mat]})">${matImg(op.mat)}<b>${op.name}</b><small><i class="${(S.mats[op.mat] || 0) < op.n ? 'down' : ''}">${S.mats[op.mat] || 0}/${op.n}</i><br>Glut ${op.glut}+</small></button>`; }).join('');
   const why = it && CRAFT.ops.map(op => craftCheck(it, op.id, sel.stat)).find(e => e && !/Material|Bonus antippen/.test(e));
   return `<div class="col forge craft">${forgeTabs(sel)}
     <section class="panel"><div class="cpick">${list.map(x => `<div class="fslot r-${x.rarity} ${x.id === sel.item ? 'on' : ''} ${x.crafted ? 'full' : ''} ${Object.values(S.equip).includes(x) ? 'eq' : ''}" data-action="craftpick" data-id="${x.id}">${itemArt(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`).join('') || '<span class="dim small">Nichts zum Umschmieden. Magische Items fallen bei Monstern und Händlern.</span>'}</div></section>
@@ -542,7 +544,7 @@ function prepCore(m, head, pW, p0, go, bless = 0, rule = null) {
         return `<span class="etag ${o.kind}" ${o.kind === 'pack' || o.kind === 'brew' ? `data-action="prepPot" data-id="${id}"` : ''}><b>${t}</b>${act}</span>`; }).join('')}</div>` : ''}</section>
     ${rule?.id === 'nopots' ? `<section class="panel"><h2>${rule.name}</h2><p class="small dim">${rule.text}</p></section>`
       : `<section class="panel"><h2>Dein Gürtel <span class="gbtns"><button class="tiny" data-action="bestBelt">Bester Gürtel</button><button class="tiny" data-action="alch" data-b="prep">Alle Tränke</button></span></h2><div class="beltrow">${[0, 1, 2].slice(0, beltSlots()).map(beltCell).join('')}</div></section>`}
-    <section class="panel chance"><span class="cl">Siegchance<small class="dim">${rule?.id === 'nopots' ? 'ohne Tränke' : `ohne Tränke ${pc(p0)}`}</small>${bless ? `<small class="${bless > 0 ? 'up' : 'down'}">${bless > 0 ? 'Segen' : 'Fluch'} ${bless > 0 ? '+' : ''}${Math.round(bless * 100)} % Leben</small>` : ''}</span><b>${pc(pW)}</b>${go}</section>
+    <section class="panel chance"><span class="cl">Siegchance${weakAdvice(pW) ? `<small class="hot">${weakAdvice(pW)}</small>` : `<small class="dim">${rule?.id === 'nopots' ? 'ohne Tränke' : `ohne Tränke ${pc(p0)}`}</small>`}${bless ? `<small class="${bless > 0 ? 'up' : 'down'}">${bless > 0 ? 'Segen' : 'Fluch'} ${bless > 0 ? '+' : ''}${Math.round(bless * 100)} % Leben</small>` : ''}</span><b>${pc(pW)}</b>${go}</section>
   </div>`;
 }
 // --- Die Grube ---
@@ -692,6 +694,8 @@ export function viewOpts(opt, levels) {
   return `<div class="col opts"><section class="panel"><h2>Einstellungen</h2>
     ${row('sfx', 'Kampfgeräusche')}${row('music', 'Musik', 'kommt später')}
     <p class="small dim">Am iPhone: Stummschalter aus, sonst bleibt es still.</p></section>
+    <section class="panel"><h2>Held</h2><p class="small dim">Vernichten löscht ${S.name} für immer – Stufe, Beute, alles.</p>
+      <div class="btns"><button data-action="dbg">Anzeige-Maße</button><button class="red" data-action="wipe">Held vernichten</button></div></section>
     <div class="btns"><button data-action="go" data-v="hero">Zurück</button></div></div>`;
 }
 
