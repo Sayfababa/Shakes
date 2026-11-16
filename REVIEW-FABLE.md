@@ -80,3 +80,50 @@ Schweregrade: **kritisch** = Spielstand/Spielfluss kaputt · **hoch** = trifft f
 3. U1 (Schrift), U3–U5, V1, V2.
 4. D1 (Beute-Moment), D2 (Akt-Texte), D3, D5. D4 (Sets) nur als Vorschlag mit Mockup.
 5. C1 (UI-Teile), C2.
+
+---
+
+# Phase 2 – was erledigt ist
+
+Alle Änderungen liegen auf `claude/determined-mccarthy-vzvwfm`; `sh tests/run.sh` ist nach jedem Schritt grün (zuletzt 84 Logik-Tests).
+Save-Version 14 → 16, mit Migration und Tests dafür.
+
+| Befund | Stand | Was getan wurde | Beleg |
+|---|---|---|---|
+| B1–B3, V3 Steckbriefe | **erledigt** | Unlösbare Zettel ersetzt (Siege in den Akten, überlegen gewinnen, Elite). Angeboten wird nur Erreichbares; alte Zettel werden umgeschrieben. | Logik-Test über 40 Tage |
+| B4 Omen | **erledigt** | Omen nur noch an Orten offener Akte (`openLocs()`). | Logik-Test über 40 Tage |
+| B5 Spielstand | **erledigt** | Unlesbarer Stand → `aschenkrone_v1_bak`, wird nie überschrieben, kommt zurück, wenn der Stand fehlt. Hinweis auf dem Startbildschirm. | Logik-Test |
+| B6 Tutorial | **erledigt** | Schritt 3 endet beim Öffnen des Akts. | – |
+| B7 Auftragstexte | **erledigt** | Keine „Ebenen“ mehr; Ziele heißen „Öffne: Gruft (Akt I schaffen)“, „Krypta-Stufe 4“. | Logik-Test über alle Aufträge |
+| T1 Akt I | **erledigt** | Akt I: Elite ×0,9, Boss ×0,52 (eigene Werte je Akt). Akt II: Elite milder, die Mühe liegt jetzt beim Boss. | Akt I 25–55 Glut statt 170–370 (20 Helden je Klasse, nur Beute + Händler). `acts.mjs --check` schlägt Alarm über 120 Glut. Bot: Akt VI weiter nach ~7 Tagen bei Stufe 18–19. |
+| T2 Umherziehen | **erledigt** | Ein Kampf-Punkt ist 0,75 Glut wert; Material-/Zutaten-Chance gesenkt. | Jagd-Route 1,3× Glut-Ertrag in jedem Akt (vorher 2–3×), ~8 Material oder ~5 Zutaten je 2 Std. (vorher 23 / 8). Logik-Test hält den Rahmen. |
+| T3 Klassen | **besser, offen** | Durch T1 rücken die Klassen zusammen: Akt VI kostet 3300–4500 Glut (vorher 2500–5250). | `acts.mjs all 6` |
+| T4 Aufstieg beim Umherziehen | **erledigt** | Bilanz zeigt „Stufe N!“. | – |
+| U1 Schrift | **erledigt** | Untergrenze 11 px im CSS; Schmiede-Kacheln, Eingriffe und Kartenbeschriftung dafür umgebaut. | `ui.cjs` misst auf 4 Bildschirmen jede Ansicht |
+| U3 Verkaufen | **erledigt** | Wertvolles erst beim zweiten Tipp. | – |
+| U4, U5 | **erledigt** | Anzeige-Maße und „Held vernichten“ liegen in den Einstellungen. | – |
+| V1 Namen | **erledigt** | „Rostiges Beil“, „Starke Kappe“; alte Namen werden gerichtet. | Logik-Test über 400 Items |
+| V2 Rat | **erledigt** | Unter 35 % Siegchance steht in der Vorbereitung, was hilft. | Logik-Test |
+| D1 Beute-Moment | **erledigt** | Kärtchen mit Bild und Seltenheitsfarbe, Lichtsäule ab selten. Nebenbei: zweites Boss-Teil und „Akt geschafft“ wurden vorher gar nicht angezeigt. | Screenshots |
+| D2 Akt-Texte | **erledigt** | Einleitung, Boss-Satz, Nachruf je Akt; drei Sätze je Händler. | Logik-Test |
+| D3 Gegner-Tod | **erledigt** | Sackt zusammen, kurzer Blutrand. | – |
+| D5 Tooltip | **erledigt** | Grundart in der Unterzeile; Farben auf die D2-Werte gesetzt. | – |
+| C1 Alte Streifzug-Oberfläche | **teilweise** | Ansichten und Aktionen entfernt (≈ 60 Zeilen). Die Logik bleibt, weil Fuzz, Personas und 8 Logik-Tests sie benutzen. | – |
+| C2 Feste Zahl | **erledigt** | Pause aus `PIT.cdLose`. | – |
+
+## Offen
+- **D4 Grab-Sets** – neues System, deshalb nur Vorschlag: `mockups/sets.html` / `mockups/sets.png`. Wartet auf Freigabe.
+- **U2 Systemdialoge** (`alert`/`confirm`) – eigener Dialog im UI-Kit-Rahmen; berührt ~15 Stellen, eigener Schritt.
+- **T3 Klassen** – Jägerin und Hexe bleiben in den späten Akten die langsamsten (etwa +30 % Glut gegenüber dem Paladin).
+- **Akt II** kostet ohne Gratis-Ausrüstung ~350 Glut (ein Tag Warten), Akt III nur ~250 – die Kurve hat dort einen Buckel.
+- **C1 Rest** – `tests/fuzz.mjs` und `tests/personas.mjs` auf die Akte umstellen, dann `startTrip`/`resolveTrip`/`delve`/`bank`/`TRACKS`/`DELVE` löschen.
+- **C3 Tagebuch** – wird geschrieben, nie gezeigt.
+- Akt-Einleitungen stehen nur im Kopf der Akt-Ansicht; ein eigener Moment beim ersten Betreten (Bild + Text) bräuchte Ortsbilder.
+
+## Empfohlene nächste Schritte
+1. Am Handy prüfen: neuer Held durch Akt I (sollte in einer Sitzung gehen), Beute-Moment beim Boss, Umherziehen fühlt sich mit dem kleineren Ertrag noch lohnend an?
+2. Grab-Sets freigeben oder verwerfen (Mockup).
+3. Akt II glätten (Boss ×0,85 wäre der kleinste Eingriff) und danach die Klassen angleichen.
+4. Eigener Dialog statt Systemfenster.
+5. Fuzz/Personas auf Akte umstellen und die alte Streifzug-Logik löschen.
+6. Ortsbilder für die sechs Akte (Prompt-Vorschlag folgt auf Wunsch) – dann lohnt ein Akt-Auftakt mit Bild.

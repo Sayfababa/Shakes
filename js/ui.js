@@ -1,14 +1,14 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
-import { AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
+import { AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, BOUNTIES } from './data.js';
 import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
 import { potion, beltSlots, brewCost, canBrew, potMax, unreadable } from './state.js';
-import { waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
+import { waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 // Name eines Item-Bonus: Attribute, Rüstung/Schaden, Prozent-Boni ("% Krit-Chance", "% Feuerball")
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
-import { weakAdvice, wanderMap, wanderAct, wanderBusy, wanderDone, actEnemy, actChance, actCan, actZoneGlut, actZoneMob, pitWeek, pitPlace, pitRank, pitFoes, pitChance, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
+import { weakAdvice, wanderMap, wanderAct, wanderBusy, wanderDone, actEnemy, actChance, actCan, actZoneGlut, actZoneMob, pitWeek, pitPlace, pitRank, pitFoes, pitChance, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, cryptChance, threatLabel, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
   descCrypts, descLeft, descCanStart, descBusy, descLvl, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
@@ -90,10 +90,10 @@ export function readyDots(t = Date.now()) {
 }
 export function navBar(view) {
   const tabs = [['hero', 'Held'], ['trips', 'Streifzug'], ['traders', 'Händler'], ['forge', 'Schmiede'], ['alch', 'Alchemie'], ['crypt', 'Krypta']];
-  const map = { wplan: 'trips', opts: 'hero', act: 'trips', zoneprep: 'trips', prep: 'crypt', desc: 'crypt', arena: 'crypt', pitprep: 'crypt', pitshop: 'crypt', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips', exped: 'trips' };
+  const map = { wplan: 'trips', opts: 'hero', act: 'trips', zoneprep: 'trips', prep: 'crypt', desc: 'crypt', arena: 'crypt', pitprep: 'crypt', pitshop: 'crypt', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', exped: 'trips' };
   // Nur echte Handlungsaufforderungen markieren – ein Dauer-Punkt auf jedem Tab sagt nichts mehr
   const badge = { hero: S.points + talentPoints() + waysPending() > 0, traders: Object.keys(TRADERS).some(canComplete), arena: canComplete('vargo'),
-    crypt: canComplete('ilse') || canComplete('vargo'), trips: !!S.haul || canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) || (!!S.active && Date.now() >= S.active.end) };
+    crypt: canComplete('ilse') || canComplete('vargo'), trips: canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) };
   // Grün: eine Wartezeit ist abgelaufen – wieder bereit (verschwindet, sobald man hinschaut)
   const ready = readyDots();
   const on = map[view] || view;
@@ -200,14 +200,6 @@ export function viewTalents() {
 
 // --- Streifzüge ---
 export function viewTrips(ask = false) {
-  if (S.active) {
-    const a = S.active, l = LOCATIONS.find(x => x.id === a.loc), left = Math.ceil((a.end - Date.now()) / 1000);
-    return `<div class="col"><section class="panel waiting"><h2>${l.name}</h2><p class="lore">${l.text}</p>
-      <div class="waitmob">${monsterArt(MONSTERS.find(m => m.name === a.mob).glyph)}</div><p class="dim">Du folgst einer Spur: <b>${a.mob}</b>.</p>
-      ${left > 0 ? `<div class="big" data-until="${a.end}">${fmtT(left)}</div><div class="btns"><button data-action="rush" ${S.gold < rushCost() ? 'disabled' : ''}>Eilen · ${rushCost()} Gold</button></div>`
-                 : `<button class="red big-btn" data-action="resolve">Stellen</button>`}</section>
-      ${say('prophet')}</div>`;
-  }
   if (S.wander) return viewWander();
   if (S.exp?.ret) return viewExpEvent();
   if (S.exp) return `<div class="col">${expAway(ask)}${say('prophet')}</div>`;
@@ -316,20 +308,6 @@ export function viewExpRes(res) {
 }
 
 // Ungesicherte Beute: Heimkehren oder tiefer gehen
-const haulText = h => [h.gold ? `${h.gold} Gold` : '', h.xp ? `${h.xp} EP` : '', ...Object.entries(h.mats).map(([k, n]) => `${MATS[k]} ×${n}`), ...h.items.map(it => `<span class="r-${it.rarity}">${it.name}</span>`)].filter(Boolean).join(' · ') || 'nichts';
-export function haulActions() {
-  const h = S.haul; if (!h) return '';
-  const g = LOCATIONS.find(x => x.id === h.loc).glut;
-  const deeper = h.depth >= DELVE.max ? '' : `<button data-action="delve" ${canDelve() ? '' : 'disabled'}>Tiefer · ${g} Glut ${canDelve() ? threat(delveChance()) : '<span class="threat">zu wenig Glut</span>'}</button>`;
-  return `<div class="btns haulbtns"><button class="red" data-action="bank">Heimkehren</button>${deeper}</div>`;
-}
-function haulPanel() {
-  const h = S.haul, l = LOCATIONS.find(x => x.id === h.loc);
-  return `<section class="panel haul"><h2>Beute <span class="h2r">ungesichert · Tiefe ${h.depth}/${DELVE.max}</span></h2>
-    <p class="small">${haulText(h)}</p><p class="dim small hint">Erst daheim gehört sie dir. Fällst du in der Tiefe, ist alles verloren.</p>${haulActions()}</section>`;
-}
-
-// Steckbriefe (täglich)
 export function viewBounties() {
   const r = bountyReward();
   return `<div class="col"><section class="panel"><h2>Steckbriefe <span class="h2r">neu jeden Tag</span><button class="tiny" data-action="go" data-v="trips">Zurück</button></h2>
@@ -339,18 +317,6 @@ export function viewBounties() {
         <ul><li class="${done ? 'ok' : ''}">Fortschritt <b>${Math.min(b.prog, b.n)}/${b.n}</b></li></ul>
         <div class="rew">Lohn: ${r.gold} Gold · ${r.xp} EP · 2 Materialien · Ruf</div>
         ${b.claimed ? '<p class="small">Erledigt.</p>' : done ? `<button class="red" data-action="claim" data-i="${i}">Lohn abholen</button>` : ''}</div>`; }).join('')}</div>`;
-}
-
-// Spur wählen
-export function viewTripPick(id) {
-  const l = LOCATIONS.find(x => x.id === id);
-  return `<div class="col"><section class="panel"><h2>${l.name} <span class="h2r">${l.glut} Glut · ${fmtT(l.sec[0])}–${fmtT(l.sec[1])}</span></h2>
-      <p class="lore">${l.text}</p><div class="mobpics">${l.mobs.map(n => monsterArt(MONSTERS.find(m => m.name === n).glyph)).join('')}</div></section>
-    ${TRACKS.map(t => `<section class="panel track t-${t.id}" data-action="tripgo" data-id="${l.id}" data-tr="${t.id}">
-      <h3>${t.name}</h3><p class="small">${t.text}</p>
-      <div class="tripinfo">${threat(tripChance(l, t.id))}<span>Lohn ×${t.rew}</span><span>Beute ${Math.round(t.loot * 100)}%${t.minRarity ? ', magisch+' : ''}</span></div></section>`).join('')}
-    ${S.haul ? '<p class="dim small">Aufbrechen sichert deine ungesicherte Beute.</p>' : ''}
-    <button data-action="go" data-v="trips">Zurück</button></div>`;
 }
 
 // --- Figuren mit Questketten (Vargo, Ilse, Prophet) ---
@@ -429,7 +395,7 @@ export function viewFight(F) {
     ${side(F.A, hpA, F.hpA, last.who === 'b', 'fA', last.cA)}
     <div><div class="log" id="log">${shown.map(l => `<div class="${l.who} ${l.crit ? 'crit' : ''} ${l.spell ? 'spell' : ''}">${l.t}</div>`).join('')}</div>
       ${done ? `<div class="result ${F.winner === 'a' ? 'win' : 'lose'}">${F.winner === 'a' ? 'Sieg' : 'Gefallen'}</div>${fightSummary(F)}
-        ${lootCards(F.loot)}<div class="loot-drop">${F.reward || ''}</div>${F.back === 'trips' && S.haul ? haulActions() : `<button class="red" data-action="go" data-v="${F.back}">Weiter</button>`}`
+        ${lootCards(F.loot)}<div class="loot-drop">${F.reward || ''}</div><button class="red" data-action="go" data-v="${F.back}">Weiter</button>`
         : `<button data-action="skip">Überspringen</button>`}</div>
     ${side(F.B, hpB, F.hpB, last.who === 'a', 'fB', last.cB)}
   </div></div>`;
@@ -464,7 +430,7 @@ export function viewForge(sel, res) {
     <section class="panel grow forgeres"><h2>${res.grade.name}</h2><img class="runeimg g${Math.round(res.grade.q * 10)}" src="assets/forge/r_${res.mat}.webp" alt="">
       <p class="big">${res.rune.name}: <b class="up">+${res.v} ${STAT_NAME(res.rune.stat)}</b></p><p>in <span class="r-${res.it.rarity}">${res.it.name}</span> · ${res.score}/${FORGE.hits * 3} Punkte</p>
       <p class="dim small">Runenplätze: ${res.it.runes.length}/${FORGE.maxRunes}</p></section>
-    <div class="btns"><button data-action="forgeagain">Noch einmal</button><button class="red" data-action="${S.active ? 'go" data-v="trips' : 'trader" data-t="halvar'}">${S.active ? 'Zum Streifzug' : 'Zurück'}</button></div></div>`;
+    <div class="btns"><button data-action="forgeagain">Noch einmal</button><button class="red" data-action="trader" data-t="halvar">Zurück</button></div></div>`;
   if (sel.mode === 'craft') return viewCraft(sel);
   return `<div class="col forge">${forgeTabs(sel)}
     <section class="panel smithy" id="forgeplay"><div class="scene"><img src="assets/forge/scene.jpg" alt="">

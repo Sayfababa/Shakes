@@ -10,7 +10,7 @@ let expSel = { loc: null, h: 8, path: [] }, expRes = null, expAsk = false;
 let forgeSel = { mat: null, slot: null, mode: 'rune', item: null, stat: null, msg: '' }, forgeRes = null, FG = null;
 let descSt = { c: null, j: null, msg: '', res: null };
 let wPath = [], wInfo = null, wanderRes = null, actSel = null, zoneSel = null, prepC = null, prepM = null, alchSel = POTIONS[0].id, alchBack = 'traders';
-let tripLoc = null, view = 'hero', pickCls = null, F = null, pitSel = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
+let view = 'hero', pickCls = null, F = null, pitSel = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
 
 function render() {
   const S = G.S;
@@ -23,7 +23,6 @@ function render() {
     fight: () => UI.viewFight(F), trips: () => wanderRes ? UI.viewWander(wanderRes) : expRes ? UI.viewExpRes(expRes) : S.desc ? UI.viewDescAway('prophet') : UI.viewTrips(expAsk), stats: UI.viewStats, spells: UI.viewSpells, ways: () => UI.viewWays(waySel), talents: UI.viewTalents, crypt: () => S.wander && !S.desc ? UI.viewWanderAway('ilse') : S.exp ? UI.viewAway('ilse') : S.desc || descSt.res ? UI.viewDesc(descSt) : UI.viewCrypts(),
     desc: () => S.wander && !S.desc ? UI.viewWanderAway('ilse') : S.exp ? UI.viewAway('ilse') : UI.viewDesc(descSt),
     traders: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewTrader(trader),
-    trippick: () => S.desc ? UI.viewDescAway('prophet') : S.exp ? UI.viewTrips() : UI.viewTripPick(tripLoc),
     bounties: UI.viewBounties,
     forge: () => UI.viewForge(forgeSel, forgeRes),
     npc: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewNpc(npc),
@@ -60,7 +59,7 @@ function tutCheck() {
   const S = G.S, t = TUTORIAL[S.tut]; if (!t) return;
   const [k, v] = t.when.split(':');
   const ok = k === 'view' ? (v === 'kaspar' ? view === 'traders' && trader === 'kaspar' : view === v)
-    : k === 'active' ? !!S.active || S.wins > 0 : k === 'wins' ? S.wins > 0
+    : k === 'wins' ? S.wins > 0
     : k === 'spent' ? S.points < CFG.startPoints + (S.lvl - 1) * CFG.attrPerLevel || Object.keys(S.equip).length > 1
     : k === 'turnin' ? Object.values(S.traders).some(t => t.q > 0) : false;
   if (ok) { S.tut++; tutCheck(); }
@@ -79,7 +78,7 @@ function showFight(res, back, extra = '') {
   if (!res) return render();
   const { A, B, r, win, rew } = res;
   const loot = !win || res.desc ? [] : rew.items?.length ? rew.items : rew.item ? [rew.item] : [];   // Abgrund: Beute liegt im Sack, nicht im Beutel
-  F = { A, B, ...r, step: 0, back, loot, gold: win ? rew?.sack?.gold || rew?.gold || 0 : 0, reward: (win ? (res.haul ? haulRewText(res) : res.desc ? descRewText(res) : rewText(rew)) : loseText(res)) + extra };
+  F = { A, B, ...r, step: 0, back, loot, gold: win ? rew?.sack?.gold || rew?.gold || 0 : 0, reward: (win ? (res.desc ? descRewText(res) : rewText(rew)) : loseText(res)) + extra };
   view = 'fight'; G.save();
   clearTimeout(fightTimer);
   const tick = () => { F.step++; if (F.step >= F.log.length) return render(); fightStep(); const l = F.log[F.step - 1]; fightTimer = setTimeout(tick, l?.spell ? 780 : l?.crit ? 560 : 400); };
@@ -95,19 +94,6 @@ function descRewText(res) {
   else L.push(`<i class="dim">Leben ${Math.round(res.desc.hpf * 100)} % – es füllt sich unten nicht auf.</i>`);
   return L.join('<br>');
 }
-function haulRewText(res) {
-  const w = res.rew, h = res.haul, L = [`Gefunden: ${w.gold} Gold · ${w.xp} EP`];
-  for (const [k, n] of w.mats) L.push(`${MATS[k]} ×${n}`);
-  for (const [k, n] of w.herbs || []) L.push(`${HERBS[k].name} ×${n}`);
-  if (w.item) L.push(`<span class="r-${w.item.rarity}">${w.item.name}</span>${betterTxt(w.item)}`);
-  for (const it of (w.items || []).slice(1)) L.push(`Beute: <span class="r-${it.rarity}">${it.name}</span>${it.soldFull ? ' <i class="dim">(Beutel voll – verkauft)</i>' : betterTxt(it)}`);
-  if (w.actDone) L.push(`<b class="gold">Akt ${w.actDone.n} geschafft.</b> Der nächste Akt ist offen${w.actDone.crypt ? ', und eine Krypta wartet' : ''}.`);
-  if (w.tier) L.push(`<b class="gold">Krypta-Stufe ${w.tier} bezwungen.</b> Die nächste ist schwerer – und reicher.`);
-  if (w.rankUp) L.push(`<b class="gold">Neuer Rang: ${w.rankUp.name}</b> · Titel „${w.rankUp.title}“ + Segen`);
-  if (w.omen) L.push('<b class="gold">Das Omen hat sich erfüllt.</b>');
-  L.push(`<i class="dim">Ungesichert (Tiefe ${h.depth}): ${h.gold} Gold, ${h.xp} EP${h.items.length ? `, ${h.items.length} Fundstück(e)` : ''}</i>`);
-  return L.join('<br>');
-}
 // "Oh, das ist viel besser!" – direkt bei der Beute zeigen
 function betterTxt(it) { const g = UI.itemGain(it);
   return (it.unique ? ' <b class="uniq-txt">Einzigartig!</b>' : it.special ? ' <b class="uniq-txt">✦</b>' : '') + (g > 0.01 ? ` <b class="better-txt">▲ +${Math.round(g * 100)} % Kampfkraft</b>` : ''); }
@@ -119,7 +105,6 @@ function toast(before) {
   document.body.appendChild(el); setTimeout(() => el.remove(), 2200);
 }
 function loseText(res) {
-  if (res.lost) return `In der Tiefe verloren: ${res.lost.gold} Gold, ${res.lost.xp || 0} EP${res.lost.items.length ? ` und ${res.lost.items.length} Fundstück(e)` : ''}.`;
   if (res.pit) return `Vargo lacht. Platz bleibt – ${Math.round(PIT.cdLose / 60)} Minuten Pause.`;
   if (res.rew.honor) return `${res.rew.honor} Ehre`;
   if (res.desc?.lost) { const l = res.desc.lost; return `Der Sack bleibt unten: ${l.gold} Gold${l.items.length ? `, ${l.items.length} Fundstück${l.items.length > 1 ? 'e' : ''}` : ''}.`; }
@@ -251,14 +236,7 @@ const actions = {
   service: d => { const it = G.doService(d.t, d.s); if (!it) return alert('Nicht möglich.'); hideTip(); render();
     setTimeout(() => alert(`${it.name}${it.up ? ' +' + it.up : ''} – erledigt.`), 50); },
   champ: d => showFight(Game.champFight(d.t), 'npc'),
-  trip: d => { tripLoc = d.id; view = 'trippick'; render(); },
-  tripgo: d => { if (G.startTrip(d.id, d.tr)) { view = 'trips'; render(); } },
-  bank: () => { const h = Game.bank(); view = 'trips'; F = null; clearTimeout(fightTimer);
-    if (h?.up) G.journal(`Stufe ${G.S.lvl} erreicht.`); if (h) G.journal(`Heimgekehrt mit ${h.gold} Gold${h.items.length ? ` und ${h.items.length} Fundstück${h.items.length > 1 ? 'en' : ''}` : ''}.`); render(); },
-  delve: () => showFight(Game.delve(), 'trips'),
-  rush: () => { const S = G.S, c = G.rushCost(); if (S.active && S.gold >= c) { S.gold -= c; S.active.end = Date.now(); } render(); },
   claim: d => { const r = G.claimBounty(+d.i); if (r) G.journal(`Steckbrief erfüllt: ${r.gold} Gold, ${r.xp} EP.`); render(); },
-  resolve: () => showFight(Game.resolveTrip(), 'trips'),
   crypt: d => { const c = CRYPTS.find(x => x.id === d.id); if (!c) return; prepC = c.id; prepM = G.cryptEnemy(c); view = 'prep'; render(); },
   prepPot: d => { if (!prepM) return; const keep = Game.enemyInfo(prepM).tags.map(t => t[1]); if (!Game.packPotion(d.id, keep)) return alert('Geht gerade nicht.'); render(); },
   bestBelt: () => { if (!prepM) return; if (!Game.bestBelt(prepM)) alert('Du hast noch keine Tränke. Brau welche bei Mutter Ysolde.'); render(); },
