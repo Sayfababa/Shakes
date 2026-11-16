@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup – Die Akte</title>
+<link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+SC:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  html, body { overflow: auto; height: auto; }
+  .wrap { display: flex; gap: 28px; padding: 24px; align-items: flex-start; width: max-content; }
+  .phone { width: 390px; height: 800px; position: relative; display: flex; flex-direction: column; padding: 10px; gap: 6px;
+    border: 1px solid #2a2118; box-shadow: 0 0 0 6px #0b0907, 0 0 40px #000; background: var(--noise), var(--stonetex), radial-gradient(ellipse at 50% 20%, #241a12, #070504 70%); }
+  .phone > * { flex: none; }
+  .cap { font-family: 'Alegreya SC'; color: var(--gold); text-align: center; margin-bottom: 8px; font-size: 1rem; }
+  .note2 { width: 390px; color: var(--dim); font-size: .85rem; margin-top: 10px; line-height: 1.35; } .note2 b { color: var(--gold); font-weight: 500; }
+  .hudm { display: flex; align-items: center; justify-content: space-between; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.5rem; }
+  .hudm small { font-family: 'Alegreya SC'; font-size: .8rem; color: var(--text); }
+  .tabsm { margin-top: auto; display: flex; gap: 3px; } .tabsm a { flex: 1; text-align: center; padding: 9px 2px; font-family: 'Alegreya SC'; font-size: .7rem; color: var(--dim); border-image: url('../assets/ui/tab.webp') 16 fill / 8px stretch; }
+  .tabsm a.on { color: var(--gold-hi); border-image-source: url('../assets/ui/tab_on.webp'); }
+  .ico { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; background: center / contain no-repeat; }
+  .ico.glut { background-image: url('../assets/ui/marker.webp'); filter: hue-rotate(15deg) saturate(1.4); }
+  .ico.coin { background-image: url('../assets/ui/coin.webp'); }
+  /* Aktliste */
+  .act { display: grid; grid-template-columns: 54px 1fr auto; gap: 2px 10px; align-items: center; padding: 7px 9px; }
+  .act img { width: 54px; height: 54px; object-fit: cover; grid-row: span 2; box-shadow: 0 0 0 1px #3a3226; }
+  .act h3 { margin: 0; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.05rem; }
+  .act small { color: var(--dim); font-size: .76rem; grid-column: 2 / -1; }
+  .act .an { font-family: 'Alegreya SC'; color: var(--gold-hi); font-size: .8rem; text-align: right; }
+  .act .pr { display: flex; gap: 2px; grid-column: 2 / -1; } .act .pr i { flex: 1; height: 5px; background: #1a1410; box-shadow: inset 0 0 0 1px #3a3226; } .act .pr i.on { background: #b08a3e; } .act .pr i.boss { flex: 1.6; } .act .pr i.boss.on { background: #a8241a; }
+  .act.done { opacity: .75; } .act.cur { box-shadow: inset 0 0 0 2px #b08a3e; } .act.lock { opacity: .4; filter: grayscale(.8); }
+  /* Aktpfad */
+  .ahead { display: grid; grid-template-columns: 1fr auto; align-items: end; }
+  .ahead h2 { margin: 0; font-family: 'Grenze Gotisch'; color: var(--gold-hi); font-size: 1.35rem; } .ahead small { color: var(--dim); font-size: .78rem; }
+  .path { flex: 1 1 auto !important; display: flex; flex-direction: column-reverse; gap: 0; padding: 8px 10px; position: relative; }
+  .zone { display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: center; padding: 4px 0; position: relative; }
+  .zone::before { content: ''; position: absolute; left: 16px; top: -50%; height: 100%; width: 2px; background: #3a3226; z-index: 0; }
+  .zone:last-child::before { display: none; }
+  .zone .dot { width: 34px; height: 34px; z-index: 1; border-image: url('../assets/ui/slot.webp') 16 / 5px stretch; background: #07080b; display: grid; place-items: center; font: 600 .78rem 'Alegreya SC'; color: var(--dim); overflow: hidden; }
+  .zone .dot img { width: 100%; height: 100%; object-fit: cover; }
+  .zone b { font-family: 'Alegreya SC'; font-weight: 500; font-size: .86rem; color: var(--text); } .zone small { display: block; color: var(--dim); font-size: .72rem; font-family: 'Alegreya'; }
+  .zone .r { font: .74rem 'Alegreya SC'; color: var(--dim); text-align: right; }
+  .zone.done b { color: #8a7a5a; } .zone.done .dot { color: #6f9a4c; }
+  .zone.cur .dot { box-shadow: 0 0 0 2px var(--gold-hi), 0 0 12px rgba(224,194,122,.5); } .zone.cur b { color: var(--gold-hi); }
+  .zone.elite b { color: #8fb6ff; } .zone.boss b { color: #e86a55; font-family: 'Grenze Gotisch'; font-size: 1.05rem; } .zone.boss .dot { width: 34px; height: 34px; }
+  .zone.fog { opacity: .45; }
+  .loot { display: inline-flex; gap: 3px; } .loot i { width: 9px; height: 9px; box-shadow: inset 0 0 0 1px #000; } .lg { background: #888; } .lw { background: #ddd; } .lm { background: #6969ff; } .ly { background: #ffff64; } .ll { background: #c7b377; }
+  /* Gebiet */
+  .zhead { display: grid; grid-template-columns: 76px 1fr; gap: 10px; align-items: center; }
+  .zhead img { width: 76px; height: 76px; object-fit: cover; box-shadow: 0 0 0 1px #3a3226; }
+  .zhead h2 { margin: 0; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.25rem; } .zhead p { margin: 2px 0; font-size: .8rem; }
+  .rows p { margin: 3px 0; font-size: .82rem; display: flex; justify-content: space-between; } .rows p span:first-child { color: var(--dim); }
+  .chance { display: flex; justify-content: space-between; align-items: center; font-family: 'Alegreya SC'; } .chance b { font-size: 1.3rem; color: #e0c27a; }
+  .two { display: flex; gap: 6px; } .two button { flex: 1; }
+  .hint { font-size: .8rem; line-height: 1.3; } .hint b { color: var(--gold-hi); font-weight: 500; }
+</style></head><body><div class="wrap">
+
+<!-- 1 Aktliste -->
+<div><div class="cap">1 · Streifzug = die Akte</div><div class="phone">
+  <div class="hudm">Varn <small>Stufe 12 · 840 <span class="ico coin"></span></small></div>
+  <div class="bountybar"><span>Steckbriefe heute</span><b>1/3</b></div>
+  <div class="bountybar expbar"><span>Expedition</span><b>ohne Glut · 1–8 Std.</b></div>
+  <section class="panel act done"><img src="../assets/monsters/gerlinde.jpg"><h3>Akt I · Friedhof von Vhal</h3><span class="an">geschafft</span><div class="pr"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="boss on"></i></div><small>Mutter Gerlinde ist gefallen · Gebiete wiederholbar</small></section>
+  <section class="panel act done"><img src="../assets/monsters/aldemar.jpg"><h3>Akt II · Die Alte Mühle</h3><span class="an">geschafft</span><div class="pr"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="boss on"></i></div><small>Bruder Aldemar ist gefallen</small></section>
+  <section class="panel act cur"><img src="../assets/monsters/butcher.jpg"><h3>Akt III · Katakomben</h3><span class="an">5 / 9</span><div class="pr"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i class="boss"></i></div><small>Weiter: Die Knochenhalle · Stufe 15</small></section>
+  <section class="panel act lock"><img src="../assets/monsters/sumpfhexe.jpg"><h3>Akt IV · Moor der Gehenkten</h3><span class="an">gesperrt</span><small>Der Metzger von Vhal muss fallen</small></section>
+  <section class="panel act lock"><img src="../assets/monsters/bellringer.jpg"><h3>Akt V · Eingestürzte Kapelle</h3><span class="an"></span><small>&nbsp;</small></section>
+  <section class="panel act lock"><img src="../assets/portraits/huntress.jpg"><h3>Akt VI · Die Feuergruben</h3><span class="an"></span><small>&nbsp;</small></section>
+  <div class="tabsm"><a>Held</a><a class="on">Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></div>
+</div><p class="note2">6 Akte statt 6 Orte. Jeder Akt: <b>8 Gebiete + Boss</b>. Die bisherigen Krypta-Bosse werden die Akt-Bosse (Akt IV bekommt einen neuen). Der Boss öffnet den nächsten Akt.</p></div>
+
+<!-- 2 Aktpfad -->
+<div><div class="cap">2 · Im Akt</div><div class="phone">
+  <div class="hudm">Varn <small>Stufe 12 · <span class="ico glut"></span> 64</small></div>
+  <section class="panel ahead"><div><h2>Akt III · Katakomben</h2><small>Knochen bis zur Decke, sortiert nach einer Ordnung, die kein Mensch erdacht hat.</small></div></section>
+  <section class="panel path">
+    <div class="zone done"><span class="dot">✓</span><div><b>Der Einstieg</b><small>Skelettkrieger · Stufe 12</small></div><span class="r"><span class="loot"><i class="lg"></i><i class="lw"></i></span></span></div>
+    <div class="zone done"><span class="dot">✓</span><div><b>Die Ossuarien</b><small>Knochenhund · Stufe 12</small></div><span class="r"><span class="loot"><i class="lw"></i><i class="lm"></i></span></span></div>
+    <div class="zone done elite"><span class="dot">✓</span><div><b>Wächter der Treppe</b><small>Elite · Flink, Dornen</small></div><span class="r"><span class="loot"><i class="lm"></i><i class="ly"></i></span></span></div>
+    <div class="zone done"><span class="dot">✓</span><div><b>Die Schädelwand</b><small>Wiedergänger · Stufe 13</small></div><span class="r"><span class="loot"><i class="lw"></i><i class="lm"></i></span></span></div>
+    <div class="zone done"><span class="dot">✓</span><div><b>Der Brunnenschacht</b><small>Skelettkrieger · Stufe 14</small></div><span class="r"><span class="loot"><i class="lw"></i><i class="lm"></i></span></span></div>
+    <div class="zone cur"><span class="dot"><img src="../assets/monsters/knochenhund.jpg"></span><div><b>Die Knochenhalle</b><small>Knochenhund · Stufe 15</small></div><span class="r">71 %</span></div>
+    <div class="zone fog elite"><span class="dot">?</span><div><b>Die Kammer der Ordnung</b><small>Elite</small></div><span class="r"><span class="loot"><i class="lm"></i><i class="ly"></i></span></span></div>
+    <div class="zone fog"><span class="dot">?</span><div><b>Der tiefe Gang</b><small>&nbsp;</small></div><span class="r"></span></div>
+    <div class="zone boss fog"><span class="dot"><img src="../assets/monsters/butcher.jpg"></span><div><b>Der Metzger von Vhal</b><small>Wird rasend und schlachtet Geschwächte</small></div><span class="r"><span class="loot"><i class="ly"></i><i class="ll"></i></span></span></div>
+  </section>
+  <div class="two"><button>Gebiet wiederholen</button><button class="red">Weiter · Knochenhalle</button></div>
+  <div class="tabsm"><a>Held</a><a class="on">Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></div>
+</div><p class="note2">Unten fängt der Akt an, oben wartet der Boss. Jedes Gebiet = 1 Kampf. Farbpunkte = was dort fallen kann: erst grau/weiß, später blau/gelb, Boss sicher selten+. Elite = bessere Beute, Boss-Mechanik steht vorher da.</p></div>
+
+<!-- 3 Gebiet -->
+<div><div class="cap">3 · Gebiet antippen</div><div class="phone">
+  <div class="hudm">Varn <small>Stufe 12 · <span class="ico glut"></span> 64</small></div>
+  <section class="panel zhead"><img src="../assets/monsters/knochenhund.jpg"><div><h2>Die Knochenhalle</h2><p class="dim">Akt III · Gebiet 6 / 9 · Stufe 15</p><p>Knochenhund · Rudel, schnelle Bisse</p></div></section>
+  <section class="panel rows"><p><span>Neues Gebiet</span><span>kostet nichts</span></p><p><span>Beute</span><span class="loot"><i class="lw"></i><i class="lm"></i><i class="ly"></i></span></p><p><span>Belohnung</span><span>EP · Gold · Knochenstaub</span></p><p><span>Bei Niederlage</span><span>nichts verloren, nochmal</span></p></section>
+  <section class="panel hint"><b>Wiederholen</b> kostet <span class="ico glut"></span> 6 Glut – so farmt man Beute und Zutaten in geschafften Gebieten. Neues spielen ist immer frei.</section>
+  <section class="panel">Gürtel: Rotwurz-Trank · Steinhaut <span class="dimt">(Tränke wirken überall)</span></section>
+  <section class="panel chance"><span>Siegchance</span><b>71 %</b><button class="red">Kämpfen</button></section>
+  <div class="tabsm"><a>Held</a><a class="on">Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></div>
+</div><p class="note2">Kampf <b>sofort</b>, kein Warten – Durchspielen soll flüssig sein. Bremse: nach einem Kampf kurze Erholung (z. B. 1 Min.), Glut nur fürs Farmen. Zu schwer? → Grube, Schmiede, Abgrund, Expedition – stärker zurückkommen.</p></div>
+
+</div></body></html>
