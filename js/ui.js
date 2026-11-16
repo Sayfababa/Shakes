@@ -544,7 +544,7 @@ export function viewPitPrep(sel, B) {
     <p class="small pitwin">Sieg: ${win} · Niederlage: ${Math.round(PIT.cdLose / 60)} Min. Pause</p></div>`;
   const go = busy === 'Pause' ? `<button class="red" disabled><span data-until="${S.pit.ts}">${fmtT(Math.ceil((S.pit.ts - Date.now()) / 1000))}</span></button>`
     : `<button class="red" data-action="pitgo" ${busy ? 'disabled' : ''}>Kämpfen</button>`;
-  return prepCore(B, head, pW, p0, go, 0, rule).replace('class="col prep"', 'class="col prep pitprep"').replace('<section class="panel chance"', '<div class="btns"><button data-action="go" data-v="arena">Zurück</button></div><section class="panel chance"');
+  return prepCore(B, head, pW, p0, go, 0, rule).replace('class="col prep"', 'class="col prep pitprep"').replace('<section class="panel prephead">', '<section class="panel prephead"><button class="tiny pback" data-action="go" data-v="arena">Zurück</button>');
 }
 export function viewArena() {
   const Pw = pitWeek(), place = pitPlace(), rk = pitRank(), ri = PIT_RANKS.indexOf(rk), nx = PIT_RANKS[ri + 1], foes = pitFoes(), ch = Pw.ch, busy = pitBusy();
@@ -700,8 +700,8 @@ export function viewAct(a) {
 }
 export function viewZonePrep(a, z, m) {
   const boss = z >= ACT.zones, p = actProg(a), replay = z < p, why = actCan(a, z), pW = actChance(a, z), p0 = actChance(a, z, []);
-  const head = `${monsterArt(boss ? a.boss.glyph : m.glyph)}<div><h2>${boss ? a.boss.name : a.zones[z]}</h2><p class="dim small">Akt ${a.n} · ${boss ? 'Boss' : `Gebiet ${z + 1}`} / ${ACT.zones + 1} · ${m.name.split(',')[0]} · Stufe ${m.lvl}</p>
+  const head = `${monsterArt(boss ? a.boss.glyph : m.glyph)}<div><h2>${boss ? a.boss.name : a.zones[z]}</h2><p class="dim small">Akt ${a.n} · ${boss ? 'Boss' : `Gebiet ${z + 1}`} / ${ACT.zones + 1} · ${boss ? '' : m.name.split(',')[0] + ' · '}Stufe ${m.lvl}</p>
     <p class="small">${boss ? `<i>${a.boss.mechText}</i>` : m.elite ? `<b class="hot">Elite:</b> ${m.elite.join(', ')}` : ''}${replay ? ` <span class="dim">Wiederholen · </span><i class="ico glut"></i>${actZoneGlut(a)}` : ' <span class="up">Neu · kostet nichts</span>'}</p></div>`;
   return prepCore(m, head, pW, p0, `<button class="red" data-action="actgo" ${why ? 'disabled' : ''}>${why && why.startsWith('Wiederholen') ? 'Glut fehlt' : 'Kämpfen'}</button>`)
-    .replace('<section class="panel chance"', '<div class="btns"><button data-action="act" data-id="' + a.id + '">Zurück</button></div><section class="panel chance"');
+    .replace('<section class="panel prephead">', `<section class="panel prephead"><button class="tiny pback" data-action="act" data-id="${a.id}">Zurück</button>`);
 }
