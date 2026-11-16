@@ -805,7 +805,7 @@ export const PIT_RULES = [
 
 // --- Die Akte (Streifzug): 6 Akte, je 8 Gebiete + Boss. Neue Gebiete kosten nichts, Wiederholen kostet Glut (farmen). ---
 // Stufe der Gebiete steigt von lvl bis top, `diff` macht spätere Akte zäher (ohne mehr EP); der Boss öffnet den nächsten Akt und die Krypta `crypt` (deren Boss dann in Stufen wiederholbar).
-export const ACT = { doneAt: [6, 9, 11, 15, 17, 19], zones: 8, elites: [3, 6], firstXp: 3, firstGold: 2, bossXp: 6, bossGold: 5, replay: 1, itemP: 0.45, eliteDiff: 1.15, eliteHp: 1.25, bossMult: 0.95, bossItems: 2 };
+export const ACT = { doneAt: [6, 9, 11, 15, 17, 19], zones: 8, elites: [3, 6], firstXp: 3, firstGold: 2, bossXp: 6, bossGold: 5, replay: 1, itemP: 0.45, eliteDiff: 1.15, eliteHp: 1.25, bossMult: 0.95, bossItems: 2, matFirst: 1 };
 export const ACTS = [
   { id: 'a1', n: 'I', intro: 'Die Glocke hat sie geweckt. Ansgar gräbt nicht mehr für die Toten – er gräbt sie aus.', say: 'Jedes Grab hier habe ich geschaufelt. Deins auch.', outro: 'Ansgar fällt in die Grube, die er selbst ausgehoben hat. Das Tor zur Gruft steht offen.',
     loc: 'friedhof', lvl: 1, top: 6, diff: 1.0, eliteDiff: 0.9, eliteHp: 1.0, bossMult: 0.52, crypt: 'c1', zones: ['Das Friedhofstor', 'Die Reihen der Armen', 'Das offene Grab', 'Die Wacht am Beinhaus', 'Der Weidenhang', 'Die Gräbergasse', 'Der Mauerbruch', 'Das Leichenhaus'],

@@ -9,7 +9,7 @@ import { pick, roll, chance, rand } from './rng.js';
 
 const now = () => Date.now();
 
-function dropMat(m, rew) { if (m.mat && chance(CFG.matChance)) { const n = m.boss ? 3 : 1; G.addMat(m.mat, n); rew.mats.push([m.mat, n]); } }
+function dropMat(m, rew, sure = 0) { if (m.mat && (sure || chance(CFG.matChance))) { const n = (m.boss ? 3 : 1) + sure; G.addMat(m.mat, n); rew.mats.push([m.mat, n]); } }
 function dropItem(lvl, p, minRarity, rew) {
   if (!chance(p)) return;
   const it = makeItem(lvl, { luck: G.stats().lck, cls: CLASSES[G.S.cls], minRarity });
@@ -143,7 +143,7 @@ export function actFight(id, z, m0 = null) {
   rew.grade = gradeOf(r); if (rew.grade.id === 'dom') G.bountyEvent({ type: 'dom' }); const gb = 1 + rew.grade.bonus, lv = m.lvl;
   const xf = replay ? ACT.replay : boss ? ACT.bossXp : ACT.firstXp, gf = replay ? ACT.replay : boss ? ACT.bossGold : ACT.firstGold;
   pay(rew, Math.round((6 + lv * 4) * gf * gb * (od?.gold || 1)), Math.round((20 + lv * 12) * xf * (od?.xp || 1)));
-  dropMat(m, rew); dropHerb(HERB_LOC[l.id], ALCH.herbChance * (m.elite ? 2 : 1), 1, rew);
+  dropMat(m, rew, replay ? 0 : ACT.matFirst + (m.elite ? 1 : 0)); dropHerb(HERB_LOC[l.id], ALCH.herbChance * (m.elite ? 2 : 1), 1, rew);   // erster Sieg in einem Gebiet: Material sicher und mehr
   if (boss) { rew.items = []; for (let i = 0; i < ACT.bossItems; i++) { const it = makeItem(lv, { luck: G.stats().lck + 20, cls: CLASSES[S.cls], minRarity: i ? 2 : 3 }); rew.items.push(it); if (!G.addToBag(it)) { S.gold += it.value; it.soldFull = true; } } rew.item = rew.items[0]; }
   else { const pos = z / ACT.zones, minR = m.elite ? 2 : pos >= 0.6 ? 2 : pos >= 0.3 ? 1 : 0;
     dropItem(lv, m.elite || od?.loot ? 1 : Math.min(1, ACT.itemP + rew.grade.bonus / 2), minR, rew); }

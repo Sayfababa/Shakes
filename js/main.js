@@ -104,6 +104,20 @@ function toast(before) {
   el.innerHTML = `Kampfkraft ${UI.fmtN(before)} → <b>${UI.fmtN(after)}</b> <span>${d > 0 ? '▲ +' : '▼ −'}${Math.abs(Math.round(d / Math.max(1, before) * 100))} %</span>`;
   document.body.appendChild(el); setTimeout(() => el.remove(), 2200);
 }
+// Eigene Fenster statt der Systemdialoge des Browsers: Frage (zwei Knöpfe) und kurzer Hinweis (Einblendung)
+let dlgFn = null;
+function ask(text, ok, fn, red) {
+  dlgFn = fn;
+  tip.innerHTML = `<div class="dlg">${text}</div><div class="act"><button${red ? ' class="red"' : ''} data-action="dlgok">${ok}</button><button data-action="noop">Zurück</button></div>`;
+  tip.className = 'touch'; tip.hidden = false;
+  tip.style.left = Math.max(8, (innerWidth - tip.offsetWidth) / 2) + 'px';
+  tip.style.top = Math.max(8, (innerHeight - tip.offsetHeight) / 2) + 'px';
+}
+function note(text) {
+  document.querySelector('.toast.note')?.remove();
+  const el = document.createElement('div'); el.className = 'toast note'; el.textContent = text;
+  document.body.appendChild(el); setTimeout(() => el.remove(), 2600);
+}
 function loseText(res) {
   if (res.pit) return `Vargo lacht. Platz bleibt – ${Math.round(PIT.cdLose / 60)} Minuten Pause.`;
   if (res.rew.honor) return `${res.rew.honor} Ehre`;
@@ -206,17 +220,18 @@ const precious = it => ['rare', 'legendary'].includes(it.rarity) || !!it.special
 const actions = {
   ways: d => { waySel = d.s; view = 'ways'; render(); },
   way: d => { const cur = G.S.sp?.[d.s]?.[+d.t]; if (cur === +d.i) return;
-    if (cur != null && !confirm(`Weg wechseln für ${G.wayCost()} Gold?`)) return;
-    const p = G.power(), err = G.chooseWay(d.s, +d.t, +d.i); if (err) return alert(err); G.save(); render(); toast(p); },
+    const go = () => { const p = G.power(), err = G.chooseWay(d.s, +d.t, +d.i); if (err) return note(err); G.save(); render(); toast(p); };
+    if (cur != null) return ask(`Weg wechseln für <b>${G.wayCost()} Gold</b>?`, 'Wechseln', go); go(); },
+  dlgok: () => { const f = dlgFn; dlgFn = null; f?.(); },
   pick: d => { pickCls = d.c; render(); setTimeout(() => document.getElementById('nm')?.focus()); },
   create: () => { const n = document.getElementById('nm').value.trim() || 'Namenloser'; G.newChar(n, pickCls);
     G.journal(`${n} erwacht im Grab. Drei Gestalten warten am Friedhofstor.`); view = 'traders'; render(); },
-  wipe: () => { if (confirm('Charakter wirklich vernichten?')) { G.wipe(); pickCls = null; render(); } },
+  wipe: () => ask('Held wirklich vernichten?<small>Stufe, Ausrüstung und Fortschritt sind dann fort.</small>', 'Vernichten', () => { G.wipe(); pickCls = null; render(); }, true),
   go: d => { view = d.v; turnin = null; expAsk = false; if (d.v === 'alch') alchBack = null; if (d.v === 'forge') { forgeRes = null; stopForge(); } if (d.v === 'npc') npc = d.n || npc; if (view !== 'fight') { F = null; clearTimeout(fightTimer); } render(); },
   attr: d => { G.addAttr(d.k); render(); },
   learn: d => { if (G.learn(+d.b, +d.t)) render(); },
-  respec: () => { const c = G.respecCost(); if (confirm(c ? `Für ${c} Gold alle Attribute und Talente zurücksetzen?` : 'Attribute und Talente zurücksetzen? (einmalig gratis)')) { G.respec(); render(); } },
-  equip: d => { const p = G.power(); if (!G.equip(d.id)) alert('Kein Platz im Beutel.'); render(); toast(p); },
+  respec: () => { const c = G.respecCost(); ask(c ? `Für <b>${c} Gold</b> alle Attribute und Talente zurücksetzen?` : 'Attribute und Talente zurücksetzen?<small>Einmalig gratis.</small>', 'Läutern', () => { G.respec(); render(); }); },
+  equip: d => { const p = G.power(); if (!G.equip(d.id)) note('Kein Platz im Beutel.'); render(); toast(p); },
   unequip: d => { const p = G.power(); G.unequip(d.s); render(); toast(p); },
   // Wertvolles (selten und besser, Sonderbonus) erst beim zweiten Tipp verkaufen – es gibt keinen Rückkauf
   sell: d => { const it = findItem(d.id); if (!it) return;
@@ -227,32 +242,32 @@ const actions = {
   buy: d => { const S = G.S, shop = S.traders[d.t].shop, i = shop.findIndex(x => x.id === d.id), it = shop[i];
     if (!it || S.gold < it.price) return;
     const bought = { ...it }; delete bought.price; delete bought.lock;
-    if (!G.addToBag(bought)) return alert('Kein Platz im Beutel.');
+    if (!G.addToBag(bought)) return note('Kein Platz im Beutel.');
     S.gold -= it.price; shop.splice(i, 1); render(); },
   shoplock: d => { if (G.lockShop(d.t, d.id)) render(); },
   turnin: d => { const r = Q.complete(d.t, d.c); if (r) { turnin = r; turninBy = d.t; if (!TRADERS[d.t]) view = 'npc'; render(); } },
   npc: d => { npc = d.n || d.t; turnin = null; view = 'npc'; render(); },
   tutskip: () => { G.S.tut = 99; render(); },
-  service: d => { const it = G.doService(d.t, d.s); if (!it) return alert('Nicht möglich.'); hideTip(); render();
-    setTimeout(() => alert(`${it.name}${it.up ? ' +' + it.up : ''} – erledigt.`), 50); },
+  service: d => { const it = G.doService(d.t, d.s); if (!it) return note('Nicht möglich.'); hideTip(); render();
+    note(`${it.name}${it.up ? ' +' + it.up : ''} – erledigt.`); },
   champ: d => showFight(Game.champFight(d.t), 'npc'),
   claim: d => { const r = G.claimBounty(+d.i); if (r) G.journal(`Steckbrief erfüllt: ${r.gold} Gold, ${r.xp} EP.`); render(); },
   crypt: d => { const c = CRYPTS.find(x => x.id === d.id); if (!c) return; prepC = c.id; prepM = G.cryptEnemy(c); view = 'prep'; render(); },
-  prepPot: d => { if (!prepM) return; const keep = Game.enemyInfo(prepM).tags.map(t => t[1]); if (!Game.packPotion(d.id, keep)) return alert('Geht gerade nicht.'); render(); },
-  bestBelt: () => { if (!prepM) return; if (!Game.bestBelt(prepM)) alert('Du hast noch keine Tränke. Brau welche bei Mutter Ysolde.'); render(); },
+  prepPot: d => { if (!prepM) return; const keep = Game.enemyInfo(prepM).tags.map(t => t[1]); if (!Game.packPotion(d.id, keep)) return note('Geht gerade nicht.'); render(); },
+  bestBelt: () => { if (!prepM) return; if (!Game.bestBelt(prepM)) note('Noch keine Tränke. Brau welche bei Mutter Ysolde.'); render(); },
   cryptgo: () => { const m = prepM; prepM = null; showFight(Game.cryptFight(prepC, m), 'crypt'); },
   alch: d => { alchBack = d.b === 'prep' ? (['pitprep', 'zoneprep'].includes(view) ? view : 'prep') : d.b === 'desc' ? d.b : 'traders'; view = 'alch'; render(); },
   potsel: d => { alchSel = d.id; render(); },
   brew: d => { if (G.brew(d.id)) { alchSel = d.id; render(); } },
   beltin: d => { const n = G.beltSlots(); let i = G.S.belt.slice(0, n).findIndex(b => !b);
     if (G.potion(d.id).rare) { const r = G.S.belt.slice(0, n).findIndex(b => b && G.potion(b.id).rare); if (r >= 0) i = r; }   // seltenen ersetzen
-    if (i < 0) return alert('Der Gürtel ist voll. Nimm erst einen Trank heraus.'); if (!G.setBelt(i, d.id)) return alert('Geht nicht.'); render(); },
+    if (i < 0) return note('Der Gürtel ist voll. Nimm erst einen Trank heraus.'); if (!G.setBelt(i, d.id)) return note('Geht nicht.'); render(); },
   beltout: d => { const i = G.S.belt.findIndex(b => b?.id === d.id); if (i >= 0) G.setBelt(i, null); render(); },
   beltdel: d => { G.setBelt(+d.i, null); render(); },
   trig: d => { const b = G.S.belt[+d.i], ts = b && G.potion(b.id).trig; if (!ts) return; G.setTrig(+d.i, ts[(ts.indexOf(b.trig) + 1) % ts.length]); render(); },
   winfo: d => { wInfo = d.t; render(); },
   wpath: d => { wInfo = d.t; const r = +d.r, j = +d.j; if (r > wPath.length) return render(); wPath = wPath[r] === j ? wPath.slice(0, r) : [...wPath.slice(0, r), j]; render(); },
-  wstart: () => { const why = Game.wanderBusy(); if (why) return alert(why); if (!Game.wanderStart(wPath)) return render(); wPath = []; G.save(); view = 'trips'; render(); },
+  wstart: () => { const why = Game.wanderBusy(); if (why) return note(why); if (!Game.wanderStart(wPath)) return render(); wPath = []; G.save(); view = 'trips'; render(); },
   wclaim: () => { wanderRes = Game.wanderClaim(); G.save(); render(); },
   wok: () => { wanderRes = null; render(); },
   act: d => { actSel = d.id; prepM = null; view = 'act'; render(); },
@@ -261,7 +276,7 @@ const actions = {
   pitsel: d => { const B = Game.pitTarget(d.id, !!d.ch); if (!B) return; pitSel = { id: d.id, ch: !!d.ch }; prepM = B; view = 'pitprep'; render(); },
   pitgo: () => { const s = pitSel; if (!s) return; const res = Game.pitFight(s.id, s.ch); if (!res) return render(); pitSel = null; prepM = null; showFight(res, 'arena'); },
   optset: d => { Sound.setOpt(d.k, +d.v); Sound.unlock(); if (d.k === 'sfx') Sound.play('hit'); render(); },
-  pitbuy: d => { const e = Game.pitBuy(d.t, +d.k); if (e) alert(e); render(); },
+  pitbuy: d => { const e = Game.pitBuy(d.t, +d.k); if (e) note(e); render(); },
   pittitle: d => { Game.pitTitle(d.t || null); G.save(); render(); },
   forgemode: d => { forgeSel.mode = d.m; forgeRes = null; forgeSel.msg = ''; render(); },
   craftpick: d => { forgeSel.item = d.id; forgeSel.stat = null; forgeSel.msg = ''; forgeSel.changed = null; render(); },
@@ -409,5 +424,5 @@ function fitApp() {
 addEventListener('resize', fitApp); addEventListener('orientationchange', () => setTimeout(fitApp, 300)); fitApp(); document.fonts?.ready.then(fitPrep);
 // Anzeige-Info (Einstellungen → „Anzeige-Maße“): zum Fehlersuchen am Handy
 actions.dbg = () => { const t = document.querySelector('.tabs')?.getBoundingClientRect();
-  alert(`innen ${innerWidth}×${innerHeight} · Bildschirm ${screen.width}×${screen.height} · sichtbar ${Math.round(visualViewport?.height || 0)} · Tabs unten ${Math.round(t?.bottom || 0)} · ${STANDALONE ? 'App' : 'Browser'}`); };
+  note(`innen ${innerWidth}×${innerHeight} · Bildschirm ${screen.width}×${screen.height} · sichtbar ${Math.round(visualViewport?.height || 0)} · Tabs unten ${Math.round(t?.bottom || 0)} · ${STANDALONE ? 'App' : 'Browser'}`); };
 G.load(); if (G.S?.wander) Game.wanderTick(Date.now()); render();

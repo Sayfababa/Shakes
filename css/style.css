@@ -338,6 +338,10 @@ img.portrait.monster { object-fit: cover; }
   background: #0d0a07; border: 1px solid #000; box-shadow: inset 0 0 0 1px #4a3a22, 0 6px 18px #000; pointer-events: none; animation: toast 2.2s ease-out forwards; white-space: nowrap; }
 .toast b { color: var(--gold-hi); font-family: 'Grenze Gotisch'; font-size: 1.15rem; } .toast.up span { color: #6fd15a; } .toast.down span { color: var(--blood-hi); }
 .toast.up { box-shadow: inset 0 0 0 1px #2f6a26, 0 0 22px rgba(90,200,70,.25), 0 6px 18px #000; }
+.toast.note { white-space: normal; width: max-content; max-width: 86vw; text-align: center; top: 30%; animation-duration: 2.6s; }
+#tip .tup { color: var(--gold-hi); font-family: 'Alegreya SC'; }
+#tip .dlg { font-family: 'Alegreya SC'; font-size: 1.1rem; line-height: 1.35; padding: 6px 2px 2px; } #tip .dlg b { color: var(--gold-hi); }
+#tip .dlg small { display: block; margin-top: 6px; color: var(--dim); font-family: 'Alegreya'; font-size: max(11px, .86rem); }
 @keyframes toast { 0% { opacity: 0; transform: translate(-50%, 8px); } 10% { opacity: 1; transform: translate(-50%, 0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -10px); } }
 .stat.attr { align-items: center; } .stat.attr > span:first-child { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
 .stat.attr small { font-size: max(11px, .68rem); color: var(--dim); } .stat.attr .an { font-size: .9rem; }

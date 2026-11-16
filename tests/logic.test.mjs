@@ -88,7 +88,17 @@ test('Omen: deterministisch pro Tag, einmal erfüllbar, erst ab Stufe 3', () => 
 
 test('Dienste: Schärfen erhöht Schaden, kostet Material', () => {
   const S = fresh(); S.gold = 9999; S.mats.zahn = 10; const d0 = S.equip.weapon.dmg[1];
-  G.doService('halvar', 'sharpen'); assert.ok(S.equip.weapon.dmg[1] > d0); assert.equal(S.equip.weapon.up, 1); assert.equal(S.mats.zahn, 8);
+  const s0 = G.stats().dmg[1]; G.doService('halvar', 'sharpen'); assert.equal(S.equip.weapon.dmg[1], d0, 'Teil selbst bleibt'); assert.ok(G.stats().dmg[1] > s0); assert.equal(G.slotUp('weapon'), 1); assert.equal(S.mats.zahn, 8);
+});
+test('Schärfen bleibt am Platz, wenn die Waffe wechselt; Migration verschiebt alte Stufen', () => {
+  const S = fresh(); S.gold = 99999; S.mats.zahn = 10; G.doService('halvar', 'sharpen'); G.doService('halvar', 'sharpen');
+  const old = S.equip.weapon, w = { ...old, id: 'neu', dmg: [...old.dmg] }; S.equip.weapon = w;
+  assert.equal(G.slotUp('weapon'), 2); assert.equal(G.tempered(10, 'weapon'), Math.round((Math.round(10 * 1.12) + 1) * 1.12) + 1);
+  S.equip.weapon = null; assert.ok(G.serviceState(D.SERVICES.halvar[0]).reason !== 'Nichts angelegt', 'Platz lässt sich auch leer schärfen');
+  // alter Stand: Stufe steckt im Teil
+  S.equip.weapon = old; S.temper = {}; const raw = [...old.dmg]; old.dmg = old.dmg.map(v => Math.round(v * 1.12) + 1); old.up = 1; S.v = 16; delete S.temper; G.save();
+  G.load(); assert.equal(G.S.v, G.SAVE_VERSION); assert.equal(G.slotUp('weapon'), 1); assert.ok(!G.S.equip.weapon.up);
+  assert.ok(Math.abs(G.S.equip.weapon.dmg[1] - raw[1]) <= 1, 'Grundwert zurück');
 });
 
 test('Grube kostet Glut und hat Abklingzeit (keine Gold-Endlosquelle)', () => {
@@ -755,4 +765,10 @@ test('Umherziehen: 2-Min-Punkte, max. 2 Std., steht still bei geschlossener App,
   let t = t0 + 5 * 60000; for (let i = 0; i < 8; i++) { t += 30000; Game.wanderTick(t); } assert.equal(S.wander.n, 2, '4 Min. offen = 2 Punkte');
   for (let i = 0; i < 400; i++) { t += 30000; Game.wanderTick(t); } assert.equal(S.wander.n, D.WANDER.maxSec / D.WANDER.sec); assert.ok(Game.wanderDone());
   const g = S.gold, r = Game.wanderClaim(); assert.equal(S.wander, null); assert.equal(S.gold, g + r.gold - r.items.filter(i => i.soldFull).reduce((a, i) => a + 0, 0) || S.gold >= g); assert.equal(Game.actCan(D.ACTS[0], 0), '');
+});
+
+test('Erster Sieg in einem Akt-Gebiet bringt sicher Material', () => {
+  const S = fresh(); S.attrs.str = S.attrs.con = 400; const a = D.ACTS[0], before = Object.values(S.mats).reduce((x, y) => x + y, 0);
+  const res = Game.actFight(a.id, 0); assert.ok(res.win); assert.ok(res.rew.mats.length === 1 && res.rew.mats[0][1] >= 1 + D.ACT.matFirst);
+  assert.equal(Object.values(S.mats).reduce((x, y) => x + y, 0), before + res.rew.mats[0][1]);
 });

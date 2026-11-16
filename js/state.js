@@ -3,7 +3,7 @@ import { affixPool, makeItem, itemValue, rollTier, affixValue, renameMagic, adj,
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
-export const SAVE_VERSION = 16;
+export const SAVE_VERSION = 17;
 export let S = null; // aktueller Spielstand
 
 export const now = () => Date.now();
@@ -78,6 +78,14 @@ function migrate(d) {
   if (d.v === 15) {   // Gegenstandsnamen mit richtigem Geschlecht
     for (const it of [...d.bag, ...Object.values(d.equip), ...Object.values(d.traders).flatMap(t => t.shop || []), ...(d.desc?.sack.items || []), ...Object.values(d.pit?.shop || {}).flat().map(w => w.item)]) fixName(it);
     d.v = 16; }
+  if (d.v === 16) {   // Schärfen/Verstärken gehören dem Platz, nicht mehr dem Teil: Stufe wandert auf den Platz, das Teil bekommt seine Grundwerte zurück
+    d.temper = {};
+    for (const it of [...d.bag, ...Object.values(d.equip)]) { if (!it?.up) continue;
+      const sv = TEMPER[it.slot]; if (sv) { d.temper[it.slot] = Math.max(d.temper[it.slot] || 0, it.up);
+        for (let i = 0; i < it.up; i++) { if (it.dmg) it.dmg = it.dmg.map(v => Math.max(1, Math.round((v - 1) / (1 + sv.per)))); if (it.armor) it.armor = Math.max(1, Math.round((it.armor - 1) / (1 + sv.per))); }
+        it.value = Math.max(1, Math.round(it.value / 1.3 ** it.up)); }
+      delete it.up; }
+    d.v = 17; }
   d.name = cleanName(d.name);
   return d.v === SAVE_VERSION ? d : null;
 }
@@ -86,7 +94,7 @@ function migrate(d) {
 export const cleanName = n => String(n ?? '').replace(/[<>&"'`\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16) || 'Namenloser';
 export function newChar(name, cls) {
   name = cleanName(name); const c = CLASSES[cls];
-  S = { v: SAVE_VERSION, name, cls, lvl: 1, xp: 0, gold: 40, attrs: baseAttrs(cls), points: CFG.startPoints, tal: {}, sp: {}, respecs: 0,
+  S = { v: SAVE_VERSION, name, cls, lvl: 1, xp: 0, gold: 40, attrs: baseAttrs(cls), points: CFG.startPoints, tal: {}, sp: {}, temper: {}, respecs: 0,
     crypt: { diff: 0, prog: {}, cd: 0 }, trophies: [], traders: freshTraders(), mats: {}, omen: null, omens: 0, shards: [], tut: 0, title: null, haul: null, bounty: null,
     equip: {}, bag: [], glut: CFG.maxGlut, glutTs: now(), active: null,
     journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0, belt: [null, null, null], herbs: {}, pots: {}, potDay: today(), exp: null, bless: 0, desc: null, descDay: null, pit: freshPit(), acts: { prog: {} }, wander: null };
@@ -155,19 +163,23 @@ function withWays(s, p) {
   return w;
 }
 
+// Aufwertung am Platz (Schärfen = Waffe, Verstärken = Brust): gilt für jedes Teil, das dort angelegt wird
+const TEMPER = Object.fromEntries(Object.values(SERVICES).flat().filter(sv => sv.max).map(sv => [sv.slot, sv]));
+export const slotUp = (slot, p = S) => p?.temper?.[slot] || 0;
+export function tempered(v, slot, p = S) { const sv = TEMPER[slot]; if (!sv || !v) return v; for (let i = slotUp(slot, p); i > 0; i--) v = Math.round(v * (1 + sv.per)) + 1; return v; }
 // Abgeleitete Kampfwerte
 const cap = (base = 0, add, max) => Math.max(base, Math.min(max, base + add));
 export function stats(p = S) {
   const st = { ...p.attrs, armor: 0, dmgBonus: 0 };
   for (const it of Object.values(p.equip)) {
     if (!it) continue;
-    st.armor += it.armor || 0;
+    st.armor += tempered(it.armor || 0, it.slot, p);
     for (const [k, v] of Object.entries(it.mods)) k === 'dmg' ? st.dmgBonus += v : st[k] = (st[k] || 0) + v;
   }
   const c = CLASSES[p.cls], w = p.equip.weapon, e = effects(p);
   const fit = !w || w.kind === c.weapon;          // Klassenwaffe? Fremde Waffen schwächen Hieb und Zauber
   const P = k => (st[k] || 0) / 100;              // Prozent-Boni von Items (critc, dmgp, …)
-  const base = w?.dmg || [1, 3], dm = (1 + (e.dmgPct || 0) + P('dmgp')) * (fit ? 1 : CFG.offWeapon);
+  const base = w ? w.dmg.map(v => tempered(v, 'weapon', p)) : [1, 3], dm = (1 + (e.dmgPct || 0) + P('dmgp')) * (fit ? 1 : CFG.offWeapon);
   return { ...e, ...st, name: p.name, cls: p.cls, lvl: p.lvl, main: c.main,
     spells: SPELLS[p.cls].filter(s => p.lvl >= s.lvl).map(s => withWays({ ...s, boost: 1 + P('sk_' + s.id) }, p)),
     amp: (1 + st.int / (st.int + CFG.spellK)) * (1 + P('spellp')) * (fit ? 1 : CFG.offWeaponSpell), offWeapon: !fit,
@@ -537,12 +549,12 @@ export function claimBounty(i) {
 const costOf = (sv, step) => sv.cost[Math.min(step, sv.cost.length - 1)];
 const goldOf = (sv, step) => (sv.gold[Math.min(step, sv.gold.length - 1)] || 0) + (sv.perLvl || 0) * S.lvl;
 export function serviceState(sv) {
-  const it = sv.slot ? S.equip[sv.slot] : null, step = sv.max ? (it?.up || 0) : 0;
+  const it = sv.slot ? S.equip[sv.slot] : null, step = sv.max ? slotUp(sv.slot) : 0;
   const cost = costOf(sv, step), gold = goldOf(sv, step);
   const costText = [...Object.entries(cost).map(([k, n]) => `${n}× ${MATS[k]}`), `${gold} Gold`].join(', ');
   let reason = '';
-  if (sv.slot && !it) reason = 'Nichts angelegt';
-  else if (sv.max && step >= sv.max) reason = 'Vollendet';
+  if (sv.max && step >= sv.max) reason = 'Vollendet';
+  else if (sv.slot && !sv.max && !it) reason = 'Nichts angelegt';
   else if (sv.id === 'reroll' && it.unique) reason = 'Einzigartiges lässt sich nicht neu weihen';
   else if (sv.id === 'reroll' && (ensureGlut(it), it.crafted || it.glut < CRAFT.ops.find(o => o.id === 'chaos').glut)) reason = 'Schmiedeglut erschöpft';
   else if (sv.id === 'reroll' && !Object.keys(it.mods).length) reason = 'Keine Zauber';
@@ -553,9 +565,7 @@ export function doService(tid, svId) {
   const sv = SERVICES[tid].find(x => x.id === svId), st = serviceState(sv); if (!st.can) return null;
   const cost = costOf(sv, st.step); S.gold -= goldOf(sv, st.step); for (const [k, n] of Object.entries(cost)) S.mats[k] -= n;
   const it = st.it;
-  if (sv.id === 'sharpen') { it.dmg = it.dmg.map(v => Math.round(v * (1 + sv.per)) + 1); }
-  if (sv.id === 'reinforce') { it.armor = Math.round(it.armor * (1 + sv.per)) + 1; }
-  if (sv.max) { it.up = (it.up || 0) + 1; it.value = Math.round(it.value * 1.3); return it; }
+  if (sv.max) { (S.temper ||= {})[sv.slot] = st.step + 1; return { name: sv.name, up: st.step + 1 }; }   // bleibt am Platz, auch wenn das Teil wechselt
   if (sv.id === 'reroll') {
     // Neue Boni gleicher Seltenheit; Sonderbonus und eingeschmiedete Runen bleiben erhalten
     // Wie „Neu würfeln“ beim Umschmieden: versiegelter Bonus bleibt, kostet Schmiedeglut (sonst endloses Würfeln am Glut-Limit vorbei)

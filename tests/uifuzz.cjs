@@ -13,7 +13,7 @@ const issues = new Map(); const note = (k, v) => { if (!issues.has(k)) issues.se
     let last = '';
     p.on('pageerror', e => note(`JS-Fehler: ${e.message}`, `${tag} nach ${last}`));
     p.on('console', m => m.type() === 'error' && !/favicon|404/.test(m.text()) && note(`Konsole: ${m.text()}`, `${tag} nach ${last}`));
-    p.on('dialog', d => d.dismiss().catch(() => {}));   // Bestätigungen (Neu beginnen, Läutern) immer ablehnen
+    p.on('dialog', d => { note('Systemdialog: ' + d.message(), tag); d.dismiss().catch(() => {}); });   // es darf keinen mehr geben
     await p.goto('http://localhost:8771/'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(300);
     await p.tap('[data-c="witch"]'); await p.fill('#nm', 'Fuzz'); await p.tap('[data-action=create]'); await p.waitForTimeout(150);
     if (stage === 'spät') await p.evaluate(async () => { const G = await import('./js/state.js'); const L = await import('./js/loot.js');

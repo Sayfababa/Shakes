@@ -127,3 +127,9 @@ Save-Version 14 → 16, mit Migration und Tests dafür.
 4. Eigener Dialog statt Systemfenster.
 5. Fuzz/Personas auf Akte umstellen und die alte Streifzug-Logik löschen.
 6. Ortsbilder für die sechs Akte (Prompt-Vorschlag folgt auf Wunsch) – dann lohnt ein Akt-Auftakt mit Bild.
+
+## Nachtrag (Rückmeldung des Besitzers)
+- **Erledigt:** Systemdialoge (`alert`/`confirm`, 14 Stellen) durch eigenes Fenster `ask()` und Einblendung `note()` ersetzt; uifuzz meldet jeden Systemdialog.
+- **Erledigt:** Schärfen/Verstärken hängen am Platz statt am Teil (Save v17) – Material ist nie verschwendet.
+- **Erledigt:** Erster Sieg in einem Akt-Gebiet gibt sicher 2 Material (Elite 3, Boss 4).
+- **Freigegeben, als Nächstes:** Grab-Sets (`mockups/sets.html`), danach mehr Einzigartige.

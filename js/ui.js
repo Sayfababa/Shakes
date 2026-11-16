@@ -2,7 +2,7 @@
 import { AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, BOUNTIES } from './data.js';
 import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
 import { potion, beltSlots, brewCost, canBrew, potMax, unreadable } from './state.js';
-import { waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
+import { slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 // Name eines Item-Bonus: Attribute, Rüstung/Schaden, Prozent-Boni ("% Krit-Chance", "% Feuerball")
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
@@ -51,9 +51,11 @@ function questNote(tid) {
 
 // --- Items ---
 export function itemTip(it, cmp) {
-  const L = [`<div class="n r-${it.rarity}">${it.name}${it.up ? ` +${it.up}` : ''}</div><div class="sub2">${rarName(it.rarity, it)} · ${it.base && !it.name.includes(it.base) ? it.base : SLOTS[it.slot]} · Stufe ${it.lvl}</div>`];
-  if (it.dmg) L.push(`Schaden <b>${it.dmg[0]}–${it.dmg[1]}</b>`);
-  if (it.armor) L.push(`Rüstung <b>${it.armor}</b>`);
+  const L = [`<div class="n r-${it.rarity}">${it.name}</div><div class="sub2">${rarName(it.rarity, it)} · ${it.base && !it.name.includes(it.base) ? it.base : SLOTS[it.slot]} · Stufe ${it.lvl}</div>`];
+  // Schärfen/Verstärken hängen am Platz: jedes Teil zeigt den Wert, den es angelegt hätte
+  const tu = S ? slotUp(it.slot) : 0, tn = tu ? ` <small class="tup">${it.slot === 'weapon' ? 'geschärft' : 'verstärkt'} +${tu}</small>` : '';
+  if (it.dmg) L.push(`Schaden <b>${tempered(it.dmg[0], it.slot)}–${tempered(it.dmg[1], it.slot)}</b>${tn}`);
+  if (it.armor) L.push(`Rüstung <b>${tempered(it.armor, it.slot)}</b>${tn}`);
   // Boni ohne Runen-Anteil, mit Stufe (I = beste)
   const runeOf = k => (it.runes || []).filter(r => r.stat === k).reduce((a, r) => a + r.v, 0);
   for (const [k, v] of Object.entries(it.mods)) { const b = v - runeOf(k); if (b <= 0) continue; const t = it.tiers?.[k];
@@ -348,7 +350,7 @@ export function viewTrader(tid) {
     ${note}
     <section class="panel services">${tid === 'halvar' ? `<button class="svc red" data-action="go" data-v="forge"><b>Schmiede</b></button>` : tid === 'ysolde' ? `<button class="svc red" data-action="alch" data-b="traders"><b>Alchemie</b></button>` : ''}${(SERVICES[tid] || []).map(sv => { const st = serviceState(sv);
       return `<button class="svc" data-action="service" data-t="${tid}" data-s="${sv.id}" ${st.can ? '' : 'disabled'}>
-        <b>${sv.name}${sv.max && st.it ? ` +${st.step}` : ''}</b><small>${st.reason || st.costText}${st.questMat && !st.reason ? ` <i class="hot">– ${MATS[st.questMat]} für Auftrag!</i>` : ''}</small></button>`; }).join('')}</section>
+        <b>${sv.name}${sv.max && st.step ? ` +${st.step}` : ''}</b><small>${st.reason || st.costText}${st.questMat && !st.reason ? ` <i class="hot">– ${MATS[st.questMat]} für Auftrag!</i>` : ''}</small></button>`; }).join('')}</section>
     <section class="panel shop"><div class="invhead"><span>Ware</span><small class="dim">bessere Ware mit höherer Treue</small></div>
       <div class="shoprow">${shop.map(it => `<div class="sitem r-${it.rarity}${it.lock ? ' lock' : ''}" data-tip="${it.id}" data-action="buy" data-t="${tid}" data-id="${it.id}">${itemArt(it)}${gainTag(it)}<span class="price ${S.gold < it.price ? 'no' : ''}">${it.price}</span></div>`).join('') || '<span class="dim">Ausverkauft.</span>'}</div></section>
   </div>`;
