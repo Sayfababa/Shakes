@@ -16,6 +16,9 @@ function render() {
   const S = G.S;
   if (!S) { app.innerHTML = `<main>${UI.viewCreate(pickCls)}</main>`; return; }
   G.tickGlut(); G.potDaily();
+  // grüner Punkt gesehen: abgelaufene Wartezeit beim Hinschauen zurücksetzen
+  if (['crypt', 'prep'].includes(view) && S.crypt.cd && Date.now() >= S.crypt.cd) S.crypt.cd = 0;
+  if (['arena', 'pitprep', 'pitshop'].includes(view) && S.pit.ts && Date.now() >= S.pit.ts) S.pit.ts = 0;
   const views = {
     fight: () => UI.viewFight(F), trips: () => expRes ? UI.viewExpRes(expRes) : S.desc ? UI.viewDescAway('prophet') : UI.viewTrips(expAsk), stats: UI.viewStats, spells: UI.viewSpells, ways: () => UI.viewWays(waySel), talents: UI.viewTalents, crypt: () => S.exp ? UI.viewAway('ilse') : S.desc || descSt.res ? UI.viewDesc(descSt) : UI.viewCrypts(),
     desc: () => S.exp ? UI.viewAway('ilse') : UI.viewDesc(descSt),
@@ -394,6 +397,8 @@ app.addEventListener('mouseleave', () => { if (tip.className !== 'touch') hideTi
 // Countdown-Takt: nur die Zahlen ändern; bei 0 einmal neu zeichnen
 setInterval(() => {
   if (!G.S || !tip.hidden) return;
+  const nav = document.querySelector('nav.tabs'), dots = JSON.stringify(UI.readyDots());
+  if (nav && nav.dataset.dots !== dots) { if (nav.dataset.dots) nav.outerHTML = UI.navBar(view).replace('<nav class="tabs"', `<nav class="tabs" data-dots='${dots}'`); else nav.dataset.dots = dots; }
   for (const el of document.querySelectorAll('[data-until]')) {
     const left = Math.ceil((+el.dataset.until - Date.now()) / 1000);
     if (left <= 0) return render();

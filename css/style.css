@@ -976,3 +976,6 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .actv .zone { flex: 1 1 0; min-height: 0; }
 @media (max-height: 720px) { .actv .ahead small { display: none; } .actv .zone small { font-size: .64rem; } .actv .zone .dot { width: 26px; height: 26px; } .actv .zone { grid-template-columns: 26px 1fr auto; gap: 6px; } .actv .zone::after { left: 12px; } .actv .zone b { font-size: .78rem; } }
 .prephead { position: relative; } .prephead .pback { position: absolute; top: 6px; right: 8px; z-index: 2; } .prephead h2 { padding-right: 70px; }
+/* Grüner Punkt: Wartezeit abgelaufen, wieder bereit (rot bleibt für Aufträge) */
+.tabs a.ready { position: relative; }
+.tabs a.ready::after { content: ''; position: absolute; top: 4px; right: 5px; width: 8px; height: 8px; border-radius: 50%; background: #5fae3c; box-shadow: 0 0 0 1px #0b0907, 0 0 6px rgba(110,200,70,.8); }

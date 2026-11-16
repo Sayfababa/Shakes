@@ -84,14 +84,20 @@ export function hud(tut = '') {
       <span class="orb" style="--f:${pct(S.glut, CFG.maxGlut)}%" title="Glut"><b>${S.glut}</b></span></span></div>
     ${tut || `<div class="xpline"><div class="bar xp"><i style="width:${pct(S.xp, xpNeed(S.lvl))}%"></i></div><small>${S.xp} / ${xpNeed(S.lvl)} EP</small></div>`}</header>`;
 }
+export function readyDots(t = Date.now()) {
+  return { trips: !!S.exp && t >= S.exp.end && !S.exp.ret,
+    crypt: (S.crypt.cd > 0 && t >= S.crypt.cd && CRYPTS.some(c => cryptOpen(c))) || (S.pit?.ts > 0 && t >= S.pit.ts) };
+}
 export function navBar(view) {
   const tabs = [['hero', 'Held'], ['trips', 'Streifzug'], ['traders', 'Händler'], ['forge', 'Schmiede'], ['alch', 'Alchemie'], ['crypt', 'Krypta']];
   const map = { opts: 'hero', act: 'trips', zoneprep: 'trips', prep: 'crypt', desc: 'crypt', arena: 'crypt', pitprep: 'crypt', pitshop: 'crypt', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips', exped: 'trips' };
   // Nur echte Handlungsaufforderungen markieren – ein Dauer-Punkt auf jedem Tab sagt nichts mehr
   const badge = { hero: S.points + talentPoints() + waysPending() > 0, traders: Object.keys(TRADERS).some(canComplete), arena: canComplete('vargo'),
-    crypt: canComplete('ilse') || canComplete('vargo'), trips: !!S.haul || canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) || (!!S.active && Date.now() >= S.active.end) || (!!S.exp && Date.now() >= S.exp.end) };
+    crypt: canComplete('ilse') || canComplete('vargo'), trips: !!S.haul || canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) || (!!S.active && Date.now() >= S.active.end) };
+  // Grün: eine Wartezeit ist abgelaufen – wieder bereit (verschwindet, sobald man hinschaut)
+  const ready = readyDots();
   const on = map[view] || view;
-  return `<nav class="tabs">${tabs.map(([k, n]) => `<a class="${on === k ? 'on' : ''} ${badge[k] ? 'badge' : ''}" data-action="go" data-v="${k}">${n}</a>`).join('')}</nav>`;
+  return `<nav class="tabs">${tabs.map(([k, n]) => `<a class="${on === k ? 'on' : ''} ${badge[k] ? 'badge' : ready[k] ? 'ready' : ''}" data-action="go" data-v="${k}">${n}</a>`).join('')}</nav>`;
 }
 
 export function viewCreate(sel) {

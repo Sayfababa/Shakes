@@ -108,6 +108,6 @@ Optik: Diablo 1/2 – dunkel, ernst, handgemalt. Sprache im Spiel: **Deutsch**.
 
 ## UI-Regeln (aus UX-REVIEW.md)
 - Held: Name (und Titel) steht oben in der Kopfzeile, nicht unter dem Portrait. Unter dem Beutel bleibt Platz für spätere Quest-Knöpfe. Kein Tagebuch in der UI (nirgends; `S.journal` wird nur noch gespeichert). Ausrüstung symmetrisch: links Helm/Waffe/Handschuhe/Ring, rechts Amulett/Nebenhand/Stiefel/Ring, unter dem Portrait Brust + Gürtel. Portrait sitzt in `.pfill` (absolut) und richtet sich nach den Spalten – nie umgekehrt.
-- Tab-Punkte nur für echte Handlungen (siehe `badge` in navBar), nie als Dauerzustand.
+- Tab-Punkte nur für echte Handlungen (siehe `badge` in navBar), nie als Dauerzustand. **Rot** = Auftrag/Punkte/Lohn abholbar. **Grün** (`readyDots()` in ui.js, `.tabs a.ready`) = eine Wartezeit ist abgelaufen (Krypta-Erholung, Grube-Pause, Expedition zurück); verschwindet beim Hinschauen (render() setzt abgelaufene `S.crypt.cd`/`S.pit.ts` auf 0). Der Ticker in main.js zeichnet nur die Leiste neu, wenn sich die Punkte ändern. Rot geht vor Grün.
 - Treffer-Feedback: Schadenszahl + kurzer Rand-Schatten/Wackeln, Portrait nie einfärben.
 - Gesperrtes klein halten (Orte als Zeile, Krypten kompakt). Schrift nie unter ~11px.
