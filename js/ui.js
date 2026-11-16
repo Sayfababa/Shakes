@@ -204,7 +204,7 @@ export function viewTrips(ask = false) {
   if (S.exp?.ret) return viewExpEvent();
   if (S.exp) return `<div class="col">${expAway(ask)}${say('prophet')}</div>`;
   const o = omen();
-  const openLocs = LOCATIONS.filter(locOpen), nextLoc = LOCATIONS.find(l => !locOpen(l)), later = LOCATIONS.filter(l => !locOpen(l) && l !== nextLoc);
+  const openLocs = LOCATIONS.filter(locOpen), nextLoc = LOCATIONS.find(l => !locOpen(l));
   const bl = bounties(), bDone = bl.filter(b => b.claimed).length, bReady = bl.some(b => !b.claimed && b.prog >= b.n);
   const bbar = `<div class="bountybar ${bReady ? 'ready' : ''}" data-action="go" data-v="bounties"><span>Steckbriefe heute</span><b>${bDone}/3</b>${bReady ? '<i>Lohn abholen</i>' : ''}</div>`;
   const tired = !S.haul && openLocs.every(l => S.glut < l.glut);
@@ -214,12 +214,12 @@ export function viewTrips(ask = false) {
   return `<div class="col">${S.haul ? haulPanel() : say('prophet', omenLine())}${bbar}${xbar}${ptsHint}<div class="trips ${cards.length > 4 ? 'many' : ''}">${cards.map(l => { const open = locOpen(l), r = tripReward(l, 1, (l.sec[0] + l.sec[1]) / 2);
     const isOmen = open && S.lvl >= 3 && o.loc === l.id && !o.done;
     const wanted = new Set(Object.keys(TRADERS).filter(available).flatMap(t => current(t).obj.filter(o => o.at === l.id || l.mobs.includes(o.kill)).map(() => t)));
-    return `<section class="panel trip ${open ? '' : 'locked'} ${isOmen ? 'omen' : ''} ${S.glut < l.glut ? 'tired' : ''}" ${open ? `data-action="trip" data-id="${l.id}"` : ''}>
-      ${isOmen ? `<span class="omentag">Omen: ${o.def.short}</span>` : ''}
+    return `<section class="panel trip ${open ? 'tf-' + threatLabel(tripChance(l))[1] : 'locked'} ${isOmen ? 'omen' : ''} ${S.glut < l.glut ? 'tired' : ''}" ${open ? `data-action="trip" data-id="${l.id}"` : ''}>
+      ${open ? `<span class="tlvl" title="Stufe">${locLvl(l)}</span>` : ''}${isOmen ? `<span class="omentag">Omen: ${o.def.short}</span>` : ''}
       <h3>${l.name}${open && wanted.size ? '<span class="qmark" title="Auftrag">!</span>' : ''}</h3><p class="lore small">${l.text}</p>
       ${open ? `<div class="mobpics">${l.mobs.map(n => monsterArt(MONSTERS.find(m => m.name === n).glyph)).join('')}</div>
-      <div class="tripinfo">${threat(tripChance(l))}<span>Stufe ${locLvl(l)}</span><span>${fmtT(l.sec[0])}–${fmtT(l.sec[1])}</span><span>${l.glut} Glut</span><span>~${r.gold} Gold</span></div>` : `<div class="mobs">Erst ab Stufe ${l.lvl}</div>`}
-    </section>`; }).join('')}</div>${later.length ? `<p class="unknown">Noch unentdeckt: ${later.map(l => `${l.name} <i>(Stufe ${l.lvl})</i>`).join(' · ')}</p>` : ''}</div>`;
+      <div class="tripinfo"><span><i class="ico glut"></i>${l.glut}</span><span><i class="ico coin"></i>~${r.gold}</span></div>` : `<div class="mobs">Erst ab Stufe ${l.lvl}</div>`}
+    </section>`; }).join('')}</div></div>`;
 }
 
 // --- Expedition ---

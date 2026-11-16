@@ -897,3 +897,15 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 /* Zurückgelegte Ware (Sperren beim Händler) */
 .sitem.lock { box-shadow: inset 0 0 0 2px #b08a3e, inset 0 0 10px #000; }
 .sitem.lock::before { content: 'Gesperrt'; position: absolute; left: 3px; top: 2px; z-index: 2; font: 600 .62rem 'Alegreya SC', serif; color: #e0c27a; background: rgba(11,9,7,.85); padding: 0 3px; }
+/* Streifzug-Karten: Gefahr als Rahmenfarbe, Stufe als Zahl am Rand, Glut/Gold mit Symbol */
+.trip.tf-low { box-shadow: inset 0 0 0 2px #4f7a34, inset 0 0 14px rgba(0,0,0,.7); }
+.trip.tf-mid { box-shadow: inset 0 0 0 2px #b08a3e, inset 0 0 14px rgba(0,0,0,.7); }
+.trip.tf-high { box-shadow: inset 0 0 0 2px #c0621f, inset 0 0 14px rgba(0,0,0,.7); }
+.trip.tf-deadly { box-shadow: inset 0 0 0 2px #a8241a, inset 0 0 14px rgba(0,0,0,.7); }
+.trip { position: relative; }
+.trip .tlvl { position: absolute; top: 3px; left: 50%; translate: -50% 0; z-index: 2; font: 600 .72rem 'Alegreya SC', serif; color: #e0c27a; background: #0b0907; border: 1px solid #3a3226; padding: 0 5px; line-height: 1.25; }
+.trip .tripinfo { display: flex; justify-content: space-between; align-items: center; font-size: .8rem; color: #d8c79a; }
+.trip .tripinfo span { display: inline-flex; align-items: center; gap: 4px; }
+.ico { display: inline-block; width: 15px; height: 15px; background: center / contain no-repeat; }
+.ico.coin { background-image: url('../assets/ui/coin.webp'); }
+.ico.glut { background-image: url('../assets/ui/marker.webp'); filter: hue-rotate(15deg) saturate(1.4) drop-shadow(0 0 3px rgba(220,80,20,.7)); }
