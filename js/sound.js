@@ -1,7 +1,7 @@
 // Ton: Web Audio (sofort, überlagerbar). Einstellungen getrennt vom Spielstand (kein Save-Wechsel nötig).
 // Dateien in assets/sfx/<name>.m4a; fehlt eine, bleibt es einfach still.
 const KEY = 'aschenkrone_opt';
-export const SETS = { hit: [] };   // z. B. ['hieb_1', 'hieb_2', 'hieb_3', 'hieb_4'] – erst eintragen, wenn die Dateien in assets/sfx liegen
+export const SETS = { hit: ['hieb_1', 'hieb_2', 'hieb_3', 'hieb_4'] };
 export const LEVELS = [['Aus', 0], ['Leise', 0.35], ['Mittel', 0.65], ['Laut', 1]];
 export const opt = (() => { try { return { sfx: 0.65, music: 0, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { return { sfx: 0.65, music: 0 }; } })();
 export function setOpt(k, v) { opt[k] = v; try { localStorage.setItem(KEY, JSON.stringify(opt)); } catch {} }

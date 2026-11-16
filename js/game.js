@@ -577,7 +577,7 @@ export function pitShop() {
 }
 export function pitBuy(tier, k) {
   const S = G.S, P = pitWeek(), w = pitShop()[tier]?.[k];
-  if (!w || w.sold) return 'Schon gekauft.'; if (P.buys >= PIT.weekBuys) return 'Diese Woche nichts mehr.'; if (S.honor < w.price) return 'Zu wenig Ehre.';
+  if (P.buys >= PIT.weekBuys) return 'Diese Woche nichts mehr.'; if (!w) return 'Noch gesperrt.'; if (w.sold) return 'Schon gekauft.'; if (S.honor < w.price) return 'Zu wenig Ehre.';
   if (w.t === 'item') { if (!G.addToBag({ ...w.item })) return 'Kein Platz im Beutel.'; }
   else if (w.t === 'herb') G.addHerb(w.id, w.n); else G.addMat(w.id, w.n);
   S.honor -= w.price; w.sold = true; P.buys++; return '';
