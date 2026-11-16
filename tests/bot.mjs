@@ -46,15 +46,17 @@ function manage(log) {
   }
 }
 
-function pickLocation() {
-  const S = G.S, open = D.LOCATIONS.filter(l => G.locOpen(l)); if (!open.length) return null;
-  // Omen zuerst, dann der Ort, der die meisten offenen Quest-Ziele bedient, sonst der höchste bezahlbare Ort
-  const om = G.omen(); const omenLoc = !om.done && S.lvl >= 3 && open.find(l => l.id === om.loc);
-  const need = l => D.GIVERS.filter(t => Q.available(t)).reduce((n, t) => n + Q.current(t).obj.filter((o, i) => !Q.objectives(t)[i].done &&
-    (o.at === l.id || (o.kill && l.mobs.includes(o.kill)) || (o.mat && l.mobs.some(m => D.MONSTERS.find(x => x.name === m).mat === o.mat)))).length, 0);
-  const want = open.map(l => [l, need(l)]).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1])[0]?.[0];
-  const target = omenLoc || want || open.filter(l => S.glut >= l.glut).pop(); if (!target) return null;
-  return S.glut >= target.glut ? target.id : null;   // auf Glut warten statt billig zu farmen
+// Akte: wie ein Spieler – neues Gebiet, wenn die Chance reicht; sonst gezielt farmen (Auftrag/Omen, sonst höchstes geschafftes Gebiet), kostet Glut
+function actStep(log) {
+  const S = G.S, a = G.curAct(), z = Math.min(G.actProg(a), D.ACT.zones);
+  if (!G.actDone(a) && Game.actChance(a, z) >= 0.5) { if (POTS && z >= D.ACT.zones) Game.bestBelt(Game.actEnemy(a, z), 20); const r = Game.actFight(a.id, z); if (r) { log.acts++; if (!r.win) log.actLoss++; else if (r.rew.actDone) log.actBoss.push(`${a.n}@${S.lvl}`); return true; } }
+  const open = D.ACTS.filter(x => G.actOpen(x) && G.actProg(x) > 0), om = G.omen();
+  const need = x => { const l = D.LOCATIONS.find(y => y.id === x.loc); return D.GIVERS.filter(t => Q.available(t)).reduce((n, t) => n + Q.current(t).obj.filter((o, i) => !Q.objectives(t)[i].done &&
+    (o.at === l.id || (o.kill && l.mobs.includes(o.kill)) || (o.mat && l.mobs.some(m => D.MONSTERS.find(q => q.name === m).mat === o.mat)))).length, 0); };
+  const tgt = (S.lvl >= 3 && !om.done && open.find(x => x.loc === om.loc)) || open.map(x => [x, need(x)]).filter(([, n]) => n).sort((p, q) => q[1] - p[1])[0]?.[0] || open[open.length - 1];
+  if (!tgt || S.glut < Game.actZoneGlut(tgt)) return false;
+  const zz = Math.min(G.actProg(tgt), D.ACT.zones + 1) - 1; const zr = [...Array(zz + 1).keys()].reverse().find(k => Game.actChance(tgt, k) >= 0.75) ?? 0;
+  const r = Game.actFight(tgt.id, zr); if (r) { log.farm++; if (!r.win) log.actLoss++; return true; } return false;
 }
 
 let RISK = 0.8, POTS = false;
@@ -62,42 +64,32 @@ export function run(cls = 'paladin', days = 7, risk = 0.8, pots = false) {
   RISK = risk; POTS = pots;
   clock = Date.UTC(2026, 0, 5, 8, 0, 0);
   G.newChar('Bot', cls); G.S.tut = 99;
-  const log = { delves: 0, delveLoss: 0, lostGold: 0, tracks: { safe: 0, norm: 0, blood: 0 }, quests: [], bought: 0, trips: 0, tripLoss: 0, crypt: 0, cryptLoss: 0, arena: 0, arenaLoss: 0, perDay: [], brewed: 0, brewGold: 0, used: 0, potFights: 0 };
+  const log = { acts: 0, actLoss: 0, farm: 0, actBoss: [], pit: 0, pitLoss: 0, delves: 0, delveLoss: 0, lostGold: 0, tracks: { safe: 0, norm: 0, blood: 0 }, quests: [], bought: 0, trips: 0, tripLoss: 0, crypt: 0, cryptLoss: 0, arena: 0, arenaLoss: 0, perDay: [], brewed: 0, brewGold: 0, used: 0, potFights: 0 };
   const end = clock + days * 86400000;
   let nextDay = clock + 86400000, rival = null;
   while (clock < end) {
     const S = G.S; G.tickGlut(); G.potDaily(); manage(log);
     let acted = false;
-    if (S.active && clock >= S.active.end) { const r = Game.resolveTrip(); log.trips++; if (!r.win) log.tripLoss++; acted = true;
-      // Tiefer gehen, solange die Chance gut ist und noch wenig auf dem Spiel steht
-      while (r.win && Game.canDelve() && Game.delveChance() >= RISK) { const d = Game.delve(); log.delves++; if (!d.win) { log.delveLoss++; log.lostGold += d.lost.gold; break; } }
-      if (S.haul) Game.bank();
-    }
-    if (!S.active) { const id = pickLocation(); if (id) { const l = D.LOCATIONS.find(x => x.id === id);
-      const tr = Game.tripChance(l, 'blood') >= RISK ? 'blood' : Game.tripChance(l, 'norm') >= 0.75 ? 'norm' : 'safe'; log.tracks[tr]++;
-      if (G.startTrip(id, tr)) acted = true; } }
     if (clock >= S.crypt.cd) {
-      const c = D.CRYPTS.find(c => G.cryptOpen(c) && G.cryptFloor(c) < 5 && Game.cryptChance(c) >= 0.4);
+      const c = D.CRYPTS.find(c => G.cryptOpen(c) && S.glut >= G.cryptGlut(c) && Game.cryptChance(c) >= 0.5);
       if (c) { const m = G.cryptEnemy(c); if (POTS) Game.bestBelt(m, 20); const r = Game.cryptFight(c.id, m);
         if (r) { log.crypt++; if (!r.win) log.cryptLoss++; acted = true; log.used += r.rew.used?.length || 0; if (r.rew.used?.length) log.potFights++; } }
     }
+    acted = actStep(log) || acted;
     const champ = Q.available('vargo') && Q.current('vargo').champ && !Q.canComplete('vargo');
-    const arenaWanted = champ || (Q.available('vargo') && Q.objectives('vargo').some((o, i) => !o.done && (Q.current('vargo').obj[i].arena || Q.current('vargo').obj[i].honor))) || S.glut > 80;
-    if (clock >= S.arenaTs && arenaWanted && (!champ || Game.winChance('champ', () => G.makeMonster(S.lvl + 3, 1.3)) >= 0.3)) {
-      if (champ) { const r = Game.champFight('vargo'); if (r) { log.arena++; if (!r.win) log.arenaLoss++; } }
-      else { rival ||= Game.makeRival(); const r = Game.arenaFight(rival); if (r) { rival = null; log.arena++; if (!r.win) log.arenaLoss++; } }
-      acted = true;
-    }
+    if (champ && clock >= S.arenaTs && Game.winChance('champ', () => G.makeMonster(S.lvl + 3, 1.3)) >= 0.3) { const r = Game.champFight('vargo'); if (r) { log.arena++; if (!r.win) log.arenaLoss++; acted = true; } }
+    if (!Game.pitBusy()) { const f = Game.pitFoes().filter(x => x.p >= 0.5).sort((p, q) => q.honor - p.honor)[0];
+      if (f) { const r = Game.pitFight(f.id); if (r) { log.pit++; if (!r.win) log.pitLoss++; acted = true; } } }
     if (clock >= nextDay) {
       log.perDay.push({ day: log.perDay.length + 1, lvl: S.lvl, gold: S.gold, quests: log.quests.length, shards: S.shards.length,
-        cryptsDone: D.CRYPTS.filter(c => G.cryptFloor(c) >= 5).length, diff: D.DIFFICULTIES[S.crypt.diff].name,
-        trips: log.trips, tripLoss: log.tripLoss, crypt: log.crypt, cryptLoss: log.cryptLoss, omens: S.omens, title: S.title || '',
+        
+        akt: (() => { const a = G.curAct(); return G.actDone(a) ? 'fertig' : `${a.n} ${G.actProg(a)}/9`; })(), farm: log.farm, platz: Game.pitPlace(), stufen: D.CRYPTS.map(c => G.cryptTier(c)).join(''), crypt: log.crypt, cryptLoss: log.cryptLoss, omens: S.omens, title: S.title || '',
         herbs: Object.values(S.herbs).reduce((a, b) => a + b, 0), pots: Object.values(S.pots).reduce((a, b) => a + b, 0), brewed: log.brewed, used: log.used });
       nextDay += 86400000;
     }
     // Zeit vorspulen bis zum nächsten möglichen Ereignis
-    const evts = [S.active ? S.active.end : Infinity, S.crypt.cd, S.arenaTs, clock + 6 * 60000].filter(t => t > clock);
-    clock = acted ? clock + 1000 : Math.min(...evts);
+    const evts = [S.crypt.cd, S.arenaTs, S.pit.ts, clock + 6 * 60000].filter(t => t > clock);
+    clock = acted ? clock + 30000 : Math.min(...evts);
   }
   return { log, S: G.S, stats: G.stats() };
 }
@@ -109,7 +101,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log(`\n=== ${cls} · Lauf ${i + 1} ===`);
     console.table(log.perDay);
     console.log('Quests:', log.quests.join(' '));
-    console.log(`Spuren ${JSON.stringify(log.tracks)} · Tiefe ${log.delves} (−${log.delveLoss}, verloren ${log.lostGold} Gold)`);
-    console.log(`Kämpfe: Streifzug ${log.trips} (−${log.tripLoss}) · Krypta ${log.crypt} (−${log.cryptLoss}) · Grube ${log.arena} (−${log.arenaLoss}) · gekauft ${log.bought} · Titel ${S.title || '-'}${pots ? ` · gebraut ${log.brewed} (${log.brewGold} Gold) · getrunken ${log.used} in ${log.potFights} Kämpfen` : ''}`);
+    console.log(`Akt-Bosse (Akt@Stufe): ${log.actBoss.join(' ')}`);
+    console.log(`Kämpfe: Akte ${log.acts} neu + ${log.farm} gefarmt (−${log.actLoss}) · Grube ${log.pit} (−${log.pitLoss}) · Krypta ${log.crypt} (−${log.cryptLoss}) · Grube ${log.arena} (−${log.arenaLoss}) · gekauft ${log.bought} · Titel ${S.title || '-'}${pots ? ` · gebraut ${log.brewed} (${log.brewGold} Gold) · getrunken ${log.used} in ${log.potFights} Kämpfen` : ''}`);
   }
 }

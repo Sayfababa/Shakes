@@ -660,7 +660,7 @@ test('Akte: neue Gebiete frei, Wiederholen kostet Glut, Boss öffnet nächsten A
   assert.equal(S.glut, g, 'neue Gebiete kosten keine Glut'); assert.ok(G.actDone(a)); assert.ok(G.actOpen(D.ACTS[1])); assert.ok(G.cryptOpen(D.CRYPTS[0]));
   Game.actFight(a.id, 2); assert.equal(S.glut, g - Game.actZoneGlut(a), 'Wiederholen kostet Glut');
   S.glut = 0; assert.ok(Game.actCan(a, 2)); assert.equal(Game.actFight(a.id, 2), null);
-  const c = D.CRYPTS[0], l0 = G.cryptLvl(c); S.crypt.cd = 0; const r = Game.cryptFight(c.id); assert.ok(r.win); assert.equal(G.cryptTier(c), 1); assert.ok(G.cryptLvl(c) > l0, 'nächste Stufe schwerer');
+  const c = D.CRYPTS[0], l0 = G.cryptLvl(c); S.crypt.cd = 0; S.glut = 999; const r = Game.cryptFight(c.id); assert.ok(r.win); assert.equal(G.cryptTier(c), 1); assert.ok(G.cryptLvl(c) > l0, 'nächste Stufe schwerer');
   assert.ok(S.trophies.some(t => t.key === 'c1:0')); assert.ok(r.rew.items.length >= 1);
   for (let t = 1; t <= D.CRYPT.dTier[1]; t++) { S.crypt.cd = 0; assert.ok(Game.cryptFight(c.id)?.win, "Stufe " + t); } assert.ok(S.trophies.some(t => t.key === 'c1:1'), 'Albtraum-Trophäe ab Stufe');
 });

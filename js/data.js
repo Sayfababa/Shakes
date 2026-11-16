@@ -222,7 +222,7 @@ export const QUESTS = {
       obj: [{ mat: 'blutstein', n: 5 }, { kill: 'Gehäuteter', n: 4 }], rew: { gold: 300, xp: 600, rep: 150 } },
     { id: 'h6', title: 'Der Metzger', lvl: 14, text: 'Er trägt eine Klinge, die ich geschmiedet habe. Ich will sie zurück – an deiner Hand.',
       obj: [{ boss: 'c3' }], rew: { gold: 600, xp: 1200, rep: 250, item: { slot: 'weapon', rar: 4 } } },
-    { id: 'h7', title: 'Feuer der Tiefe', lvl: 22, text: 'In den Feuergruben brennt eine Esse, heißer als meine. Hol mir ihre Asche.',
+    { id: 'h7', title: 'Feuer der Tiefe', lvl: 18, text: 'In den Feuergruben brennt eine Esse, heißer als meine. Hol mir ihre Asche.',
       obj: [{ at: 'gruben', n: 6 }, { mat: 'asche', n: 8 }], rew: { gold: 1200, xp: 3000, rep: 400, item: { slot: 'weapon', rar: 4 } } },
   ],
   ysolde: [
@@ -252,7 +252,7 @@ export const QUESTS = {
       obj: [{ kill: 'Wiedergänger', n: 5 }, { at: 'katakomben', n: 6 }], rew: { gold: 250, xp: 500, rep: 130, item: { slot: 'boots', rar: 3 } } },
     { id: 'k6', title: 'Siegel der Glocke', lvl: 15, text: 'Die Kultisten tragen Siegel. Jedes ist ein Name, der nicht mehr begraben werden kann.',
       obj: [{ kill: 'Kultist der Glocke', n: 6 }, { mat: 'siegel', n: 6 }], rew: { gold: 500, xp: 1300, rep: 220 } },
-    { id: 'k7', title: 'Der Glöckner', lvl: 22, text: 'Wenn die Glocke wieder schlägt, stehen alle auf. Alle. Bring ihn zum Schweigen.',
+    { id: 'k7', title: 'Der Glöckner', lvl: 15, text: 'Wenn die Glocke wieder schlägt, stehen alle auf. Alle. Bring ihn zum Schweigen.',
       obj: [{ boss: 'c4' }], rew: { gold: 1500, xp: 4000, rep: 500, item: { slot: 'chest', rar: 4 } } },
   ],
   // Neue Ziele: honor{n} · clear{crypt} · omen{n} · shards{n} · champ (Kampf gegen q.champ)
@@ -286,9 +286,9 @@ export const QUESTS = {
       obj: [{ shards: 1 }, { omen: 2 }], rew: { gold: 150, xp: 400, rep: 0 } },
     { id: 'p3', title: 'Was du warst', lvl: 10, text: 'Du warst kein Bauer, Kind. Du hast eine Krone getragen. Sammle weiter, und du wirst dich erinnern.',
       obj: [{ shards: 2 }, { omen: 4 }], rew: { gold: 400, xp: 1200, rep: 0 } },
-    { id: 'p4', title: 'Die vier Splitter', lvl: 18, text: 'Vier Splitter. Vier Herren. Dann öffnet sich die Glocke – und darin wartet, wer du warst.',
+    { id: 'p4', title: 'Die vier Splitter', lvl: 15, text: 'Vier Splitter. Vier Herren. Dann öffnet sich die Glocke – und darin wartet, wer du warst.',
       obj: [{ shards: 4 }, { omen: 6 }], rew: { gold: 800, xp: 3000, rep: 0 } },
-    { id: 'p5', title: 'Der Kronenlose', lvl: 24, text: 'Er trägt dein Gesicht. Er trägt deine Krone. Fälle ihn. Dann entscheide, was aus der Glocke wird.',
+    { id: 'p5', title: 'Der Kronenlose', lvl: 18, text: 'Er trägt dein Gesicht. Er trägt deine Krone. Fälle ihn. Dann entscheide, was aus der Glocke wird.',
       obj: [{ boss: 'c5' }], rew: { gold: 2000, xp: 6000, rep: 0 },
       choice: [
         { id: 'break', label: 'Die Glocke zerbrechen', text: 'Die Glocke schweigt für immer. Die Toten schlafen.', title: 'Glockenbrecher', perk: { name: 'Glockenbrecher', eff: { dmgPct: 0.1, crit: 0.05 } } },
@@ -794,22 +794,22 @@ export const PIT_RULES = [
 ];
 
 // --- Die Akte (Streifzug): 6 Akte, je 8 Gebiete + Boss. Neue Gebiete kosten nichts, Wiederholen kostet Glut (farmen). ---
-// Stufe der Gebiete steigt von lvl bis top; der Boss öffnet den nächsten Akt und die Krypta `crypt` (deren Boss dann in Stufen wiederholbar).
-export const ACT = { zones: 8, elites: [3, 6], firstXp: 3, firstGold: 2, bossXp: 6, bossGold: 5, replay: 1, itemP: 0.45, eliteDiff: 1.15, eliteHp: 1.25, bossMult: 0.95, bossItems: 2 };
+// Stufe der Gebiete steigt von lvl bis top, `diff` macht spätere Akte zäher (ohne mehr EP); der Boss öffnet den nächsten Akt und die Krypta `crypt` (deren Boss dann in Stufen wiederholbar).
+export const ACT = { doneAt: [6, 9, 11, 15, 17, 19], zones: 8, elites: [3, 6], firstXp: 3, firstGold: 2, bossXp: 6, bossGold: 5, replay: 1, itemP: 0.45, eliteDiff: 1.15, eliteHp: 1.25, bossMult: 0.95, bossItems: 2 };
 export const ACTS = [
-  { id: 'a1', n: 'I', loc: 'friedhof', lvl: 1, top: 4, crypt: 'c1', zones: ['Das Friedhofstor', 'Die Reihen der Armen', 'Das offene Grab', 'Die Wacht am Beinhaus', 'Der Weidenhang', 'Die Gräbergasse', 'Der Mauerbruch', 'Das Leichenhaus'],
+  { id: 'a1', n: 'I', loc: 'friedhof', lvl: 1, top: 6, diff: 1.0, crypt: 'c1', zones: ['Das Friedhofstor', 'Die Reihen der Armen', 'Das offene Grab', 'Die Wacht am Beinhaus', 'Der Weidenhang', 'Die Gräbergasse', 'Der Mauerbruch', 'Das Leichenhaus'],
     boss: { name: 'Ansgar, der Totengräber', glyph: 'totengraeber', mech: { ward: 0.25, bleed: 0.3 }, mechText: 'Gräbt sich ein: kämpft hinter einem Wall aus Erde' } },
-  { id: 'a2', n: 'II', loc: 'muehle', lvl: 4, top: 7, crypt: 'c2', zones: ['Der Mühlbach', 'Das Speichertor', 'Die Kornkammer', 'Der Rattenkeller', 'Das Wasserrad', 'Der Mahlboden', 'Die Sackkammer', 'Der Mühlstein'],
+  { id: 'a2', n: 'II', loc: 'muehle', lvl: 6, top: 12, diff: 1.05, crypt: 'c2', zones: ['Der Mühlbach', 'Das Speichertor', 'Die Kornkammer', 'Der Rattenkeller', 'Das Wasserrad', 'Der Mahlboden', 'Die Sackkammer', 'Der Mühlstein'],
     boss: { name: 'Die Müllerin', glyph: 'muellerin', mech: { rage: 0.6, armorMult: 1.3 }, mechText: 'Mahlt sich in Raserei – je länger der Kampf, desto härter' } },
-  { id: 'a3', n: 'III', loc: 'katakomben', lvl: 7, top: 11, crypt: 'c3', zones: ['Der Einstieg', 'Die Ossuarien', 'Die Schädelwand', 'Der Brunnenschacht', 'Die Knochenhalle', 'Die Kammer der Ordnung', 'Der tiefe Gang', 'Das Zählwerk'],
+  { id: 'a3', n: 'III', loc: 'katakomben', lvl: 12, top: 18, diff: 1.12, crypt: 'c3', zones: ['Der Einstieg', 'Die Ossuarien', 'Die Schädelwand', 'Der Brunnenschacht', 'Die Knochenhalle', 'Die Kammer der Ordnung', 'Der tiefe Gang', 'Das Zählwerk'],
     boss: { name: 'Der Knochenordner', glyph: 'knochenordner', mech: { block: 0.35, armorMult: 1.4 }, mechText: 'Knochenschild: blockt viele Hiebe – Zauber treffen immer' } },
-  { id: 'a4', n: 'IV', loc: 'moor', lvl: 11, top: 16, crypt: 'c4', zones: ['Der Bohlenweg', 'Die Galgenweiden', 'Das stille Wasser', 'Die Hütte im Schilf', 'Der Strickbaum', 'Die Irrlichter', 'Das versunkene Dorf', 'Die Mutterweide'],
-    boss: { name: 'Die Mutter der Stricke', glyph: 'strickmutter', mech: { poison: 0.2, toll: 1 }, mechText: 'Würgt: Gift, und jeder dritte Schlag betäubt dich' } },
-  { id: 'a5', n: 'V', loc: 'kapelle', lvl: 16, top: 22, crypt: 'c5', zones: ['Der Kirchhof', 'Das Portal', 'Das Kirchenschiff', 'Die Sakristei', 'Der Glockenturm', 'Die Krypta der Äbte', 'Der Chor', 'Der Altar'],
+  { id: 'a4', n: 'IV', loc: 'moor', lvl: 18, top: 24, diff: 1.25, crypt: 'c4', zones: ['Der Bohlenweg', 'Die Galgenweiden', 'Das stille Wasser', 'Die Hütte im Schilf', 'Der Strickbaum', 'Die Irrlichter', 'Das versunkene Dorf', 'Die Mutterweide'],
+    boss: { name: 'Die Mutter der Stricke', glyph: 'strickmutter', mech: { poison: 0.22, regen: 0.015 }, mechText: 'Würgt: Gift, das sich stapelt – und das Moor heilt sie' } },
+  { id: 'a5', n: 'V', loc: 'kapelle', lvl: 24, top: 30, diff: 1.45, crypt: 'c5', zones: ['Der Kirchhof', 'Das Portal', 'Das Kirchenschiff', 'Die Sakristei', 'Der Glockenturm', 'Die Krypta der Äbte', 'Der Chor', 'Der Altar'],
     boss: { name: 'Der Erste Kultist', glyph: 'kultist1', mech: { thorns: 0.3, regen: 0.02 }, mechText: 'Wer zuschlägt, trifft sich selbst – Dornen' } },
-  { id: 'a6', n: 'VI', loc: 'gruben', lvl: 22, top: 30, crypt: null, zones: ['Der Schlackenhang', 'Die Aschefelder', 'Der Schwefelsee', 'Die Brücke aus Ketten', 'Die Esse', 'Der Thronweg', 'Die Glutgruben', 'Der Aschenthron'],
+  { id: 'a6', n: 'VI', loc: 'gruben', lvl: 30, top: 36, diff: 1.65, crypt: null, zones: ['Der Schlackenhang', 'Die Aschefelder', 'Der Schwefelsee', 'Die Brücke aus Ketten', 'Die Esse', 'Der Thronweg', 'Die Glutgruben', 'Der Aschenthron'],
     boss: { name: 'Der Aschenkönig', glyph: 'aschenkoenig', mech: { execute: 0.5, regen: 0.025, crit: 0.12 }, mechText: 'Glut: heilt sich in der Asche und schlachtet Geschwächte' } },
 ];
 // Krypten: nur noch der Boss, frei nach dem Akt-Boss. Jede besiegte Stufe → nächste ist schwerer, Beute besser.
 // Stufe `dTier[d]` erreicht = Trophäe/Ziel der alten Schwierigkeit d (Albtraum, Hölle) für Questziele `bossd`.
-export const CRYPT = { lvlAdd: 2, tierLvl: 3, tierMult: 0.06, rarAt: [0, 2, 5], items: [1, 2, 3], dTier: [0, 3, 6] };
+export const CRYPT = { glut: 10, glutPerTier: 1, lvlAdd: 2, tierLvl: 3, tierMult: 0.06, rarAt: [0, 2, 5], items: [1, 2, 3], dTier: [0, 3, 6] };

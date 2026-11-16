@@ -58,7 +58,7 @@ function migrate(d) {
     d.haul = null; d.active = null; d.acts = { prog: {} };
     const won = c => (d.trophies || []).some(t => t.key.startsWith(c + ':'));
     d.crypt = { diff: 0, prog: Object.fromEntries(CRYPTS.filter(c => won(c.id)).map(c => [c.id, 1])), cd: 0 };
-    for (const a of ACTS) if (d.lvl >= a.top + 2 || (a.crypt && won(a.crypt))) d.acts.prog[a.id] = ACT.zones + 1;
+    ACTS.forEach((a, i) => { if (d.lvl >= ACT.doneAt[i] || (a.crypt && won(a.crypt))) d.acts.prog[a.id] = ACT.zones + 1; });
     for (let i = ACTS.length - 1; i > 0; i--) if (d.acts.prog[ACTS[i].id]) for (let j = 0; j < i; j++) d.acts.prog[ACTS[j].id] = ACT.zones + 1;
     d.v = 13; }
   d.name = cleanName(d.name);
@@ -343,6 +343,7 @@ export const cryptTier = c => S.crypt.prog[c.id] || 0;
 export const cryptLvl = (c, t = cryptTier(c)) => cryptAct(c).top + CRYPT.lvlAdd + t * CRYPT.tierLvl;
 export const cryptFloor = c => cryptTier(c) > 0 ? 5 : cryptOpen(c) ? 4 : 0;   // für alte Questziele (Ebene n / Räume)
 export const cryptOpen = c => actDone(cryptAct(c)) && S.shards.length >= (c.shards || 0);
+export const cryptGlut = c => CRYPT.glut + cryptTier(c) * CRYPT.glutPerTier;   // jeder Versuch kostet Glut (sonst endloses Farmen)
 export const cryptEnemy = c => makeBoss(c, cryptLvl(c), 1 + cryptTier(c) * CRYPT.tierMult);
 // Boss einer Krypta/eines Akts (auch im Abstieg): mehr Leben + eigenes Muster statt nur größerer Zahlen
 export function makeBoss(c, lvl, mult = 1) {

@@ -93,9 +93,9 @@ export const bank = () => { const d = G.S.haul?.depth || 0, h = G.bankHaul(); if
 // --- Krypta-Kampf ---
 export function cryptFight(id, m0 = null) {
   const S = G.S, c = CRYPTS.find(x => x.id === id);
-  if (!c || S.exp || S.desc || now() < S.crypt.cd || !G.cryptOpen(c)) return null;
+  if (!c || S.exp || S.desc || now() < S.crypt.cd || !G.cryptOpen(c) || S.glut < G.cryptGlut(c)) return null;
   const m = m0 || G.cryptEnemy(c), t = G.cryptTier(c);
-  S.crypt.cd = now() + CFG.cryptCdSec * 1000;
+  S.crypt.cd = now() + CFG.cryptCdSec * 1000; S.glut -= G.cryptGlut(c);
   const A = blessed({ ...G.stats(), belt: G.beltCombat() }), r = fight(A, m), win = r.winner === 'a', rew = newRew();
   G.usePotions(r.used); rew.used = r.used; if (S.bless) { rew.bless = S.bless; S.bless = 0; }
   if (!win) { S.deaths++; G.journal(`${m.name} in ${c.name} hat mich niedergestreckt.`); return { A, B: m, r, win, rew, crypt: c }; }
@@ -114,8 +114,8 @@ export function cryptFight(id, m0 = null) {
 export const actZoneMob = (a, z) => LOCATIONS.find(l => l.id === a.loc).mobs[z % 3];
 const zoneElite = (a, z) => { if (!ACT.elites.includes(z)) return null; const i = ACTS.indexOf(a) * 3 + z, M = ELITE.mods; return [M[i % M.length], M[(i + 2) % M.length]]; };
 export function actEnemy(a, z) {
-  const lvl = G.actZoneLvl(a, z); if (z >= ACT.zones) return G.makeBoss(a, lvl, ACT.bossMult);
-  const el = zoneElite(a, z), m = G.makeMonster(lvl, el ? ACT.eliteDiff : 1, MONSTERS.find(x => x.name === actZoneMob(a, z)));
+  const lvl = G.actZoneLvl(a, z), d = a.diff || 1; if (z >= ACT.zones) return G.makeBoss(a, lvl, ACT.bossMult * d);
+  const el = zoneElite(a, z), m = G.makeMonster(lvl, (el ? ACT.eliteDiff : 1) * d, MONSTERS.find(x => x.name === actZoneMob(a, z)));
   if (el) { m.hp = Math.round(m.hp * ACT.eliteHp); m.elite = el.map(e => e.name); m.name = 'Elite: ' + m.name;
     for (const e of el) { Object.assign(m, e.eff || {}); for (const [k, v] of Object.entries(e.mult || {})) m[k] = Math.round(m[k] * v); } }
   return m;
@@ -421,7 +421,7 @@ export const descCrypts = () => CRYPTS.filter(descOpen);
 export const descLeft = () => { const d = G.S.descDay; return Math.max(0, DESCENT.daily - (d?.d === G.today() ? d.n : 0)); };
 export const descBusy = () => { const S = G.S; return S.exp ? 'Dein Held ist auf Expedition.' : S.active ? 'Erst den Streifzug beenden.' : S.haul ? 'Erst die Beute des Streifzugs sichern.' : ''; };
 export const descCanStart = c => { const S = G.S; return descOpen(c) && !S.desc && !descBusy() && descLeft() > 0; };
-export const descLvl = c => Math.max(G.cryptLvl(c, 0) - 2, G.S.lvl + DESCENT.lvlAdd);
+export const descLvl = c => Math.max(c.lvl + 1, G.S.lvl + DESCENT.lvlAdd);
 const descNowLvl = () => Math.max(G.S.desc.lvl, G.S.lvl + DESCENT.lvlAdd);   // wer unten aufsteigt, trifft stärkere Gegner
 export const descMult = (u = G.S.desc?.unrest || 0) => Math.round((1 + u * DESCENT.unrestLoot) * 10) / 10;
 const descDiff = u => DESCENT.diff * (1 + u * DESCENT.unrestDiff) * DIFFICULTIES[G.S.crypt.diff].mult;
