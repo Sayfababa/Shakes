@@ -1,6 +1,6 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
 import { AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
-import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
+import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
 import { potion, beltSlots, brewCost, canBrew, potMax } from './state.js';
 import { waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
@@ -8,7 +8,7 @@ import { current, available, objectives, canComplete } from './quests.js';
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
-import { wanderAct, wanderBusy, wanderDone, actEnemy, actChance, actCan, actZoneGlut, actZoneMob, pitWeek, pitPlace, pitRank, pitFoes, pitChance, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
+import { wanderMap, wanderAct, wanderBusy, wanderDone, actEnemy, actChance, actCan, actZoneGlut, actZoneMob, pitWeek, pitPlace, pitRank, pitFoes, pitChance, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
   descCrypts, descLeft, descCanStart, descBusy, descLvl, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
@@ -90,7 +90,7 @@ export function readyDots(t = Date.now()) {
 }
 export function navBar(view) {
   const tabs = [['hero', 'Held'], ['trips', 'Streifzug'], ['traders', 'Händler'], ['forge', 'Schmiede'], ['alch', 'Alchemie'], ['crypt', 'Krypta']];
-  const map = { opts: 'hero', act: 'trips', zoneprep: 'trips', prep: 'crypt', desc: 'crypt', arena: 'crypt', pitprep: 'crypt', pitshop: 'crypt', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips', exped: 'trips' };
+  const map = { wplan: 'trips', opts: 'hero', act: 'trips', zoneprep: 'trips', prep: 'crypt', desc: 'crypt', arena: 'crypt', pitprep: 'crypt', pitshop: 'crypt', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips', exped: 'trips' };
   // Nur echte Handlungsaufforderungen markieren – ein Dauer-Punkt auf jedem Tab sagt nichts mehr
   const badge = { hero: S.points + talentPoints() + waysPending() > 0, traders: Object.keys(TRADERS).some(canComplete), arena: canComplete('vargo'),
     crypt: canComplete('ilse') || canComplete('vargo'), trips: !!S.haul || canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) || (!!S.active && Date.now() >= S.active.end) };
@@ -213,7 +213,7 @@ export function viewTrips(ask = false) {
   const bl = bounties(), bDone = bl.filter(b => b.claimed).length, bReady = bl.some(b => !b.claimed && b.prog >= b.n);
   const bbar = `<div class="bountybar ${bReady ? 'ready' : ''}" data-action="go" data-v="bounties"><span>Steckbriefe heute</span><b>${bDone}/3</b>${bReady ? '<i>Lohn abholen</i>' : ''}</div>`;
   const tired = S.glut < 5, xbar = `<div class="bountybar expbar ${tired ? 'ready' : ''}" data-action="go" data-v="exped"><span>Expedition</span><b>ohne Glut · 1–8 Std.</b>${tired ? '<i>Glut leer – schick ihn los</i>' : ''}</div>`
-    + (wanderAct() ? `<div class="bountybar expbar" data-action="wstart"><span>Umherziehen</span><b>App offen · ½ Beute · 2 Std.</b></div>` : '');
+    + (wanderAct() ? `<div class="bountybar expbar" data-action="go" data-v="wplan"><span>Umherziehen</span><b>App offen · ½ Beute · 2 Std.</b></div>` : '');
   const cur = curAct(), o = omen();
   return `<div class="col acts">${say('prophet', omenLine())}${bbar}${xbar}${ACTS.map((a, i) => { const p = actProg(a), done = actDone(a), open = actOpen(a), l = LOCATIONS.find(x => x.id === a.loc);
     const isOmen = open && S.lvl >= 3 && o.loc === a.loc && !o.done;
@@ -729,7 +729,7 @@ export function viewWander(res = null) {
   const A = W.acc, herbs = Object.values(A.herbs).reduce((x, y) => x + y, 0), mats = Object.values(A.mats).reduce((x, y) => x + y, 0);
   const head = done ? `<section class="panel waiting"><h2>Der Held wartet am Lagerfeuer</h2><p class="lore">${Math.round(WANDER.maxSec / 3600)} Std. umhergezogen – mehr trägt der Sack nicht.</p></section>`
     : `<section class="panel wscene"><img class="bg" src="${wImg(c)}" alt=""><span class="wt" data-until="${end}">${fmtT(left)}</span><img class="portrait whero" src="${P(S.cls)}" alt="">
-      <div class="wact"><b>${c.k === 'fight' ? `${k.verb} ${c.mob}` : k.verb}</b><small>${l.name} · Punkt ${W.n + 1}</small><div class="wbar"><i style="animation-duration:${WANDER.sec}s;animation-delay:-${passed}s"></i></div></div></section>`;
+      <div class="wact"><b>${c.k === 'fight' ? `${k.verb} ${c.mob}` : k.verb}</b><small>${l.name} · ${W.route ? `Station ${Math.min(Math.floor(W.n / WANDER.per), W.route.length - 1) + 1}/${W.route.length}: ${WANDER_ST[W.route[Math.min(Math.floor(W.n / WANDER.per), W.route.length - 1)]].name} · ` : ''}Punkt ${W.n + 1}</small><div class="wbar"><i style="animation-duration:${WANDER.sec}s;animation-delay:-${passed}s"></i></div></div></section>`;
   return `<div class="col wander">${head}
     <section class="panel wlog">${W.log.length ? W.log.map(x => `<p><span>${x.n} · ${wLine(x)}</span><b>${x.text}</b></p>`).join('') : '<p class="dim small">Noch nichts gefunden.</p>'}</section>
     <section class="panel wsack"><span>Im Sack</span><b>${[`${A.gold} Gold`, A.items.length && `${A.items.length} Fundst.`, herbs && `${herbs} Zutat${herbs === 1 ? '' : 'en'}`, mats && `${mats} Mat.`].filter(Boolean).join(' · ')}</b></section>
@@ -739,4 +739,28 @@ export function viewWander(res = null) {
 export function viewWanderAway(npc) {
   return `<div class="col">${say(npc)}<section class="panel waiting"><h2>Dein Held zieht umher</h2><p class="lore">Kämpfen kann er erst, wenn du ihn heimrufst.</p>
     <div class="btns"><button data-action="go" data-v="trips">Zum Umherziehen</button></div></section></div>`;
+}
+
+// Route fürs Umherziehen wählen (wie Expedition): Start oben, Lager unten
+export function viewWanderPlan(path) {
+  const a = wanderAct(), l = LOCATIONS.find(x => x.id === a.loc), map = wanderMap(a.id), R = map.rows.length, full = path.length === R;
+  const nR = R + 2, Y = r => (r + 0.5) / nR * 100, pos = (r, n) => ({ x: n.x * 100, y: Y(r) });
+  const can = (r, j) => r === path.length && (r === 0 || expLinked(map.rows[r - 1][path[r - 1]], map.rows[r][j]));
+  let lines = '', gold = ''; const ln = (p1, p2, on) => { const t = `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}"/>`; if (on) gold += t; else lines += t; };
+  map.rows[0].forEach((n, j) => ln({ x: 50, y: Y(0) }, pos(1, n), path[0] === j));
+  for (let r = 1; r < R; r++) map.rows[r].forEach((n, j) => map.rows[r - 1].forEach((m, k) => { if (expLinked(m, n)) ln(pos(r, m), pos(r + 1, n), path[r - 1] === k && path[r] === j); }));
+  map.rows[R - 1].forEach((n, j) => ln(pos(R, n), { x: 50, y: Y(R + 1) }, full && path[R - 1] === j));
+  const node = (r, n, j) => { const on = path[r] === j, nx = can(r, j), d = WANDER_ST[n.t], tap = on || nx;
+    return `<button class="node ${on ? 'on' : ''} ${nx ? 'next' : ''} ${!on && !nx ? 'off' : ''}" style="left:${n.x * 100}%;top:${Y(r + 1)}%" ${tap ? `data-action="wpath" data-r="${r}" data-j="${j}"` : ''} title="${d.text}">${nodeArt(d.img)}<label>${d.name}</label></button>`; };
+  const cnt = {}; if (full) path.forEach((j, r) => { const t = map.rows[r][j].t; cnt[t] = (cnt[t] || 0) + 1; });
+  const hint = full ? `<p class="small">${path.map((j, r) => WANDER_ST[map.rows[r][j].t].name).join(' → ')}</p><p class="small xprev">${Object.entries(cnt).map(([t, n]) => `${n}× ${WANDER_ST[t].text.split(':')[0]}`).join(' · ')}</p>`
+    : `<p class="small dim">Wähle die ${path.length + 1}. Station. Jede dauert ${Math.round(WANDER.per * WANDER.sec / 60)} Min. (${WANDER.per} Punkte) und bringt vor allem, was sie zeigt.</p>`;
+  return `<div class="col exped wplan">
+    <section class="panel expmap"><h2>Umherziehen <span class="h2r">${l.name}</span></h2>
+      <div class="map" style="--rows:${nR}"><svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none"><g class="l0">${lines}</g><g class="l1">${gold}</g></svg>
+        <span class="node start on" style="left:50%;top:${Y(0)}%"><img src="assets/ui/marker.webp" alt=""><label>Aufbruch</label></span>
+        ${map.rows.map((row, r) => row.map((n, j) => node(r, n, j)).join('')).join('')}
+        <span class="node goal ${full ? 'on' : ''}" style="left:50%;top:${Y(R + 1)}%">${nodeArt('camp')}<label>Heimweg</label></span></div></section>
+    <section class="panel xsum"><h2>Dein Weg <span class="h2r">${R} Stationen · ${Math.round(WANDER.maxSec / 3600)} Std.</span></h2>${hint}</section>
+    <div class="btns"><button data-action="go" data-v="trips">Zurück</button><button class="red" data-action="wstart" ${full ? '' : 'disabled'}>Losziehen</button></div></div>`;
 }

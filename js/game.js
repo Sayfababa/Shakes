@@ -1,6 +1,6 @@
 // Spielzüge ohne DOM: Kampf ausführen, Belohnung anwenden, strukturiertes Ergebnis liefern.
 // main.js zeigt das Ergebnis an; tests/ spielen damit ganze Verläufe durch.
-import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS, DESCENT, DESC_ROOMS, ELITE, PIT, PIT_STYLES, PIT_RIVALS, PIT_RANKS, PIT_SHOP, PIT_RULES, DIFFICULTIES, ACTS, ACT, CRYPT, WANDER } from './data.js';
+import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS, DESCENT, DESC_ROOMS, ELITE, PIT, PIT_STYLES, PIT_RIVALS, PIT_RANKS, PIT_SHOP, PIT_RULES, DIFFICULTIES, ACTS, ACT, CRYPT, WANDER, WANDER_ST } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import { fight } from './combat.js';
@@ -634,10 +634,22 @@ export const wanderAct = () => [...ACTS].reverse().find(a => G.actProg(a) > 0) |
 export const wanderBusy = () => { const S = G.S; return S.exp ? 'Der Held ist auf Expedition.' : S.desc ? 'Der Held ist im Abgrund.' : S.wander ? 'Er zieht schon umher.' : !wanderAct() ? 'Erst ein Gebiet im Akt schaffen.' : ''; };
 const wanderKind = () => { let r = rand() * WANDER.kinds.reduce((a, k) => a + k.w, 0); for (const k of WANDER.kinds) if ((r -= k.w) < 0) return k.id; return 'fight'; };
 const wanderZone = a => Math.min(G.actProg(a), ACT.zones + 1) - 1;
-function wanderNext(W) { const a = ACTS.find(x => x.id === W.a), k = wanderKind(); W.cur = { k, mob: k === 'fight' ? actZoneMob(a, Math.floor(rand() * Math.min(wanderZone(a) + 1, ACT.zones))) : null }; }
-export function wanderStart() {
-  const S = G.S; if (wanderBusy()) return false; const a = wanderAct();
-  S.wander = { a: a.id, start: now(), t: now(), last: now(), n: 0, log: [], acc: { gold: 0, xp: 0, herbs: {}, mats: {}, items: [] } }; wanderNext(S.wander); return true;
+// Karte zum Selbstwählen (je Akt und Tag gleich)
+export function wanderMap(aId, day = Math.floor(now() / 86400000)) {
+  const r = mulberry(hashStr(`w|${aId}|${day}|${G.S.name}`)), used = {}, rows = [];
+  const pickT = () => { const pool = Object.entries(WANDER_ST).filter(([k, x]) => !x.max || (used[k] || 0) < x.max); let w = r() * pool.reduce((a, [, x]) => a + x.w, 0);
+    for (const [k, x] of pool) if ((w -= x.w) < 0) return k; return pool[0][0]; };
+  for (let i = 0; i < WANDER.rows; i++) { const wd = WANDER.widths[i % WANDER.widths.length], row = [];
+    for (let j = 0; j < wd; j++) { let t = pickT(); if (row.some(x => x.t === t)) t = pickT(); used[t] = (used[t] || 0) + 1; row.push({ t, x: ROWX[wd][j] }); }
+    rows.push(row); }
+  return { rows };
+}
+function wanderNext(W) { const a = ACTS.find(x => x.id === W.a), st = W.route?.[Math.min(Math.floor(W.n / WANDER.per), W.route.length - 1)];
+  const k = st && rand() < WANDER.bias ? (st === 'camp' ? 'camp' : st) : wanderKind(); W.cur = { k, mob: k === 'fight' ? actZoneMob(a, Math.floor(rand() * Math.min(wanderZone(a) + 1, ACT.zones))) : null }; }
+export function wanderStart(path) {
+  const S = G.S; if (wanderBusy()) return false; const a = wanderAct(), map = wanderMap(a.id);
+  if (!expPathOk(map, path)) return false;
+  S.wander = { a: a.id, route: path.map((j, i) => map.rows[i][j].t), start: now(), t: now(), last: now(), n: 0, log: [], acc: { gold: 0, xp: 0, herbs: {}, mats: {}, items: [] } }; wanderNext(S.wander); return true;
 }
 export const wanderDone = (W = G.S.wander) => !!W && W.t - W.start >= WANDER.maxSec * 1000;
 // Ein Punkt: halber Ertrag eines Wiederholungs-Kampfs im höchsten geschafften Gebiet

@@ -817,7 +817,16 @@ export const CRYPT = { glut: 10, glutPerTier: 1, lvlAdd: 2, tierLvl: 3, tierMult
 // --- Umherziehen (Idle, nur bei offener App): der Held zieht Punkt für Punkt durch den höchsten Akt ---
 // Je Punkt `sec` Sekunden, höchstens `maxSec` am Stück. Beute = `loot` × ein Wiederholungs-Kampf (EP sofort, Rest im Sack).
 // Ist die App länger als `gap` Sek. weg (zu/schläft), steht der Held still – die Zeit wird verschoben, nicht nachgeholt.
-export const WANDER = { sec: 120, maxSec: 7200, gap: 90, keep: 7, loot: 0.5, matP: 0.6, herbP: 0.6, itemP: 0.08, ruinItem: 0.3, ruinGold: 2, campXp: 0.4,
+// Route: wie bei der Expedition selbst wählen – `rows` Stationen (Breiten `widths`), je Station `per` Punkte; Punkte einer Station
+// sind zu `bias` von ihrer Art, sonst zufällig. rows × per × sec = maxSec.
+export const WANDER_ST = {
+  fight: { name: 'Jagdgrund', img: 'danger', w: 3, text: 'Kämpfe: EP, Gold, Material' },
+  herb: { name: 'Kräuterfeld', img: 'herb', w: 2, text: 'Zutaten des Ortes' },
+  mats: { name: 'Gebeinfeld', img: 'mats', w: 2, text: 'Material des Ortes' },
+  ruin: { name: 'Ruine', img: 'ruin', w: 1.5, text: 'Gold, Chance auf Fundstücke' },
+  camp: { name: 'Lager', img: 'camp', w: 0.7, max: 1, text: 'Ruhe: etwas EP, sicher' },
+};
+export const WANDER = { rows: 6, widths: [2, 3, 2, 3, 2, 3], per: 10, bias: 0.75, sec: 120, maxSec: 7200, gap: 90, keep: 7, loot: 0.5, matP: 0.6, herbP: 0.6, itemP: 0.08, ruinItem: 0.3, ruinGold: 2, campXp: 0.4,
   kinds: [
     { id: 'fight', w: 4, verb: 'Kämpft gegen' },
     { id: 'herb', w: 2, verb: 'Pflügt ein Kräuterfeld', name: 'Kräuterfeld', img: 'herb' },
