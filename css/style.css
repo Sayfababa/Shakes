@@ -339,6 +339,15 @@ img.portrait.monster { object-fit: cover; }
 .toast b { color: var(--gold-hi); font-family: 'Grenze Gotisch'; font-size: 1.15rem; } .toast.up span { color: #6fd15a; } .toast.down span { color: var(--blood-hi); }
 .toast.up { box-shadow: inset 0 0 0 1px #2f6a26, 0 0 22px rgba(90,200,70,.25), 0 6px 18px #000; }
 .toast.note { white-space: normal; width: max-content; max-width: 86vw; text-align: center; top: 30%; animation-duration: 2.6s; }
+.setbox { margin-top: 8px; padding: 6px 8px; border: 1px solid #000; box-shadow: inset 0 0 0 1px #1d5a1d; background: #0a0d09; text-align: left; font-size: max(11px, .9rem); }
+.setbox h5 { margin: 0 0 3px; font: 500 max(11px, .95rem) 'Alegreya SC'; color: var(--r-set); text-align: center; }
+.setbox h5 span { color: var(--dim); } .setbox p { margin: 1px 0; } .setbox .have { color: var(--r-set); } .setbox .miss { color: var(--dim); }
+.setbox .bon { color: var(--r-set); margin-top: 4px; } .setbox .bon.off { color: #56604f; } .setbox i { color: var(--dim); font-style: italic; }
+.drop.d-set { --dc: var(--r-set); box-shadow: inset 0 0 0 1px #1d5a1d, inset 0 0 12px #0c2a0c; } .drop.d-set b { color: var(--r-set); }
+.sets .srow { display: grid; grid-template-columns: 1fr auto; gap: 1px 8px; padding: 5px 0; border-bottom: 1px solid #241c14; font-size: max(11px, .9rem); }
+.col.sets { justify-content: flex-start; } .col.sets .panel { padding: 8px 10px; }
+.sets .srow b { font-family: 'Alegreya SC'; color: var(--r-set); font-weight: 500; } .sets .srow small { grid-column: 1 / -1; color: var(--dim); }
+.sets .srow span { color: var(--gold); font-family: 'Alegreya SC'; } .sets .srow.none b { color: var(--dim); } .sets .srow .have { color: var(--r-set); font-style: normal; }
 #tip .tup { color: var(--gold-hi); font-family: 'Alegreya SC'; }
 #tip .dlg { font-family: 'Alegreya SC'; font-size: 1.1rem; line-height: 1.35; padding: 6px 2px 2px; } #tip .dlg b { color: var(--gold-hi); }
 #tip .dlg small { display: block; margin-top: 6px; color: var(--dim); font-family: 'Alegreya'; font-size: max(11px, .86rem); }
@@ -1021,6 +1030,24 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .drop .dimg { width: 38px; height: 38px; display: grid; place-items: center; overflow: hidden; } .drop .dimg img, .drop .dimg svg { position: static; width: 38px; height: 38px; max-width: none; object-fit: contain; filter: drop-shadow(0 1px 2px #000); }
 .drop .dtxt { min-width: 0; line-height: 1.15; } .drop b { display: block; font-family: 'Alegreya SC'; font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .drop small { color: var(--dim); } .drop .better-txt { font-style: normal; font-size: inherit; }
+/* Nach dem Kampf zählt das Ergebnis: Log weg, Portraits klein – Beute und Lohn bekommen den Platz */
+.fightwrap.done .log { display: none; }
+.fightwrap.done .fight { gap: 4px; }
+.fightwrap.done .portrait { width: min(100%, 62px); margin: 0 auto; }
+.fightwrap.done .plate b { font-size: 1rem; } .fightwrap.done .pbelt, .fightwrap.done .sbar { display: none; }
+/* Bei vielen Fundstücken wird es eng: Überschrift und Bilanz kleiner, Portraits noch kleiner */
+.fightwrap.done:has(.drops.many) .result { font-size: 1.4rem; }
+.fightwrap.done:has(.drops.many) .fsum { font-size: max(11px, .74rem); line-height: 1.15; }
+.fightwrap.done:has(.drops.many) .portrait { width: min(100%, 46px); }
+.fightwrap.done:has(.drops.many) .plate b { font-size: max(11px, .86rem); } .fightwrap.done:has(.drops.many) .plate span { display: none; }
+.fightwrap.done:has(.drops.many) .loot-drop { font-size: max(11px, .78rem); }
+.fightwrap.done:has(.drops.many) .fsum .dim { display: none; }   /* Schadensanteile weichen dem Lohn */
+.fightwrap.done:has(.drops.many) .fight .hp, .fightwrap.done:has(.drops.many) .fight .bar { display: none; }
+/* Viele Fundstücke (Krypta-Boss mit Set-Teil): kleinere Kärtchen, damit nichts unter den Rand rutscht */
+.drops.many { gap: 2px; } .drops.many .drop { grid-template-columns: 24px 1fr; gap: 6px; padding: 0 5px; }
+.drops.many .dimg, .drops.many .dimg img, .drops.many .dimg svg { width: 24px; height: 24px; }
+.drops.many .drop b { font-size: max(11px, .84rem); } .drops.many .drop small { font-size: max(11px, .76rem); }
+.drops.many .drop.beam::before { left: 17px; }
 .drop.beam::before { content: ''; position: absolute; left: 25px; bottom: 50%; width: 4px; height: 0; translate: -50% 0; pointer-events: none; background: var(--dc); box-shadow: 0 0 10px 3px var(--dc); opacity: 0;
   animation: beam 1.3s ease-out both; animation-delay: calc(var(--i) * .18s + .45s); }
 .drop.beam .dimg { animation: dropglow 1.3s ease-out both; animation-delay: calc(var(--i) * .18s + .45s); }

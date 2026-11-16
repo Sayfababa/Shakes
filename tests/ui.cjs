@@ -16,10 +16,12 @@ let failures = 0;
     const tag = dev.replace(/ /g, '');
     const chk = async n => {
       await p.waitForTimeout(120);
+      // Namen und Überstand mitgeben – sonst sucht man beim nächsten Fehler lange
       const over = await p.evaluate(() => { const m = document.querySelector('main').getBoundingClientRect();
         return [...document.querySelectorAll('main *')].filter(e => { const r = e.getBoundingClientRect();
-          return (r.bottom > m.bottom + 1 || r.right > m.right + 1) && !e.closest('.vscroll, .log, .note p, .fnum, .goldpop, .proj, .burst, .spellname'); }).length; });
-      if (over) { failures++; console.log(`FEHLER ${tag} ${n}: ${over} Elemente ragen heraus`); }
+          return (r.bottom > m.bottom + 1 || r.right > m.right + 1) && !e.closest('.vscroll, .log, .note p, .fnum, .goldpop, .proj, .burst, .spellname'); })
+          .map(e => { const r = e.getBoundingClientRect(); return (e.className || e.tagName) + ' +' + Math.round(Math.max(r.bottom - m.bottom, r.right - m.right)); }); });
+      if (over.length) { failures++; console.log(`FEHLER ${tag} ${n}: ${over.length} Elemente ragen heraus`, over.slice(0, 3)); }
       // Item-Felder dürfen nie über ihr Panel hinausragen (Laden, Beutel, Figur, Schmiede)
       const spill = await p.evaluate(() => [...document.querySelectorAll('.panel .sitem, .panel .cellitem, .panel .eslot, .panel .fslot, .panel .mtile')].filter(e => {
         if (e.closest('.vscroll')) return false; const r = e.getBoundingClientRect(), q = e.closest('.panel').getBoundingClientRect(); return r.bottom > q.bottom + 1 || r.right > q.right + 1 || r.left < q.left - 1 || r.top < q.top - 1; }).length);
@@ -102,6 +104,26 @@ let failures = 0;
     await tap('[data-v=crypt]'); if (await tap('[data-action=crypt]')) { await chk('prep'); await tap('[data-action=prepPot]'); await tap('[data-action=bestBelt]'); await chk('prep2'); await tap('[data-action=trig]'); await tap('[data-action=cryptgo]'); await p.waitForTimeout(600); await chk('fightpot');
       if (!(await p.$('.pbelt img'))) { failures++; console.log(`FEHLER ${tag}: Tränke im Kampf nicht sichtbar`); } }
     else { failures++; console.log(`FEHLER ${tag}: Krypta nicht antippbar`); }
+    // Grab-Sets: Übersicht bei Ilse und das volle Ergebnis eines hohen Krypta-Bosses (3 Fundstücke + Set-Teil)
+    await p.evaluate(async () => { const G = await import('./js/state.js'); const L = await import('./js/loot.js');
+      const D = await import('./js/data.js');
+      Object.assign(G.S, { lvl: 30, glut: 900, gold: 9000 }); G.S.crypt.cd = 0; G.S.crypt.prog = { c1: 5 };
+      G.S.attrs.str = G.S.attrs.int = G.S.attrs.con = 600; G.S.attrs.lck = 120;
+      G.S.equip.helm = L.makeSetItem('s1', 0, 28); G.S.equip.chest = L.makeSetItem('s1', 1, 28);
+      for (const s of ['gloves', 'boots', 'belt', 'amulet', 'offhand', 'ring1']) G.S.equip[s] = L.makeItem(28, { slot: s === 'ring1' ? 'ring' : s, minRarity: 3 });
+      G.S.equip.weapon = L.makeItem(28, { slot: 'weapon', kind: D.CLASSES[G.S.cls].weapon, minRarity: 4 });
+      G.S.bag = []; G.save(); });
+    await p.reload(); await p.waitForTimeout(300);
+    await tap('[data-v=crypt]'); await tap('.speaker'); await tap('[data-v=sets]'); await chk('sets');
+    let gotLoot = false;
+    for (let i = 0; i < 10; i++) {
+      await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.crypt.cd = 0; G.S.glut = 400; G.S.bag = []; G.save(); });
+      await p.reload(); await p.waitForTimeout(250); await tap('[data-v=crypt]');
+      if (!(await tap('[data-action=crypt]'))) break;
+      await tap('[data-action=cryptgo]'); await tap('[data-action=skip]'); await p.waitForTimeout(250);
+      if (await p.$('.drops.many')) { await p.waitForTimeout(1300); await chk('cryptloot'); await tap('.drop[data-tip]'); await chk('settip'); gotLoot = true; break; }
+    }
+    if (!gotLoot) { failures++; console.log(`FEHLER ${tag}: Krypta-Ergebnis mit 4 Fundstücken nie erreicht`); }
     // Expedition: ohne Glut los, Krypta gesperrt, heimholen zeigt die Beute
     await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.glut = 0; G.S.active = null; G.S.haul = null; G.S.exp = null; G.save(); });
     await p.reload(); await p.waitForTimeout(300); await tap('[data-v=trips]');

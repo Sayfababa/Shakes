@@ -132,4 +132,5 @@ Save-Version 14 → 16, mit Migration und Tests dafür.
 - **Erledigt:** Systemdialoge (`alert`/`confirm`, 14 Stellen) durch eigenes Fenster `ask()` und Einblendung `note()` ersetzt; uifuzz meldet jeden Systemdialog.
 - **Erledigt:** Schärfen/Verstärken hängen am Platz statt am Teil (Save v17) – Material ist nie verschwendet.
 - **Erledigt:** Erster Sieg in einem Akt-Gebiet gibt sicher 2 Material (Elite 3, Boss 4).
-- **Freigegeben, als Nächstes:** Grab-Sets (`mockups/sets.html`), danach mehr Einzigartige.
+- **Erledigt:** Grab-Sets gebaut – 5 Sets à 3 Teile, nur beim Krypta-Boss, 2 Teile Bonus / 3 Teile Regeländerung (`tests/sets.mjs` eicht sie).
+- **Als Nächstes:** mehr Einzigartige mit Regeländerung, dann Akt II glätten und die Klassen angleichen.

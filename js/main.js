@@ -1,4 +1,4 @@
-import { CFG, MATS, TUTORIAL, TRADERS, FORGE, CRYPTS, HERBS, POTIONS, LOCATIONS, DESC_ROOMS, ACTS, PIT } from './data.js';
+import { CFG, MATS, TUTORIAL, TRADERS, FORGE, CRYPTS, HERBS, POTIONS, LOCATIONS, DESC_ROOMS, ACTS, PIT, SETS, SET } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import * as Game from './game.js';
@@ -31,6 +31,7 @@ function render() {
     pitshop: () => UI.viewPitShop(),
     wplan: () => S.wander || S.exp || S.desc || !Game.wanderAct() ? UI.viewTrips() : UI.viewWanderPlan(wPath, wInfo),
     opts: () => UI.viewOpts(Sound.opt, Sound.LEVELS),
+    sets: UI.viewSets,
     act: () => S.exp || S.desc || S.wander ? (S.desc ? UI.viewDescAway('prophet') : UI.viewTrips()) : UI.viewAct(ACTS.find(a => a.id === actSel) || G.curAct()),
     zoneprep: () => S.exp || S.desc || S.wander || !prepM || zoneSel == null ? UI.viewTrips() : UI.viewZonePrep(ACTS.find(a => a.id === actSel), zoneSel, prepM),
     exped: () => S.desc ? UI.viewDescAway('prophet') : S.exp ? UI.viewTrips(expAsk) : UI.viewExped(expSel),
@@ -136,6 +137,8 @@ function rewText(w) {
   if (w.tier) L.push(`<b class="gold">Krypta-Stufe ${w.tier} bezwungen.</b> Die nächste ist schwerer – und reicher.`);
   if (w.rankUp) L.push(`<b class="gold">Neuer Rang: ${w.rankUp.name}</b> · Titel „${w.rankUp.title}“ + Segen`);
   if (w.omen) L.push('<b class="gold">Das Omen hat sich erfüllt.</b>');
+  if (w.set) { const st = SETS.find(x => x.id === w.set.set), own = G.setOwned(w.set.set).size;
+    L.push(`<b class="r-set">${st.name}: ${own}/${SET.parts} Teile</b>${own >= SET.parts ? ' – vollständig!' : ''}`); }
   if (w.trophy) L.push(`<b class="r-legendary">Trophäe: ${w.trophy.name}</b>`);
   if (w.shard) L.push(`<b class="gold">Glockensplitter ${w.shard}/4</b>`);
   if (w.diffUp) L.push(`<b class="hot">${w.diffUp} erwacht.</b>`);
@@ -216,7 +219,7 @@ function combatFx(l) {
 }
 
 let waySel = null, sellSure = null;
-const precious = it => ['rare', 'legendary'].includes(it.rarity) || !!it.special || !!it.unique || !!it.runes?.length;
+const precious = it => ['rare', 'legendary', 'set'].includes(it.rarity) || !!it.special || !!it.unique || !!it.set || !!it.runes?.length;
 const actions = {
   ways: d => { waySel = d.s; view = 'ways'; render(); },
   way: d => { const cur = G.S.sp?.[d.s]?.[+d.t]; if (cur === +d.i) return;

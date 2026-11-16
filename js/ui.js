@@ -1,8 +1,8 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
-import { AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, BOUNTIES } from './data.js';
+import { AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, BOUNTIES, SETS, SET } from './data.js';
 import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
 import { potion, beltSlots, brewCost, canBrew, potMax, unreadable } from './state.js';
-import { slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
+import { setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 // Name eines Item-Bonus: Attribute, Rüstung/Schaden, Prozent-Boni ("% Krit-Chance", "% Feuerball")
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
@@ -20,7 +20,8 @@ export const fmtN = n => n.toLocaleString('de-DE');
 export const itemGain = it => { if (!it?.slot || Object.values(S.equip).includes(it)) return null; const p = powerWith(it); return (p.then - p.now) / Math.max(1, p.now); };
 const gainTag = it => { const g = itemGain(it); return g > 0.01 ? `<i class="better" title="besser">▲</i>` : ''; };
 const pct = (a, b) => Math.max(0, Math.min(100, (a / b) * 100));
-const effLine = e => Object.entries(e).map(([k, v]) => `${EFFECT_NAMES[k]}${k === 'first' || k === 'toll' ? '' : ' +' + Math.round(v * 100) + '%'}`).join(', ');
+const FLAGS = new Set(['first', 'toll', 'lastStand', 'tollback', 'firstEcho', 'venom']);   // an/aus – keine Prozentzahl
+const effLine = e => Object.entries(e).map(([k, v]) => `${EFFECT_NAMES[k]}${FLAGS.has(k) ? '' : ' +' + Math.round(v * 100) + '%'}`).join(', ');
 
 // Gemalte Monster/Bosse in assets/monsters/<glyph>.jpg, sonst SVG-Silhouette
 const MON_IMG = new Set(['totengraeber', 'muellerin', 'knochenordner', 'strickmutter', 'kultist1', 'aschenkoenig', 'gerlinde', 'aldemar', 'butcher', 'bellringer', 'ghul', 'fallen', 'skelett', 'grabraeuber', 'pestratte', 'kultist',
@@ -49,6 +50,28 @@ function questNote(tid) {
       : `<button class="red" data-action="turnin" data-t="${tid}">Abgeben</button>`) : ''}</div>`;
 }
 
+// --- Grab-Sets ---
+// Zeigt die drei Teile (getragene grün, fehlende grau) und beide Set-Boni. `mine` = das Teil, dessen Fenster offen ist.
+export function setBox(id, mine = null) {
+  const set = SETS.find(x => x.id === id); if (!set) return '';
+  const worn = new Set(), own = S ? setOwned(id) : new Set();
+  for (const it of Object.values(S?.equip || {})) if (it?.set === id) worn.add(it.part);
+  const n = worn.size;
+  const parts = set.parts.map((p, i) => `<p class="${worn.has(i) ? 'have' : 'miss'}">${p.name}${worn.has(i) || mine?.part === i ? '' : own.has(i) ? ' <i>(im Beutel)</i>' : ''}</p>`).join('');
+  return `<div class="setbox"><h5>${set.name} <span>${n}/${SET.parts}</span></h5>${parts}
+    <p class="bon ${n >= 2 ? '' : 'off'}">2 Teile: ${set.t2}</p>
+    <p class="bon ${n >= SET.parts ? '' : 'off'}">${SET.parts} Teile: ${set.t3}</p></div>`;
+}
+
+// Übersicht aller Grab-Sets (bei Schwester Ilse)
+export function viewSets() {
+  return `<div class="col sets"><section class="panel"><h2>Grab-Sets <span class="h2r">je ${SET.parts} Teile · beim Krypta-Boss</span></h2>
+    ${SETS.map(set => { const n = setCount(set.id), own = setOwned(set.id).size, c = CRYPTS.find(x => x.id === set.crypt);
+      return `<div class="srow ${own ? '' : 'none'}"><b>${set.name}</b><span>${own}/${SET.parts}${n >= 2 ? ` · <i class="have">${n} getragen</i>` : ''}</span>
+        <small>${c?.name || ''}</small><small>2: ${set.t2}</small><small>${SET.parts}: ${set.t3}</small></div>`; }).join('')}</section>
+    <button data-action="go" data-v="npc" data-n="ilse">Zurück</button></div>`;
+}
+
 // --- Items ---
 export function itemTip(it, cmp) {
   const L = [`<div class="n r-${it.rarity}">${it.name}</div><div class="sub2">${rarName(it.rarity, it)} · ${it.base && !it.name.includes(it.base) ? it.base : SLOTS[it.slot]} · Stufe ${it.lvl}</div>`];
@@ -61,6 +84,7 @@ export function itemTip(it, cmp) {
   for (const [k, v] of Object.entries(it.mods)) { const b = v - runeOf(k); if (b <= 0) continue; const t = it.tiers?.[k];
     L.push(`<span class="m ${t && t <= 2 ? 'hi' : ''}">+${b} ${STAT_NAME(k)}${t ? ` <i class="tier t${t}">${TIERS[t - 1].name}</i>` : ''}</span>`); }
   if (it.fx) L.push(`<span class="special">${it.unique ? '' : '✦ '}${effLine(it.fx)}</span>`);
+  if (it.set) L.push(setBox(it.set, it));
   if (it.lore) L.push(`<span class="lore small">„${it.lore}“</span>`);
   if (it.crafted) L.push(`<span class="gold small">Geschmiedet von ${it.crafted}</span>`); else if (it.glutMax) L.push(`<span class="sub2">Schmiedeglut ${it.glut}/${it.glutMax}${it.sealed ? ' · 1 Bonus versiegelt' : ''}</span>`);
   if (it.runes?.length || it.slot) { const rn = it.runes || []; if (rn.length) L.push(`<span class="rune">Runen ${rn.length}/${FORGE.maxRunes}: ${rn.map(r => `${r.mat ? `<img class="tiprune" src="assets/forge/r_${r.mat}.webp" alt="">` : ''}${r.name} +${r.v}`).join(', ')}</span>`); }
@@ -329,6 +353,8 @@ export function viewNpc(id) {
     extra = `<section class="panel"><h2>Omen des Tages <span class="h2r">${o.done ? 'erfüllt' : 'offen'} · ${S.omens} erfüllt</span></h2>
       <p class="lore">„${o.def.text}“</p><p class="small">Ort: <b>${o.place.name}</b> · ${o.def.short}</p>
       <div class="shards">${SHARD_CRYPTS.map(c => `<i class="${S.shards.includes(c) ? 'on' : ''}"></i>`).join('')}<span class="small dim">Glockensplitter ${S.shards.length}/4</span></div></section>`; }
+  // Schwester Ilse hütet die Krypten – bei ihr führt ein Knopf zur Set-Übersicht (eigene Ansicht, sonst passt es nicht aufs Handy)
+  if (id === 'ilse') extra = `<button data-action="go" data-v="sets">Grab-Sets · ${SETS.reduce((n, x) => n + setOwned(x.id).size, 0)}/${SETS.length * SET.parts} Teile</button>`;
   if (id === 'vargo') extra = `<section class="panel"><p class="small">Deine Ehre: <b>${S.honor}</b> · Siege: <b>${S.wins}</b></p></section>`;
   return `<div class="col trader"><section class="panel npcrow">${npcArt(id)}
       <div><h2>${n.name} <span class="h2r">${n.role}</span></h2><p class="lore">„${n.lines[Math.floor(Date.now() / 60000) % n.lines.length]}“</p></div></section>
@@ -365,17 +391,18 @@ export function viewCrypts() {
         ${monsterArt(c.boss.glyph)}
         <div><h3>${c.name}${open ? ` <span class="h2r">Stufe ${t + 1}</span>` : ''}</h3>
           <p class="small">${!open ? (!actDone(a) ? `Erst nach Akt ${a.n}: ${a.boss.name}` : `Versiegelt · Glockensplitter ${S.shards.length}/${c.shards}`) : `<span class="hot">${c.boss.name.split(',')[0]}</span> · Stufe ${cryptLvl(c)} · <i>${c.boss.mechText}</i> · ${threat(cryptChance(c))}`}</p>
-          <div class="dim small">Trophäe: ${effLine(c.trophy)}${troph ? ' · errungen' : ''}${open && t ? ` · ${t}× besiegt` : ''}</div></div></section>`; }).join('')}</div>`;
+          <div class="dim small">Trophäe: ${effLine(c.trophy)}${troph ? ' · errungen' : ''}${(() => { const set = SETS.find(x => x.crypt === c.id); const o = set ? setOwned(set.id).size : 0;
+            return open && set ? ` · <span class="r-set">Set ${o}/${SET.parts}</span>` : ''; })()}${open && t ? ` · ${t}× besiegt` : ''}</div></div></section>`; }).join('')}</div>`;
 }
 
 // Beute-Moment: jedes Fundstück als Kärtchen (Bild, Name in Seltenheitsfarbe); Seltenes und besser bekommt eine Lichtsäule
 const dropTier = it => it.unique ? 'unique' : it.rarity;
 export function lootCards(items = []) {
   if (!items.length) return '';
-  return `<div class="drops">${items.map((it, i) => { const g = it.soldFull ? 0 : itemGain(it), beam = it.unique || ['rare', 'legendary'].includes(it.rarity);
+  return `<div class="drops${items.length > 3 ? ' many' : ''}">${items.map((it, i) => { const g = it.soldFull ? 0 : itemGain(it), beam = it.unique || ['rare', 'legendary', 'set'].includes(it.rarity);
     return `<div class="drop d-${dropTier(it)} ${beam ? 'beam' : ''}" style="--i:${i}" ${it.soldFull ? '' : `data-tip="${it.id}" data-action="equip" data-id="${it.id}"`}>
       <span class="dimg">${itemArt(it)}</span><span class="dtxt"><b class="r-${it.rarity} ${it.unique ? 'uniq-txt' : ''}">${it.name}</b>
-      <small>${rarName(it.rarity, it)}${it.special ? ' · Sonderbonus' : ''}${it.soldFull ? ' · Beutel voll, verkauft' : g > 0.01 ? ` · <i class="better-txt">▲ +${Math.round(g * 100)} %</i>` : ''}</small></span></div>`; }).join('')}</div>`;
+      <small>${it.set ? `${SETS.find(x => x.id === it.set)?.name} ${setCount(it.set) + (Object.values(S.equip).includes(it) ? 0 : 1)}/${SET.parts}` : rarName(it.rarity, it)}${it.special ? ' · Sonderbonus' : ''}${it.soldFull ? ' · Beutel voll, verkauft' : g > 0.01 ? ` · <i class="better-txt">▲ +${Math.round(g * 100)} %</i>` : ''}</small></span></div>`; }).join('')}</div>`;
 }
 function fightSummary(F) {
   const g = gradeOf(F), R = fightReport(F, F.A, F.B), pl = x => x.map(([n, v]) => `${n} ${v} %`).join(' · ');
@@ -393,7 +420,7 @@ export function viewFight(F) {
     ${f.belt?.length ? `<div class="pbelt">${f.belt.map(p => { const k = F.log.findIndex(l => l.pot === p.id && l.who === 'a'); return `<img class="${k >= 0 && k < F.step ? 'used' : ''}" src="assets/potions/${p.id}.webp" data-p="${p.id}" alt="" title="${p.name}">`; }).join('')}</div>` : ''}
     ${f.spells?.length ? `<div class="sbar">${f.spells.map((sp, i) => `<div class="sb" data-i="${i}" title="${sp.name}" style="--c:${ch?.[i] ?? 0}"><img src="assets/spells/${sp.id}.webp" alt=""><i></i></div>`).join('')}</div>` : ''}</div>`;
 
-  return `<div class="panel fightwrap"><div class="fight">
+  return `<div class="panel fightwrap${done ? ' done' : ''}"><div class="fight">
     ${side(F.A, hpA, F.hpA, last.who === 'b', 'fA', last.cA)}
     <div><div class="log" id="log">${shown.map(l => `<div class="${l.who} ${l.crit ? 'crit' : ''} ${l.spell ? 'spell' : ''}">${l.t}</div>`).join('')}</div>
       ${done ? `<div class="result ${F.winner === 'a' ? 'win' : 'lose'}">${F.winner === 'a' ? 'Sieg' : 'Gefallen'}</div>${fightSummary(F)}

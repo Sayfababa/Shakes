@@ -16,6 +16,7 @@ export const RARITIES = [
   { id: 'magic',     name: 'Magisch',    w: 28, affixes: [1, 2], mult: 1.15 },
   { id: 'rare',      name: 'Selten',     w: 10, affixes: [3, 4], mult: 1.3 },
   { id: 'legendary', name: 'Legendär',   w: 2,  affixes: [4, 5], mult: 1.6 },
+  { id: 'set',       name: 'Set',        w: 0,  affixes: 0, mult: 1.45 },   // fällt nie zufällig – nur bei Krypta-Bossen (SETS)
 ];
 
 export const SLOTS = { helm: 'Helm', chest: 'Brust', gloves: 'Handschuhe', boots: 'Stiefel', belt: 'Gürtel',
@@ -130,6 +131,53 @@ export const UNIQUES = [
   { name: 'Siegel des Kronenlosen', slot: 'ring', mods: { str: 3, dex: 3 }, eff: { pen: 0.3, crit: 0.05 }, lore: 'Die Krone fehlt. Die Macht nicht.' },
   { name: 'Gürtel der Büßer', slot: 'belt', mods: { con: 1, armor: 3 }, eff: { hpPct: 0.15 }, lore: 'Jeder Knoten eine Sünde.' },
 ];
+// --- Grab-Sets: je Krypta ein Set aus 3 Teilen (Mockup mockups/sets.html) ---
+// Teile fallen nur beim Boss ihrer Krypta, ab Stufe SET.minTier. 2 Teile = ein guter Bonus (etwa Stufe III),
+// 3 Teile = eine Regeländerung wie ein Sonderbonus. Set-Teile tragen nur 2 feste Boni (Stufe in `mods` wie bei UNIQUES).
+export const SET = { minTier: 1, chance: 0.2, perTier: 0.05, max: 0.55, parts: 3 };
+export const SETS = [
+  { id: 's1', crypt: 'c1', name: 'Tracht der Wäscherinnen',
+    b2: { hpPct: 0.08 }, b3: { lastStand: 1 },
+    t2: '+8 % Leben', t3: 'Unter halbem Leben heilt dich alles doppelt',
+    parts: [
+      { name: 'Gerlindes Schleier', slot: 'helm', mods: { con: 3, lifep: 3 } },
+      { name: 'Nasses Leinen', slot: 'chest', mods: { con: 3, armor: 3 } },
+      { name: 'Ertränkter Ring', slot: 'ring', mods: { lck: 3, leechp: 3 } },
+    ] },
+  { id: 's2', crypt: 'c2', name: 'Kutte des Verseuchten',
+    b2: { poison: 0.015 }, b3: { venom: 0.35 },
+    t2: 'Deine Treffer vergiften', t3: 'Dein Gift heilt dich',
+    parts: [
+      { name: 'Aldemars Maske', slot: 'amulet', mods: { int: 3, spellp: 3 } },
+      { name: 'Faulende Wicklung', slot: 'gloves', mods: { dex: 3, critc: 3 } },
+      { name: 'Tritt der Seuche', slot: 'boots', mods: { con: 3, evadep: 3 } },
+    ] },
+  { id: 's3', crypt: 'c3', name: 'Schürze des Metzgers',
+    b2: { crit: 0.05 }, b3: { execHp: 0.15, execute: 0.35 },
+    t2: '+5 % Krit-Chance', t3: 'Du schlachtest Feinde schon unter 45 % Leben',
+    parts: [
+      { name: 'Schlachtschurz', slot: 'chest', mods: { str: 3, thornsp: 3 } },
+      { name: 'Griff des Metzgers', slot: 'gloves', mods: { dmg: 3, critd: 3 } },
+      { name: 'Hakengurt', slot: 'belt', mods: { con: 3, lifep: 3 } },
+    ] },
+  { id: 's4', crypt: 'c4', name: 'Ornat des Glöckners',
+    b2: { armorPct: 0.1, block: 0.05 }, b3: { tollback: 1, ward: 0.12 },
+    t2: '+10 % Rüstung, +5 % Blocken', t3: 'Knochenschild; wer dich betäubt, wird selbst betäubt',
+    parts: [
+      { name: 'Haube des Glöckners', slot: 'helm', mods: { armor: 3, spellp: 3 } },
+      { name: 'Geborstene Glocke', slot: 'offhand', mods: { blockp: 3, armor: 3 } },
+      { name: 'Seilertritt', slot: 'boots', mods: { dex: 3, evadep: 3 } },
+    ] },
+  { id: 's5', crypt: 'c5', name: 'Krone ohne Träger',
+    b2: { dmgPct: 0.06 }, b3: { firstEcho: 1 },
+    t2: '+6 % Schaden', t3: 'Dein erster Zauber im Kampf wirkt zweimal',
+    parts: [
+      { name: 'Reif des Kronenlosen', slot: 'amulet', mods: { int: 2, haste: 3 } },
+      { name: 'Gurt der leeren Krone', slot: 'belt', mods: { con: 2, lifep: 3 } },
+      { name: 'Ring ohne Stein', slot: 'ring', mods: { lck: 2, dmgp: 3 } },
+    ] },
+];
+
 export const UNIQUE_CHANCE = 0.6;   // so viele Legendäre sind Einzigartige (sonst: zufällige Legendäre mit Namen)
 
 // Materialien: fallen von bestimmten Monstern, werden von Händlern verlangt.
@@ -460,7 +508,9 @@ export const RANKS = [
 // dmgPct, hpPct, armorPct (Multiplikator), crit, evade, block, leech, bleed, rage, pen, regen, thorns, execute, first
 export const EFFECT_NAMES = { dmgPct: 'Schaden', hpPct: 'Leben', armorPct: 'Rüstung', crit: 'Krit-Chance', evade: 'Ausweichen',
   block: 'Blocken', leech: 'Lebensraub', bleed: 'Bluten bei Krit', rage: 'Raserei', pen: 'Rüstung ignorieren', regen: 'Regeneration/Runde',
-  thorns: 'Dornen', execute: 'Schaden gg. Sterbende', first: 'Erstschlag', poison: 'Gift', toll: 'Betäuben', haste: 'Zaubertempo', echo: 'Zauber-Nachhall', ward: 'Knochenschild bei Kampfbeginn' };
+  thorns: 'Dornen', execute: 'Schaden gg. Sterbende', first: 'Erstschlag', poison: 'Gift', toll: 'Betäuben', haste: 'Zaubertempo', echo: 'Zauber-Nachhall', ward: 'Knochenschild bei Kampfbeginn',
+  lastStand: 'Doppelte Heilung unter halbem Leben', venom: 'Dein Gift heilt dich', execHp: 'Henker-Schwelle',
+  tollback: 'Betäubung prallt zurück', firstEcho: 'Erster Zauber wirkt zweimal' };
 
 // Talentbaum je Klasse: 3 Pfade × 3 Stufen. Stufe n braucht 1 Rang im Talent davor + Charakterstufe TIER_LVL[n].
 export const TIER_LVL = [2, 8, 16];

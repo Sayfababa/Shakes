@@ -1,10 +1,10 @@
 // Spielzüge ohne DOM: Kampf ausführen, Belohnung anwenden, strukturiertes Ergebnis liefern.
 // main.js zeigt das Ergebnis an; tests/ spielen damit ganze Verläufe durch.
-import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS, DESCENT, DESC_ROOMS, ELITE, PIT, PIT_STYLES, PIT_RIVALS, PIT_RANKS, PIT_SHOP, PIT_RULES, DIFFICULTIES, ACTS, ACT, CRYPT, WANDER, WANDER_ST } from './data.js';
+import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS, DESCENT, DESC_ROOMS, ELITE, PIT, PIT_STYLES, PIT_RIVALS, PIT_RANKS, PIT_SHOP, PIT_RULES, DIFFICULTIES, SETS, SET, ACTS, ACT, CRYPT, WANDER, WANDER_ST } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import { fight } from './combat.js';
-import { makeItem } from './loot.js';
+import { makeItem, makeSetItem } from './loot.js';
 import { pick, roll, chance, rand } from './rng.js';
 
 const now = () => Date.now();
@@ -105,9 +105,19 @@ export function cryptFight(id, m0 = null) {
   dropMat(m, rew); dropHerb('herz', 1, ALCH.bossHearts, rew);
   const k = CRYPT.rarAt.filter(x => t >= x).length - 1;   // höhere Stufe → mehr und bessere Beute
   rew.items = []; for (let i = 0; i < CRYPT.items[k]; i++) { const it = makeItem(m.lvl, { luck: G.stats().lck + t * 15, cls: CLASSES[S.cls], minRarity: Math.min(4, 2 + k + (i === 0 && t >= CRYPT.rarAt[2] ? 1 : 0)) }); rew.items.push(it); if (!G.addToBag(it)) { S.gold += it.value; it.soldFull = true; } }
+  const sp = setDrop(c, t); if (sp) { rew.items.push(sp); rew.set = sp; if (!G.addToBag(sp)) { S.gold += sp.value; sp.soldFull = true; } }
   rew.item = rew.items[0];
   G.journal(`${m.name} ist gefallen (Stufe ${t + 1}).`);
   return { A, B: m, r, win, rew, crypt: c };
+}
+
+// Grab-Set-Teil beim Krypta-Boss: erst ab Stufe SET.minTier, Chance steigt je Stufe.
+// Es fällt bevorzugt ein Teil, das der Held noch nicht hat – sonst wäre Sammeln reines Pech.
+export function setDrop(c, t) {
+  const set = SETS.find(x => x.crypt === c.id); if (!set || t < SET.minTier) return null;
+  if (!chance(Math.min(SET.max, SET.chance + (t - SET.minTier) * SET.perTier))) return null;
+  const have = G.setOwned(set.id), miss = set.parts.map((_, i) => i).filter(i => !have.has(i));
+  return makeSetItem(set.id, miss.length ? pick(miss) : roll(0, set.parts.length - 1), G.cryptLvl(c));
 }
 
 // --- Die Akte ---

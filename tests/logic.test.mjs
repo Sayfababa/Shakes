@@ -8,7 +8,8 @@ const G = await import('../js/state.js');
 const Q = await import('../js/quests.js');
 const Game = await import('../js/game.js');
 const { fight } = await import('../js/combat.js');
-const { makeItem } = await import('../js/loot.js');
+const L = await import('../js/loot.js');
+const { makeItem } = L;
 
 const fresh = (cls = 'paladin') => { G.newChar('Test', cls); G.S.tut = 99; return G.S; };
 
@@ -771,4 +772,39 @@ test('Erster Sieg in einem Akt-Gebiet bringt sicher Material', () => {
   const S = fresh(); S.attrs.str = S.attrs.con = 400; const a = D.ACTS[0], before = Object.values(S.mats).reduce((x, y) => x + y, 0);
   const res = Game.actFight(a.id, 0); assert.ok(res.win); assert.ok(res.rew.mats.length === 1 && res.rew.mats[0][1] >= 1 + D.ACT.matFirst);
   assert.equal(Object.values(S.mats).reduce((x, y) => x + y, 0), before + res.rew.mats[0][1]);
+});
+
+test('Grab-Sets: gültige Daten, Teile nur beim Boss ihrer Krypta, Boni wirken', () => {
+  const S = fresh();
+  for (const set of D.SETS) {
+    assert.equal(set.parts.length, D.SET.parts);
+    assert.ok(D.CRYPTS.some(c => c.id === set.crypt), set.id + ': Krypta fehlt');
+    assert.equal(new Set(set.parts.map(p => p.slot)).size, D.SET.parts, set.id + ': zwei Teile auf demselben Platz');
+    for (const p of set.parts) for (const st of Object.keys(p.mods)) assert.ok(D.AFFIXES.some(a => a.stat === st), `${p.name}: ${st} ist kein Bonus`);
+    for (const k of [...Object.keys(set.b2), ...Object.keys(set.b3)]) assert.ok(D.EFFECT_NAMES[k], `${set.name}: ${k} ist kein Effekt`);
+    for (const t of [set.t2, set.t3]) { assert.ok(t && t.length < 60, `${set.name}: Kurztext fehlt oder zu lang`); assert.ok(!/undefined/.test(t)); }
+  }
+  // 2 Teile = erster Bonus, 3 Teile = beide
+  const set = D.SETS[0], key2 = Object.keys(set.b2)[0], key3 = Object.keys(set.b3)[0];
+  const parts = set.parts.map((_, i) => L.makeSetItem(set.id, i, 10));
+  assert.equal(G.effects()[key2] || 0, 0);
+  S.equip[parts[0].slot] = parts[0]; assert.equal(G.setCount(set.id), 1); assert.ok(!G.effects()[key2]);
+  S.equip[parts[1].slot] = parts[1]; assert.equal(G.effects()[key2], set.b2[key2]); assert.ok(!G.effects()[key3]);
+  S.equip[parts[2].slot === 'ring' ? 'ring1' : parts[2].slot] = parts[2];
+  assert.equal(G.setCount(set.id), 3); assert.equal(G.effects()[key3], set.b3[key3]);
+  // dasselbe Teil zweimal zählt nicht doppelt
+  S.equip.ring2 = parts[0]; assert.equal(G.setCount(set.id), 3);
+  // Set-Teile lassen sich nicht umschmieden oder neu weihen
+  assert.ok(!G.craftItems().some(it => it.set));
+  S.equip.amulet = L.makeSetItem('s2', 0, 10); S.gold = 9999; S.mats.schwanz = 9;
+  assert.ok(/Set/.test(G.serviceState(D.SERVICES.ysolde[0]).reason));
+});
+test('Set-Teile fallen nur beim Krypta-Boss ab der zweiten Stufe', () => {
+  fresh();
+  assert.equal(Game.setDrop({ id: 'c1' }, 0), null, 'erste Stufe gibt noch nichts');
+  let n = 0, teile = new Set();
+  for (let i = 0; i < 300; i++) { const it = Game.setDrop({ id: 'c1' }, 2); if (it) { n++; teile.add(it.part); assert.equal(it.set, 's1'); assert.equal(it.rarity, 'set'); } }
+  assert.ok(n > 30 && n < 250, 'Chance im Rahmen: ' + n);
+  assert.equal(teile.size, 3, 'alle Teile können fallen');
+  assert.equal(Game.setDrop({ id: 'c3' }, 2)?.set ?? 's3', 's3', 'jede Krypta gibt ihr eigenes Set');
 });

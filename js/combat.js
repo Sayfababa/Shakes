@@ -14,7 +14,7 @@ export function fight(A, B) {
   for (const f of [a, b]) {
     if (f.ward) f.shield = Math.round(f.hp * f.ward);   // Knochenschild zu Beginn
     (f.spells || []).forEach((x, i) => { if (x.m?.open) f.ch[i] = x.every; });   // Zauber-Weg „sofort zu Kampfbeginn“
-    f.poisonLeech = Math.max(0, ...(f.spells || []).map(x => x.m?.poisonLeech || 0));
+    f.poisonLeech = Math.max(0, f.venom || 0, ...(f.spells || []).map(x => x.m?.poisonLeech || 0));   // Set „Kutte des Verseuchten“: dein Gift heilt dich
     f.belt = (f.belt || []).map(p => ({ ...p, used: false }));
   }
   const curA0 = Math.round(a.cur);   // Startleben (Abstieg: Leben läuft von Raum zu Raum mit)
@@ -24,7 +24,7 @@ export function fight(A, B) {
   // Was der Gegner als Nächstes vorhat / was ihn ausmacht (Anzeige über seinem Bild)
   const intent = (f, o) => { if (f.cur <= 0 || o.cur <= 0) return null; if (f.stunned) return 'Betäubt';
     if (f.toll) { const n = 3 - ((f.hits || 0) % 3); return n === 1 ? 'Betäubung jetzt!' : `Betäubung in ${n}`; }
-    if (f.execute && o.cur < o.hp * 0.3) return 'Schlachtet!'; if (f.rage > 0.2 && f.cur < f.hp / 2) return 'Rasend';
+    if (f.execute && o.cur < o.hp * (0.3 + (f.execHp || 0))) return 'Schlachtet!'; if (f.rage > 0.2 && f.cur < f.hp / 2) return 'Rasend';
     if (f.noheal > 0 && (f.regen || f.leech)) return 'Gebannt'; if (f.regen) return `Heilt ${Math.round(f.regen * 100)} %/Zug`;
     if (f.poison) return 'Gift je Treffer'; if (f.leech) return 'Saugt Leben'; return null; };
   const ini = f => (f.first ? 1000 : 0) + f.dex + roll(0, 10);
@@ -36,7 +36,7 @@ export function fight(A, B) {
     if (atk.rageN > 0) atk.rageN--;   // Berserkersud läuft ab (eigener Faktor, stört Zauber-Stärkung nicht)
     for (const p of atk.belt) if (!p.used && trig(atk, def, p.trig)) potion(atk, def, p);
     def.didHeal = false;
-    if (atk.regen && atk.cur < atk.hp && !(atk.noheal > 0)) { const h = Math.round(atk.hp * atk.regen); atk.cur = Math.min(atk.hp, atk.cur + h); atk.didHeal = true; say(atk.side, `${atk.name} regeneriert ${h}.`, { heal: h }); }
+    if (atk.regen && atk.cur < atk.hp && !(atk.noheal > 0)) { const h = Math.round(atk.hp * atk.regen * healMul(atk)); atk.cur = Math.min(atk.hp, atk.cur + h); atk.didHeal = true; say(atk.side, `${atk.name} regeneriert ${h}.`, { heal: h }); }
     if (atk.stunned) { atk.stunned = atk.stunned === true ? 0 : atk.stunned - 1; say(def.side, `${atk.name} ist betäubt und taumelt.`); [atk, def] = [def, atk]; continue; }
     atk.turn++;
     // Zauber laden pro eigenem Zug um 1 (+ Zaubertempo); der stärkste geladene wird gewirkt
@@ -76,8 +76,14 @@ export function fight(A, B) {
   function base(x) { return (x.dmg[0] + x.dmg[1]) / 2 * (1 + x[x.main] / CFG.mainDiv) * x.buff * pb(x); }
   function pb(x) { return x.rageN > 0 ? 1 + x.potRage : 1; }
   // Betäuben (Glocke, Zauber): nicht wenn unbetäubbar; danach ist der Gegner kurz „erschüttert“ (für Kombos)
-  function stun(y, n = 1) { if (y.stunImm > 0) { ev.status = 'Widersteht'; return false; } y.stunned = Math.max(+y.stunned || 0, n); y.dazed = 2; return true; }
-  function healSelf(x, h) { if (x.noheal > 0) return 0; const room = x.hp - x.cur; x.cur = Math.min(x.hp, x.cur + h); if (h > 0 && room > 0) x.didHeal = true; return Math.min(h, room); }
+  // Set „Tracht der Wäscherinnen“: unter halbem Leben heilt dich alles doppelt
+  function healMul(x) { return x.lastStand && x.cur < x.hp * 0.5 ? 2 : 1; }
+  function stun(y, n = 1, by = null) { if (y.stunImm > 0) { ev.status = 'Widersteht'; return false; }
+    y.stunned = Math.max(+y.stunned || 0, n); y.dazed = 2;
+    // Set „Ornat des Glöckners“: wer dich betäubt, wird selbst betäubt
+    if (by && y.tollback && !(by.stunImm > 0) && !by.stunned) { by.stunned = 1; by.dazed = 2; ev.status = 'Zurückgeläutet'; }
+    return true; }
+  function healSelf(x, h) { if (x.noheal > 0) return 0; h = Math.round(h * healMul(x)); const room = x.hp - x.cur; x.cur = Math.min(x.hp, x.cur + h); if (h > 0 && room > 0) x.didHeal = true; return Math.min(h, room); }
   function hurt(y, d) { if (y.shield) { const s = Math.min(y.shield, d); y.shield -= s; d -= s; } y.cur -= d; }
   function spell(x, y, s) {
     const m = s.m || {}, amp = (x.amp || 1) * (s.boost || 1);
@@ -93,7 +99,7 @@ export function fight(A, B) {
     const zap = raw => { const r = finish(x, y, raw * sh, fo); hurt(y, r.d); d += r.d; hits.push(r.d); anyCrit ||= r.crit; extra += onHit(x, y, r.d, r.crit); return r; };
     if (s.kind === 'hit' || s.kind === 'stun' || s.kind === 'mark') {
       const r = zap(base(x) * s.mult * (s.kind === 'mark' && y.cur < y.hp / 2 ? 2 : 1) * amp * red); t += `: ${r.crit ? 'KRITISCH ' : ''}${r.d}.`;
-      if (s.kind === 'stun' && stun(y, m.stunTurns || 1)) t += ` ${y.name} ist betäubt${m.stunTurns > 1 ? ` (${m.stunTurns} Züge)` : ''}.`;
+      if (s.kind === 'stun' && stun(y, m.stunTurns || 1, x)) t += ` ${y.name} ist betäubt${m.stunTurns > 1 ? ` (${m.stunTurns} Züge)` : ''}.`;
     } else if (s.kind === 'multi') {
       let n = 0; for (let i = 0; i < s.hits && y.cur > 0; i++, n++) zap(base(x) * s.mult * amp * red * (0.8 + rand() * 0.4));
       t += `: ${n} Treffer, ${d}${anyCrit ? ' (kritisch)' : ''}.`;
@@ -114,6 +120,8 @@ export function fight(A, B) {
     say(x.side, t + extra, { spell: s.name, sid: s.id, dmg: d || undefined, crit: anyCrit, hits: hits.length > 1 ? hits : undefined, stun: s.kind === 'stun' || undefined });
     // Nachhall: der Zauber wirkt ein zweites Mal (nie öfter)
     if (x.echo && !x.echoing && y.cur > 0 && chance(x.echo)) { x.echoing = true; say(x.side, `${s.name} hallt nach!`, {}); spell(x, y, s); x.echoing = false; }
+    // Set „Krone ohne Träger“: der erste Zauber des Kampfs wirkt zweimal
+    if (x.firstEcho && !x.firstDone && !x.echoing && y.cur > 0) { x.firstDone = x.echoing = true; say(x.side, `${s.name} wirkt zweimal!`, {}); spell(x, y, s); x.echoing = false; }
   }
 
   // Was die gewählten Zauber-Wege zusätzlich tun (nach der Grundwirkung). Gibt Logtext zurück.
@@ -126,7 +134,7 @@ export function fight(A, B) {
       if (m.bleed && !(y.cureN > 0)) y.bleedDmg = Math.max(y.bleedDmg || 0, Math.round(d * m.bleed / (s.hits || 1)));
       if (m.poison && !(y.cureN > 0)) y.poisonDmg = Math.min(Math.round(y.hp * 0.12), (y.poisonDmg || 0) + Math.max(1, Math.round(d * m.poison)));
       if (m.burn && !(y.cureN > 0)) { y.burn = { d: Math.max(1, Math.round(d * m.burn.v / (s.hits || 1))), n: m.burn.n }; t += ` ${y.name} brennt.`; }
-      if (m.stun && y.cur > 0 && chance(m.stun) && stun(y, 1)) { t += ` ${y.name} ist betäubt.`; ev.stun = true; }
+      if (m.stun && y.cur > 0 && chance(m.stun) && stun(y, 1, x)) { t += ` ${y.name} ist betäubt.`; ev.stun = true; }
     }
     const landed = d > 0 || !['hit', 'stun', 'mark', 'multi'].includes(s.kind);
     if (landed) {
@@ -144,7 +152,7 @@ export function fight(A, B) {
 
   // Henker und Krit auf rohen Schaden (für Hieb und Zauber); o: Zusatz-Krit/Henker eines Zauber-Wegs, force = sicherer Krit (Kombo)
   function finish(x, y, raw, o = {}) {
-    let d = raw; const ex = (x.execute || 0) + (o.execute || 0); if (ex && y.cur < y.hp * 0.3) d *= 1 + ex;
+    let d = raw; const ex = (x.execute || 0) + (o.execute || 0); if (ex && y.cur < y.hp * (0.3 + (x.execHp || 0))) d *= 1 + ex;   // Set „Schürze des Metzgers“ hebt die Schwelle
     if (x.weakN > 0) d *= 1 - x.weak;                  // geschwächt: macht weniger Schaden
     if (y.vulnN > 0) d *= 1 + y.vuln;                  // verwundbar: nimmt mehr Schaden
     const crit = o.force || chance(Math.min(0.6 + (o.crit || 0), CFG.critBase + x.lck / (x.lck + 100 + y.lvl * 5) + (x.crit || 0) + (o.crit || 0)) - (y.critRes || 0));
@@ -157,7 +165,7 @@ export function fight(A, B) {
     if (x.leech) { const h = healSelf(x, Math.round(d * x.leech)); if (h) { t += ` +${h} Leben.`; ev.heal = (ev.heal || 0) + h; } }
     if (crit && x.bleed && !(y.cureN > 0)) y.bleedDmg = Math.max(y.bleedDmg || 0, Math.round(d * x.bleed));
     if (x.poison && !(y.cureN > 0)) y.poisonDmg = Math.min(Math.round(y.hp * 0.08), (y.poisonDmg || 0) + Math.max(1, Math.round(d * x.poison)));
-    if (x.toll && (x.hits = (x.hits || 0) + 1) % 3 === 0) { if (stun(y, 1)) { t += ' Die Glocke dröhnt!'; ev.stun = true; } else t += ` ${y.name} widersteht der Glocke.`; }
+    if (x.toll && (x.hits = (x.hits || 0) + 1) % 3 === 0) { if (stun(y, 1, x)) { t += ' Die Glocke dröhnt!'; ev.stun = true; } else t += ` ${y.name} widersteht der Glocke.`; }
     if (y.thorns && y.cur > 0) { const r = Math.round(d * y.thorns); hurt(x, r); if (r) { t += ` Dornen: ${r}.`; ev.thorns = (ev.thorns || 0) + r; } }
     return t;
   }

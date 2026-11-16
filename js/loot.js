@@ -1,4 +1,4 @@
-import { GENUS, CRAFT, BASES, RARITIES, AFFIXES, LEGEND_NAMES, CFG, TIERS, SPECIALS, SPECIAL_CHANCE, SPECIAL_MIN_LVL, UNIQUES, UNIQUE_CHANCE } from './data.js';
+import { GENUS, CRAFT, BASES, RARITIES, AFFIXES, LEGEND_NAMES, CFG, TIERS, SPECIALS, SPECIAL_CHANCE, SPECIAL_MIN_LVL, UNIQUES, UNIQUE_CHANCE, SETS } from './data.js';
 import { roll, pick, weighted, uid, rand } from './rng.js';
 
 // Welche Boni kann dieses Teil tragen? Grundboni überall, Kampf-Boni nur auf passenden Plätzen, Zauber-Boni nur auf der Waffe der Klasse
@@ -55,8 +55,24 @@ export function makeItem(lvl, { luck = 0, slot, slots, cls, kind, minRarity = 0 
 // Bild-Variante: gewöhnliche meist das Grundbild, seltene/legendäre meist eine der prächtigeren Varianten
 function artOf(base, rar) {
   const v = base.vars || []; if (!v.length) return base.art;
-  const fancy = rar.id === 'rare' || rar.id === 'legendary' ? 0.8 : rar.id === 'magic' ? 0.5 : 0.25;
+  const fancy = ['rare', 'legendary', 'set'].includes(rar.id) ? 0.8 : rar.id === 'magic' ? 0.5 : 0.25;
   return rand() < fancy ? pick(v) : base.art;
+}
+
+// Grab-Set-Teil: feste Basis, fester Name, zwei feste Boni. Fällt nur beim Boss seiner Krypta (game.js).
+export function makeSetItem(setId, part, lvl) {
+  const set = SETS.find(x => x.id === setId), p = set?.parts[part]; if (!p) return null;
+  const okLvl = b => !b.minLvl || lvl >= b.minLvl;
+  const base = [...BASES].reverse().find(b => b.slot === p.slot && okLvl(b)) || BASES.find(b => b.slot === p.slot);
+  const rar = RARITIES.find(r => r.id === 'set'), ilvl = Math.max(1, lvl), scale = (1 + ilvl * 0.18) * rar.mult;
+  const it = { id: uid(), slot: base.slot, kind: base.kind, base: base.name, art: artOf(base, rar), w: base.w, h: base.h,
+    rarity: 'set', lvl: ilvl, mods: {}, tiers: {}, set: set.id, part, name: p.name };
+  if (base.armor) it.armor = Math.round(base.armor * scale);
+  if (base.dmg) it.dmg = [Math.round(base.dmg[0] * scale), Math.round(base.dmg[1] * scale)];
+  for (const [stat, t] of Object.entries(p.mods)) { const a = AFFIXES.find(x => x.stat === stat), T = TIERS.find(x => x.t === t);
+    it.mods[stat] = affixValue(a, ilvl, T); it.tiers[stat] = t; }
+  it.value = itemValue(it, rar);
+  return it;
 }
 
 function pickUnique(pool) {
@@ -68,7 +84,7 @@ function pickUnique(pool) {
 // Wert: Seltenheit, Anzahl und Stufe der Boni, Sonderbonus und Einzigartige zählen
 export function itemValue(it, rar = RARITIES.find(r => r.id === it.rarity)) {
   const tierBonus = Object.values(it.tiers || {}).reduce((s, t) => s + (6 - t) * 0.25, 0);
-  return Math.round((4 + it.lvl * 3) * rar.mult ** 3 * (1 + Object.keys(it.mods).length * 0.4 + tierBonus) * (it.special ? 2 : 1) * (it.unique ? 3 : 1));
+  return Math.round((4 + it.lvl * 3) * rar.mult ** 3 * (1 + Object.keys(it.mods).length * 0.4 + tierBonus) * (it.special ? 2 : 1) * (it.unique ? 3 : 1) * (it.set ? 2 : 1));
 }
 
 // Eigenschaftswort an das Geschlecht des Grundgegenstands anpassen: „Starker“ + Kappe → „Starke Kappe“

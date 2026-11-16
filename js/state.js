@@ -1,4 +1,4 @@
-import { ACTS, ACT, CRYPT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, ALCH } from './data.js';
+import { SETS, SET, ACTS, ACT, CRYPT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, ALCH } from './data.js';
 import { affixPool, makeItem, itemValue, rollTier, affixValue, renameMagic, adj, fixName } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
@@ -128,12 +128,20 @@ export function respec() {
   return true;
 }
 // Alle Effekte (Klasse + Talente + Trophäen) aufsummiert
+// Wie viele verschiedene Teile eines Grab-Sets sind angelegt?
+export function setCount(id, p = S) { const seen = new Set(); for (const it of Object.values(p.equip || {})) if (it?.set === id) seen.add(it.part); return seen.size; }
+// Welche Teile eines Sets besitzt der Held schon (angelegt oder im Beutel)?
+export const setOwned = (id, p = S) => new Set([...Object.values(p.equip || {}), ...(p.bag || [])].filter(it => it?.set === id).map(it => it.part));
+export const setsWorn = (p = S) => SETS.map(set => ({ set, n: setCount(set.id, p) })).filter(x => x.n > 0);
 export function effects(p = S) {
   const e = { ...CLASSES[p.cls].passive };
   const add = (k, v) => e[k] = (e[k] || 0) + v;
   for (const br of TALENTS[p.cls]) for (const n of br.nodes) { const r = p.tal?.[n.id] || 0; if (r) for (const [k, v] of Object.entries(n.eff)) add(k, v * r); }
   for (const t of p.trophies || []) for (const [k, v] of Object.entries(t.eff)) add(k, v);
   for (const it of Object.values(p.equip || {})) if (it?.fx) for (const [k, v] of Object.entries(it.fx)) add(k, v);   // Sonderboni und Einzigartige
+  for (const set of SETS) { const n = setCount(set.id, p);   // Grab-Sets: 2 Teile = Bonus, 3 Teile = Regeländerung
+    if (n >= 2) for (const [k, v] of Object.entries(set.b2)) add(k, v);
+    if (n >= SET.parts) for (const [k, v] of Object.entries(set.b3)) add(k, v); }
   return e;
 }
 
@@ -212,9 +220,9 @@ export function power(A = stats()) {
   const hit = 1 - Math.min(0.5, en / (en + A.dex * 3 + 40));
   const crit = Math.min(0.6, CFG.critBase + A.lck / (A.lck + 100 + L * 5) + (A.crit || 0));
   const strike = (A.dmg[0] + A.dmg[1]) / 2 * (1 + A[A.main] / CFG.mainDiv);
-  const onHit = (1 + crit * ((A.critMult || 2) - 1 + (A.bleed || 0))) * (1 + (A.execute || 0) * 0.2 + (A.poison || 0));   // gilt für Hieb und Zauber
+  const onHit = (1 + crit * ((A.critMult || 2) - 1 + (A.bleed || 0))) * (1 + (A.execute || 0) * (0.2 + (A.execHp || 0)) + (A.poison || 0));   // gilt für Hieb und Zauber
   let dpt = strike * (1 - red) * hit * onHit * (1 + (A.rage || 0) * 0.3);
-  let heal = (A.regen || 0) * A.hp, takenF = 1, vulnF = 1;
+  let heal = (A.regen || 0) * A.hp * (A.lastStand ? 1.15 : 1), takenF = 1, vulnF = 1;
   const stunner = (A.spells || []).some(s => s.kind === 'stun' || s.m?.stun), dotter = (A.spells || []).some(s => s.kind === 'dot' || s.m?.poison);
   for (const s of A.spells || []) {
     const m = s.m || {}, cm = (A.critMult || 2) - 1;
@@ -250,7 +258,10 @@ export function power(A = stats()) {
     if (m.noheal || m.cleanse || m.stunImmune) takenF *= 0.985;   // Antworten auf Boss-Mechaniken: im Schnitt wenig, gegen den passenden Boss viel
   }
   dpt *= vulnF;
-  heal += dpt * (A.leech || 0);   // Lebensraub aus Hieben und Zaubern
+  heal += dpt * (A.leech || 0) * (A.lastStand ? 1.15 : 1);   // Lebensraub aus Hieben und Zaubern (Set: unter halbem Leben doppelt)
+  if (A.venom) heal += dpt * (A.poison || 0) * A.venom * 2;
+  if (A.tollback) takenF *= 0.97;   // betäubte Gegner schlagen seltener – gegen die Glocke viel mehr
+  if (A.firstEcho) dpt *= 1.04;
   const taken = eDmg * (1 - Math.min(0.6, A.armor / (A.armor + 20 + L * 8))) * (1 - Math.min(0.5, A.dex / (A.dex + en * 3 + 40) + (A.evade || 0))) * (1 - Math.min(0.5, A.block || 0)) * takenF;
   dpt += taken * (A.thorns || 0);   // Dornen: Teil jedes erlittenen Treffers geht zurück
   const ehp = A.hp * (1 + (A.ward || 0)) / (taken * Math.max(0.3, 1 - heal * 0.6 / Math.max(1, taken))) * eDmg;   // Leben, umgerechnet in "wie viele Gegner-Hiebe halte ich aus"
@@ -451,11 +462,11 @@ function setBase(it, base) {
   const mods = { ...base }; for (const r of it.runes || []) mods[r.stat] = (mods[r.stat] || 0) + r.v;
   it.mods = mods; it.tiers = Object.fromEntries(Object.keys(base).map(k => [k, it.tiers?.[k] || 3]));
 }
-export const craftItems = () => [...Object.values(S.equip).filter(Boolean), ...S.bag].filter(it => CRAFT.glut[it.rarity] && !it.unique);
+export const craftItems = () => [...Object.values(S.equip).filter(Boolean), ...S.bag].filter(it => CRAFT.glut[it.rarity] && !it.unique && !it.set);
 const findAny = id => Object.values(S.equip).find(x => x?.id === id) || S.bag.find(x => x.id === id);
 // Glut alter Items (vor dem Crafting-System) einmalig festlegen – aus der ID, damit Neuladen nichts ändert
 function ensureGlut(it) {
-  if (it.glut != null || !CRAFT.glut[it.rarity] || it.unique) return;
+  if (it.glut != null || !CRAFT.glut[it.rarity] || it.unique || it.set) return;
   let h = 0; for (const c of it.id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   it.glut = it.glutMax = CRAFT.glut[it.rarity] + h % (CRAFT.glutRand + 1);
 }
@@ -555,7 +566,7 @@ export function serviceState(sv) {
   let reason = '';
   if (sv.max && step >= sv.max) reason = 'Vollendet';
   else if (sv.slot && !sv.max && !it) reason = 'Nichts angelegt';
-  else if (sv.id === 'reroll' && it.unique) reason = 'Einzigartiges lässt sich nicht neu weihen';
+  else if (sv.id === 'reroll' && (it.unique || it.set)) reason = it.set ? 'Set-Teile lassen sich nicht neu weihen' : 'Einzigartiges lässt sich nicht neu weihen';
   else if (sv.id === 'reroll' && (ensureGlut(it), it.crafted || it.glut < CRAFT.ops.find(o => o.id === 'chaos').glut)) reason = 'Schmiedeglut erschöpft';
   else if (sv.id === 'reroll' && !Object.keys(it.mods).length) reason = 'Keine Zauber';
   const enough = S.gold >= gold && Object.entries(cost).every(([k, n]) => (S.mats[k] || 0) >= n);
