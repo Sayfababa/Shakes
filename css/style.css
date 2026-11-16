@@ -909,3 +909,30 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .ico { display: inline-block; width: 15px; height: 15px; background: center / contain no-repeat; }
 .ico.coin { background-image: url('../assets/ui/coin.webp'); }
 .ico.glut { background-image: url('../assets/ui/marker.webp'); filter: hue-rotate(15deg) saturate(1.4) drop-shadow(0 0 3px rgba(220,80,20,.7)); }
+/* === Die Grube: Rangleiter === */
+.ico.hon { background-image: url('../assets/ui/marker.webp'); filter: hue-rotate(40deg) saturate(.6) brightness(1.4); width: 13px; height: 13px; vertical-align: -2px; margin-right: 2px; }
+.pitrank { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 3px 8px; }
+.pitrank h3 { font-family: 'Grenze Gotisch'; color: var(--gold-hi); font-size: 1.2rem; margin: 0; }
+.pitrank small { color: var(--dim); font-size: .76rem; }
+.pitrank .pl { font-family: 'Grenze Gotisch'; font-size: 1.6rem; color: var(--gold); }
+.pitrank .prog { grid-column: 1 / -1; height: 7px; background: #000; box-shadow: inset 0 0 0 1px #3a3226; }
+.pitrank .prog i { display: block; height: 100%; background: url('../assets/ui/fill_gold.webp') left / 100% 100%; }
+.riv { display: grid; grid-template-columns: 54px 1fr auto; gap: 2px 9px; align-items: center; padding: 6px 9px; position: relative; cursor: pointer; }
+.riv img { width: 54px; height: 54px; object-fit: cover; object-position: top; grid-row: span 3; box-shadow: 0 0 0 1px #3a3226; }
+.riv h4 { margin: 0; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.riv .st { font-size: .76rem; font-style: italic; grid-column: 2 / -1; }
+.riv .pz { font-family: 'Grenze Gotisch'; color: var(--gold-hi); font-size: 1.25rem; text-align: right; }
+.riv .meta { display: flex; gap: 10px; align-items: center; font-family: 'Alegreya SC'; font-size: .74rem; color: var(--dim); grid-column: 2 / -1; }
+.riv .meta b { color: #e0c27a; font-weight: 500; }
+.riv.tf-low { box-shadow: inset 0 0 0 2px #4f7a34; } .riv.tf-mid { box-shadow: inset 0 0 0 2px #b08a3e; }
+.riv.tf-high { box-shadow: inset 0 0 0 2px #c0621f; } .riv.tf-deadly { box-shadow: inset 0 0 0 2px #a8241a; }
+.riv.foe::after { content: 'Erzfeind'; position: absolute; top: 5px; right: 46px; font: 600 .62rem 'Alegreya SC', serif; color: #e86a55; }
+.pitbtns { display: flex; gap: 6px; } .pitbtns button { flex: 1; }
+.pitwin { margin: 2px 0 0; }
+.pitshopv .tier { font-family: 'Alegreya SC'; font-size: .8rem; color: var(--gold); margin: 6px 0 3px; } .pitshopv .tier.off { color: var(--dim); }
+.pitrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.pitrow .sitem { aspect-ratio: 4 / 3; } .pware .matimg { position: absolute; left: 50%; top: 4px; translate: -50% 0; height: calc(100% - 30px); width: auto; }
+.pware .wn { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-size: .62rem; font-style: normal; color: var(--text); }
+.pware.sold { filter: grayscale(1) brightness(.5); }
+.titles { display: flex; flex-wrap: wrap; gap: 4px; } .titles button.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
+.pit.tight .riv .st { display: none; } .pit.tight .riv img { width: 42px; height: 42px; } .pit.tight .riv { grid-template-columns: 42px 1fr auto; }

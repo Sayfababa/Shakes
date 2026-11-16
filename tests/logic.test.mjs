@@ -634,5 +634,22 @@ test('Abstieg: Boss besiegt = draußen, Neuladen mitten im Abstieg verändert ni
 });
 test('Migration: Spielstand v10 bekommt den Abstieg', () => {
   fresh(); const d = JSON.parse(JSON.stringify(G.S)); d.v = 10; delete d.desc; delete d.descDay;
-  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); const L = G.load(); assert.equal(L.v, 11); assert.equal(L.desc, null); assert.equal(L.descDay, null);
+  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); const L = G.load(); assert.equal(L.v, G.SAVE_VERSION); assert.equal(L.desc, null); assert.equal(L.descDay, null);
+});
+test('Grube: Leiter, Platztausch, Rang, Laden, Herausforderung, Migration', () => {
+  fresh(); const S = G.S; S.lvl = 30; S.attrs[D.CLASSES[S.cls].main] += 400; S.attrs.con += 300;
+  assert.equal(Game.pitPlace(), D.PIT.size + 1); assert.equal(Game.pitFoes().length, D.PIT.look);
+  const g = S.glut, f = Game.pitFoes()[2], r = Game.pitFight(f.id); assert.ok(r, 'Kampf läuft'); assert.equal(S.glut, g, 'kostet keine Glut');
+  assert.equal(Game.pitFight(Game.pitFoes()[0].id), null, 'Pause nach dem Kampf');
+  if (r.win) { assert.equal(Game.pitPlace(), f.place); assert.ok(S.honor > 0); }
+  for (let k = 0; k < 40 && Game.pitPlace() > 30; k++) { S.pit.ts = 0; Game.pitFight(Game.pitFoes()[0].id); }
+  assert.ok(S.pit.ranks.includes('blut'), 'Rang Blutsand erreicht'); assert.ok(S.trophies.some(t => t.key === 'pit:blut'));
+  assert.ok(Game.pitTitle('der Blutige')); assert.equal(S.title, 'der Blutige'); assert.ok(!Game.pitTitle('Grubenkönig'));
+  assert.equal(new Set(S.pit.lad).size, D.PIT.size + 1, 'Leiter ohne Doppelte');
+  S.honor = 1000; const sh = Game.pitShop(); assert.ok(sh.blut);
+  const n = S.bag.length; assert.equal(Game.pitBuy('blut', 0), ''); assert.equal(S.bag.length, n + 1); assert.equal(Game.pitBuy('blut', 0), 'Schon gekauft.');
+  Game.pitBuy('blut', 1); Game.pitBuy('blut', 2); assert.equal(Game.pitBuy('kette', 0), 'Diese Woche nichts mehr.');
+  const ch = Game.pitChallenge(); S.pit.ts = 0; const t0 = ch.tries; Game.pitFight(ch.rid, true); assert.equal(ch.tries, t0 - 1);
+  const d = JSON.parse(JSON.stringify(S)); d.v = 11; delete d.pit; localStorage.setItem('aschenkrone_v1', JSON.stringify(d));
+  const L = G.load(); assert.equal(L.v, G.SAVE_VERSION); assert.equal(L.pit.lad.length, D.PIT.size + 1);
 });

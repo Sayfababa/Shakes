@@ -9,7 +9,7 @@ let expSel = { loc: null, h: 8, path: [] }, expRes = null, expAsk = false;
 let forgeSel = { mat: null, slot: null, mode: 'rune', item: null, stat: null, msg: '' }, forgeRes = null, FG = null;
 let descSt = { c: null, j: null, msg: '', res: null };
 let prepC = null, prepM = null, alchSel = POTIONS[0].id, alchBack = 'traders';
-let tripLoc = null, view = 'hero', pickCls = null, F = null, rival = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
+let tripLoc = null, view = 'hero', pickCls = null, F = null, pitSel = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
 
 function render() {
   const S = G.S;
@@ -23,7 +23,9 @@ function render() {
     bounties: UI.viewBounties,
     forge: () => UI.viewForge(forgeSel, forgeRes),
     npc: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewNpc(npc),
-    arena: () => S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : UI.viewArena(rival ||= Game.makeRival()), hero: UI.viewHero,
+    arena: () => S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : UI.viewArena(), hero: UI.viewHero,
+    pitprep: () => S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : pitSel && prepM ? UI.viewPitPrep(pitSel, prepM) : UI.viewArena(),
+    pitshop: () => UI.viewPitShop(),
     exped: () => S.desc ? UI.viewDescAway('prophet') : S.exp ? UI.viewTrips(expAsk) : UI.viewExped(expSel),
     alch: () => UI.viewAlch(alchSel, alchBack),
     prep: () => S.exp ? UI.viewAway('ilse') : S.desc ? UI.viewDesc(descSt) : prepM ? UI.viewPrep(CRYPTS.find(c => c.id === prepC), prepM) : UI.viewCrypts(),
@@ -38,7 +40,7 @@ function render() {
 
 // Vorbereitung: Gürtel als Liste; reicht die Höhe nicht (kleine Handys, iOS-App), als Reihe nebeneinander
 function fitPrep() {
-  const pr = document.querySelector('.prep, .exped, .expev, .expresv, .desc, .descv, .descres, .craft, .crypts'), m = pr?.parentElement; if (!pr) return;
+  const pr = document.querySelector('.prep, .pit, .pitshopv, .exped, .expev, .expresv, .desc, .descv, .descres, .craft, .crypts'), m = pr?.parentElement; if (!pr) return;
   pr.classList.remove('tight');
   // zu hoch – oder (Umschmieden) Boni im Kasten abgeschnitten
   const low = () => pr.lastElementChild.getBoundingClientRect().bottom > m.getBoundingClientRect().bottom + 1
@@ -89,6 +91,7 @@ function haulRewText(res) {
   for (const [k, n] of w.mats) L.push(`${MATS[k]} ×${n}`);
   for (const [k, n] of w.herbs || []) L.push(`${HERBS[k].name} ×${n}`);
   if (w.item) L.push(`<span class="r-${w.item.rarity}">${w.item.name}</span>${betterTxt(w.item)}`);
+  if (w.rankUp) L.push(`<b class="gold">Neuer Rang: ${w.rankUp.name}</b> · Titel „${w.rankUp.title}“ + Segen`);
   if (w.omen) L.push('<b class="gold">Das Omen hat sich erfüllt.</b>');
   L.push(`<i class="dim">Ungesichert (Tiefe ${h.depth}): ${h.gold} Gold, ${h.xp} EP${h.items.length ? `, ${h.items.length} Fundstück(e)` : ''}</i>`);
   return L.join('<br>');
@@ -105,6 +108,7 @@ function toast(before) {
 }
 function loseText(res) {
   if (res.lost) return `In der Tiefe verloren: ${res.lost.gold} Gold, ${res.lost.xp || 0} EP${res.lost.items.length ? ` und ${res.lost.items.length} Fundstück(e)` : ''}.`;
+  if (res.pit) return 'Vargo lacht. Platz bleibt – 15 Minuten Pause.';
   if (res.rew.honor) return `${res.rew.honor} Ehre`;
   if (res.desc?.lost) { const l = res.desc.lost; return `Der Sack bleibt unten: ${l.gold} Gold${l.items.length ? `, ${l.items.length} Fundstück${l.items.length > 1 ? 'e' : ''}` : ''}.`; }
   if (res.crypt) return 'Die Krypta behält dich. Diesmal. Dein Fortschritt bleibt.';
@@ -240,7 +244,7 @@ const actions = {
   prepPot: d => { if (!prepM) return; const keep = Game.enemyInfo(prepM).tags.map(t => t[1]); if (!Game.packPotion(d.id, keep)) return alert('Geht gerade nicht.'); render(); },
   bestBelt: () => { if (!prepM) return; if (!Game.bestBelt(prepM)) alert('Du hast noch keine Tränke. Brau welche bei Mutter Ysolde.'); render(); },
   cryptgo: () => { const m = prepM; prepM = null; showFight(Game.cryptFight(prepC, m), 'crypt'); },
-  alch: d => { alchBack = d.b === 'prep' || d.b === 'desc' ? d.b : 'traders'; view = 'alch'; render(); },
+  alch: d => { alchBack = d.b === 'prep' ? (view === 'pitprep' ? 'pitprep' : 'prep') : d.b === 'desc' ? d.b : 'traders'; view = 'alch'; render(); },
   potsel: d => { alchSel = d.id; render(); },
   brew: d => { if (G.brew(d.id)) { alchSel = d.id; render(); } },
   beltin: d => { const n = G.beltSlots(); let i = G.S.belt.slice(0, n).findIndex(b => !b);
@@ -249,8 +253,10 @@ const actions = {
   beltout: d => { const i = G.S.belt.findIndex(b => b?.id === d.id); if (i >= 0) G.setBelt(i, null); render(); },
   beltdel: d => { G.setBelt(+d.i, null); render(); },
   trig: d => { const b = G.S.belt[+d.i], ts = b && G.potion(b.id).trig; if (!ts) return; G.setTrig(+d.i, ts[(ts.indexOf(b.trig) + 1) % ts.length]); render(); },
-  rival: () => { rival = Game.makeRival(); render(); },
-  arena: () => { const R = rival; const res = Game.arenaFight(R); if (res) rival = null; showFight(res, 'arena'); },
+  pitsel: d => { const B = Game.pitTarget(d.id, !!d.ch); if (!B) return; pitSel = { id: d.id, ch: !!d.ch }; prepM = B; view = 'pitprep'; render(); },
+  pitgo: () => { const s = pitSel; if (!s) return; const res = Game.pitFight(s.id, s.ch); if (!res) return render(); pitSel = null; prepM = null; showFight(res, 'arena'); },
+  pitbuy: d => { const e = Game.pitBuy(d.t, +d.k); if (e) alert(e); render(); },
+  pittitle: d => { Game.pitTitle(d.t || null); G.save(); render(); },
   forgemode: d => { forgeSel.mode = d.m; forgeRes = null; forgeSel.msg = ''; render(); },
   craftpick: d => { forgeSel.item = d.id; forgeSel.stat = null; forgeSel.msg = ''; forgeSel.changed = null; render(); },
   craftstat: d => { forgeSel.stat = forgeSel.stat === d.k ? null : d.k; forgeSel.msg = ''; render(); },
@@ -327,7 +333,7 @@ function forgeHit() {
 
 // --- Eingabe ---
 const TOUCH = matchMedia('(hover: none)').matches;
-const ACT_LABEL = { equip: 'Anlegen', unequip: 'Ablegen', buy: 'Kaufen', sell: 'Verkaufen' };
+const ACT_LABEL = { equip: 'Anlegen', unequip: 'Ablegen', buy: 'Kaufen', pitbuy: 'Kaufen', sell: 'Verkaufen' };
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-action]');
   if (!el) { if (!e.target.closest('#tip')) hideTip(); return; }
@@ -358,7 +364,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Enter' && document.ge
 function findItem(id) {
   const S = G.S; if (!S) return null;
   const shops = Object.values(S.traders).flatMap(t => t.shop);
-  return [...S.bag, ...shops, ...Object.values(S.equip).filter(Boolean), ...(rival ? Object.values(rival.equip) : []), ...(S.desc?.sack.items || [])].find(x => x.id === id);
+  return [...S.bag, ...shops, ...Object.values(S.equip).filter(Boolean), ...Object.values(G.S.pit?.shop || {}).flat().filter(w => w.item).map(w => w.item), ...(S.desc?.sack.items || [])].find(x => x.id === id);
 }
 function hideTip() { tip.hidden = true; tip.className = ''; }
 app.addEventListener('mousemove', e => {

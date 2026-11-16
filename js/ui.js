@@ -1,6 +1,6 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
 import { AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
-import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, DESCENT, DESC_ROOMS } from './data.js';
+import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, DESCENT, DESC_ROOMS, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
 import { potion, beltSlots, brewCost, canBrew, potMax } from './state.js';
 import { waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
@@ -8,7 +8,7 @@ import { current, available, objectives, canComplete } from './quests.js';
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
-import { gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
+import { pitWeek, pitPlace, pitRank, pitFoes, pitChance, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, tripChance, cryptChance, threatLabel, canDelve, delveChance, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
   descCrypts, descLeft, descCanStart, descBusy, descLvl, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
@@ -86,7 +86,7 @@ export function hud(tut = '') {
 }
 export function navBar(view) {
   const tabs = [['hero', 'Held'], ['trips', 'Streifzug'], ['traders', 'Händler'], ['forge', 'Schmiede'], ['alch', 'Alchemie'], ['crypt', 'Krypta']];
-  const map = { prep: 'crypt', desc: 'crypt', arena: 'crypt', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips', exped: 'trips' };
+  const map = { prep: 'crypt', desc: 'crypt', arena: 'crypt', pitprep: 'crypt', pitshop: 'crypt', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips', exped: 'trips' };
   // Nur echte Handlungsaufforderungen markieren – ein Dauer-Punkt auf jedem Tab sagt nichts mehr
   const badge = { hero: S.points + talentPoints() + waysPending() > 0, traders: Object.keys(TRADERS).some(canComplete), arena: canComplete('vargo'),
     crypt: canComplete('ilse') || canComplete('vargo'), trips: !!S.haul || canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) || (!!S.active && Date.now() >= S.active.end) || (!!S.exp && Date.now() >= S.exp.end) };
@@ -395,16 +395,6 @@ export function viewCrypts() {
           <div class="dim small">Trophäe: ${effLine(c.trophy)}${troph ? ' · errungen' : ''}</div></div></section>`; }).join('')}</div>`;
 }
 
-export function viewArena(rival) {
-  const cd = Math.max(0, Math.ceil((S.arenaTs - Date.now()) / 1000));
-  return `<div class="col">${cryptTabs('arena')}${say('vargo')}<section class="panel arena"><img class="portrait" src="${P(rival.cls)}" alt="">
-    <h2>${rival.name}</h2><p class="dim">${CLASSES[rival.cls].name} · Stufe ${rival.lvl}</p>
-    <p class="small">Kampfkraft: deine <b>${fmtN(power())}</b> · seine <b>${fmtN(power(stats(rival)))}</b></p>
-    <p class="small">Sieg: ${rival.lvl * 3} Gold, 10 Ehre · Niederlage: 5 Ehre · Deine Ehre: <b>${S.honor}</b></p>
-    <div class="btns"><button class="red" data-action="arena" ${cd || S.glut < CFG.arenaGlut ? 'disabled' : ''}>${cd ? `Erschöpft <span data-until="${S.arenaTs}">${fmtT(cd)}</span>` : `Herausfordern · ${CFG.arenaGlut} Glut`}</button>
-    <button data-action="rival">Anderer Gegner</button></div></section></div>`;
-}
-
 function fightSummary(F) {
   const g = gradeOf(F), R = fightReport(F, F.A, F.B), pl = x => x.map(([n, v]) => `${n} ${v} %`).join(' · ');
   return `<div class="fsum">${g ? `<b class="g-${g.id}">${g.name}</b>${g.bonus ? ` · +${Math.round(g.bonus * 100)} % Gold` : ''} · ` : ''}${Math.round((F.left || 0) * 100)} % Leben übrig
@@ -531,21 +521,65 @@ export function viewAlch(sel, back) {
 }
 // Vor dem Krypta-Kampf: Gegner, seine Werte, dein Gürtel, Siegchance mit/ohne Tränke
 export function viewPrep(c, m) {
-  const f = cryptFloor(c), e = enemyInfo(m), belt = S.belt.slice(0, beltSlots()).filter(Boolean).map(b => b.id);
-  const pW = cryptChance(c), p0 = cryptChance(c, []), cd = S.crypt.cd > Date.now();
-  const st = (k, v) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`, pc = x => Math.round(x * 100) + ' %';
+  const f = cryptFloor(c), pW = cryptChance(c), p0 = cryptChance(c, []);
+  const head = `${monsterArt(m.glyph)}<div><h2>${m.name.split(',')[0]}</h2><p class="dim small">${c.name} · ${f === 4 ? 'Boss' : 'Ebene ' + (f + 1)} · Stufe ${m.lvl}</p>${threat(pW)}</div>`;
+  return prepCore(m, head, pW, p0, `<button class="red" data-action="cryptgo" ${S.crypt.cd > Date.now() ? 'disabled' : ''}>Kämpfen</button>`, S.bless);
+}
+// Vorbereitung: Kopf + Werte mit Trank-Hinweisen + Gürtel + Siegchance (Krypta und Grube)
+function prepCore(m, head, pW, p0, go, bless = 0, rule = null) {
+  const e = enemyInfo(m), st = (k, v) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`, pc = x => Math.round(x * 100) + ' %';
   return `<div class="col prep">
-    <section class="panel prephead">${monsterArt(m.glyph)}<div><h2>${m.name.split(',')[0]}</h2><p class="dim small">${c.name} · ${f === 4 ? 'Boss' : 'Ebene ' + (f + 1)} · Stufe ${m.lvl}</p>${threat(pW)}</div></section>
+    <section class="panel prephead">${head}</section>
     <section class="panel"><h2>Seine Werte <span class="h2r">gegen dich</span></h2>
       <div class="grid2">${st('Leben', fmtN(e.hp))}${st('Trifft dich', e.hit.join('–'))}${st('Ausweichen', pc(e.evade))}${st('Krit', pc(e.crit))}${st('Rüstung', pc(e.armor))}${st('Blocken', e.block ? pc(e.block) : '–')}</div>
       ${e.tags.length ? `<div class="etags">${e.tags.slice(0, 4).map(([t, id]) => { const o = potOffer(id), nm = potion(id).name;
         const act = o.kind === 'pack' ? `${nm} einpacken` : o.kind === 'brew' ? `${nm} brauen · ${o.gold} G` : o.kind === 'in' ? `${nm} im Gürtel` : `${nm} · ${o.short || o.text}`;
         return `<span class="etag ${o.kind}" ${o.kind === 'pack' || o.kind === 'brew' ? `data-action="prepPot" data-id="${id}"` : ''}><b>${t}</b>${act}</span>`; }).join('')}</div>` : ''}</section>
-    <section class="panel"><h2>Dein Gürtel <span class="gbtns"><button class="tiny" data-action="bestBelt">Bester Gürtel</button><button class="tiny" data-action="alch" data-b="prep">Alle Tränke</button></span></h2><div class="beltrow">${[0, 1, 2].slice(0, beltSlots()).map(beltCell).join('')}</div></section>
-    <section class="panel chance"><span class="cl">Siegchance<small class="dim">ohne Tränke ${pc(p0)}</small>${S.bless ? `<small class="${S.bless > 0 ? 'up' : 'down'}">${S.bless > 0 ? 'Segen' : 'Fluch'} ${S.bless > 0 ? '+' : ''}${Math.round(S.bless * 100)} % Leben</small>` : ''}</span><b>${pc(pW)}</b><button class="red" data-action="cryptgo" ${cd ? 'disabled' : ''}>Kämpfen</button></section>
+    ${rule?.id === 'nopots' ? `<section class="panel"><h2>${rule.name}</h2><p class="small dim">${rule.text}</p></section>`
+      : `<section class="panel"><h2>Dein Gürtel <span class="gbtns"><button class="tiny" data-action="bestBelt">Bester Gürtel</button><button class="tiny" data-action="alch" data-b="prep">Alle Tränke</button></span></h2><div class="beltrow">${[0, 1, 2].slice(0, beltSlots()).map(beltCell).join('')}</div></section>`}
+    <section class="panel chance"><span class="cl">Siegchance<small class="dim">${rule?.id === 'nopots' ? 'ohne Tränke' : `ohne Tränke ${pc(p0)}`}</small>${bless ? `<small class="${bless > 0 ? 'up' : 'down'}">${bless > 0 ? 'Segen' : 'Fluch'} ${bless > 0 ? '+' : ''}${Math.round(bless * 100)} % Leben</small>` : ''}</span><b>${pc(pW)}</b>${go}</section>
   </div>`;
 }
-
+// --- Die Grube ---
+const hon = n => `<i class="ico hon"></i>${n}`;
+export function viewPitPrep(sel, B) {
+  const ch = sel.ch ? pitChallenge() : null, rule = ch ? PIT_RULES.find(r => r.id === ch.rule) : null, st = PIT_STYLES[B.style];
+  const pW = pitChance(B, rule?.id), p0 = pitChance(B, rule?.id, []), busy = pitBusy();
+  const win = ch ? `${hon(PIT.chHonor)} · Platz bleibt` : `Platz ${B.place} · ${hon(pitWinHonor(B.rid))}`;
+  const head = `<img class="portrait" src="${P(B.cls)}" alt=""><div><h2>${B.name}</h2><p class="dim small">${CLASSES[B.cls].name} · Stufe ${B.lvl} · ${st.name}${ch ? ` · <b class="hot">${rule.name}</b>` : ''}</p>
+    <p class="small pitwin">Sieg: ${win} · Niederlage: ${Math.round(PIT.cdLose / 60)} Min. Pause</p></div>`;
+  const go = busy === 'Pause' ? `<button class="red" disabled><span data-until="${S.pit.ts}">${fmtT(Math.ceil((S.pit.ts - Date.now()) / 1000))}</span></button>`
+    : `<button class="red" data-action="pitgo" ${busy ? 'disabled' : ''}>Kämpfen</button>`;
+  return prepCore(B, head, pW, p0, go, 0, rule).replace('class="col prep"', 'class="col prep pitprep"').replace('<section class="panel chance"', '<div class="btns"><button data-action="go" data-v="arena">Zurück</button></div><section class="panel chance"');
+}
+export function viewArena() {
+  const Pw = pitWeek(), place = pitPlace(), rk = pitRank(), ri = PIT_RANKS.indexOf(rk), nx = PIT_RANKS[ri + 1], foes = pitFoes(), ch = Pw.ch, busy = pitBusy();
+  const prog = nx ? Math.max(4, Math.round((rk.max - place) / (rk.max - nx.max) * 100)) : 100;
+  const pause = busy === 'Pause' ? ` · Pause <span data-until="${Pw.ts}">${fmtT(Math.ceil((Pw.ts - Date.now()) / 1000))}</span>` : '';
+  const chR = ch && PIT_RULES.find(r => r.id === ch.rule), chV = ch && pitRival(ch.rid);
+  return `<div class="col pit">${cryptTabs('arena')}
+    <section class="panel pitrank"><div><h3>${rk.name}</h3><small>${nx ? `Noch ${place - nx.max} bis ${nx.name}` : 'Niemand über dir.'} · ${hon(S.honor)} Ehre${pause}</small></div><b class="pl">${place}.</b><div class="prog"><i style="width:${prog}%"></i></div></section>
+    ${foes.map(f => { const st = PIT_STYLES[f.B.style]; return `<section class="panel riv tf-${threatLabel(f.p)[1]} ${f.foe ? 'foe' : ''}" data-action="pitsel" data-id="${f.id}">
+      <img src="${P(f.B.cls)}" alt=""><h4>${f.B.name}</h4><span class="pz">${f.place}.</span><span class="st">${f.foe ? 'Hat dich zweimal besiegt.' : st.text}</span>
+      <div class="meta"><span>Stufe ${f.B.lvl} · ${st.name}</span><b>${pcT(f.p)}</b><span>${hon(f.honor)}${f.foe ? ' ×2' : ''}</span></div></section>`; }).join('') || '<section class="panel"><p class="lore">Niemand steht mehr über dir. Der Sand gehört dir.</p></section>'}
+    ${ch ? `<div class="bountybar pitch ${ch.won ? '' : 'ready'}" ${ch.won || ch.tries <= 0 ? '' : `data-action="pitsel" data-id="${ch.rid}" data-ch="1"`}><span>Woche: ${chR.name}</span><b>${chV.name}</b>${ch.won ? '<i>geschafft</i>' : `<i>${hon(PIT.chHonor)} · ${ch.tries}/${PIT.chTries}</i>`}</div>` : ''}
+    <div class="btns pitbtns"><button data-action="go" data-v="pitshop">Vargos Laden</button><button data-action="npc" data-n="vargo">Vargo</button></div>
+  </div>`;
+}
+export function viewPitShop() {
+  const shop = pitShop(), Pw = S.pit, left = PIT.weekBuys - Pw.buys;
+  const ware = (w, t, k) => { const can = !w.sold && left > 0 && S.honor >= w.price;
+    const art = w.t === 'item' ? itemArt(w.item) : w.t === 'herb' ? herbImg(w.id) : matImg(w.id), nm = w.t === 'item' ? '' : `<i class="wn">${w.t === 'herb' ? HERBS[w.id].name : MATS[w.id]} ×${w.n}</i>`;
+    return `<div class="sitem pware ${w.t === 'item' ? 'r-' + w.item.rarity : ''} ${w.sold ? 'sold' : ''}" ${w.t === 'item' ? `data-tip="${w.item.id}"` : ''} data-action="pitbuy" data-t="${t}" data-k="${k}">${art}${nm}<span class="price ${can ? '' : 'no'}">${w.sold ? 'verkauft' : hon(w.price)}</span></div>`; };
+  return `<div class="col pitshopv">${cryptTabs('arena')}
+    <section class="panel"><h2>Vargos Laden <span class="h2r">${hon(S.honor)} · noch ${left} diese Woche</span></h2>
+    ${PIT_SHOP.map(t => { const rk = PIT_RANKS.find(r => r.id === t.rank); return pitTierOpen(t.rank)
+      ? `<div class="tier">${rk.name}</div><div class="shoprow pitrow">${shop[t.rank].map((w, k) => ware(w, t.rank, k)).join('')}</div>`
+      : `<div class="tier off">${rk.name} · ab Platz ${rk.max}</div>`; }).join('')}</section>
+    <section class="panel"><h2>Titel</h2><div class="titles">${Pw.titles.length ? Pw.titles.map(t => `<button class="tiny ${S.title === t ? 'on' : ''}" data-action="pittitle" data-t="${t}">${t}</button>`).join('') + (S.title ? '<button class="tiny" data-action="pittitle" data-t="">Ohne</button>' : '') : '<span class="dim small">Steig auf, um Titel zu tragen. Jeder neue Rang gibt einmalig einen Segen.</span>'}</div></section>
+    <div class="btns"><button data-action="go" data-v="arena">Zurück</button></div>
+  </div>`;
+}
 // Reiter im Krypta-Tab: Krypten | Abgrund | Grube (eigene Fenster)
 export const cryptTabs = on => { const cd = Math.max(0, Math.ceil((S.crypt.cd - Date.now()) / 1000));   // Erholung der Krypta steht am Reiter (auch wenn die Kopfzeile kompakt wegfällt)
   return `<nav class="subtabs ctabs">${[['crypt', 'Krypten'], ['desc', 'Abgrund'], ['arena', 'Grube']].map(([v, n]) => `<a class="${on === v ? 'on' : ''}" data-action="go" data-v="${v}">${n}${v === 'crypt' && cd ? ` <span class="cdt" data-until="${S.crypt.cd}">${fmtT(cd)}</span>` : ''}</a>`).join('')}</nav>`; };

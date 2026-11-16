@@ -1,6 +1,6 @@
 // Spielzüge ohne DOM: Kampf ausführen, Belohnung anwenden, strukturiertes Ergebnis liefern.
 // main.js zeigt das Ergebnis an; tests/ spielen damit ganze Verläufe durch.
-import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS, DESCENT, DESC_ROOMS, ELITE, DIFFICULTIES } from './data.js';
+import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS, DESCENT, DESC_ROOMS, ELITE, PIT, PIT_STYLES, PIT_RIVALS, PIT_RANKS, PIT_SHOP, PIT_RULES, DIFFICULTIES } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import { fight } from './combat.js';
@@ -492,3 +492,94 @@ export function descStair() {
   if (!D.rooms) { S.desc = null; if (S.descDay?.n) S.descDay.n--; return { kind: 'back' }; }
   return { kind: 'fight', res: descFight({ t: 'fight', mob: pick(descCrypt().floors) }, D.unrest + DESCENT.stairUnrest, 'Stiege') };
 }
+
+// --- Die Grube: Rangleiter (S.pit.lad = Platz 1..51, 'me' = der Held) ---
+const weekNo = () => Math.floor((now() - Date.UTC(2024, 0, 1)) / 6048e5);   // Montag-Woche (UTC)
+export const pitPlace = () => G.S.pit.lad.indexOf('me') + 1;
+export const pitLvlAt = p => Math.max(1, Math.round(PIT.lvlBottom + (PIT.size + 1 - p) / PIT.size * (PIT.lvlTop - PIT.lvlBottom)));
+export const pitRank = (p = pitPlace()) => [...PIT_RANKS].reverse().find(r => p <= r.max);
+export const pitRival = id => PIT_RIVALS.find(r => r.id === id);
+export const pitBusy = () => G.S.exp ? 'Der Held ist auf Expedition.' : G.S.desc ? 'Der Held ist im Abgrund.' : now() < G.S.pit.ts ? 'Pause' : '';
+const foeCache = new Map();
+// Ein Rivale als Kampfwerte: Stufe/Ausrüstung aus seinem Platz, dazu sein fester Stil
+export function pitFoe(id, place) {
+  const k = id + ':' + place; if (foeCache.has(k)) return foeCache.get(k);
+  const rv = pitRival(id), st = PIT_STYLES[rv.style];
+  const R = makeRival({ name: rv.name, cls: rv.cls, lvl: pitLvlAt(place), rich: place <= PIT.richFrom ? 1 : 0,
+    minRarity: place <= PIT.legFrom ? 4 : place <= PIT.rareFrom ? 3 : place <= PIT.magicFrom ? 2 : 0 });
+  const B = G.stats(R); for (const [s, v] of Object.entries(st.eff || {})) B[s] = (B[s] || 0) + v;
+  for (const [s, v] of Object.entries(st.mult || {})) B[s] = Math.round(B[s] * v);
+  Object.assign(B, { name: rv.name, rid: id, place, style: rv.style });
+  if (foeCache.size > 120) foeCache.clear(); foeCache.set(k, B); return B;
+}
+// Woche: Laden + Herausforderung frisch
+export function pitWeek() {
+  const S = G.S, P = S.pit, w = weekNo(); if (P.week === w) return P;
+  const pl = pitPlace(), place = Math.max(1, pl - PIT.chAbove), rid = P.lad[place - 1] === 'me' ? P.lad[place] : P.lad[place - 1];
+  Object.assign(P, { week: w, buys: 0, shop: {}, ch: { rid, place, rule: PIT_RULES[w % PIT_RULES.length].id, tries: PIT.chTries, won: false } });
+  return P;
+}
+export const pitChallenge = () => pitWeek().ch;
+const pitHonorFor = (id, place) => Math.round((PIT.honorBase + PIT.honorPerPlace * (pitPlace() - place)) * ((G.S.pit.foes[id] || 0) >= PIT.foeAfter ? PIT.foeMult : 1));
+// Die 3 Rivalen über dir (nächster zuerst)
+export function pitFoes() {
+  const P = pitWeek(), i = P.lad.indexOf('me'), out = [];
+  for (let j = i - 1; j >= Math.max(0, i - PIT.look); j--) { const id = P.lad[j], B = pitFoe(id, j + 1);
+    out.push({ id, place: j + 1, B, honor: pitHonorFor(id, j + 1), foe: (P.foes[id] || 0) >= PIT.foeAfter, p: pitChance(B) }); }
+  return out;
+}
+// Beide Seiten mit Regel der Herausforderung
+function pitSides(B0, rule, belt = G.beltCombat()) {
+  const R = PIT_RULES.find(r => r.id === rule), A = { ...G.stats(), belt: rule === 'nopots' ? [] : belt }, B = { ...B0 };
+  for (const x of [A, B]) { for (const [k, v] of Object.entries(R?.both || {})) x[k] = (x[k] || 0) + v; for (const [k, v] of Object.entries(R?.bothMult || {})) x[k] = Math.round(x[k] * v); }
+  return [A, B];
+}
+const pitCache = new Map();
+export function pitChance(B0, rule = null, belt = G.beltCombat(), n = 24) {
+  const [A, B] = pitSides(B0, rule, belt), sig = [B0.rid, B0.place, rule, A.hp, A.dmg, A.armor, A[A.main], A.dex, A.lvl, A.belt.map(b => b.id + b.trig)].join('|');
+  if (pitCache.has(sig)) return pitCache.get(sig);
+  let w = 0; for (let i = 0; i < n; i++) if (fight(A, B).winner === 'a') w++;
+  if (pitCache.size > 200) pitCache.clear(); pitCache.set(sig, w / n); return w / n;
+}
+// Gegner für die Vorbereitung (gleiche Instanz wie im Kampf)
+export function pitTarget(id, ch = false) {
+  const P = pitWeek();
+  if (ch) { const c = P.ch; return c && c.rid === id ? pitFoe(id, c.place) : null; }
+  const i = P.lad.indexOf('me'), j = P.lad.indexOf(id); return j >= 0 && j < i && i - j <= PIT.look ? pitFoe(id, j + 1) : null;
+}
+export const pitWinHonor = (id, ch) => ch ? PIT.chHonor : pitHonorFor(id, G.S.pit.lad.indexOf(id) + 1);
+export function pitFight(id, ch = false) {
+  const S = G.S, P = pitWeek(); if (pitBusy()) return null;
+  const B0 = pitTarget(id, ch); if (!B0) return null;
+  const c = ch ? P.ch : null; if (c && (c.won || c.tries <= 0)) return null;
+  const [A, B] = pitSides(B0, c?.rule); if (c) c.tries--;
+  const r = fight(A, B), win = r.winner === 'a', rew = newRew(); G.usePotions(r.used); rew.used = r.used;
+  if (!win) { S.deaths++; if (!c) P.foes[id] = (P.foes[id] || 0) + 1; P.ts = now() + PIT.cdLose * 1000; return { A, B, r, win, rew, pit: true }; }
+  S.wins++; rew.grade = gradeOf(r); pay(rew, Math.round(B0.lvl * PIT.goldPerLvl * (1 + rew.grade.bonus)), 0);
+  Q.event({ type: 'arena' }); G.bountyEvent({ type: 'arena' });
+  const honor = ch ? PIT.chHonor : pitHonorFor(id, B0.place);
+  if (c) c.won = true;
+  else { const i = P.lad.indexOf('me'), j = P.lad.indexOf(id); [P.lad[i], P.lad[j]] = [P.lad[j], P.lad[i]]; delete P.foes[id];
+    G.journal(`${B0.name} in der Grube besiegt. Platz ${j + 1}.`);
+    if (j + 1 < P.best) { P.best = j + 1;
+      for (const rk of PIT_RANKS) if (rk.title && P.best <= rk.max && !P.ranks.includes(rk.id)) { P.ranks.push(rk.id); P.titles.push(rk.title);
+        S.trophies.push({ key: 'pit:' + rk.id, name: rk.name, diff: 'Grube', eff: rk.perk }); rew.rankUp = rk; } } }
+  S.honor += honor; rew.honor = honor; P.ts = now() + PIT.cdWin * 1000;
+  return { A, B, r, win, rew, pit: true };
+}
+// Vargos Laden: je freigeschalteter Rang-Stufe feste Ware für die Woche
+export const pitTierOpen = rid => G.S.pit.best <= PIT_RANKS.find(r => r.id === rid).max;
+export function pitShop() {
+  const S = G.S, P = pitWeek();
+  for (const t of PIT_SHOP) if (pitTierOpen(t.rank) && !P.shop[t.rank]) P.shop[t.rank] = t.wares.map(w => w.t === 'item'
+    ? { ...w, item: makeItem(S.lvl, { slot: w.slot, kind: w.own ? CLASSES[S.cls].weapon : undefined, cls: CLASSES[S.cls], minRarity: w.minRarity }) } : { ...w });
+  return P.shop;
+}
+export function pitBuy(tier, k) {
+  const S = G.S, P = pitWeek(), w = pitShop()[tier]?.[k];
+  if (!w || w.sold) return 'Schon gekauft.'; if (P.buys >= PIT.weekBuys) return 'Diese Woche nichts mehr.'; if (S.honor < w.price) return 'Zu wenig Ehre.';
+  if (w.t === 'item') { if (!G.addToBag({ ...w.item })) return 'Kein Platz im Beutel.'; }
+  else if (w.t === 'herb') G.addHerb(w.id, w.n); else G.addMat(w.id, w.n);
+  S.honor -= w.price; w.sold = true; P.buys++; return '';
+}
+export function pitTitle(t) { const S = G.S; if (t && !S.pit.titles.includes(t)) return false; S.title = t || null; return true; }

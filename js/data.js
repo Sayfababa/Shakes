@@ -744,3 +744,51 @@ export const ELITE = { diff: 1.2, hp: 1.3, mods: [
   { id: 'wut', name: 'Rasend', eff: { rage: 0.35 } }, { id: 'gift', name: 'Giftig', eff: { poison: 0.15 } },
   { id: 'zaeh', name: 'Zäh', mult: { hp: 1.3 } },
 ] };
+
+// --- Die Grube: Rangleiter gegen feste Rivalen (keine Glut, nur Pause) ---
+// Platz 1 oben. Die Stufe eines Rivalen hängt an seinem Platz, nicht an deiner Stufe → hoch kommt nur, wer stärker wird.
+export const PIT = { size: 50, cdWin: 300, cdLose: 900, lvlBottom: 3, lvlTop: 42, richFrom: 20, magicFrom: 35, rareFrom: 20, legFrom: 6,
+  honorBase: 6, honorPerPlace: 3, foeAfter: 2, foeMult: 2, goldPerLvl: 3, weekBuys: 3, chHonor: 40, chTries: 3, chAbove: 5, look: 3 };
+// Stil = feste Eigenschaft (wie Elite-Eigenschaften im Abstieg) → man sieht vorher, was hilft
+export const PIT_STYLES = {
+  flink: { name: 'Flink', text: 'Weicht oft aus.', eff: { evade: 0.12 } },
+  stein: { name: 'Blocker', text: 'Blockt viel, schwer gepanzert.', eff: { block: 0.15 }, mult: { armor: 1.5 } },
+  dorn:  { name: 'Dornen', text: 'Wer zuschlägt, blutet mit.', eff: { thorns: 0.15 } },
+  vamp:  { name: 'Blutsauger', text: 'Heilt sich an deinem Blut.', eff: { leech: 0.12 } },
+  wut:   { name: 'Rasend', text: 'Wird gefährlich, wenn er blutet.', eff: { rage: 0.3 } },
+  gift:  { name: 'Gift', text: 'Gift, das sich stapelt.', eff: { poison: 0.12 } },
+  zaeh:  { name: 'Zäh', text: 'Viel Leben, wenig Finesse.', mult: { hp: 1.25 } },
+  krit:  { name: 'Krit', text: 'Trifft selten, dann aber tief.', eff: { crit: 0.15 } },
+};
+const PIT_NAMES = ['Morgrim', 'Asha die Blasse', 'Kel Varn', 'Ysra', 'Brann die Mauer', 'Oswin der Stumme', 'Mireth', 'Draven', 'Hagen Rotbart', 'Seline',
+  'Gorm', 'Die Witwe Lenna', 'Ulrich Eisenzahn', 'Tara', 'Corvin', 'Bruder Anselm', 'Rika Schnitt', 'Vol', 'Mathis der Lange', 'Eda',
+  'Sigurd', 'Nessa Graudorn', 'Falk', 'Isolde', 'Der Ochse', 'Lio', 'Wendel', 'Agna', 'Rurik', 'Silbermaske',
+  'Konrad', 'Yeva', 'Thane', 'Die Zwillinge', 'Barek', 'Marla', 'Ivo der Schöne', 'Grete', 'Varg', 'Holle',
+  'Jorun', 'Sabin', 'Krähe', 'Helmar', 'Dunja', 'Pater Ruprecht', 'Ilka', 'Ottokar', 'Neve', 'Der Kettenhund'];
+const PIT_CLS = ['barbarian', 'witch', 'assassin', 'paladin', 'sorceress', 'huntress'], PIT_ST = Object.keys(PIT_STYLES);
+export const PIT_RIVALS = PIT_NAMES.map((name, i) => ({ id: 'r' + i, name, cls: PIT_CLS[(i * 5 + 1) % 6], style: PIT_ST[(i * 3 + Math.floor(i / 8)) % PIT_ST.length] }));
+export const PIT_LINES = ['„Noch einer für den Sand.“', '„Ich habe Zeit. Du nicht.“', '„Vargo zahlt mir mehr, wenn du schreist.“', '„Komm näher.“',
+  '„Drei sind an mir zerbrochen.“', '„Du riechst nach Angst.“', '„Leg dich hin, dann geht es schneller.“', '„Ich kenne deinen Namen nicht. Bald auch niemand sonst.“'];
+// Ränge: max = schlechtester Platz, der noch dazugehört. Erster Aufstieg → Titel + Segen (Trophäe), Laden-Stufe bleibt offen
+export const PIT_RANKS = [
+  { id: 'ratte', name: 'Grubenratte', max: 51 },
+  { id: 'blut', name: 'Blutsand', max: 40, title: 'der Blutige', perk: { hpPct: 0.02 } },
+  { id: 'kette', name: 'Kettenbrecher', max: 30, title: 'Kettenbrecher', perk: { dmgPct: 0.02 } },
+  { id: 'schl', name: 'Schlächter', max: 20, title: 'Schlächter der Grube', perk: { armorPct: 0.03 } },
+  { id: 'champ', name: 'Champion', max: 10, title: 'Champion von Vargo', perk: { hpPct: 0.03 } },
+  { id: 'koenig', name: 'Grubenkönig', max: 1, title: 'Grubenkönig', perk: { dmgPct: 0.03 } },
+];
+// Vargos Laden je Rang-Stufe (Ehre). Ware höchstens auf Heldenstufe, wöchentlich neu, PIT.weekBuys Käufe je Woche.
+export const PIT_SHOP = [
+  { rank: 'blut', wares: [{ t: 'item', minRarity: 3, price: 60 }, { t: 'item', minRarity: 3, price: 60 }, { t: 'mat', id: 'asche', n: 3, price: 25 }] },
+  { rank: 'kette', wares: [{ t: 'herb', id: 'herz', n: 2, price: 70 }, { t: 'mat', id: 'blutstein', n: 2, price: 60 }, { t: 'item', slot: 'ring', minRarity: 3, price: 90 }] },
+  { rank: 'schl', wares: [{ t: 'item', minRarity: 4, price: 160 }, { t: 'mat', id: 'siegel', n: 1, price: 80 }] },
+  { rank: 'champ', wares: [{ t: 'item', slot: 'weapon', own: 1, minRarity: 4, price: 220 }] },
+];
+// Herausforderung der Woche: ein Rivale über dir mit einer Regel; Sieg = Ehre, Platz bleibt
+export const PIT_RULES = [
+  { id: 'nopots', name: 'Ohne Tränke', text: 'Der Gürtel bleibt zu.' },
+  { id: 'crit', name: 'Blutiger Sand', text: 'Beide treffen öfter kritisch.', both: { crit: 0.15 } },
+  { id: 'thorn', name: 'Dornenring', text: 'Jeder Hieb kommt teilweise zurück.', both: { thorns: 0.15 } },
+  { id: 'slow', name: 'Lange Nacht', text: 'Beide mit doppeltem Leben.', bothMult: { hp: 2 } },
+];

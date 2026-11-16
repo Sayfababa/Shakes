@@ -81,6 +81,9 @@ const actions = {
   rush: () => { const c = G.rushCost(); if (G.S.active && G.S.gold >= c) { G.S.gold -= c; G.S.active.end = clock; } },
   crypt: () => { G.S.crypt.cd = 0; Game.cryptFight(pick(D.CRYPTS).id); },
   arena: () => { G.S.arenaTs = 0; Game.arenaFight(Game.makeRival()); },
+  pit: () => { G.S.pit.ts = 0; const f = pick(Game.pitFoes()); if (f) Game.pitFight(f.id); },
+  pitch: () => { G.S.pit.ts = 0; const c = Game.pitChallenge(); if (c) Game.pitFight(c.rid, true); },
+  pitbuy: () => { G.S.honor += 50; const t = pick(Object.keys(Game.pitShop())); if (t) Game.pitBuy(t, Math.floor(Math.random() * 3)); },
   champ: () => { G.S.arenaTs = 0; Game.champFight(pick(D.GIVERS)); },
   buy: () => { const t = pick(Object.keys(D.TRADERS)), shop = G.shopFor(t), it = pick(shop); if (!it || G.S.gold < it.price) return;
     const b = { ...it }; delete b.price; if (G.addToBag(b)) { G.S.gold -= it.price; shop.splice(shop.indexOf(it), 1); } },

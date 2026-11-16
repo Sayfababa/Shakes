@@ -42,7 +42,7 @@ let failures = 0;
       if (i === 2) { await tap('[data-v=trips]'); await chk('haulpanel'); }
       await tap('[data-action=bank]'); }
     for (const v of ['trips', 'hero', 'stats', 'talents', 'spells', 'crypt', 'forge', 'alch']) { await tap('[data-v=hero]'); await tap(`[data-v=${v}]`); await chk(v); }
-    await tap('[data-v=crypt]'); await tap('.ctabs [data-v=arena]'); await chk('arena'); await tap('.ctabs [data-v=desc]'); await chk('desclocked');
+    await tap('[data-v=crypt]'); await tap('.ctabs [data-v=arena]'); await chk('arena'); await tap('.riv'); await chk('pitprep'); await tap('.ctabs [data-v=arena]'); await tap('[data-v=pitshop]'); await chk('pitshop'); await tap('.ctabs [data-v=desc]'); await chk('desclocked');
     await tap('[data-v=hero]'); await tap('[data-v=spells]'); if (await tap('[data-action=ways]')) await chk('ways'); else { failures++; console.log(`FEHLER ${tag}: Zauber-Wege nicht erreichbar`); }
     await tap('[data-v=traders]'); for (const t of ['halvar', 'ysolde', 'kaspar']) { await tap(`[data-t=${t}]`); await chk(t); }
     if (await tap('[data-action=turnin]')) await chk('turnin');
