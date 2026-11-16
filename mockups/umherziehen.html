@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup – Umherziehen</title>
+<link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+SC:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  html, body { overflow: auto; height: auto; }
+  .wrap { display: flex; gap: 28px; padding: 24px; align-items: flex-start; width: max-content; }
+  .phone { width: 390px; height: 800px; position: relative; display: flex; flex-direction: column; padding: 10px; gap: 6px;
+    border: 1px solid #2a2118; box-shadow: 0 0 0 6px #0b0907, 0 0 40px #000; background: var(--noise), var(--stonetex), radial-gradient(ellipse at 50% 20%, #241a12, #070504 70%); }
+  .phone > * { flex: none; }
+  .cap { font-family: 'Alegreya SC'; color: var(--gold); text-align: center; margin-bottom: 8px; font-size: 1rem; }
+  .note2 { width: 390px; color: var(--dim); font-size: .85rem; margin-top: 10px; line-height: 1.35; } .note2 b { color: var(--gold); font-weight: 500; }
+  .hudm { display: flex; align-items: center; justify-content: space-between; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.5rem; }
+  .hudm small { font-family: 'Alegreya SC'; font-size: .8rem; color: var(--text); }
+  .tabsm { margin-top: auto; display: flex; gap: 3px; } .tabsm a { flex: 1; text-align: center; padding: 9px 2px; font-family: 'Alegreya SC'; font-size: .7rem; color: var(--dim); border-image: url('../assets/ui/tab.webp') 16 fill / 8px stretch; }
+  .tabsm a.on { color: var(--gold-hi); border-image-source: url('../assets/ui/tab_on.webp'); }
+  .choice { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .opt { padding: 10px; text-align: center; } .opt h3 { margin: 0 0 4px; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.15rem; }
+  .opt p { margin: 3px 0; font-size: .78rem; } .opt img { width: 70px; height: 70px; object-fit: cover; margin: 4px auto; display: block; box-shadow: 0 0 0 1px #3a3226; }
+  .opt.on { box-shadow: inset 0 0 0 2px #b08a3e; }
+  .scene { position: relative; height: 210px; padding: 0; overflow: hidden; }
+  .scene img.bg { width: 100%; height: 100%; object-fit: cover; filter: brightness(.75); }
+  .scene .hero { position: absolute; left: 14px; bottom: 14px; width: 84px; height: 84px; object-fit: cover; box-shadow: 0 0 0 2px #3a3226, 0 4px 12px #000; }
+  .scene .act { position: absolute; left: 110px; bottom: 16px; right: 12px; }
+  .scene .act b { font-family: 'Grenze Gotisch'; color: var(--gold-hi); font-size: 1.15rem; text-shadow: 0 1px 3px #000; } .scene .act small { display: block; color: var(--text); font-size: .78rem; text-shadow: 0 1px 3px #000; }
+  .bar { height: 9px; margin-top: 6px; background: #000; box-shadow: inset 0 0 0 1px #3a3226; } .bar i { display: block; height: 100%; width: 62%; background: url('../assets/ui/fill_gold.webp') left / 100% 100%; }
+  .timer { position: absolute; top: 10px; right: 12px; font: 600 .9rem 'Alegreya SC'; color: #e0c27a; background: rgba(11,9,7,.8); padding: 1px 6px; }
+  .log p { margin: 0; padding: 4px 0; display: flex; justify-content: space-between; font-size: .8rem; border-bottom: 1px solid #241c14; }
+  .log p span:first-child { color: var(--dim); } .log b { color: #e0c27a; font-weight: 500; } .log .m { color: #8fb6ff; }
+  .sack { display: flex; justify-content: space-between; align-items: center; font-family: 'Alegreya SC'; font-size: .82rem; } .sack b { color: var(--gold-hi); }
+  .ico { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; background: url('../assets/ui/coin.webp') center / contain no-repeat; }
+  .two { display: flex; gap: 6px; } .two button { flex: 1; }
+  .cap2 { font-size: .76rem; color: var(--dim); text-align: center; }
+</style></head><body><div class="wrap">
+
+<div><div class="cap">1 · Expedition: zwei Wege</div><div class="phone">
+  <div class="hudm">Sayfa <small>Stufe 10 · Glut 4</small></div>
+  <section class="panel"><h2 style="margin:0">Expedition</h2><p class="small dim" style="margin:4px 0 0">Der Held zieht ohne Glut los. Wähle, wie.</p></section>
+  <div class="choice">
+    <section class="panel opt"><img src="../assets/expedition/goal.webp"><h3>Aufbrechen</h3><p>1–8 Std., auch wenn die App zu ist</p><p>Weg planen, Ereignisse entscheiden</p><p class="up">volle Beute</p></section>
+    <section class="panel opt on"><img src="../assets/expedition/camp.webp"><h3>Umherziehen</h3><p>Nur solange die App offen ist</p><p>Ein Punkt ≈ 2 Min., von selbst</p><p class="down">halbe Beute · max. 2 Std.</p></section>
+  </div>
+  <section class="panel small">Gut für den PC im Hintergrund: Der Held kämpft, sammelt und durchsucht, du holst später den Sack ab. Läuft die Uhr im Hintergrund-Tab langsamer, rechnet das Spiel trotzdem richtig nach.</section>
+  <div class="two"><button>Zurück</button><button class="red">Umherziehen</button></div>
+  <div class="tabsm"><a>Held</a><a class="on">Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></div>
+</div><p class="note2">Die bisherige Expedition bleibt unverändert. <b>Umherziehen</b> ist der neue Idle-Modus.</p></div>
+
+<div><div class="cap">2 · Unterwegs</div><div class="phone">
+  <div class="hudm">Sayfa <small>Stufe 10 · Glut 4</small></div>
+  <section class="panel scene"><img class="bg" src="../assets/expedition/herb.webp"><span class="timer">1:14</span>
+    <img class="hero" src="../assets/portraits/huntress.jpg"><div class="act"><b>Pflügt ein Kräuterfeld</b><small>Friedhof von Vhal · Punkt 7</small><div class="bar"><i></i></div></div></section>
+  <section class="panel log">
+    <p><span>6 · Kampf: Grabräuber</span><b>+18 EP · 9 <i class="ico"></i></b></p>
+    <p><span>5 · Ruine durchsucht</span><b class="m">Magischer Ring</b></p>
+    <p><span>4 · Gebeinfeld</span><b>Knochenstaub ×1</b></p>
+    <p><span>3 · Kampf: Ghul</span><b>+16 EP · 8 <i class="ico"></i></b></p>
+    <p><span>2 · Kräuterfeld</span><b>Rotwurz ×1</b></p>
+    <p><span>1 · Rast am Feuer</span><b>–</b></p>
+  </section>
+  <section class="panel sack"><span>Im Sack</span><b>34 <i class="ico"></i> · 1 Item · 2 Zutaten</b></section>
+  <p class="cap2">Unterwegs seit 12 Min. · noch 1:48 Std.</p>
+  <div class="two"><button class="red">Heimrufen · Sack abholen</button></div>
+  <div class="tabsm"><a>Held</a><a class="on">Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></div>
+</div><p class="note2">Jeder Punkt ≈ <b>2 Min.</b> mit Timer und Balken: Kampf, Kräuterfeld, Gebeinfeld, Ruine, Rast. Beute je Punkt = <b>50 %</b> einer Expeditions-Station. EP gibt es sofort, der Rest kommt beim Heimrufen. Ort = höchster geschaffter Akt.</p></div>
+
+<div><div class="cap">3 · Zurück / Grenze erreicht</div><div class="phone">
+  <div class="hudm">Sayfa <small>Stufe 11 · Glut 34</small></div>
+  <section class="panel" style="text-align:center"><h2 style="margin:0">Der Held wartet am Lagerfeuer</h2><p class="small dim">2 Std. umhergezogen – mehr trägt der Sack nicht.</p></section>
+  <section class="panel log">
+    <p><span>Punkte geschafft</span><b>60</b></p><p><span>Erfahrung</span><b>+1.020 EP</b></p><p><span>Gold</span><b>412 <i class="ico"></i></b></p>
+    <p><span>Fundstücke</span><b class="m">3 magische, 1 seltenes</b></p><p><span>Zutaten</span><b>Rotwurz ×4 · Grabmoos ×2</b></p><p><span>Material</span><b>Knochenstaub ×5 · Ghulzahn ×3</b></p>
+  </section>
+  <section class="panel small">War die App zu, steht der Held still – er läuft erst weiter, wenn du wieder da bist.</section>
+  <div class="two"><button class="red">Sack abholen</button></div>
+  <div class="tabsm"><a>Held</a><a class="on">Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></div>
+</div><p class="note2">Nach <b>2 Std.</b> hört er auf. Grüner Punkt am Streifzug-Tab, wenn der Sack voll ist. Solange er umherzieht: keine Akte/Krypta/Grube (wie bei der Expedition).</p></div>
+
+</div></body></html>
