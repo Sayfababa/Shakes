@@ -3,6 +3,7 @@ import * as G from './state.js';
 import * as Q from './quests.js';
 import * as Game from './game.js';
 import * as UI from './ui.js';
+import * as Sound from './sound.js';
 
 const app = document.getElementById('app'), tip = document.getElementById('tip');
 let expSel = { loc: null, h: 8, path: [] }, expRes = null, expAsk = false;
@@ -26,6 +27,7 @@ function render() {
     arena: () => S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : UI.viewArena(), hero: UI.viewHero,
     pitprep: () => S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : pitSel && prepM ? UI.viewPitPrep(pitSel, prepM) : UI.viewArena(),
     pitshop: () => UI.viewPitShop(),
+    opts: () => UI.viewOpts(Sound.opt, Sound.LEVELS),
     exped: () => S.desc ? UI.viewDescAway('prophet') : S.exp ? UI.viewTrips(expAsk) : UI.viewExped(expSel),
     alch: () => UI.viewAlch(alchSel, alchBack),
     prep: () => S.exp ? UI.viewAway('ilse') : S.desc ? UI.viewDesc(descSt) : prepM ? UI.viewPrep(CRYPTS.find(c => c.id === prepC), prepM) : UI.viewCrypts(),
@@ -183,7 +185,7 @@ function combatFx(l) {
   const hit = (el, crit, wait) => setTimeout(() => { el.classList.remove('hit', 'crit'); void el.offsetWidth; el.classList.add('hit'); if (crit) el.classList.add('crit');
     if (crit) { const f = document.querySelector('.fight'); f?.classList.remove('quake'); void f?.offsetWidth; f?.classList.add('quake'); } }, wait);
   if (l.dmg) {
-    hit(foe, l.crit, delay);
+    hit(foe, l.crit, delay); setTimeout(() => Sound.play('hit', l.crit ? 1 : 0.75), delay);
     if (l.hits) l.hits.forEach((d, i) => pop(foe, d, 'dmg sp', delay + i * 140, sp?.fx));
     else pop(foe, l.crit ? `<small>Kritisch</small>${l.dmg}` : l.dmg, `dmg ${l.crit ? 'crit' : ''} ${sp ? 'sp' : ''}`, delay, sp?.fx);
   }
@@ -255,6 +257,7 @@ const actions = {
   trig: d => { const b = G.S.belt[+d.i], ts = b && G.potion(b.id).trig; if (!ts) return; G.setTrig(+d.i, ts[(ts.indexOf(b.trig) + 1) % ts.length]); render(); },
   pitsel: d => { const B = Game.pitTarget(d.id, !!d.ch); if (!B) return; pitSel = { id: d.id, ch: !!d.ch }; prepM = B; view = 'pitprep'; render(); },
   pitgo: () => { const s = pitSel; if (!s) return; const res = Game.pitFight(s.id, s.ch); if (!res) return render(); pitSel = null; prepM = null; showFight(res, 'arena'); },
+  optset: d => { Sound.setOpt(d.k, +d.v); Sound.unlock(); if (d.k === 'sfx') Sound.play('hit'); render(); },
   pitbuy: d => { const e = Game.pitBuy(d.t, +d.k); if (e) alert(e); render(); },
   pittitle: d => { Game.pitTitle(d.t || null); G.save(); render(); },
   forgemode: d => { forgeSel.mode = d.m; forgeRes = null; forgeSel.msg = ''; render(); },
@@ -334,6 +337,7 @@ function forgeHit() {
 // --- Eingabe ---
 const TOUCH = matchMedia('(hover: none)').matches;
 const ACT_LABEL = { equip: 'Anlegen', unequip: 'Ablegen', buy: 'Kaufen', pitbuy: 'Kaufen', sell: 'Verkaufen' };
+document.addEventListener('pointerdown', () => Sound.unlock(), { passive: true });
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-action]');
   if (!el) { if (!e.target.closest('#tip')) hideTip(); return; }

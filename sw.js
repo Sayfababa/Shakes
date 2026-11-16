@@ -5,7 +5,7 @@ self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {
   const req = e.request; if (req.method !== 'GET') return;
   const put = r => { if (r.ok) { const cp = r.clone(); caches.open(C).then(c => c.put(req, cp)); } return r; };
-  if (/\.(jpe?g|png|webp)$/i.test(new URL(req.url).pathname)) {
+  if (/\.(jpe?g|png|webp|m4a)$/i.test(new URL(req.url).pathname)) {
     e.respondWith(caches.match(req).then(hit => { const net = fetch(req).then(put).catch(() => hit); return hit || net; }));
     return;
   }

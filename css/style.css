@@ -939,3 +939,10 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .bcell { position: relative; } .bcell .bx { margin-left: auto; flex: none; min-width: 26px; padding: 2px 6px; }
 .tight .bcell .bx, .desc .bcell .bx { position: absolute; top: 1px; right: 1px; min-width: 0; padding: 0 5px; line-height: 1.2; font-size: .7rem; }
 .bcell .bx { position: absolute; top: 50%; right: 4px; translate: 0 -50%; margin: 0; min-width: 26px; padding: 2px 6px; } .tight .bcell .bx, .desc .bcell .bx { top: 1px; right: 1px; translate: none; }
+/* Einstellungen */
+.optbtn { width: 26px; height: 26px; min-height: 0; padding: 3px; margin-right: 6px; display: inline-grid; place-items: center; vertical-align: middle; }
+.optbtn svg { width: 100%; height: 100%; fill: var(--gold); }
+.optrow { display: flex; flex-direction: column; gap: 5px; padding: 8px 0; border-bottom: 1px solid #2a2118; }
+.optrow > span { font-family: 'Alegreya SC'; color: var(--gold); } .optrow small { margin-left: 8px; font-family: 'Alegreya'; }
+.optbtns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; } .optbtns button.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
+.hud-row .ttl { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .hud-row .res, .hud-row .lvl { white-space: nowrap; flex: none; }

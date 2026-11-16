@@ -80,13 +80,13 @@ const itemEl = (it, act) => `<div class="item r-${it.rarity}" data-tip="${it.id}
 export function hud(tut = '') {
   return `<header class="hud">
     <div class="hud-row"><span class="ttl">${S.name}${S.title ? ` <small>${S.title}</small>` : ''}</span>
-      <span class="res"><span class="coin"></span><b>${S.gold}</b><span class="lvl">Stufe <b>${S.lvl}</b></span>
+      <span class="res"><button class="optbtn" data-action="go" data-v="opts" title="Einstellungen" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm9 4.6v-2.2l-2.4-.5a7 7 0 0 0-.7-1.6l1.4-2-1.6-1.6-2 1.4a7 7 0 0 0-1.6-.7L13.6 3h-2.2l-.5 2.4a7 7 0 0 0-1.6.7l-2-1.4L5.7 6.3l1.4 2a7 7 0 0 0-.7 1.6L4 10.4v2.2l2.4.5c.2.6.4 1.1.7 1.6l-1.4 2 1.6 1.6 2-1.4c.5.3 1 .5 1.6.7l.5 2.4h2.2l.5-2.4c.6-.2 1.1-.4 1.6-.7l2 1.4 1.6-1.6-1.4-2c.3-.5.5-1 .7-1.6Z"/></svg></button><span class="coin"></span><b>${S.gold}</b><span class="lvl">Stufe <b>${S.lvl}</b></span>
       <span class="orb" style="--f:${pct(S.glut, CFG.maxGlut)}%" title="Glut"><b>${S.glut}</b></span></span></div>
     ${tut || `<div class="xpline"><div class="bar xp"><i style="width:${pct(S.xp, xpNeed(S.lvl))}%"></i></div><small>${S.xp} / ${xpNeed(S.lvl)} EP</small></div>`}</header>`;
 }
 export function navBar(view) {
   const tabs = [['hero', 'Held'], ['trips', 'Streifzug'], ['traders', 'Händler'], ['forge', 'Schmiede'], ['alch', 'Alchemie'], ['crypt', 'Krypta']];
-  const map = { prep: 'crypt', desc: 'crypt', arena: 'crypt', pitprep: 'crypt', pitshop: 'crypt', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips', exped: 'trips' };
+  const map = { opts: 'hero', prep: 'crypt', desc: 'crypt', arena: 'crypt', pitprep: 'crypt', pitshop: 'crypt', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', trippick: 'trips', exped: 'trips' };
   // Nur echte Handlungsaufforderungen markieren – ein Dauer-Punkt auf jedem Tab sagt nichts mehr
   const badge = { hero: S.points + talentPoints() + waysPending() > 0, traders: Object.keys(TRADERS).some(canComplete), arena: canComplete('vargo'),
     crypt: canComplete('ilse') || canComplete('vargo'), trips: !!S.haul || canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) || (!!S.active && Date.now() >= S.active.end) || (!!S.exp && Date.now() >= S.exp.end) };
@@ -679,4 +679,13 @@ function viewDescRes(res) {
       ${o.items.length ? `<p>${o.items.map(it => `<span class="r-${it.rarity}">${it.name}</span>${it.soldFull ? ' <span class="dim small">(Beutel voll, verkauft)</span>' : ''}`).join(' · ')}</p>` : ''}
       ${chips.length ? `<p class="xrow">${chips.join('')}</p>` : ''}${!o.items.length && !chips.length ? '<p class="dim">nur Gold</p>' : ''}</div></section>
     <div class="btns"><button class="red" data-action="descok">Weiter</button></div></div>`;
+}
+
+// --- Einstellungen ---
+export function viewOpts(opt, levels) {
+  const row = (k, label, note = '') => `<div class="optrow"><span>${label}${note ? `<small class="dim">${note}</small>` : ''}</span><div class="optbtns">${levels.map(([n, v]) => `<button class="tiny ${Math.abs(opt[k] - v) < 0.01 ? 'on' : ''}" data-action="optset" data-k="${k}" data-v="${v}" ${k === 'music' && v ? 'disabled' : ''}>${n}</button>`).join('')}</div></div>`;
+  return `<div class="col opts"><section class="panel"><h2>Einstellungen</h2>
+    ${row('sfx', 'Kampfgeräusche')}${row('music', 'Musik', 'kommt später')}
+    <p class="small dim">Am iPhone: Stummschalter aus, sonst bleibt es still.</p></section>
+    <div class="btns"><button data-action="go" data-v="hero">Zurück</button></div></div>`;
 }
