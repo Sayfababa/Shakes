@@ -1,6 +1,6 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
 import { AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
-import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
+import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
 import { potion, beltSlots, brewCost, canBrew, potMax } from './state.js';
 import { waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
@@ -254,6 +254,8 @@ export function viewDescAway(npc) {
     <div class="btns"><button class="red" data-action="go" data-v="desc">Zum Abgrund</button></div></section></div>`;
 }
 // Weg planen: Karte mit Gabelungen. sel = { loc, h, path }
+const expInfo = (t, loc) => { const d = EXP_NODES[t], l = LOCATIONS.find(x => x.id === loc), extra = t === 'herb' ? HERBS[HERB_LOC[loc]]?.name : t === 'mats' ? [...new Set(l.mobs.map(nm => MATS[MONSTERS.find(m => m.name === nm)?.mat]).filter(Boolean))].join(', ') : '';
+  return `<p class="small ninfo"><b class="tc-${t}">${t === 'goal' ? 'Ziel' : d.name}</b> · ${t === 'goal' ? 'Am Ende: Chance auf ein Fundstück (8 Std.: sicher magisch)' : d.text}${extra ? ` <span class="dim">(${extra})</span>` : ''}</p>`; };
 export function viewExped(sel) {
   const open = LOCATIONS.filter(locOpen), loc = open.some(l => l.id === sel.loc) ? sel.loc : open[open.length - 1].id, li = open.findIndex(l => l.id === loc);
   const map = expedMap(loc, sel.h), path = sel.path.slice(0, map.rows.length), full = path.length === map.rows.length, p = expedPreview(loc, sel.h, full ? path : null);
@@ -269,7 +271,7 @@ export function viewExped(sel) {
   map.rows[last - 1].forEach((n, j) => ln(pos(last, n), gp, full && path[last - 1] === j));
   const node = (r, n, j) => { const on = path[r] === j, nx = can(r, j), d = EXP_NODES[n.t];
     const tap = on || nx || (r < path.length && (r === 0 || expLinked(map.rows[r - 1][path[r - 1]], n)));
-    return `<button class="node ${on ? 'on' : ''} ${nx ? 'next' : ''} ${!on && !nx ? 'off' : ''} ${n.t === 'danger' ? 'danger' : ''}" style="left:${n.x * 100}%;top:${Y(r + 1)}%" ${tap ? `data-action="exppath" data-l="${loc}" data-r="${r}" data-j="${j}"` : ''} title="${d.text}">${nodeArt(n.t, loc)}<label>${d.name}</label></button>`; };
+    return `<button class="node c-${n.t} ${on ? 'on' : ''} ${nx ? 'next' : ''} ${!on && !nx ? 'off' : ''} ${n.t === 'danger' ? 'danger' : ''} ${sel.info === n.t ? 'seen' : ''}" style="left:${n.x * 100}%;top:${Y(r + 1)}%" data-action="${tap ? 'exppath' : 'expinfo'}" data-l="${loc}" data-r="${r}" data-j="${j}" data-t="${n.t}" title="${d.text}">${nodeArt(n.t, loc)}<label>${d.name}</label></button>`; };
   const nodes = map.rows.map((row, r) => row.map((n, j) => node(r, n, j)).join('')).join('');
   const nm = full ? path.map((j, r) => EXP_NODES[map.rows[r][j].t].name) : [];
   const hint = path.length < map.rows.length ? (() => { const r = path.length, opts = map.rows[r].filter((n, j) => can(r, j)); return `Wähle die ${r + 1}. Station: ${[...new Set(opts.map(n => EXP_NODES[n.t].name))].join(' oder ')}.`; })() : '';
@@ -283,7 +285,7 @@ export function viewExped(sel) {
         ${nodes}<span class="node goal ${full ? 'on' : ''}" style="left:50%;top:${Y(last + 1)}%">${nodeArt('goal', loc)}<label>${map.goal.name}</label></span></div></section>
     <section class="panel xsum"><h2>Dein Weg <span class="h2r">${map.rows.length} Stationen · ${sel.h} Std.</span></h2>
       ${full ? `<p class="small">${nm.join(' → ')} → ${map.goal.name}</p><p class="small xprev">Bringt etwa <b>${p.gold} Gold</b> · <b>${p.xp} EP</b> · ${n(p.herbs)} Zutaten · ${n(p.mats)} Material · ${n(p.items)} Fundstücke${p.events ? ` · <b>${p.events} Ereignis${p.events > 1 ? 'se' : ''}</b>` : ''}${p.bless ? ' · <span class="up">Segen</span>' : ''}${sel.h >= EXPED.longH ? ' <span class="up">(Ziel: sicher magisch)</span>' : ''}</p>${p.danger ? `<p class="small hot">Gefahr: ${EXP_NODES.danger.text}.</p>` : ''}`
-             : `<p class="small dim">${hint} Jede Station zeigt vorher, was sie bringt.</p>`}</section>
+             : sel.info ? expInfo(sel.info, loc) : `<p class="small dim">${hint} Tippe ein Feld an: Hier steht, was es bringt.</p>`}${full && sel.info ? expInfo(sel.info, loc) : ''}</section>
     <div class="btns"><button data-action="go" data-v="trips">Zurück</button><button class="red" data-action="expgo" data-l="${loc}" ${full ? '' : 'disabled'}>Aufbrechen</button></div>
   </div>`;
 }
@@ -742,7 +744,7 @@ export function viewWanderAway(npc) {
 }
 
 // Route fürs Umherziehen wählen (wie Expedition): Start oben, Lager unten
-export function viewWanderPlan(path) {
+export function viewWanderPlan(path, info = null) {
   const a = wanderAct(), l = LOCATIONS.find(x => x.id === a.loc), map = wanderMap(a.id), R = map.rows.length, full = path.length === R;
   const nR = R + 2, Y = r => (r + 0.5) / nR * 100, pos = (r, n) => ({ x: n.x * 100, y: Y(r) });
   const can = (r, j) => r === path.length && (r === 0 || expLinked(map.rows[r - 1][path[r - 1]], map.rows[r][j]));
@@ -751,9 +753,11 @@ export function viewWanderPlan(path) {
   for (let r = 1; r < R; r++) map.rows[r].forEach((n, j) => map.rows[r - 1].forEach((m, k) => { if (expLinked(m, n)) ln(pos(r, m), pos(r + 1, n), path[r - 1] === k && path[r] === j); }));
   map.rows[R - 1].forEach((n, j) => ln(pos(R, n), { x: 50, y: Y(R + 1) }, full && path[R - 1] === j));
   const node = (r, n, j) => { const on = path[r] === j, nx = can(r, j), d = WANDER_ST[n.t], tap = on || nx;
-    return `<button class="node ${on ? 'on' : ''} ${nx ? 'next' : ''} ${!on && !nx ? 'off' : ''}" style="left:${n.x * 100}%;top:${Y(r + 1)}%" ${tap ? `data-action="wpath" data-r="${r}" data-j="${j}"` : ''} title="${d.text}">${nodeArt(d.img)}<label>${d.name}</label></button>`; };
+    return `<button class="node c-${n.t} ${on ? 'on' : ''} ${nx ? 'next' : ''} ${!on && !nx ? 'off' : ''} ${info === n.t ? 'seen' : ''}" style="left:${n.x * 100}%;top:${Y(r + 1)}%" data-action="${tap ? 'wpath' : 'winfo'}" data-r="${r}" data-j="${j}" data-t="${n.t}" title="${d.text}">${nodeArt(d.img)}<label>${d.name}</label></button>`; };
   const cnt = {}; if (full) path.forEach((j, r) => { const t = map.rows[r][j].t; cnt[t] = (cnt[t] || 0) + 1; });
-  const hint = full ? `<p class="small">${path.map((j, r) => WANDER_ST[map.rows[r][j].t].name).join(' → ')}</p><p class="small xprev">${Object.entries(cnt).map(([t, n]) => `${n}× ${WANDER_ST[t].text.split(':')[0]}`).join(' · ')}</p>`
+  const what = t => { const d = WANDER_ST[t], extra = t === 'herb' ? HERBS[HERB_LOC[l.id]]?.name : t === 'mats' ? [...new Set(l.mobs.map(nm => MATS[MONSTERS.find(m => m.name === nm)?.mat]).filter(Boolean))].join(', ') : t === 'fight' ? l.mobs.join(', ') : '';
+    return `<p class="small ninfo"><b class="tc-${t}">${d.name}</b> · ${d.text}${extra ? ` <span class="dim">(${extra})</span>` : ''}</p>`; };
+  const hint = info && !full ? what(info) : full && info ? `<p class="small">${path.map((j, r) => WANDER_ST[map.rows[r][j].t].name).join(' → ')}</p>${what(info)}` : full ? `<p class="small">${path.map((j, r) => WANDER_ST[map.rows[r][j].t].name).join(' → ')}</p><p class="small xprev">${Object.entries(cnt).map(([t, n]) => `${n}× ${WANDER_ST[t].text.split(':')[0]}`).join(' · ')}</p>`
     : `<p class="small dim">Wähle die ${path.length + 1}. Station. Jede dauert ${Math.round(WANDER.per * WANDER.sec / 60)} Min. (${WANDER.per} Punkte) und bringt vor allem, was sie zeigt.</p>`;
   return `<div class="col exped wplan">
     <section class="panel expmap"><h2>Umherziehen <span class="h2r">${l.name}</span></h2>

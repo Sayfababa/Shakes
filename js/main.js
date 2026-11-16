@@ -9,7 +9,7 @@ const app = document.getElementById('app'), tip = document.getElementById('tip')
 let expSel = { loc: null, h: 8, path: [] }, expRes = null, expAsk = false;
 let forgeSel = { mat: null, slot: null, mode: 'rune', item: null, stat: null, msg: '' }, forgeRes = null, FG = null;
 let descSt = { c: null, j: null, msg: '', res: null };
-let wPath = [], wanderRes = null, actSel = null, zoneSel = null, prepC = null, prepM = null, alchSel = POTIONS[0].id, alchBack = 'traders';
+let wPath = [], wInfo = null, wanderRes = null, actSel = null, zoneSel = null, prepC = null, prepM = null, alchSel = POTIONS[0].id, alchBack = 'traders';
 let tripLoc = null, view = 'hero', pickCls = null, F = null, pitSel = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
 
 function render() {
@@ -30,7 +30,7 @@ function render() {
     arena: () => S.wander && !S.desc ? UI.viewWanderAway('vargo') : S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : UI.viewArena(), hero: UI.viewHero,
     pitprep: () => S.wander && !S.desc ? UI.viewWanderAway('vargo') : S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : pitSel && prepM ? UI.viewPitPrep(pitSel, prepM) : UI.viewArena(),
     pitshop: () => UI.viewPitShop(),
-    wplan: () => S.wander || S.exp || S.desc || !Game.wanderAct() ? UI.viewTrips() : UI.viewWanderPlan(wPath),
+    wplan: () => S.wander || S.exp || S.desc || !Game.wanderAct() ? UI.viewTrips() : UI.viewWanderPlan(wPath, wInfo),
     opts: () => UI.viewOpts(Sound.opt, Sound.LEVELS),
     act: () => S.exp || S.desc || S.wander ? (S.desc ? UI.viewDescAway('prophet') : UI.viewTrips()) : UI.viewAct(ACTS.find(a => a.id === actSel) || G.curAct()),
     zoneprep: () => S.exp || S.desc || S.wander || !prepM || zoneSel == null ? UI.viewTrips() : UI.viewZonePrep(ACTS.find(a => a.id === actSel), zoneSel, prepM),
@@ -265,7 +265,8 @@ const actions = {
   beltout: d => { const i = G.S.belt.findIndex(b => b?.id === d.id); if (i >= 0) G.setBelt(i, null); render(); },
   beltdel: d => { G.setBelt(+d.i, null); render(); },
   trig: d => { const b = G.S.belt[+d.i], ts = b && G.potion(b.id).trig; if (!ts) return; G.setTrig(+d.i, ts[(ts.indexOf(b.trig) + 1) % ts.length]); render(); },
-  wpath: d => { const r = +d.r, j = +d.j; if (r > wPath.length) return; wPath = wPath[r] === j ? wPath.slice(0, r) : [...wPath.slice(0, r), j]; render(); },
+  winfo: d => { wInfo = d.t; render(); },
+  wpath: d => { wInfo = d.t; const r = +d.r, j = +d.j; if (r > wPath.length) return render(); wPath = wPath[r] === j ? wPath.slice(0, r) : [...wPath.slice(0, r), j]; render(); },
   wstart: () => { const why = Game.wanderBusy(); if (why) return alert(why); if (!Game.wanderStart(wPath)) return render(); wPath = []; G.save(); view = 'trips'; render(); },
   wclaim: () => { wanderRes = Game.wanderClaim(); G.save(); render(); },
   wok: () => { wanderRes = null; render(); },
@@ -303,7 +304,8 @@ const actions = {
   expsel: d => { if (d.h) { expSel.h = +d.h; expSel.path = []; } render(); },
   exploc: d => { const open = LOCATIONS.filter(G.locOpen), i = open.findIndex(l => l.id === expSel.loc), cur = i < 0 ? open.length - 1 : i;
     expSel.loc = open[Math.max(0, Math.min(open.length - 1, cur + +d.d))].id; expSel.path = []; render(); },
-  exppath: d => { const r = +d.r, j = +d.j; if (d.l && d.l !== expSel.loc) { expSel.loc = d.l; expSel.path = []; } if (r > expSel.path.length) return; if (expSel.path[r] === j) expSel.path = expSel.path.slice(0, r); else expSel.path = [...expSel.path.slice(0, r), j]; render(); },
+  expinfo: d => { expSel.info = d.t; render(); },
+  exppath: d => { expSel.info = d.t; const r = +d.r, j = +d.j; if (d.l && d.l !== expSel.loc) { expSel.loc = d.l; expSel.path = []; } if (r > expSel.path.length) return render(); if (expSel.path[r] === j) expSel.path = expSel.path.slice(0, r); else expSel.path = [...expSel.path.slice(0, r), j]; render(); },
   expgo: d => { if (Game.startExped(d.l, expSel.h, expSel.path)) { expSel.loc = d.l; expSel.path = []; view = 'trips'; } render(); },
   expask: () => { expAsk = true; render(); },
   expno: () => { expAsk = false; render(); },
