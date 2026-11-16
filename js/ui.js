@@ -1,7 +1,7 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
 import { AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, TRACKS, DELVE, BOUNTIES } from './data.js';
 import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
-import { potion, beltSlots, brewCost, canBrew, potMax } from './state.js';
+import { potion, beltSlots, brewCost, canBrew, potMax, unreadable } from './state.js';
 import { waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, locLvl, tripReward, loyalty, shopFor, omen, serviceState, rushCost, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 // Name eines Item-Bonus: Attribute, Rüstung/Schaden, Prozent-Boni ("% Krit-Chance", "% Feuerball")
@@ -102,6 +102,7 @@ export function navBar(view) {
 
 export function viewCreate(sel) {
   return `<div class="create"><h1>Aschenkrone</h1><div class="sub">Die Glocke hat geschlagen. Die Toten stehen auf.</div>
+  ${unreadable ? '<p class="cdesc"><b class="hot">Dein Spielstand ließ sich nicht lesen.</b> Er ist gesichert und wird nicht überschrieben. Lade die App neu (online), bevor du einen neuen Helden beginnst.</p>' : ''}
   <div class="classes">${Object.entries(CLASSES).map(([k, c]) =>
     `<div class="cls ${sel === k ? 'on' : ''}" data-action="pick" data-c="${k}"><img class="portrait" src="${P(k)}" alt=""><div class="lbl">${c.name}</div></div>`).join('')}</div>
   ${sel ? `<p class="cdesc"><b>${CLASSES[sel].name}.</b> ${CLASSES[sel].desc}</p>
@@ -211,9 +212,9 @@ export function viewTrips(ask = false) {
   if (S.exp?.ret) return viewExpEvent();
   if (S.exp) return `<div class="col">${expAway(ask)}${say('prophet')}</div>`;
   const bl = bounties(), bDone = bl.filter(b => b.claimed).length, bReady = bl.some(b => !b.claimed && b.prog >= b.n);
-  const bbar = `<div class="bountybar ${bReady ? 'ready' : ''}" data-action="go" data-v="bounties"><span>Steckbriefe heute</span><b>${bDone}/3</b>${bReady ? '<i>Lohn abholen</i>' : ''}</div>`;
+  const bbar = `<div class="bountybar ${bReady ? 'ready' : ''}" data-action="go" data-v="bounties"><span>Steckbriefe heute</span><b>${bDone}/${bl.length}</b>${bReady ? '<i>Lohn abholen</i>' : ''}</div>`;
   const tired = S.glut < 5, xbar = `<div class="bountybar expbar ${tired ? 'ready' : ''}" data-action="go" data-v="exped"><span>Expedition</span><b>ohne Glut · 1–8 Std.</b>${tired ? '<i>Glut leer – schick ihn los</i>' : ''}</div>`
-    + (wanderAct() ? `<div class="bountybar expbar" data-action="go" data-v="wplan"><span>Umherziehen</span><b>App offen · ½ Beute · 2 Std.</b></div>` : '');
+    + (wanderAct() ? `<div class="bountybar expbar" data-action="go" data-v="wplan"><span>Umherziehen</span><b>App offen · kleine Beute · 2 Std.</b></div>` : '');
   const cur = curAct(), o = omen();
   return `<div class="col acts">${say('prophet', omenLine())}${bbar}${xbar}${ACTS.map((a, i) => { const p = actProg(a), done = actDone(a), open = actOpen(a), l = LOCATIONS.find(x => x.id === a.loc);
     const isOmen = open && S.lvl >= 3 && o.loc === a.loc && !o.done;
@@ -721,7 +722,7 @@ const wImg = c => c.k === 'fight' ? `assets/monsters/${MONSTERS.find(m => m.name
 const wLine = c => c.k === 'fight' ? `Kampf: ${c.mob}` : WANDER.kinds.find(k => k.id === c.k).name;
 export function viewWander(res = null) {
   if (res) return `<div class="col wander"><section class="panel"><h2>Zurück vom Umherziehen</h2><p class="small dim">${res.n} Punkte in ${res.min} Min.</p></section>
-    <section class="panel wlog"><p><span>Erfahrung</span><b>+${res.xp} EP</b></p><p><span>Gold</span><b>${res.gold}</b></p>
+    <section class="panel wlog"><p><span>Erfahrung</span><b>+${res.xp} EP${res.up ? ` · <span class="hot">Stufe ${S.lvl}!</span>` : ''}</b></p><p><span>Gold</span><b>${res.gold}</b></p>
       ${res.items.length ? `<p><span>Fundstücke</span><b>${res.items.map(it => `<span class="r-${it.rarity}">${it.name}</span>`).join(', ')}</b></p>` : ''}
       ${res.herbs.length ? `<p><span>Zutaten</span><b>${res.herbs.map(([k, n]) => `${HERBS[k].name} ×${n}`).join(' · ')}</b></p>` : ''}
       ${res.mats.length ? `<p><span>Material</span><b>${res.mats.map(([k, n]) => `${MATS[k]} ×${n}`).join(' · ')}</b></p>` : ''}</section>

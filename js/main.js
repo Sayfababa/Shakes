@@ -1,4 +1,4 @@
-import { CFG, MATS, TUTORIAL, TRADERS, FORGE, CRYPTS, HERBS, POTIONS, LOCATIONS, DESC_ROOMS, ACTS } from './data.js';
+import { CFG, MATS, TUTORIAL, TRADERS, FORGE, CRYPTS, HERBS, POTIONS, LOCATIONS, DESC_ROOMS, ACTS, PIT } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import * as Game from './game.js';
@@ -119,7 +119,7 @@ function toast(before) {
 }
 function loseText(res) {
   if (res.lost) return `In der Tiefe verloren: ${res.lost.gold} Gold, ${res.lost.xp || 0} EP${res.lost.items.length ? ` und ${res.lost.items.length} Fundstück(e)` : ''}.`;
-  if (res.pit) return 'Vargo lacht. Platz bleibt – 15 Minuten Pause.';
+  if (res.pit) return `Vargo lacht. Platz bleibt – ${Math.round(PIT.cdLose / 60)} Minuten Pause.`;
   if (res.rew.honor) return `${res.rew.honor} Ehre`;
   if (res.desc?.lost) { const l = res.desc.lost; return `Der Sack bleibt unten: ${l.gold} Gold${l.items.length ? `, ${l.items.length} Fundstück${l.items.length > 1 ? 'e' : ''}` : ''}.`; }
   if (res.crypt) return 'Die Krypta behält dich. Diesmal. Deine Stufe bleibt.';

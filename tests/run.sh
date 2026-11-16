@@ -8,7 +8,7 @@ T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 ways() { node tests/ways.mjs all all 1500 --check > "$T/ways.full"; rc=$?; grep -E '^!!|Rahmen' "$T/ways.full"; return $rc; }
 pots() { for c in barbarian paladin assassin huntress sorceress witch; do node tests/potions.mjs $c all 300 --check > "$T/pot.$c" 2>&1 & done; wait
   grep -h '^!!' "$T"/pot.*; n=$(grep -l 'im Rahmen' "$T"/pot.* | wc -l); echo "Tränke im Rahmen: $n/6 Klassen"; [ "$n" -eq 6 ]; }
-acts() { node tests/acts.mjs all 1 --check > "$T/acts.full"; rc=$?; cat "$T/acts.full"; return $rc; }
+acts() { node tests/acts.mjs all 3 --check > "$T/acts.full"; rc=$?; cat "$T/acts.full"; return $rc; }
 desc() { node tests/descent.mjs all 10 120 --check > "$T/desc.full"; rc=$?; grep -E '⚠|Stufe 10' "$T/desc.full"; return $rc; }
 bot() { for c in barbarian paladin assassin huntress sorceress witch; do node tests/bot.mjs $c 3 1 | grep -E "Kämpfe" | sed "s/^/$c: /" & done; wait; }
 

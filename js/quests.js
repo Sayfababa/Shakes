@@ -1,6 +1,6 @@
 // Händler-Questketten. DOM-frei. Fortschritt zählt nur, solange die Quest aktiv ist.
-import { QUESTS, TRADERS, MATS, LOCATIONS, CRYPTS, SLOTS, RARITIES, CLASSES, GIVERS, NPCS, DIFFICULTIES } from './data.js';
-import { S, setQuestMatCheck, loyalty, removeFromBag, addToBag, gainXp, cryptFloor, journal } from './state.js';
+import { QUESTS, TRADERS, MATS, LOCATIONS, CRYPTS, CRYPT, SLOTS, RARITIES, CLASSES, GIVERS, NPCS } from './data.js';
+import { S, setQuestMatCheck, loyalty, removeFromBag, addToBag, gainXp, cryptFloor, cryptOpen, cryptAct, journal } from './state.js';
 const giverName = id => (TRADERS[id] || NPCS[id]).name;
 import { makeItem } from './loot.js';
 
@@ -34,13 +34,13 @@ export function objectives(tid) {
     else if (o.at) { label = `Siege: ${LOCATIONS.find(l => l.id === o.at).name}`; cur = pr[i] || 0; }
     else if (o.mat) { label = `Bring: ${MATS[o.mat]}`; cur = Math.min(n, S.mats[o.mat] || 0); }
     else if (o.give) { label = `Bring: ${SLOTS[o.give]} (${RARITIES[o.rar].name} oder besser)`; cur = giveItem(o) ? 1 : 0; }
-    else if (o.floor) { const c = CRYPTS.find(c => c.id === o.floor); label = `${c.name}: Ebene ${o.n}`; cur = Math.min(n, cryptFloor(c)); }
+    else if (o.floor) { const c = CRYPTS.find(c => c.id === o.floor); label = `Öffne: ${c.name} (Akt ${cryptAct(c).n} schaffen)`; cur = cryptOpen(c) ? 1 : 0; n = 1; }
     // Boss zählt auch, wenn er schon vor der Quest besiegt wurde (sonst wäre die Quest unlösbar – Krypten bleiben geräumt)
     else if (o.boss) { const c = CRYPTS.find(c => c.id === o.boss); label = `Bezwinge: ${c.boss.name}`; cur = (pr[i] || S.trophies.some(t => t.key.startsWith(c.id + ':'))) ? 1 : 0; }
     else if (o.arena) { label = 'Siege in der Grube'; cur = pr[i] || 0; }
-    else if (o.bossd) { const c = CRYPTS.find(c => c.id === o.bossd); label = `Bezwinge: ${c.boss.name} (${DIFFICULTIES[o.d].name})`; cur = S.trophies.some(t => t.key === `${c.id}:${o.d}`) ? 1 : 0; n = 1; }
+    else if (o.bossd) { const c = CRYPTS.find(c => c.id === o.bossd); label = `Bezwinge: ${c.boss.name} (Krypta-Stufe ${CRYPT.dTier[o.d] + 1})`; cur = S.trophies.some(t => t.key === `${c.id}:${o.d}`) ? 1 : 0; n = 1; }
     else if (o.honor) { label = 'Ehre in der Grube'; cur = Math.min(o.honor, S.honor); }
-    else if (o.clear) { const c = CRYPTS.find(c => c.id === o.clear); label = `Räume: ${c.name}`; cur = cryptFloor(c) >= 5 ? 1 : 0; n = 1; }
+    else if (o.clear) { const c = CRYPTS.find(c => c.id === o.clear); label = `Bezwinge den Herrn: ${c.name}`; cur = cryptFloor(c) >= 5 ? 1 : 0; n = 1; }
     else if (o.omen) { label = 'Erfülle Omen des Propheten'; cur = pr[i] || 0; }
     else if (o.shards) { label = 'Glockensplitter'; cur = Math.min(o.shards, S.shards.length); }
     else if (o.champ) { const q = current(tid); label = `Besiege: ${q.champ.name}`; cur = pr[i] || 0; }

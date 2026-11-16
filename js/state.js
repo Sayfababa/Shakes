@@ -3,7 +3,7 @@ import { affixPool, makeItem, itemValue, rollTier, affixValue, renameMagic } fro
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
-export const SAVE_VERSION = 14;
+export const SAVE_VERSION = 15;
 export let S = null; // aktueller Spielstand
 
 export const now = () => Date.now();
@@ -11,9 +11,18 @@ export const now = () => Date.now();
 // "verändert" markiert (für späteren Handel gesperrt). Kein echter Schutz ohne Server – aber kein stilles Schummeln.
 const SIG = KEY + '_sig';
 export function sealOf(txt) { let h = 0x811c9dc5; const t = 'aschenkrone|' + txt; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(36); }
+// Lässt sich ein Spielstand nicht lesen (kaputt, oder alter Code aus dem Offline-Speicher trifft einen neueren Stand), wird er
+// als Sicherung abgelegt, bevor ein neuer Held ihn überschreiben kann. Fehlt der Stand, wird eine lesbare Sicherung zurückgeholt.
+const BAK = KEY + '_bak';
+export let unreadable = false;
+const read = raw => { try { const d = JSON.parse(raw); return d ? migrate(d) : null; } catch { return null; } };
 export function load() {
-  try { const raw = localStorage.getItem(KEY), d = JSON.parse(raw), sig = localStorage.getItem(SIG);
-    if (d) { S = migrate(d); if (sig && sig !== sealOf(raw)) S.tampered = true; } } catch { S = null; }
+  S = null; unreadable = false; let raw = null;
+  try { raw = localStorage.getItem(KEY); const sig = localStorage.getItem(SIG);
+    S = raw ? read(raw) : null; if (S && sig && sig !== sealOf(raw)) S.tampered = true;
+    if (raw && !S) { localStorage.setItem(BAK, raw); unreadable = true; }
+    if (!raw) { const bak = localStorage.getItem(BAK); S = bak ? read(bak) : null; if (S) { localStorage.removeItem(BAK); save(); } }
+  } catch { S = null; }
   return S;
 }
 export function save() { try { const txt = JSON.stringify(S); localStorage.setItem(KEY, txt); localStorage.setItem(SIG, sealOf(txt)); } catch {} }
@@ -62,6 +71,10 @@ function migrate(d) {
     for (let i = ACTS.length - 1; i > 0; i--) if (d.acts.prog[ACTS[i].id]) for (let j = 0; j < i; j++) d.acts.prog[ACTS[j].id] = ACT.zones + 1;
     d.v = 13; }
   if (d.v === 13) { d.wander = null; d.v = 14; }   // Umherziehen
+  if (d.v === 14) {   // Steckbriefe und Omen folgen den Akten: alte Zettel umschreiben, Omen an gesperrtem Ort neu ziehen
+    for (const b of d.bounty?.list || []) { if (b.id === 'blood') b.id = 'elite'; if (b.id === 'deep') Object.assign(b, { id: 'zones', n: BOUNTIES.find(x => x.id === 'zones').n, prog: 0 }); }
+    if (d.omen && !d.omen.done) d.omen = null;
+    d.v = 15; }
   d.name = cleanName(d.name);
   return d.v === SAVE_VERSION ? d : null;
 }
@@ -371,11 +384,13 @@ export const actZoneLvl = (a, z) => z >= ACT.zones ? a.top : Math.round(a.lvl + 
 export const curAct = () => ACTS.find(a => actOpen(a) && !actDone(a)) || ACTS[ACTS.length - 1];
 
 // --- Tägliches Omen ---
+// Orte, an denen gerade gekämpft werden kann: die der offenen Akte (nicht nach Stufe – ein Akt öffnet sich erst mit dem Boss davor)
+export const openLocs = () => ACTS.filter(actOpen).map(a => LOCATIONS.find(l => l.id === a.loc));
 const dayNo = () => { const t = Date.now(); return Math.floor((t - new Date(t).getTimezoneOffset() * 60000) / 86400000); };
 export function omen() {
   const day = dayNo();
   if (!S.omen || S.omen.day !== day) {
-    const open = LOCATIONS.filter(locOpen), h = (day * 2654435761) >>> 0;
+    const open = openLocs(), h = (day * 2654435761) >>> 0;
     S.omen = { day, loc: open[h % open.length].id, type: OMENS[(h >>> 8) % OMENS.length].id, done: false };
   }
   return { ...S.omen, def: OMENS.find(o => o.id === S.omen.type), place: LOCATIONS.find(l => l.id === S.omen.loc) };
@@ -488,9 +503,11 @@ export const rushCost = () => !S.active ? 0 : Math.max(1, Math.ceil(Math.max(0, 
 export function bounties() {
   const day = dayNo();
   if (!S.bounty || S.bounty.day !== day) {
-    const open = LOCATIONS.filter(locOpen), mobs = [...new Set(open.flatMap(l => l.mobs))];
+    const mobs = [...new Set(openLocs().flatMap(l => l.mobs))];
     let h = Math.imul(day, 2246822519) >>> 0; const next = m => { h = (Math.imul(h, 1103515245) + 12345) >>> 0; return (h >>> 8) % m; };
-    const types = BOUNTIES.filter(b => b.id !== 'arena' || S.lvl >= 3).slice();
+    // nur anbieten, was schon erreichbar ist
+    const can = { arena: S.lvl >= 3, crypt: CRYPTS.some(cryptOpen), elite: actProg(ACTS[0]) >= ACT.elites[0] };
+    const types = BOUNTIES.filter(b => can[b.id] !== false);
     const pickT = []; while (pickT.length < 3 && types.length) pickT.push(types.splice(next(types.length), 1)[0]);   // ohne Wiederholung, endet sicher
     S.bounty = { day, list: pickT.map(t => ({ id: t.id, target: t.id === 'kill' ? mobs[next(mobs.length)] : null, n: t.n, prog: 0, claimed: false })) };
   }
@@ -500,8 +517,7 @@ export function bountyEvent(ev) {
   if (!S.bounty) return;
   for (const b of bounties()) {
     if (b.claimed || b.prog >= b.n) continue;
-    const hit = (b.id === 'kill' && ev.type === 'kill' && ev.mob === b.target) || (b.id === 'blood' && ev.type === 'trip' && ev.track === 'blood')
-      || (b.id === 'deep' && ev.type === 'bank' && ev.depth >= 2) || (b.id === 'crypt' && ev.type === 'crypt') || (b.id === 'arena' && ev.type === 'arena');
+    const hit = b.id === 'kill' ? ev.type === 'kill' && ev.mob === b.target : b.id === ev.type;
     if (hit) b.prog++;
   }
 }

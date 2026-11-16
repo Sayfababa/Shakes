@@ -244,7 +244,7 @@ export const QUESTS = {
       obj: [{ at: 'friedhof', n: 3 }], rew: { gold: 35, xp: 60, rep: 40, item: { slot: 'helm', rar: 1 } } },
     { id: 'k2', title: 'Knochenstaub', lvl: 3, text: 'Ich streue ihn auf die Gräber. Hält die Hunde fern. Meistens.',
       obj: [{ mat: 'staub', n: 5 }], rew: { gold: 60, xp: 130, rep: 50 } },
-    { id: 'k3', title: 'In die Gruft', lvl: 4, text: 'Steig in die Gruft der Wäscherinnen. Drei Ebenen tief. Erzähl mir, was du siehst.',
+    { id: 'k3', title: 'In die Gruft', lvl: 4, text: 'Ansgar war mein Geselle. Jetzt gräbt er für die andere Seite und versperrt den Weg zur Gruft der Wäscherinnen. Räum ihn fort.',
       obj: [{ floor: 'c1', n: 3 }], rew: { gold: 100, xp: 200, rep: 70, item: { slot: 'chest', rar: 2 } } },
     { id: 'k4', title: 'Blut im Sand', lvl: 6, text: 'In der Grube kämpfen sie um nichts. Kämpf um etwas. Gewinn dreimal.',
       obj: [{ arena: 3 }], rew: { gold: 150, xp: 300, rep: 90 } },
@@ -268,7 +268,7 @@ export const QUESTS = {
       rew: { gold: 900, xp: 2500, rep: 0, perk: { name: 'Champion der Grube', eff: { dmgPct: 0.06, first: 1 } } } },
   ],
   ilse: [
-    { id: 'i1', title: 'Das Licht halten', lvl: 2, text: 'Meine Schwestern stiegen in die Gruft und kamen nicht zurück. Steig hinab. Zwei Ebenen. Erzähl mir, was du siehst.',
+    { id: 'i1', title: 'Das Licht halten', lvl: 2, text: 'Meine Schwestern stiegen in die Gruft und kamen nicht zurück. Der Totengräber hält das Tor. Öffne es mir.',
       obj: [{ floor: 'c1', n: 2 }], rew: { gold: 50, xp: 100, rep: 0 } },
     { id: 'i2', title: 'Leinen für die Toten', lvl: 4, text: 'Sie sollen nicht nackt vor Gott stehen. Bring mir Grableinen.',
       obj: [{ mat: 'leinen', n: 5 }], rew: { gold: 80, xp: 180, rep: 0, item: { slot: 'amulet', rar: 2 } } },
@@ -335,7 +335,7 @@ export const SERVICES = {
 export const TUTORIAL = [
   { tab: 'traders', when: 'view:traders', text: 'Du bist erwacht. Drei Gestalten warten am Friedhofstor. Tippe unten auf <b>Händler</b>.' },
   { tab: 'traders', when: 'view:kaspar', text: 'Jeder Händler hat Aufträge. Sieh dir <b>Bruder Kaspar</b> an – er will, dass du seinen Friedhof säuberst.' },
-  { tab: 'trips', when: 'active', text: 'Öffne <b>Streifzug</b> und tippe auf <b>Akt I</b>. Jedes Gebiet ist ein Kampf – neue kosten nichts.' },
+  { tab: 'trips', when: 'view:act', text: 'Öffne <b>Streifzug</b> und tippe auf <b>Akt I</b>. Jedes Gebiet ist ein Kampf – neue kosten nichts.' },
   { tab: 'trips', when: 'wins', text: 'Tippe auf das leuchtende Gebiet und dann <b>Kämpfen</b>. Ganz oben wartet der Boss des Akts.' },
   { tab: 'hero', when: 'spent', text: 'Beute landet im <b>Beutel</b>. Unter <b>Held</b> antippen und anlegen. Unter <b>Werte</b> verteilst du deine Punkte.' },
   { tab: 'traders', when: 'turnin', text: 'Erfülle den Auftrag und gib ihn beim Händler <b>ab</b>. Das bringt Ruf – mit Treue wird seine Ware besser.' },
@@ -354,12 +354,13 @@ export const TRACKS = [
 // Jede Tiefe kostet die Glut des Ortes, Gegner +2 Stufen und +12 %, Lohn +25 %. Gold, Erfahrung und Beute erst daheim.
 export const DELVE = { max: 5, lvlPer: 3, diffPer: 0.15, rewPer: 0.3 };
 
-// --- Steckbriefe: täglich 3 Aufträge (Endspiel, wiederholbar) ---
+// --- Steckbriefe: täglich 3 Aufträge (Endspiel, wiederholbar). Angeboten wird nur, was der Held schon erreichen kann (bounties() in state.js) ---
 export const BOUNTIES = [
   { id: 'kill', n: 5, text: (t) => `Töte ${t}` },
-  { id: 'blood', n: 2, text: () => 'Siege auf blutiger Spur' },
-  { id: 'deep', n: 1, text: () => 'Erreiche Tiefe 2 und kehre heim' },
-  { id: 'crypt', n: 3, text: () => 'Siege in den Krypten' },
+  { id: 'zones', n: 8, text: () => 'Siege in den Akten' },
+  { id: 'dom', n: 3, text: () => 'Gewinne Kämpfe überlegen' },
+  { id: 'elite', n: 2, text: () => 'Besiege Elite-Gegner' },        // erst, wenn ein Elite-Gebiet erreicht ist
+  { id: 'crypt', n: 2, text: () => 'Siege in den Krypten' },        // erst, wenn eine Krypta offen ist
   { id: 'arena', n: 2, text: () => 'Siege in der Grube' },
 ];
 
@@ -797,9 +798,9 @@ export const PIT_RULES = [
 // Stufe der Gebiete steigt von lvl bis top, `diff` macht spätere Akte zäher (ohne mehr EP); der Boss öffnet den nächsten Akt und die Krypta `crypt` (deren Boss dann in Stufen wiederholbar).
 export const ACT = { doneAt: [6, 9, 11, 15, 17, 19], zones: 8, elites: [3, 6], firstXp: 3, firstGold: 2, bossXp: 6, bossGold: 5, replay: 1, itemP: 0.45, eliteDiff: 1.15, eliteHp: 1.25, bossMult: 0.95, bossItems: 2 };
 export const ACTS = [
-  { id: 'a1', n: 'I', loc: 'friedhof', lvl: 1, top: 6, diff: 1.0, crypt: 'c1', zones: ['Das Friedhofstor', 'Die Reihen der Armen', 'Das offene Grab', 'Die Wacht am Beinhaus', 'Der Weidenhang', 'Die Gräbergasse', 'Der Mauerbruch', 'Das Leichenhaus'],
+  { id: 'a1', n: 'I', loc: 'friedhof', lvl: 1, top: 6, diff: 1.0, eliteDiff: 0.9, eliteHp: 1.0, bossMult: 0.52, crypt: 'c1', zones: ['Das Friedhofstor', 'Die Reihen der Armen', 'Das offene Grab', 'Die Wacht am Beinhaus', 'Der Weidenhang', 'Die Gräbergasse', 'Der Mauerbruch', 'Das Leichenhaus'],
     boss: { name: 'Ansgar, der Totengräber', glyph: 'totengraeber', mech: { ward: 0.25, bleed: 0.3 }, mechText: 'Gräbt sich ein: kämpft hinter einem Wall aus Erde' } },
-  { id: 'a2', n: 'II', loc: 'muehle', lvl: 6, top: 12, diff: 1.05, crypt: 'c2', zones: ['Der Mühlbach', 'Das Speichertor', 'Die Kornkammer', 'Der Rattenkeller', 'Das Wasserrad', 'Der Mahlboden', 'Die Sackkammer', 'Der Mühlstein'],
+  { id: 'a2', n: 'II', loc: 'muehle', lvl: 6, top: 12, diff: 1.05, eliteDiff: 0.95, eliteHp: 1.0, crypt: 'c2', zones: ['Der Mühlbach', 'Das Speichertor', 'Die Kornkammer', 'Der Rattenkeller', 'Das Wasserrad', 'Der Mahlboden', 'Die Sackkammer', 'Der Mühlstein'],
     boss: { name: 'Die Müllerin', glyph: 'muellerin', mech: { rage: 0.6, armorMult: 1.3 }, mechText: 'Mahlt sich in Raserei – je länger der Kampf, desto härter' } },
   { id: 'a3', n: 'III', loc: 'katakomben', lvl: 12, top: 18, diff: 1.12, crypt: 'c3', zones: ['Der Einstieg', 'Die Ossuarien', 'Die Schädelwand', 'Der Brunnenschacht', 'Die Knochenhalle', 'Die Kammer der Ordnung', 'Der tiefe Gang', 'Das Zählwerk'],
     boss: { name: 'Der Knochenordner', glyph: 'knochenordner', mech: { block: 0.35, armorMult: 1.4 }, mechText: 'Knochenschild: blockt viele Hiebe – Zauber treffen immer' } },
@@ -815,7 +816,9 @@ export const ACTS = [
 export const CRYPT = { glut: 10, glutPerTier: 1, lvlAdd: 2, tierLvl: 3, tierMult: 0.06, rarAt: [0, 2, 5], items: [1, 2, 3], dTier: [0, 3, 6] };
 
 // --- Umherziehen (Idle, nur bei offener App): der Held zieht Punkt für Punkt durch den höchsten Akt ---
-// Je Punkt `sec` Sekunden, höchstens `maxSec` am Stück. Beute = `loot` × ein Wiederholungs-Kampf (EP sofort, Rest im Sack).
+// Je Punkt `sec` Sekunden, höchstens `maxSec` am Stück. Ein Kampf-Punkt ist `loot` Glut wert: Beute = loot ÷ Glut-Preis des Gebiets × ein
+// Wiederholungs-Kampf (EP sofort, Rest im Sack). So bringen 2 Std. in jedem Akt etwa so viel wie die Glut derselben Zeit (30) – nicht ein Vielfaches.
+// Geprüft in tests/logic.test.mjs („Umherziehen übertrifft die Glut nicht“).
 // Ist die App länger als `gap` Sek. weg (zu/schläft), steht der Held still – die Zeit wird verschoben, nicht nachgeholt.
 // Route: wie bei der Expedition selbst wählen – `rows` Stationen (Breiten `widths`), je Station `per` Punkte; Punkte einer Station
 // sind zu `bias` von ihrer Art, sonst zufällig. rows × per × sec = maxSec.
@@ -826,7 +829,7 @@ export const WANDER_ST = {
   ruin: { name: 'Ruine', img: 'ruin', w: 1.5, text: 'Gold, Chance auf Fundstücke' },
   camp: { name: 'Lager', img: 'camp', w: 0.7, max: 1, text: 'Ruhe: etwas EP, sicher' },
 };
-export const WANDER = { rows: 6, widths: [2, 3, 2, 3, 2, 3], per: 10, bias: 0.75, sec: 120, maxSec: 7200, gap: 90, keep: 7, loot: 0.5, matP: 0.6, herbP: 0.6, itemP: 0.08, ruinItem: 0.3, ruinGold: 2, campXp: 0.4,
+export const WANDER = { rows: 6, widths: [2, 3, 2, 3, 2, 3], per: 10, bias: 0.75, sec: 120, maxSec: 7200, gap: 90, keep: 7, loot: 0.75, matP: 0.15, herbP: 0.1, itemP: 0.03, ruinItem: 0.15, ruinGold: 2, campXp: 0.4,
   kinds: [
     { id: 'fight', w: 4, verb: 'Kämpft gegen' },
     { id: 'herb', w: 2, verb: 'Pflügt ein Kräuterfeld', name: 'Kräuterfeld', img: 'herb' },

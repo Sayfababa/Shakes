@@ -57,7 +57,7 @@ export function resolveTrip() {
   const A = G.stats(), r = fight(A, m), win = r.winner === 'a', rew = newRew();
   S.active = null;
   if (!win) { S.deaths++; G.journal(`${m.name} in ${l.name} hat mich zerrissen.`); return { A, B: m, r, win, rew, place: l }; }
-  S.wins++; Q.event({ type: 'kill', mob: a.mob, loc: l.id }); G.bountyEvent({ type: 'kill', mob: a.mob }); G.bountyEvent({ type: 'trip', track: tr.id });
+  S.wins++; Q.event({ type: 'kill', mob: a.mob, loc: l.id }); G.bountyEvent({ type: 'kill', mob: a.mob }); G.bountyEvent({ type: 'zones' });
   S.haul = { loc: l.id, track: tr.id, depth: 0, gold: 0, mats: {}, items: [] };
   rew.grade = gradeOf(r); tripLoot(l, m, tr, 0, od, rew, rew.grade.bonus); dropHerb(HERB_LOC[l.id], ALCH.herbChance, 1, rew);
   if (od && G.fulfillOmen()) { Q.event({ type: 'omen' }); rew.omen = true; G.journal(`Das Omen über ${l.name} hat sich erfüllt.`); }
@@ -100,7 +100,7 @@ export function cryptFight(id, m0 = null) {
   G.usePotions(r.used); rew.used = r.used; if (S.bless) { rew.bless = S.bless; S.bless = 0; }
   if (!win) { S.deaths++; G.journal(`${m.name} in ${c.name} hat mich niedergestreckt.`); return { A, B: m, r, win, rew, crypt: c }; }
   S.wins++; Q.event({ type: 'kill', mob: m.name }); Q.event({ type: 'boss', crypt: c.id }); G.bountyEvent({ type: 'crypt' }); G.bountyEvent({ type: 'kill', mob: m.name });
-  Object.assign(rew, G.cryptWin(c)); rew.grade = gradeOf(r); const gb = 1 + rew.grade.bonus;
+  Object.assign(rew, G.cryptWin(c)); rew.grade = gradeOf(r); if (rew.grade.id === 'dom') G.bountyEvent({ type: 'dom' }); const gb = 1 + rew.grade.bonus;
   pay(rew, Math.round((10 + m.lvl * 5) * 4 * gb), Math.round((25 + m.lvl * 14) * 3));
   dropMat(m, rew); dropHerb('herz', 1, ALCH.bossHearts, rew);
   const k = CRYPT.rarAt.filter(x => t >= x).length - 1;   // höhere Stufe → mehr und bessere Beute
@@ -114,9 +114,9 @@ export function cryptFight(id, m0 = null) {
 export const actZoneMob = (a, z) => LOCATIONS.find(l => l.id === a.loc).mobs[z % 3];
 const zoneElite = (a, z) => { if (!ACT.elites.includes(z)) return null; const i = ACTS.indexOf(a) * 3 + z, M = ELITE.mods; return [M[i % M.length], M[(i + 2) % M.length]]; };
 export function actEnemy(a, z) {
-  const lvl = G.actZoneLvl(a, z), d = a.diff || 1; if (z >= ACT.zones) return G.makeBoss(a, lvl, ACT.bossMult * d);
-  const el = zoneElite(a, z), m = G.makeMonster(lvl, (el ? ACT.eliteDiff : 1) * d, MONSTERS.find(x => x.name === actZoneMob(a, z)));
-  if (el) { m.hp = Math.round(m.hp * ACT.eliteHp); m.elite = el.map(e => e.name); m.name = 'Elite: ' + m.name;
+  const lvl = G.actZoneLvl(a, z), d = a.diff || 1; if (z >= ACT.zones) return G.makeBoss(a, lvl, (a.bossMult ?? ACT.bossMult) * d);   // einzelne Akte dürfen Elite/Boss eigens einstellen (Akt I: Einstieg)
+  const el = zoneElite(a, z), m = G.makeMonster(lvl, (el ? a.eliteDiff ?? ACT.eliteDiff : 1) * d, MONSTERS.find(x => x.name === actZoneMob(a, z)));
+  if (el) { m.hp = Math.round(m.hp * (a.eliteHp ?? ACT.eliteHp)); m.elite = el.map(e => e.name); m.name = 'Elite: ' + m.name;
     for (const e of el) { Object.assign(m, e.eff || {}); for (const [k, v] of Object.entries(e.mult || {})) m[k] = Math.round(m[k] * v); } }
   return m;
 }
@@ -139,8 +139,8 @@ export function actFight(id, z, m0 = null) {
   G.usePotions(r.used); rew.used = r.used;
   if (!win) { S.deaths++; G.journal(`${m.name} in ${l.name} hat mich niedergestreckt.`); return { A, B: m, r, win, rew, act: a, zone: z }; }
   S.wins++; const mob = boss ? m.name : actZoneMob(a, z);
-  Q.event({ type: 'kill', mob, loc: l.id }); G.bountyEvent({ type: 'kill', mob }); G.bountyEvent({ type: 'trip', track: m.elite ? 'blood' : 'norm' });
-  rew.grade = gradeOf(r); const gb = 1 + rew.grade.bonus, lv = m.lvl;
+  Q.event({ type: 'kill', mob, loc: l.id }); G.bountyEvent({ type: 'kill', mob }); G.bountyEvent({ type: 'zones' }); if (m.elite) G.bountyEvent({ type: 'elite' });
+  rew.grade = gradeOf(r); if (rew.grade.id === 'dom') G.bountyEvent({ type: 'dom' }); const gb = 1 + rew.grade.bonus, lv = m.lvl;
   const xf = replay ? ACT.replay : boss ? ACT.bossXp : ACT.firstXp, gf = replay ? ACT.replay : boss ? ACT.bossGold : ACT.firstGold;
   pay(rew, Math.round((6 + lv * 4) * gf * gb * (od?.gold || 1)), Math.round((20 + lv * 12) * xf * (od?.xp || 1)));
   dropMat(m, rew); dropHerb(HERB_LOC[l.id], ALCH.herbChance * (m.elite ? 2 : 1), 1, rew);
@@ -502,8 +502,8 @@ function descFight(nd, u, exit = null) {
   G.usePotions(r.used); rew.used = r.used; D.hpf = Math.max(0, r.endA / A.hp);
   if (!win) { S.deaths++; const lost = { ...D.sack, rooms: D.rooms, unrest: D.unrest, xp: D.xp, crypt: c.name }; S.desc = null;
     G.journal(`In ${c.name} gefallen. Der Sack bleibt unten.`); return { A, B: m, r, win, rew, desc: { lost } }; }
-  S.wins++; Q.event({ type: 'kill', mob: boss ? c.boss.name : nd.mob }); if (boss) Q.event({ type: 'boss', crypt: c.id }); G.bountyEvent({ type: 'kill', mob: boss ? c.boss.name : nd.mob });
-  rew.grade = gradeOf(r);
+  S.wins++; Q.event({ type: 'kill', mob: boss ? c.boss.name : nd.mob }); if (boss) Q.event({ type: 'boss', crypt: c.id }); G.bountyEvent({ type: 'kill', mob: boss ? c.boss.name : nd.mob }); if (elite) G.bountyEvent({ type: 'elite' });
+  rew.grade = gradeOf(r); if (rew.grade.id === 'dom') G.bountyEvent({ type: 'dom' });
   const xp = Math.round((25 + m.lvl * 14) * DESCENT.xp * (boss ? 3 : elite ? 1.5 : 1)); rew.xp = xp; rew.up = G.gainXp(xp); D.xp += xp;
   const gb = 1 + rew.grade.bonus;   // Kampfbewertung: mehr Gold wie überall
   rew.sack = descLoot(m.lvl, u, boss ? { gold: 4 * gb, item: 2, minR: DESCENT.bossMinR, heart: 1, mat: m.mat } : elite ? { gold: 1.8 * gb, item: 1, minR: DESCENT.eliteMinR, heart: DESCENT.eliteHeart, mat: m.mat }
@@ -652,18 +652,19 @@ export function wanderStart(path) {
   S.wander = { a: a.id, route: path.map((j, i) => map.rows[i][j].t), start: now(), t: now(), last: now(), n: 0, log: [], acc: { gold: 0, xp: 0, herbs: {}, mats: {}, items: [] } }; wanderNext(S.wander); return true;
 }
 export const wanderDone = (W = G.S.wander) => !!W && W.t - W.start >= WANDER.maxSec * 1000;
-// Ein Punkt: halber Ertrag eines Wiederholungs-Kampfs im höchsten geschafften Gebiet
+// Ein Punkt: Bruchteil eines Wiederholungs-Kampfs im höchsten geschafften Gebiet (WANDER.loot Glut wert)
 function wanderNode(W) {
   const S = G.S, a = ACTS.find(x => x.id === W.a), l = LOCATIONS.find(x => x.id === a.loc), lv = G.actZoneLvl(a, Math.min(wanderZone(a), ACT.zones));
-  const xp0 = (20 + lv * 12) * WANDER.loot, gold0 = (6 + lv * 4) * WANDER.loot, A = W.acc, c = W.cur, bits = [];
+  const f = WANDER.loot / actZoneGlut(a), xp0 = (20 + lv * 12) * f, gold0 = (6 + lv * 4) * f, A = W.acc, c = W.cur, bits = [];
+  const gain = x => { A.xp += x; A.up = (A.up || 0) + G.gainXp(x); };
   const mats = l.mobs.map(n => MONSTERS.find(m => m.name === n)?.mat).filter(Boolean);
-  if (c.k === 'fight') { const x = Math.round(xp0), g = Math.round(gold0); G.gainXp(x); A.xp += x; A.gold += g; bits.push(`+${x} EP · ${g} Gold`);
+  if (c.k === 'fight') { const x = Math.round(xp0), g = Math.round(gold0); gain(x); A.gold += g; bits.push(`+${x} EP · ${g} Gold`);
     const mt = MONSTERS.find(m => m.name === c.mob)?.mat; if (mt && chance(WANDER.matP)) { addTo(A.mats, mt, 1); bits.push(MATS[mt]); }
     if (chance(WANDER.itemP)) { A.items.push(1); bits.push('Fundstück'); } }
   else if (c.k === 'herb') { const h = chance(0.8) ? HERB_LOC[l.id] : pick(Object.values(HERB_LOC)); if (h && chance(WANDER.herbP)) { addTo(A.herbs, h, 1); bits.push(HERBS[h].name); } }
   else if (c.k === 'mats') { if (mats.length && chance(WANDER.matP)) { const m = pick(mats); addTo(A.mats, m, 1); bits.push(MATS[m]); } }
   else if (c.k === 'ruin') { const g = Math.round(gold0 * WANDER.ruinGold); A.gold += g; bits.push(`${g} Gold`); if (chance(WANDER.ruinItem)) { A.items.push(chance(0.25) ? 2 : 1); bits.push('Fundstück'); } }
-  else { const x = Math.round(xp0 * WANDER.campXp); G.gainXp(x); A.xp += x; bits.push(`+${x} EP`); }
+  else { const x = Math.round(xp0 * WANDER.campXp); gain(x); bits.push(`+${x} EP`); }
   W.n++; W.log.unshift({ n: W.n, k: c.k, mob: c.mob, text: bits.join(' · ') || 'nichts' }); W.log.length = Math.min(W.log.length, WANDER.keep);
 }
 // Takt aus main.js (jede Sekunde, solange die App offen ist). Gibt die Zahl neu fertiger Punkte zurück.
@@ -676,7 +677,7 @@ export function wanderTick(ts = now()) {
 }
 export function wanderClaim() {
   const S = G.S, W = S.wander; if (!W) return null; const a = ACTS.find(x => x.id === W.a), A = W.acc, rew = newRew();
-  rew.gold = A.gold; S.gold += A.gold; rew.xp = A.xp;
+  rew.gold = A.gold; S.gold += A.gold; rew.xp = A.xp; rew.up = A.up || 0;
   for (const [k, n] of Object.entries(A.herbs)) { G.addHerb(k, n); rew.herbs.push([k, n]); }
   for (const [k, n] of Object.entries(A.mats)) { G.addMat(k, n); rew.mats.push([k, n]); }
   const lv = G.actZoneLvl(a, Math.min(wanderZone(a), ACT.zones)); rew.items = [];

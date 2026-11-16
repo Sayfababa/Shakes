@@ -136,6 +136,61 @@ test('Steckbriefe: 3 verschiedene pro Tag, abholbar, nur einmal', () => {
   b[0].prog = b[0].n; const g = S.gold; assert.ok(G.claimBounty(0)); assert.ok(S.gold > g); assert.equal(G.claimBounty(0), null);
 });
 
+test('Steckbriefe: nur Erreichbares, zählen über Akt-Kämpfe (kein Zettel aus alten Streifzügen)', () => {
+  for (let day = 0; day < 40; day++) { const S = fresh(); S.lvl = 4; S.bounty = null;
+    const real = Date.now; Date.now = () => real() + day * 86400000; const b = G.bounties(); Date.now = real;
+    assert.equal(b.length, 3);
+    for (const x of b) { assert.ok(D.BOUNTIES.some(d => d.id === x.id)); assert.ok(!['crypt', 'elite', 'blood', 'deep'].includes(x.id), 'gesperrt: ' + x.id);
+      if (x.id === 'kill') assert.ok(D.LOCATIONS[0].mobs.includes(x.target), 'Ziel nicht in Akt I: ' + x.target); } }
+  const S = fresh(); S.bounty = { day: -1, list: [] }; G.bounties(); S.bounty.list = [{ id: 'zones', target: null, n: 8, prog: 0 }, { id: 'kill', target: D.LOCATIONS[0].mobs[0], n: 5, prog: 0 }];
+  S.attrs.str = 200; S.attrs.con = 200; const r = Game.actFight('a1', 0); assert.ok(r.win);
+  assert.equal(S.bounty.list[0].prog, 1); assert.equal(S.bounty.list[1].prog, 1);
+});
+
+test('Omen fällt nur auf Orte offener Akte', () => {
+  for (let day = 0; day < 40; day++) { const S = fresh(); S.lvl = 5; const real = Date.now; Date.now = () => real() + day * 86400000; const o = G.omen(); Date.now = real;
+    assert.equal(o.loc, 'friedhof'); }
+  const S = fresh(); S.lvl = 12; S.acts.prog.a1 = 9; S.acts.prog.a2 = 9; assert.deepEqual(G.openLocs().map(l => l.id), ['friedhof', 'muehle', 'katakomben']);
+});
+
+test('Migration v14 → v15: alte Steckbriefe werden umgeschrieben, Omen an gesperrtem Ort neu gezogen', () => {
+  const S = fresh(); const d = JSON.parse(JSON.stringify(S)); d.v = 14; d.lvl = 4;
+  d.bounty = { day: 1, list: [{ id: 'blood', target: null, n: 2, prog: 1, claimed: false }, { id: 'deep', target: null, n: 1, prog: 0, claimed: false }, { id: 'crypt', target: null, n: 3, prog: 0, claimed: true }] };
+  d.omen = { day: 1, loc: 'muehle', type: 'gold', done: false };
+  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); localStorage.removeItem('aschenkrone_v1_sig');
+  const L = G.load(); assert.equal(L.v, G.SAVE_VERSION); assert.deepEqual(L.bounty.list.map(b => b.id), ['elite', 'zones', 'crypt']);
+  assert.equal(L.bounty.list[0].prog, 1); assert.equal(L.bounty.list[2].claimed, true); assert.equal(L.omen, null);
+});
+
+test('Unlesbarer Spielstand wird gesichert statt überschrieben, und kommt zurück', () => {
+  const S = fresh(); S.gold = 4321; G.save(); const good = localStorage.getItem('aschenkrone_v1');
+  const d = JSON.parse(good); d.v = 999; const future = JSON.stringify(d);
+  localStorage.setItem('aschenkrone_v1', future); assert.equal(G.load(), null); assert.ok(G.unreadable);
+  assert.equal(localStorage.getItem('aschenkrone_v1_bak'), future);
+  G.newChar('Neu', 'witch'); assert.equal(localStorage.getItem('aschenkrone_v1_bak'), future);   // neuer Held überschreibt die Sicherung nicht
+  localStorage.setItem('aschenkrone_v1_bak', good); localStorage.removeItem('aschenkrone_v1');   // Stand fehlt, Sicherung lesbar → zurückholen
+  const L = G.load(); assert.equal(L.gold, 4321); assert.ok(!localStorage.getItem('aschenkrone_v1_bak'));
+});
+
+test('Auftragsziele nennen keine Krypta-Ebenen mehr', () => {
+  const S = fresh(); S.lvl = 50;
+  for (const tid of D.GIVERS) for (let q = 0; q < D.QUESTS[tid].length; q++) { S.traders[tid].q = q; for (const o of Q.objectives(tid)) assert.ok(!/Ebene|\(Albtraum|\(Hölle|Räume/.test(o.label), o.label); assert.ok(!/Ebenen/.test(D.QUESTS[tid][q].text)); }
+});
+
+test('Umherziehen übertrifft die Glut nicht: 2 Std. bringen in jedem Akt 0,5–1,8× so viel EP/Gold wie 30 Glut Farmen', () => {
+  const N = 30, pts = D.WANDER.maxSec / D.WANDER.sec;
+  for (const [i, a] of D.ACTS.entries()) { let xp = 0, gold = 0, mats = 0, herbs = 0;
+    for (let k = 0; k < N; k++) { const S = fresh(); S.lvl = 60; for (let j = 0; j <= i; j++) S.acts.prog[D.ACTS[j].id] = D.ACT.zones + 1;
+      const t0 = Date.now(); S.wander = { a: a.id, route: Array(D.WANDER.rows).fill(k % 3 ? 'fight' : k % 2 ? 'herb' : 'mats'), start: t0, t: t0, last: t0, n: 0, log: [], acc: { gold: 0, xp: 0, herbs: {}, mats: {}, items: [] } };
+      S.wander.cur = { k: 'fight', mob: D.LOCATIONS.find(l => l.id === a.loc).mobs[0] };
+      for (let p = 1; p <= pts * 2; p++) Game.wanderTick(t0 + p * D.WANDER.sec * 500);   // alle 60 s ein Takt (unter WANDER.gap)
+      const r = Game.wanderClaim(); assert.equal(r.n, pts); xp += r.xp; gold += r.gold; mats += r.mats.reduce((x, y) => x + y[1], 0); herbs += r.herbs.reduce((x, y) => x + y[1], 0); }
+    const reps = 30 / Game.actZoneGlut(a), lv = a.top, fx = reps * (20 + lv * 12), fg = reps * (6 + lv * 4);
+    assert.ok(xp / N > fx * 0.5 && xp / N < fx * 1.8, `Akt ${a.n}: EP ${Math.round(xp / N)} gegen Glut ${Math.round(fx)}`);
+    assert.ok(gold / N > fg * 0.5 && gold / N < fg * 2.2, `Akt ${a.n}: Gold ${Math.round(gold / N)} gegen Glut ${Math.round(fg)}`);
+    assert.ok(mats / N < 12 && herbs / N < 8, `Akt ${a.n}: Material ${mats / N}, Zutaten ${herbs / N}`); }
+});
+
 test('Glücksgriff gibt ein mindestens magisches Item gegen Gold', () => {
   const S = fresh(); S.gold = 5000; const it = G.doService('ysolde', 'gamble');
   assert.ok(it && ['magic', 'rare', 'legendary'].includes(it.rarity)); assert.ok(S.gold < 5000);

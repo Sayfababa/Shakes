@@ -22,5 +22,7 @@ for (const cls of only) { const acc = D.ACTS.map(() => ({ lvl: 0, glut: 0, done:
         const r = Math.max(0, z - 1); glut += Game.actZoneGlut(a); Game.actFight(a.id, r); }
       if (G.actDone(a)) { acc[i].done++; acc[i].lvl += S.lvl; acc[i].glut += glut; } } }
   console.log(cls.padEnd(11) + acc.map(x => (x.done ? `${Math.round(x.lvl / x.done)} / ${Math.round(x.glut / x.done)}` : '–').padStart(18)).join(''));
-  if (CHECK && acc.some(x => x.done < N)) { bad++; console.log('  ⚠ Akt nicht geschafft'); } }
+  if (CHECK && acc.some(x => x.done < N)) { bad++; console.log('  ⚠ Akt nicht geschafft'); }
+  // Einstieg: Akt I muss mit dem ersten Glut-Vorrat zu schaffen sein (sonst wartet ein neuer Spieler tagelang im ersten Akt)
+  if (CHECK && acc[0].done && acc[0].glut / acc[0].done > D.CFG.maxGlut) { bad++; console.log(`  ⚠ Akt I kostet ${Math.round(acc[0].glut / acc[0].done)} Glut (Rahmen ≤ ${D.CFG.maxGlut})`); } }
 if (CHECK && bad) process.exit(1);
