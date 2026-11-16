@@ -503,7 +503,7 @@ function beltCell(i) {
   if (!p) return `<div class="bcell empty"><span class="pslot"></span><span class="bn dim small">Leer</span></div>`;
   const tr = !p.rare && p.trig.length > 1;
   return `<div class="bcell ${p.rare ? 'rare' : ''} ${n ? '' : 'out'} ${tr ? 'tap' : ''}" ${tr ? `data-action="trig" data-i="${i}"` : ''}><span class="pslot">${potImg(p.id)}<i>${n}</i></span>
-    <span class="bn"><b>${p.name}</b><small>${p.rare ? 'ganzer Kampf' : TRIGGERS[b.trig]}</small></span></div>`;
+    <span class="bn"><b>${p.name}</b><small>${p.rare ? 'ganzer Kampf' : TRIGGERS[b.trig]}</small></span><button class="tiny bx" data-action="beltdel" data-i="${i}" title="Herausnehmen">×</button></div>`;
 }
 export function viewAlch(sel, back) {
   const p = potion(sel) || POTIONS[0], c = brewCost(p.id), cb = canBrew(p.id), inBelt = S.belt.some(b => b?.id === p.id);

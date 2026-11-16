@@ -936,3 +936,6 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .pware.sold { filter: grayscale(1) brightness(.5); }
 .titles { display: flex; flex-wrap: wrap; gap: 4px; } .titles button.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
 .pit.tight .riv .st { display: none; } .pit.tight .riv img { width: 42px; height: 42px; } .pit.tight .riv { grid-template-columns: 42px 1fr auto; }
+.bcell { position: relative; } .bcell .bx { margin-left: auto; flex: none; min-width: 26px; padding: 2px 6px; }
+.tight .bcell .bx, .desc .bcell .bx { position: absolute; top: 1px; right: 1px; min-width: 0; padding: 0 5px; line-height: 1.2; font-size: .7rem; }
+.bcell .bx { position: absolute; top: 50%; right: 4px; translate: 0 -50%; margin: 0; min-width: 26px; padding: 2px 6px; } .tight .bcell .bx, .desc .bcell .bx { top: 1px; right: 1px; translate: none; }
