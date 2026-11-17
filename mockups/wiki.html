@@ -52,6 +52,18 @@
   .wtag.hit { color: var(--gold-hi); }
   .wfoot { font-size: .78rem; color: var(--dim); font-style: italic; }
   h2 .h2r { font-size: .72rem; }
+
+  /* Aufwerten: Weg, Ort, Preis, Grenze */
+  .ugrp { font-family: 'Alegreya SC'; color: var(--gold); font-size: .8rem; margin: 6px 0 3px; letter-spacing: .04em; }
+  .ugrp:first-child { margin-top: 0; }
+  .urow { padding: 5px 8px; margin-bottom: 3px; border-image: url('../assets/ui/panel_s.webp') 18 fill / 9px stretch; }
+  .urow .u1 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .urow b { font-family: 'Alegreya SC'; font-weight: 500; color: var(--text); font-size: .88rem; }
+  .urow .uw { color: var(--dim); font-size: .72rem; white-space: nowrap; }
+  .urow .uc { font-size: .76rem; color: var(--gold-hi); margin: 1px 0 0; }
+  .urow .ul { font-size: .74rem; color: var(--blood-hi); margin: 0; }
+  .uwarn { font-size: .78rem; line-height: 1.3; margin: 0; }
+  .uwarn b { color: var(--blood-hi); font-weight: 500; }
 </style></head><body>
 
 <div class="wrap">
@@ -71,6 +83,7 @@
         <div class="wcat"><img src="../assets/forge/siegel.webp" alt=""><b>Gegner</b><small>8 / 12</small></div>
         <div class="wcat"><img src="../assets/forge/kronsplitter.webp" alt=""><b>Gegenstände</b><small>31 / 70</small></div>
         <div class="wcat"><img src="../assets/forge/haar.webp" alt=""><b>Grab-Sets</b><small>1 / 5</small></div>
+        <div class="wcat" style="grid-column: span 2; box-shadow: inset 0 0 0 1px var(--gold)"><img src="../assets/forge/r_blutstein.webp" alt=""><b>Aufwerten</b><small>Alle 10 Wege, ein Teil besser zu machen</small></div>
       </div>
     </section>
     <section class="panel grow"><p class="small dim" style="margin:0">Das Verzeichnis füllt sich, während du spielst. Was du noch nie gesehen hast, steht nur als Lücke darin.</p></section>
@@ -136,6 +149,55 @@
   </div>
   <p class="note2"><b>„Gebraucht für“ ist der eigentliche Gewinn.</b> Das Rezept sagt dir, was ein Trank braucht. Umgekehrt zu fragen – <i>was kann ich mit dem anfangen, was ich habe?</i> – geht heute nirgends. Die Liste ist aus den Rezepten rückwärts gelesen, also immer richtig.<br><br>
   <b>Alles auf dieser Seite ist abgeleitet.</b> Ort aus <code>HERB_LOC</code>, Chance aus <code>ALCH</code>, Rezepte aus <code>POTIONS</code>, Preis aus <code>herbPrice()</code>. Kein einziger Satz ist abgetippt – sonst lügt er beim nächsten Balance-Wurf.</p>
+</div>
+
+<!-- 4 — Aufwerten -->
+<div class="col2">
+  <p class="cap">4 · Aufwerten</p>
+  <div class="phone">
+    <div class="hudm"><span>Dino</span><small>Stufe 12 · 15 469 Gold</small></div>
+    <section class="panel" style="flex:1 1 0; display:flex; flex-direction:column; min-height:0">
+      <h2>Aufwerten <span class="h2r">10 Wege</span><button class="tiny">Zurück</button></h2>
+      <div class="wlist wscr">
+        <p class="ugrp">Bei den Händlern</p>
+        <div class="urow"><div class="u1"><b>Waffe schärfen</b><span class="uw">Halvar</span></div>
+          <p class="uc">Ghulzahn, später Blutstein und Höllenasche · 20–800 Gold</p>
+          <p class="ul">5 Stufen · gehört dem Platz, nicht der Waffe</p></div>
+        <div class="urow"><div class="u1"><b>Rüstung verstärken</b><span class="uw">Kaspar</span></div>
+          <p class="uc">Grableinen, später Siegel und Höllenasche · 20–800 Gold</p>
+          <p class="ul">5 Stufen · gehört dem Platz</p></div>
+
+        <p class="ugrp">In der Schmiede</p>
+        <div class="urow"><div class="u1"><b>Rune schmieden</b><span class="uw">Schmiede</span></div>
+          <p class="uc">2 Material · das Material bestimmt den Bonus</p>
+          <p class="ul">höchstens 2 Runen je Teil</p></div>
+        <div class="urow"><div class="u1"><b>Fusionieren</b><span class="uw">Schmiede</span></div>
+          <p class="uc">4 Schmiedeglut + Gold · Bonus wandert mit seiner Stufe</p>
+          <p class="ul">einmal je Teil, für immer</p></div>
+
+        <p class="ugrp">Umschmieden <span class="uw" style="color:var(--dim)">kostet Schmiedeglut des Teils</span></p>
+        <div class="urow"><div class="u1"><b>Versiegeln</b><span class="uw">2 Kultistensiegel · 4 Glut</span></div>
+          <p class="uc">Ein Bonus bleibt bei allem Folgenden unverändert.</p>
+          <p class="ul">einer je Teil</p></div>
+        <div class="urow"><div class="u1"><b>Neu würfeln</b><span class="uw">2 Höllenasche · 3 Glut</span></div>
+          <p class="uc">Alle unversiegelten Boni werden neu gewürfelt.</p></div>
+        <div class="urow"><div class="u1"><b>Werte würfeln</b><span class="uw">2 Knochenstaub · 2 Glut</span></div>
+          <p class="uc">Gleiche Boni, neue Werte und Stufen.</p></div>
+        <div class="urow"><div class="u1"><b>Hinzufügen</b><span class="uw">2 Blutstein · 5 Glut</span></div>
+          <p class="uc">Ein neuer Bonus, wenn Platz ist.</p></div>
+        <div class="urow"><div class="u1"><b>Tilgen</b><span class="uw">2 Grableinen · 2 Glut</span></div>
+          <p class="uc">Ein zufälliger unversiegelter Bonus verschwindet.</p></div>
+        <div class="urow"><div class="u1"><b>Erheben</b><span class="uw">1 Kronsplitter · 6 Glut</span></div>
+          <p class="uc">Gewürfelter Bonus, das Teil steigt magisch → selten.</p>
+          <p class="ul">einmal je Teil · nur aus dem Abgrund</p></div>
+      </div>
+    </section>
+    <section class="panel"><p class="uwarn"><b>Höllenasche wird von vier Dingen verlangt:</b> Schärfen Stufe 5, Verstärken Stufe 5, „Neu würfeln“ und der Aschenrune. Du hast 3.</p></section>
+    <div class="tabsm"><a>Held</a><a>Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></div>
+  </div>
+  <p class="note2"><b>Zehn Wege, verteilt auf drei Händler und zwei Reiter der Schmiede.</b> Nirgends im Spiel stehen sie zusammen – und jeder hat eine andere Grenze, von der man heute erst beim Scheitern erfährt.<br><br>
+  <b>Die rote Zeile ist die wichtigste.</b> Dass Fusionieren <i>einmal für immer</i> ist und nur zwei Runen in ein Teil passen, entscheidet darüber, wofür man ein gutes Stück aufhebt.<br><br>
+  <b>Der Kasten unten ist der eigentliche Grund für die Kachel.</b> Vier Systeme greifen nach derselben Höllenasche. Wer sie für Runen hortet, verhungert beim Schärfen – und merkt nie, warum. Das sieht man erst, wenn es nebeneinander steht.</p>
 </div>
 
 </div>
