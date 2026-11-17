@@ -248,8 +248,13 @@ export function makeMonster(lvl, diff = 1, m = pick(MONSTERS)) {
 export function power(A = stats()) {
   const L = A.lvl, en = 3 + L * 2.7, eArmor = L * 5, eDmg = ((2 + L * 1.7) + (5 + L * 3)) / 2 * (1 + en * 1.4 / CFG.mainDiv);
   const red = Math.min(0.6, eArmor / (eArmor + 20 + L * 8)) * (1 - Math.min(0.9, A.pen || 0));
-  const hit = 1 - Math.min(0.5, en / (en + A.dex * 3 + 40));
-  const myEvade = Math.min(0.5 + (A.evadeCap || 0), A.dex / (A.dex + en * 3 + 40) + (A.evade || 0));   // eigenes Ausweichen inkl. angehobener Grenze
+  // Gegner streuen im Geschick (gemessen: etwa 0,7× bis 1,3× um en). Mit einem einzigen Vertreter
+  // landete die Schätzung auf Stufe 20 genau auf der Ausweich-Grenze: ein Geschick-Bonus sah doppelt
+  // so gut aus wie im Kampf, weil der eine Vertreter über die Kante sprang. Über die Streuung
+  // gemittelt verschwindet die Kante – im Spiel wäscht die Monstervielfalt sie ebenso aus.
+  const spread = f => (f(en * 0.72) + f(en) + f(en * 1.28)) / 3;
+  const hit = 1 - spread(e => Math.min(0.5, e / (e + A.dex * 3 + 40)));
+  const myEvade = spread(e => Math.min(0.5 + (A.evadeCap || 0), A.dex / (A.dex + e * 3 + 40) + (A.evade || 0)));   // eigenes Ausweichen inkl. angehobener Grenze
   // Ausbluten: keine Krits mehr, dafür blutet jeder Treffer (unten in onHit eingerechnet)
   const crit = A.hemorrhage ? 0 : Math.min(0.6, CFG.critBase + A.lck / (A.lck + 100 + L * 5) + (A.crit || 0));
   const strike = (A.dmg[0] + A.dmg[1]) / 2 * (1 + A[A.main] / CFG.mainDiv);

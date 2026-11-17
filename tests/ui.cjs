@@ -112,7 +112,10 @@ let failures = 0;
     const fu = await p.evaluate(async () => { const L = await import('./js/loot.js'); const G = await import('./js/state.js');
       const mk = n => { for (let i = 0; i < 6000; i++) { const it = L.makeItem(22, { slot: 'weapon', kind: 'dagger' });
         if (it.rarity === 'magic' && !it.unique && Object.keys(it.mods).length === n) return it; } };
-      const a = mk(2), b = mk(2); if (!a || !b) return null;
+      // Das Paar braucht mindestens einen Bonus, den das andere nicht hat – sonst kann nichts wandern
+      const a = mk(2); let b = null;
+      for (let i = 0; i < 40 && !b; i++) { const c = mk(2); if (c && Object.keys(c.mods).some(k => !(k in a.mods))) b = c; }
+      if (!a || !b) return null;
       G.addToBag(a); G.addToBag(b); G.S.gold = 99999; G.S.lvl = 22; G.save();   // Beutel NICHT leeren – spätere Fälle hängen daran
       return { a: a.id, b: b.id, n: G.S.bag.length }; });
     if (!fu) { failures++; console.log(`FEHLER ${tag}: keine zwei magischen Dolche erzeugt`); }

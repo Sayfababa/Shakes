@@ -70,7 +70,7 @@ export const AFFIXES = [
   { stat: 'lifep', per: 1.9, pre: 'Lebendiger', suf: 'des Lebens', pct: 1, label: 'Leben', slots: ['chest', 'helm', 'belt'] },
   { stat: 'blockp', per: 1.6, pre: 'Wehrhafter', suf: 'des Walls', pct: 1, label: 'Blocken', slots: ['offhand'] },
   { stat: 'evadep', per: 1.5, pre: 'Schemenhafter', suf: 'des Nebels', pct: 1, label: 'Ausweichen', slots: ['boots', 'gloves'] },
-  { stat: 'thornsp', per: 3.5, pre: 'Dorniger', suf: 'der Dornen', pct: 1, label: 'Dornen', slots: ['chest', 'offhand'] },
+  { stat: 'thornsp', per: 4.3, pre: 'Dorniger', suf: 'der Dornen', pct: 1, label: 'Dornen', slots: ['chest', 'offhand'] },
 ];
 // Zauber-Boni (nur auf Waffen der Klasse, die den Zauber hat): "+N % Feuerball" stärkt Schaden/Heilung/Schild/Wirkung des Zaubers.
 // Werden am Dateiende aus SPELLS erzeugt (stat 'sk_<id>', cls).
@@ -562,7 +562,7 @@ export const TREE = {
         N('ak1', 'Schärfe', 3, { dmgPct: 0.065 }, 'Mehr Schaden.'),
         N('ak2', 'Offene Wunden', 1, { bleed: 0.25 }, 'Kritische Treffer lassen tiefe Wunden.', 'nt'),
         N('ak3', 'Ätzend', 3, { pen: 0.05 }, 'Zersetzt Rüstung.'),
-        N('ak4', 'Todesstoß', 1, { execute: 0.35, execHp: 0.12 }, 'Gegen Sterbende +35 % Schaden – und der Henker schlägt schon bei 42 % Leben zu.', 'nt'),
+        N('ak4', 'Todesstoß', 1, { execute: 0.6, execHp: 0.28 }, 'Gegen Sterbende +60 % Schaden – und der Henker schlägt schon bei 58 % Leben zu.', 'nt'),
         N('ak5', 'Schnitt', 2, { dmgPct: 0.05 }, 'Mehr Schaden.'),
         N('ak6', 'Ausbluten', 1, { hemorrhage: 1 }, 'Jeder Treffer lässt bluten – 85 % des Schadens plus dein Bluten-Bonus. Dafür triffst du nie mehr kritisch.', 'key'),
       ] },

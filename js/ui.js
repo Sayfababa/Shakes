@@ -575,6 +575,7 @@ function viewFuse(sel) {
   const msg = sel.msg ? sel.msg
     : !main ? `Je Teil nur ${CRAFT.fuse.max === 1 ? 'eine Fusion' : CRAFT.fuse.max + ' Fusionen'} – danach nie wieder.`
     : !food ? 'Futter unten antippen. Nur gleiche Grundform, gleiche Seltenheit, nur aus dem Beutel.'
+    : blocked && blocked.size >= Object.keys(baseMods(food)).length ? '<span class="down">Von diesem Futter kann nichts herüber</span> – das Hauptteil hat die Boni schon oder sie gehören nicht auf diesen Platz.'
     : err ? `<span class="down">${err}</span>`
     : `Es wandert <b>${STAT_NAME(sel.stat)}</b>${drop ? `, dafür weicht <span class="down">${STAT_NAME(drop)}</span>` : promote ? ` – das Teil steigt zu <b class="r-${promote}">${RARITIES.find(r => r.id === promote).name.toLowerCase()}</b> auf` : ''} · ${craftGold(main)} Gold, Glut ${CRAFT.fuse.glut}+`;
   return `<div class="col forge craft fusev">${forgeTabs(sel)}

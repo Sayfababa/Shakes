@@ -7,6 +7,7 @@ const D = await import('../js/data.js');
 const G = await import('../js/state.js');
 const { makeItem, affixScale } = await import('../js/loot.js');
 const wantPer = process.argv.includes('--per');
+const perCls = process.argv.includes('--cls');   // flache Werte je Klasse zeigen – der Mittelwert versteckt den Entwurf
 
 const LV = [5, 10, 20, 30, 40], SLOTS = ['helm', 'chest', 'gloves', 'boots', 'belt', 'amulet', 'ring1', 'ring2', 'offhand'];
 const DEF = new Set(['con', 'lifep', 'evadep', 'blockp', 'thornsp', 'armor']);   // Verteidigung: gegen Konstitution messen
@@ -24,7 +25,7 @@ function hero(cls, L) {
 }
 const gain = (slot, k, v) => { const S = G.S, it = S.equip[slot], old = it.mods; it.mods = { [k]: v }; const p = G.power(); it.mods = old; return p; };
 
-const rows = {};
+const rows = {}, clsRows = {};
 for (const cls of Object.keys(D.CLASSES)) for (const L of LV) {
   hero(cls, L); const p0 = G.power(), main = D.CLASSES[cls].main;
   const ref = { off: gain('ring1', main, tierVal({ per: 1 }, L)) - p0, def: gain('ring1', 'con', tierVal({ per: 1 }, L)) - p0 };
@@ -37,9 +38,23 @@ for (const cls of Object.keys(D.CLASSES)) for (const L of LV) {
     // Verhältnis bei per=1 (Bonuswert = Skala der Stufe) → nötiges per = 1 / Verhältnis
     const r1 = (g / unit) * affixScale(a, L) / r;
     (rows[key] ||= {})[L] = (rows[key][L] || []); rows[key][L].push(wantPer ? r1 : r1 * (a.per || 0));
+    ((clsRows[key] ||= {})[L] ||= []).push(r1 * (a.per || 0));
   }
 }
 const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
+// --cls: je Klasse eine Zeile. Nötig, weil „+Stärke" für eine Zauberin gewollt wenig bringt –
+// der Schnitt über sechs Klassen sieht dann aus wie ein Fehler, ist aber der Entwurf.
+if (perCls) {
+  const FLACH = ['str', 'dex', 'int', 'con', 'lck', 'armor', 'dmg', 'haste'];
+  for (const k of FLACH) {
+    console.log(`\n${k}`.padEnd(14) + LV.map(l => ('St.' + l).padStart(8)).join(''));
+    Object.keys(D.CLASSES).forEach((cls, i) => {
+      console.log(('  ' + D.CLASSES[cls].name + (D.CLASSES[cls].main === k ? ' *' : '')).padEnd(14)
+        + LV.map(L => (clsRows[k]?.[L]?.[i] ?? NaN).toFixed(2).padStart(8)).join(''));
+    });
+  }
+  process.exit(0);
+}
 console.log((wantPer ? 'Vorschlag per (gleich viel wie Hauptattribut/Konstitution)' : 'Bonus III ÷ Hauptattribut III (Verteidigung ÷ Konstitution)').padEnd(44) + LV.map(l => ('St.' + l).padStart(8)).join(''));
 for (const [k, byL] of Object.entries(rows)) {
   const a = D.AFFIXES.find(x => x.stat === k) || {};
