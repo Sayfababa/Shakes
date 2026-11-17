@@ -290,9 +290,13 @@ const actions = {
   alch: d => { alchBack = d.b === 'prep' ? (['pitprep', 'zoneprep'].includes(view) ? view : 'prep') : d.b === 'desc' ? d.b : 'traders'; view = 'alch'; render(); },
   potsel: d => { alchSel = d.id; render(); },
   brew: d => { if (G.brew(d.id)) { alchSel = d.id; render(); } },
-  beltin: d => { const n = G.beltSlots(); let i = G.S.belt.slice(0, n).findIndex(b => !b);
-    if (G.potion(d.id).rare) { const r = G.S.belt.slice(0, n).findIndex(b => b && G.potion(b.id).rare); if (r >= 0) i = r; }   // seltenen ersetzen
-    if (i < 0) return note('Der Gürtel ist voll. Nimm erst einen Trank heraus.'); if (!G.setBelt(i, d.id)) return note('Geht nicht.'); render(); },
+  beltin: d => { const n = G.beltSlots(), p = G.potion(d.id); let i = G.S.belt.slice(0, n).findIndex(b => !b), weg = null;
+    // Höchstens ein seltener Trank im Gürtel: ein zweiter ersetzt den ersten. Das muss dastehen – sonst sieht es
+    // aus, als überschriebe „In den Gürtel“ immer den ersten Platz, obwohl daneben einer frei ist.
+    if (p.rare) { const r = G.S.belt.slice(0, n).findIndex(b => b && G.potion(b.id).rare); if (r >= 0) { i = r; weg = G.potion(G.S.belt[r].id).name; } }
+    if (i < 0) return note('Der Gürtel ist voll. Nimm erst einen Trank heraus.'); if (!G.setBelt(i, d.id)) return note('Geht nicht.');
+    if (weg) note(`Nur ein seltener Trank passt in den Gürtel – ${p.name} ersetzt ${weg}.`);
+    render(); },
   beltout: d => { const i = G.S.belt.findIndex(b => b?.id === d.id); if (i >= 0) G.setBelt(i, null); render(); },
   beltdel: d => { G.setBelt(+d.i, null); render(); },
   trig: d => { const b = G.S.belt[+d.i], ts = b && G.potion(b.id).trig; if (!ts) return; G.setTrig(+d.i, ts[(ts.indexOf(b.trig) + 1) % ts.length]); render(); },

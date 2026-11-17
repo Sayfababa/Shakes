@@ -678,7 +678,7 @@ export function viewAlch(sel, back) {
       <p class="small dim hbuy">Antippen kauft · ${herbPrice()} Gold · heute noch ${herbLeft()}</p></section>
     <section class="panel potgrid">${POTIONS.map(x => `<span class="ptile ${x.rare ? 'rare' : ''} ${x.id === p.id ? 'on' : ''} ${canBrew(x.id).ok ? 'can' : ''}" data-action="potsel" data-id="${x.id}">${potImg(x.id)}${S.pots[x.id] ? `<i>${S.pots[x.id]}</i>` : ''}</span>`).join('')}</section>
     <section class="panel potdet"><h3 class="${p.rare ? 'r-rare' : ''}">${p.name} <span class="h2r">${p.rare ? 'selten · 1 Ladung' : `gewöhnlich · ${ALCH.charges} Ladungen`}</span></h3>
-      <p class="small">${p.text}${p.rare ? '' : ` Zündet: ${p.trig.map(t => TRIGGERS[t]).join(' oder ')}.`}</p>
+      <p class="small">${p.text}${p.rare ? ' Nur ein seltener Trank passt in den Gürtel.' : ` Zündet: ${p.trig.map(t => TRIGGERS[t]).join(' oder ')}.`}</p>
       <p class="small dim">Vorrat ${S.pots[p.id] || 0}/${potMax(p)} · Kosten: ${Object.entries(c.herbs).map(([k, n]) => `${HERBS[k].name} ×${n} <i class="${(S.herbs[k] || 0) < n ? 'down' : ''}">(${S.herbs[k] || 0})</i>`).join(', ')}, ${c.gold} Gold</p>
       <div class="btns"><button class="red" data-action="brew" data-id="${p.id}" ${cb.ok ? '' : 'disabled'}>${cb.ok ? 'Brauen' : cb.reason}</button>
         <button data-action="${inBelt ? 'beltout' : 'beltin'}" data-id="${p.id}" ${inBelt || S.pots[p.id] ? '' : 'disabled'}>${inBelt ? 'Aus dem Gürtel' : 'In den Gürtel'}</button></div></section>

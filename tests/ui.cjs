@@ -195,6 +195,14 @@ let failures = 0;
     await tap('[data-action=potsel][data-id=falkenauge]'); await tap('[data-action=brew]'); await tap('[data-action=beltin]'); await chk('alch');
     const belt = await p.evaluate(async () => (await import('./js/state.js')).S.belt.filter(Boolean).map(b => b.id).join());
     if (belt !== 'rotwurz,falkenauge') { failures++; console.log(`FEHLER ${tag}: Gürtel ${belt}`); }
+    // Zwei seltene Tränke passen nicht gleichzeitig in den Gürtel – der zweite ersetzt den ersten.
+    // Das muss dastehen, sonst sieht es aus, als überschriebe „In den Gürtel“ immer den ersten Platz.
+    await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.pots.schatten = 1; G.save(); });
+    await tap('[data-action=potsel][data-id=schatten]'); await tap('[data-action=beltin]');
+    const b2 = await p.evaluate(async () => ({ ids: (await import('./js/state.js')).S.belt.filter(Boolean).map(x => x.id).join(),
+      hinweis: document.querySelector('.toast.note')?.textContent || '' }));
+    if (b2.ids !== 'rotwurz,schatten') { failures++; console.log(`FEHLER ${tag}: zweiter seltener Trank – Gürtel ${b2.ids}`); }
+    if (!/seltener Trank/.test(b2.hinweis)) { failures++; console.log(`FEHLER ${tag}: kein Hinweis beim Ersetzen („${b2.hinweis}“)`); }
     await tap('[data-v=crypt]'); if (await tap('[data-action=crypt]')) { await chk('prep'); await tap('[data-action=prepPot]'); await tap('[data-action=bestBelt]'); await chk('prep2'); await tap('[data-action=trig]'); await tap('[data-action=cryptgo]'); await p.waitForTimeout(600); await chk('fightpot');
       if (!(await p.$('.pbelt img'))) { failures++; console.log(`FEHLER ${tag}: Tränke im Kampf nicht sichtbar`); } }
     else { failures++; console.log(`FEHLER ${tag}: Krypta nicht antippbar`); }
