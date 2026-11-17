@@ -71,7 +71,7 @@ let failures = 0;
     await p.reload(); await p.waitForTimeout(300); await tap('[data-v=crypt]'); await tap('.ctabs [data-v=arena]');
     if (!(await tap('[data-action=pitshop]'))) { failures++; console.log(`FEHLER ${tag}: Vargos Laden nicht erreichbar`); }
     await chk('pitshop');
-    if (!(await tap('[data-v=titles]'))) { failures++; console.log(`FEHLER ${tag}: Titel-Fenster nicht erreichbar`); }
+    if (!(await tap('[data-action=titles]'))) { failures++; console.log(`FEHLER ${tag}: Titel-Fenster nicht erreichbar`); }
     await chk('titles'); await tap('[data-action=pitshop]'); await tap('.ctabs [data-v=desc]'); await chk('desclocked');
     // Vargo steht jetzt auch bei den Händlern: vierter Reiter, sein Laden hinter einem Knopf,
     // und „Zurück“ muss von dort in den Händler-Tab führen, nicht in die Grube.
@@ -80,6 +80,10 @@ let failures = 0;
     await chk('pitshoptrader');
     await tap('.pitshopv [data-action=trader][data-t=vargo]');
     if (!(await p.$('.trader [data-action=pitshop]'))) { failures++; console.log(`FEHLER ${tag}: Zurück aus dem Laden landet nicht bei Vargo`); }
+    // Das Titel-Fenster hat dieselben zwei Türen wie der Laden (Händler und Grube).
+    if (!(await tap('.trader [data-action=titles]'))) { failures++; console.log(`FEHLER ${tag}: Titel von Vargos Händlerseite nicht erreichbar`); }
+    await tap('.titlev [data-action=trader][data-t=vargo]');
+    if (!(await p.$('.trader [data-action=pitshop]'))) { failures++; console.log(`FEHLER ${tag}: Zurück aus den Titeln landet nicht bei Vargo`); }
     await tap('[data-v=hero]'); await tap('[data-v=spells]'); if (await tap('[data-action=ways]')) await chk('ways'); else { failures++; console.log(`FEHLER ${tag}: Zauber-Wege nicht erreichbar`); }
     await tap('[data-v=traders]'); for (const t of ['halvar', 'ysolde', 'kaspar']) { await tap(`[data-t=${t}]`); await chk(t); }
     if (await tap('[data-action=turnin]')) await chk('turnin');

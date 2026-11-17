@@ -420,7 +420,7 @@ function viewVargo() {
     </section>
     ${questNote('vargo')}
     <section class="panel services"><button class="svc red" data-action="pitshop" data-b="traders"><b>Vargos Laden</b><small>Ehre ausgeben</small></button>
-      <button class="svc" data-action="go" data-v="titles"><b>Titel</b><small>${S.pit.titles.length} verdient</small></button>
+      <button class="svc" data-action="titles" data-b="vargo"><b>Titel</b><small>${S.pit.titles.length} verdient</small></button>
       <button class="svc" data-action="go" data-v="arena"><b>Zur Grube</b><small>Ehre verdienen</small></button></section>
     ${(() => { const Pw = pitWeek(), rule = PIT_RULES.find(r => r.id === Pw.ch?.rule), nx = PIT_RANKS[PIT_RANKS.indexOf(rk) + 1];
       return `<section class="panel grow pitstand"><div class="invhead"><span>Die Grube</span><small class="dim">noch ${PIT.weekBuys - Pw.buys} Käufe diese Woche</small></div>
@@ -709,16 +709,16 @@ export function viewPitShop(back) {
     ${PIT_SHOP.map(t => { const rk = PIT_RANKS.find(r => r.id === t.rank); return pitTierOpen(t.rank)
       ? `<div class="tier">${rk.name}</div><div class="shoprow pitrow">${shop[t.rank].map((w, k) => ware(w, t.rank, k)).join('')}</div>`
       : `<div class="tier off">${rk.name} · ab Platz ${rk.max}</div>`; }).join('')}</section>
-    <div class="btns"><button data-action="go" data-v="titles">Titel${Pw.titles.length ? ` <span class="h2r">${Pw.titles.length}</span>` : ''}</button><button data-action="${back === 'traders' ? 'trader" data-t="vargo' : 'go" data-v="arena'}">Zurück</button></div>
+    <div class="btns"><button data-action="titles" data-b="pitshop">Titel${Pw.titles.length ? ` <span class="h2r">${Pw.titles.length}</span>` : ''}</button><button data-action="${back === 'traders' ? 'trader" data-t="vargo' : 'go" data-v="arena'}">Zurück</button></div>
   </div>`;
 }
 // Titel aus den Rang-Aufstiegen – eigenes Fenster, damit Vargos Laden die ganze Höhe behält
-export function viewTitles() {
+export function viewTitles(back) {
   const T = S.pit.titles;
   return `<div class="col titlev"><section class="panel"><h2>Titel <span class="h2r">${T.length} verdient</span></h2>
     ${T.length ? `<div class="titles">${T.map(t => `<button class="tiny ${S.title === t ? 'on' : ''}" data-action="pittitle" data-t="${t}">${t}</button>`).join('')}${S.title ? '<button class="tiny" data-action="pittitle" data-t="">Ohne</button>' : ''}</div>` : ''}
     <p class="dim small">${T.length ? 'Der Titel steht neben deinem Namen in der Kopfzeile.' : 'Steig in der Grube in einen neuen Rang auf, um einen Titel zu tragen. Jeder neue Rang gibt einmalig einen Segen.'}</p></section>
-    <button data-action="go" data-v="pitshop">Zurück</button></div>`;
+    <button data-action="${back === 'vargo' ? 'trader" data-t="vargo' : 'go" data-v="pitshop'}">Zurück</button></div>`;
 }
 
 // Reiter im Krypta-Tab: Krypten | Abgrund | Grube (eigene Fenster)
