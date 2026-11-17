@@ -254,7 +254,7 @@ export function power(A = stats()) {
   const crit = A.hemorrhage ? 0 : Math.min(0.6, CFG.critBase + A.lck / (A.lck + 100 + L * 5) + (A.crit || 0));
   const strike = (A.dmg[0] + A.dmg[1]) / 2 * (1 + A[A.main] / CFG.mainDiv);
   // Bluten: sonst nur bei Krit, mit Ausbluten bei jedem Treffer (0,2 + eigener Bonus), dafür ohne Krit-Schaden
-  const bleedT = A.hemorrhage ? (0.4 + (A.bleed || 0)) * 2.2 : crit * (A.bleed || 0);
+  const bleedT = A.hemorrhage ? (CFG.hemoBleed + (A.bleed || 0)) * 2.2 : crit * (A.bleed || 0);
   const onHit = (1 + crit * ((A.critMult || 2) - 1) + bleedT) * (1 + (A.execute || 0) * (0.2 + (A.execHp || 0)) + (A.poison || 0));   // gilt für Hieb und Zauber
   let dpt = strike * (1 - red) * hit * onHit * (1 + (A.rage || 0) * 0.3);
   // Einzigartige, die eine Regel ändern (grobe Schätzung; die echten Werte misst tests/uniques.mjs)

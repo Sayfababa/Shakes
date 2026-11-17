@@ -125,7 +125,7 @@ export const UNIQUES = [
   { name: 'Knochenkrone', slot: 'helm', mods: { con: 2, int: 3 }, eff: { ward: 0.2 }, lore: 'Gewachsen aus dem Schädel ihres Trägers.' },
   { name: 'Sünde von Vhal', slot: 'chest', mods: { armor: 1, con: 2 }, eff: { thorns: 0.25 }, lore: 'Getragen vom Metzger, bis er fiel.' },
   { name: 'Blutglocke', slot: 'amulet', mods: { str: 2, haste: 2 }, eff: { rage: 0.25 }, lore: 'Sie schlägt mit deinem Herzen.' },
-  { name: 'Totengräbers Griff', slot: 'gloves', mods: { str: 3, dmg: 4 }, eff: { execute: 0.9, execHp: 0.12, dmgPct: 0.12 }, lore: 'Er hat nie jemanden lebendig begraben. Fast nie.' },
+  { name: 'Totengräbers Griff', slot: 'gloves', mods: { str: 2, dmg: 2, critd: 3 }, eff: { execute: 1.1, execHp: 0.14, dmgPct: 0.16 }, lore: 'Er hat nie jemanden lebendig begraben. Fast nie.' },
   { name: 'Pfad der Asche', slot: 'boots', mods: { dex: 2, haste: 2 }, eff: { evade: 0.08 }, lore: 'Keine Spur bleibt zurück.' },
   { name: 'Ring der Ertrunkenen', slot: 'ring', mods: { lck: 2, int: 3 }, eff: { poison: 0.1 }, lore: 'Aus Gerlindes Brunnen gefischt.' },
   { name: 'Siegel des Kronenlosen', slot: 'ring', mods: { str: 3, dex: 3 }, eff: { pen: 0.3, crit: 0.05 }, lore: 'Die Krone fehlt. Die Macht nicht.' },
@@ -137,7 +137,7 @@ export const UNIQUES = [
   { name: 'Lotusfläschchen', slot: 'offhand', mods: { int: 3, lck: 3 }, eff: { poison: 0.18, siphon: 0.05 }, lore: 'Ein Tropfen auf die Klinge. Mehr braucht die Geduld nicht.' },
   { name: 'Scherbenschneide', slot: 'weapon', kind: 'dagger', mods: { dex: 3, lck: 3 }, eff: { dmgPct: 0.45, hpPct: -0.25 }, lore: 'Scharf genug für zwei Leben. Deins zählt mit.' },
   { name: 'Wut der Witwe', slot: 'weapon', kind: 'axe', mods: { str: 2, dmg: 3 }, eff: { vengeance: 0.8 }, lore: 'Sie schlug zu, als nichts mehr zu verlieren war.' },
-  { name: 'Eiferklinge', slot: 'weapon', kind: 'sword', mods: { str: 3, dex: 3 }, eff: { zeal: 0.6 }, lore: 'Drei Schläge für den Herrn. Der dritte zählt doppelt.' },
+  { name: 'Eiferklinge', slot: 'weapon', kind: 'sword', mods: { str: 2, dex: 2, dmgp: 3 }, eff: { zeal: 0.95 }, lore: 'Drei Schläge für den Herrn. Der dritte zählt doppelt.' },
   { name: 'Splittermal', slot: 'weapon', kind: 'staff', mods: { int: 2, con: 3 }, eff: { shred: 0.18, crit: 0.05 }, lore: 'Jeder Treffer sucht den Riss.' },
   { name: 'Aderlass', slot: 'weapon', kind: 'wand', mods: { int: 3, lck: 3 }, eff: { siphon: 0.1, crit: 0.12, critDmg: 0.3 }, lore: 'Was sie nimmt, gibt sie dir.' },
   { name: 'Die Lange Stille', slot: 'weapon', kind: 'bow', mods: { dex: 2, dmg: 3 }, eff: { pen: 0.35, nohealSelf: 1 }, lore: 'Kein Pfeil kehrt zurück. Kein Atem auch.' },
@@ -146,7 +146,7 @@ export const UNIQUES = [
   { name: 'Eisernes Gelübde', slot: 'chest', mods: { armor: 2, con: 3 }, eff: { bulwark: 0.06, block: 0.1 }, lore: 'Jeder abgewehrte Schlag macht den Schild dicker.' },
   { name: 'Gerlindes Schwur', slot: 'amulet', mods: { con: 2, int: 3 }, eff: { siphon: 0.035, regen: 0.012 }, lore: 'Sie ertrank und kam doch zurück.' },
   { name: 'Herz der Glocke', slot: 'amulet', mods: { str: 3, haste: 3 }, eff: { toll: 1, rage: 0.12 }, lore: 'Jeder dritte Schlag ist ein Läuten.' },
-  { name: 'Fäuste des Eifers', slot: 'gloves', mods: { dex: 2, dmg: 3 }, eff: { zeal: 0.5 }, lore: 'Sie hören nie beim ersten Mal auf.' },
+  { name: 'Fäuste des Eifers', slot: 'gloves', mods: { dex: 1, dmg: 2, critc: 3 }, eff: { zeal: 0.9 }, lore: 'Sie hören nie beim ersten Mal auf.' },
   { name: 'Schritt des Verwehten', slot: 'boots', mods: { dex: 3, lck: 3 }, eff: { evade: 0.1, first: 1 }, lore: 'Er war schon fort, als der Schlag kam.' },
   { name: 'Ring der Vergeltung', slot: 'ring', mods: { str: 3, con: 3 }, eff: { vengeance: 0.5, thorns: 0.12 }, lore: 'Je tiefer die Wunde, desto schwerer die Hand.' },
   { name: 'Reif der Zuflucht', slot: 'ring', mods: { con: 3, lck: 3 }, eff: { secondWind: 0.25 }, lore: 'Einmal darfst du Luft holen.' },
@@ -466,6 +466,7 @@ export const CFG = {
   strArmor: 0.5,                      // Stärke gibt jeder Klasse Rüstung (je Punkt)
   spellK: 60,                         // Zauberkraft = 1 + Int / (Int + spellK)  (sättigt, max. ×2)
   monHp: 1.3, monDmg: 1.1,
+  hemoBleed: 0.85,                    // Ausbluten: Grundstärke des Blutens je Treffer (dafür nie kritisch)
   offWeapon: 0.7, offWeaponSpell: 0.6,  // fremde Waffe (nicht die der Klasse): Schaden ×0,7, Zauberkraft ×0,6                // Ausgleich für Zauber (Monster-Leben/-Schaden)
 };
 
@@ -563,7 +564,7 @@ export const TREE = {
         N('ak3', 'Ätzend', 3, { pen: 0.05 }, 'Zersetzt Rüstung.'),
         N('ak4', 'Todesstoß', 1, { execute: 0.35, execHp: 0.12 }, 'Gegen Sterbende +35 % Schaden – und der Henker schlägt schon bei 42 % Leben zu.', 'nt'),
         N('ak5', 'Schnitt', 2, { dmgPct: 0.05 }, 'Mehr Schaden.'),
-        N('ak6', 'Ausbluten', 1, { hemorrhage: 1 }, 'Jeder Treffer lässt bluten – 40 % des Schadens plus dein Bluten-Bonus. Dafür triffst du nie mehr kritisch.', 'key'),
+        N('ak6', 'Ausbluten', 1, { hemorrhage: 1 }, 'Jeder Treffer lässt bluten – 85 % des Schadens plus dein Bluten-Bonus. Dafür triffst du nie mehr kritisch.', 'key'),
       ] },
       { name: 'Schatten', nodes: [
         N('as1', 'Nebelschritt', 3, { evade: 0.045 }, 'Ausweichen.'),
