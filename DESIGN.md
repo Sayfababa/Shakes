@@ -115,3 +115,28 @@ Passt zum Stil nur, was **düster, kurz lesbar, ohne Verwaltungsaufwand** ist. B
 - Wegarten: Kombos (Schmelzen nach Frostnova, Detonation des Gifts, Kopfschuss nach Fangeisen), Zeitpunkt (sofort, doppelt laden bei wenig Leben), Verwandlung/Preis (schneller aber schwächer, stärker aber langsamer), Zustände (Brand, Bluten, Gift, Verwundbar, Geschwächt), Boss-Antworten (Reinigen vs. Aldemars Gift, Bannen vs. Gerlindes Heilung, Unbeugsam vs. Glöckner).
 - Balance (tests/ways.mjs, 3000 Kämpfe je Weg, Stufe 14 und 24, alle Klassen): fast alle Wege +4…+12 Prozentpunkte Siegchance bei 50 %-Gegnern; Boss-Antworten gegen ihren Boss +25…+48. Bots/Personas: Tempo unverändert (Finale Tag 16–17), Niederlagen nicht höher.
 - Offen: Jägerin und Zauberin haben keine eigene Boss-Antwort (Ausgleich über stärkere Kontrolle: Betäubung/Schwächen).
+
+## Die vier Abgrund-Materialien (Vorschlag, zurueckgestellt – echtes Endspiel)
+**Stand:** Bilder liegen in `assets/forge/` (glutstein, runenfassung, seelenstein, verderbtes_blut), Code gibt es keinen. Der Besitzer hat den Vorschlag gelesen und **bewusst zurueckgestellt**: „Das ist schon wirklich Endgame, Endgame – wir sollten vorher noch ein paar Sachen aendern, die problematischer sind." Also **nicht anfangen, bevor er es wieder aufruft.**
+
+**Der Gedanke: jedes der vier bricht genau eine harte Grenze des Umschmiedens.** Jede Grenze ist gut begruendet und jede ist eine Sackgasse, an der ein Spieler irgendwann steht.
+
+| Material | Bild | Grenze heute | Was es taete |
+|---|---|---|---|
+| **Glutstein** | Stein mit gluehenden Rissen | Glut leer → `it.crafted`, nie wieder bearbeitbar | Facht die Glut wieder an |
+| **Runenfassung** | Metallfassung mit Stein | `FORGE.maxRunes: 2` | Ein dritter Runenplatz |
+| **Seelenstein** | Stein mit eingedruecktem Gesicht | Sonderboni (`it.fx`) fallen nur, machen kann man sie nie | Die Seele des Besiegten als Sonderbonus |
+| **Verderbtes Blut** | Flaeschchen mit Rest | `CRAFT.raise.from` nur magisch → selten | Selten → legendaer, mit echtem Risiko |
+
+Die Bilder sind so gemalt – ein Gesicht im Stein *ist* eine gefangene Seele, eine Fassung *ist* ein leerer Platz.
+
+**Alle vier kommen aus dem Abgrund**, wie der Kronsplitter. Das ist der Kern: das einzige Material, das eine Regel bricht, kommt aus dem einzigen Ort, wo man seine Beute verlieren kann. Damit bekommt der Abgrund erstmals eine eigene Antwort auf „warum soll ich da runter" – nicht mehr Gold, sondern Dinge, die es oben nicht gibt. Sie liegen im Sack; wer unten stirbt, verliert sie. Grobe Verteilung: Glutstein aus Schatzkammern, Runenfassung von Elite-Raeumen, Seelenstein vom Abgrund-Boss, Verderbtes Blut steigend mit der Unruhe.
+
+**Die Sorgen, in der Reihenfolge ihres Gewichts:**
+- **Der Glutstein ist der gefaehrlichste.** Die Glut ist *die* Bremse gegen „ich wuerfle dieses Teil perfekt". Unbegrenzt nachlegen heisst: jeder baut in Ruhe das ideale Stueck und Beute wird bedeutungslos – derselbe Grund, aus dem `CRAFT.fuse.max` auf 1 steht. Vorschlag: **einer je Teil, fuer immer** (`it.glutAgain`), und nur bis zur Haelfte. Der Moment „Vollendet von <Name>" bleibt dann ein Moment.
+- **Der Seelenstein darf nicht frei waehlbar sein.** Freie Wahl des Sonderbonus heisst: jeder nimmt denselben besten, die Entscheidung ist weg (GameGene-Problem „[one-dominant-strategy](https://gamegene.app/joseki/interesting-decisions)"). Deshalb **traegt der Stein die Seele des Bosses, der ihn fallen liess** – wer „des Henkers" will, muss den Richtigen toeten. Nebenbei werden verschiedene Gruefte dadurch erstmals unterschiedlich wertvoll.
+- **Verderbtes Blut braucht zwingend die Zwei-Tipp-Sicherung** (`ask()`). Wir haben die Vorgeschichte: „Amulett neu weihen" ist rausgeflogen, nachdem *ein* Tipp dem Besitzer ein Amulett gekostet hat, und Dienste feuern bis heute beim ersten Antippen. Ohne Risiko waere es nur „gratis legendaer“ – ein Mittel ohne Gegenwert wird zum Patentrezept ([GameGene: Risk and return](https://gamegene.app/joseki/risk-and-return), Hamaguchi zu den Beschwoerungen in FF VII Remake). Entwurf, **sichtbar bevor man tippt**: ~45 % steigt auf und bekommt einen gewuerfelten Bonus, ~35 % nichts passiert und das Teil ist verdorben (kein Umschmieden mehr), ~20 % ein Bonus zerfaellt. **Wie hart, ist die Entscheidung des Besitzers – Geschmacksfrage, keine Messfrage.**
+- **Die Runenfassung ist die langweiligste und deshalb die beste zum Anfangen.** Ein dritter Runenplatz ist eine gerade Linie, mit `power()` und der Methodik aus `tests/tree.mjs` sauber messbar, und kann nichts kaputtmachen.
+
+**Vorgeschlagene Reihenfolge, wenn es drankommt:** Runenfassung (klein, messbar, baut das Geruest Abgrund-Material → Schmiede-Eingriff) → Glutstein (eine Zeile Logik, aber die Zahl muss gemessen werden) → Seelenstein (meiste Arbeit: Verknuepfung Boss → Seele) → Verderbtes Blut (zuletzt, verdient eine Mockup-Runde).
+
