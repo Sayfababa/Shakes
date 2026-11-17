@@ -879,7 +879,14 @@ export const EXP_TALES = {
 // Freigeschaltet je Gruft, sobald ihr Boss einmal gefallen ist. Leben und Trank-Ladungen laufen von Raum zu Raum mit.
 // Beute landet im Beutesack und zählt erst an einem Ausgang. Wer fällt, verliert den Sack – nie Ausrüstung, Stufe oder EP.
 export const DESCENT = {
-  daily: 3,                         // Abstiege je Tag (später: Grabsiegel)
+  // Grabsiegel statt Tageszähler: ein Abstieg kostet ein Siegel. Drei Abstiege am Tag verfielen,
+  // wenn man einen Tag nicht hineinsah; Siegel sammeln sich bis `sealMax`. Der Deckel ist die
+  // Bremse, nicht der Preis – ohne ihn spart man zwei Wochen und macht dreissig Abstiege am
+  // Stueck, womit Unruhe-Kurve und Beutesack-Druck entwertet waeren.
+  sealDay: 2, sealMax: 6,           // taegliche Gutschrift (auch rueckwirkend) und Vorrat
+  sealCrypt: 0.25,                  // Krypta-Boss
+  sealRank: 1,                      // neuer Rang in der Grube
+  sealBoss: 1,                      // Abgrund-Boss erstattet sein eigenes Siegel
   widths: [2, 3, 3, 3, 2],          // Räume je Reihe (Eingang unten, Boss oben)
   rope: 2, well: 3,                 // Reihe (0-basiert) mit Seil / Brunnen
   unrestLoot: 0.4,                  // Beute × (1 + Unruhe × 0,4) → bis ×3

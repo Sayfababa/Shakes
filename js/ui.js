@@ -760,16 +760,17 @@ function viewDescStart(st) {
     <p class="small dim">Rausholen oder verlieren: Leben läuft von Raum zu Raum mit, die Beute zählt erst draußen.</p></section></div>`;
   const c = list.find(x => x.id === st.c) || list[list.length - 1], i = list.indexOf(c), left = descLeft();
   return `<div class="col desc">${cryptTabs('desc')}
-    <section class="panel dhead">${monsterArt(c.boss.glyph)}<div><h2>Der Abgrund <span class="h2r">heute noch ${left}</span></h2>
+    <section class="panel dhead">${monsterArt(c.boss.glyph)}<div><h2>Der Abgrund <span class="h2r seals"><img class="matimg" src="assets/forge/grabsiegel.webp" alt="">${left}/${DESCENT.sealMax}</span></h2>
       <div class="xhead"><button class="tiny" data-action="descc" data-d="-1" ${i <= 0 ? 'disabled' : ''}>‹</button><b>${c.name}</b><button class="tiny" data-action="descc" data-d="1" ${i >= list.length - 1 ? 'disabled' : ''}>›</button></div>
       <p class="small dim">Gegner Stufe ${descLvl(c)} · oben wartet ${c.boss.name.split(',')[0]}: <i>${c.boss.mechText}</i></p></div></section>
     <section class="panel drules"><h2>Rausholen oder verlieren</h2>
       <p class="small">Jeder Raum ein Kampf. <b>Leben und Trank-Ladungen füllen sich unten nicht auf.</b></p>
       <p class="small">Mit jedem Raum steigt die <b>Unruhe</b>: Gegner stärker, Beute bis ×${descMult(5)}.</p>
       <p class="small">Beute liegt im <b>Beutesack</b>. Dir gehört sie erst an einem <span class="up">Ausgang</span>: Seil, Brunnen, Stiege oder hinter dem Boss.</p>
-      <p class="small down">Fällst du, bleibt der Sack unten. Ausrüstung, Stufe und EP behältst du.</p>${descBusy() ? `<p class="small hot">${descBusy()}</p>` : ''}</section>
+      <p class="small down">Fällst du, bleibt der Sack unten. Ausrüstung, Stufe und EP behältst du.</p>
+      <p class="small">Kostet ein <b>Grabsiegel</b>: ${DESCENT.sealDay} am Tag, bis ${DESCENT.sealMax}. Auch von Krypta-Bossen und Rängen – <span class="up">der Boss erstattet seines</span>.</p>${descBusy() ? `<p class="small hot">${descBusy()}</p>` : ''}</section>
     <section class="panel"><h2>Dein Gürtel <span class="gbtns"><button class="tiny" data-action="alch" data-b="desc">Tränke</button></span></h2><div class="beltrow">${[0, 1, 2].slice(0, beltSlots()).map(beltCell).join('')}</div></section>
-    <div class="btns"><button data-action="go" data-v="crypt">Zurück</button><button class="red" data-action="descgo" data-c="${c.id}" ${descCanStart(c) ? '' : 'disabled'}>${left ? 'Hinabsteigen' : 'Morgen wieder'}</button></div>
+    <div class="btns"><button data-action="go" data-v="crypt">Zurück</button><button class="red" data-action="descgo" data-c="${c.id}" ${descCanStart(c) ? '' : 'disabled'}>${left ? 'Hinabsteigen' : 'Kein Grabsiegel'}</button></div>
   </div>`;
 }
 function sackRow(s) {

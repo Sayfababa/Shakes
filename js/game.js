@@ -110,6 +110,7 @@ export function cryptFight(id, m0 = null) {
   // Das Herz bringt die Feldzutat mit – sonst farmt man die Krypta und kann die Tränke,
   // die genau dort wirken, nie brauen.
   if (dropHerb('herz', ALCH.heartChance, ALCH.bossHearts, rew)) dropHerb(herbRoll(HERB_LOC[G.cryptAct(c)?.loc]), ALCH.bossHerb, 1, rew);
+  if (chance(DESCENT.sealCrypt)) { addSeal(1); rew.seal = 1; }      // die Krypta speist den Abgrund
   const k = CRYPT.rarAt.filter(x => t >= x).length - 1;   // höhere Stufe → mehr und bessere Beute
   rew.items = []; for (let i = 0; i < CRYPT.items[k]; i++) { const it = makeItem(m.lvl, { luck: G.stats().lck + t * 15, cls: CLASSES[S.cls], minRarity: Math.min(4, 2 + k + (i === 0 && t >= CRYPT.rarAt[2] ? 1 : 0)) }); rew.items.push(it); if (!G.addToBag(it)) { S.gold += it.value; it.soldFull = true; } }
   const sp = setDrop(c, t); if (sp) { rew.items.push(sp); rew.set = sp; if (!G.addToBag(sp)) { S.gold += sp.value; sp.soldFull = true; } }
@@ -444,7 +445,19 @@ export function claimExped(pickChoice = ev => ev.ch.findIndex(c => !expChoiceOk(
 // Eingang unten, Boss oben. Reihen wie bei der Expedition (gleiche Verbindungsregel), aber Raum für Raum gewählt.
 export const descOpen = c => !!c && G.S.trophies.some(t => t.key.split(':')[0] === c.id);
 export const descCrypts = () => CRYPTS.filter(descOpen);
-export const descLeft = () => { const d = G.S.descDay; return Math.max(0, DESCENT.daily - (d?.d === G.today() ? d.n : 0)); };
+// Grabsiegel: die taegliche Gutschrift wird beim Hinsehen nachgetragen – auch fuer verpasste
+// Tage, bis zum Deckel. Deshalb verfaellt nichts mehr, wenn man einen Tag nicht hineinsieht.
+export function descLeft() {
+  const S = G.S, d = G.today();
+  if (S.seals?.day !== d) {
+    // Ein unlesbares oder zukuenftiges Datum im Stand darf nie NaN Siegel ergeben.
+    const diff = Math.round((new Date(d) - new Date(S.seals?.day)) / 864e5);
+    const miss = Number.isFinite(diff) && diff > 0 ? Math.min(diff, DESCENT.sealMax) : 1;
+    S.seals = { day: d, n: Math.min(DESCENT.sealMax, (S.seals?.n || 0) + miss * DESCENT.sealDay) };
+  }
+  return S.seals.n;
+}
+export function addSeal(n = 1) { descLeft(); G.S.seals.n = Math.min(DESCENT.sealMax, G.S.seals.n + n); }
 export const descBusy = () => { const S = G.S; return S.exp ? 'Dein Held ist auf Expedition.' : S.wander ? 'Dein Held zieht umher.' : S.active ? 'Erst den Streifzug beenden.' : S.haul ? 'Erst die Beute des Streifzugs sichern.' : ''; };
 export const descCanStart = c => { const S = G.S; return descOpen(c) && !S.desc && !descBusy() && descLeft() > 0; };
 export const descLvl = c => Math.max(c.lvl + 1, G.S.lvl + DESCENT.lvlAdd);
@@ -470,7 +483,7 @@ export function descMap(c) {
 }
 export function descStart(cid) {
   const S = G.S, c = CRYPTS.find(x => x.id === cid); if (!descCanStart(c)) return null;
-  if (S.descDay?.d !== G.today()) S.descDay = { d: G.today(), n: 0 }; S.descDay.n++;
+  descLeft(); S.seals.n--;
   S.desc = { c: c.id, lvl: descLvl(c), rows: descMap(c), path: [], unrest: 0, hpf: 1, rooms: 0, xp: 0, sack: { gold: 0, items: [], mats: {}, herbs: {} } };
   G.journal(`Abstieg in ${c.name}.`); return S.desc;
 }
@@ -539,7 +552,9 @@ function descFight(nd, u, exit = null) {
   const gb = 1 + rew.grade.bonus;   // Kampfbewertung: mehr Gold wie überall
   rew.sack = descLoot(m.lvl, u, boss ? { gold: 4 * gb, item: 2, minR: DESCENT.bossMinR, heart: 1, mat: m.mat, kron: DESCENT.kronBoss } : elite ? { gold: 1.8 * gb, item: 1, minR: DESCENT.eliteMinR, heart: DESCENT.eliteHeart, mat: m.mat, kron: DESCENT.kronElite }
     : { gold: gb, item: DESCENT.item, heart: DESCENT.heart, mat: m.mat });
-  if (boss || exit) return { A, B: m, r, win, rew, desc: { out: descExtract(boss ? c.boss.name : exit) } };
+  // Wer ganz durchkommt, bekommt sein Siegel zurueck – der Haken, der nach unten zieht.
+  if (boss) addSeal(DESCENT.sealBoss);
+  if (boss || exit) return { A, B: m, r, win, rew, desc: { out: descExtract(boss ? c.boss.name : exit), seal: boss ? DESCENT.sealBoss : 0 } };
   return { A, B: m, r, win, rew, desc: { hpf: D.hpf } };
 }
 // Einen Raum betreten. Ergebnis: { kind: 'fight', res } | { kind: 'room', t, text, got? } | { kind: 'out', out }
@@ -565,7 +580,7 @@ export function descEnter(j) {
 // Rückweg über die Stiege: ein Kampf bei höherer Unruhe, dann draußen. Vor dem ersten Raum: umkehren ohne Kampf (zählt nicht).
 export function descStair() {
   const S = G.S, D = S.desc; if (!D) return null;
-  if (!D.rooms) { S.desc = null; if (S.descDay?.n) S.descDay.n--; return { kind: 'back' }; }
+  if (!D.rooms) { S.desc = null; addSeal(1); return { kind: 'back' }; }   // Umkehren vor Raum 1 kostet nichts
   return { kind: 'fight', res: descFight({ t: 'fight', mob: pick(descCrypt().floors) }, D.unrest + DESCENT.stairUnrest, 'Stiege') };
 }
 
@@ -639,7 +654,8 @@ export function pitFight(id, ch = false) {
     G.journal(`${B0.name} in der Grube besiegt. Platz ${j + 1}.`);
     if (j + 1 < P.best) { P.best = j + 1;
       for (const rk of PIT_RANKS) if (rk.title && P.best <= rk.max && !P.ranks.includes(rk.id)) { P.ranks.push(rk.id); P.titles.push(rk.title);
-        S.trophies.push({ key: 'pit:' + rk.id, name: rk.name, diff: 'Grube', eff: rk.perk }); rew.rankUp = rk; } } }
+        S.trophies.push({ key: 'pit:' + rk.id, name: rk.name, diff: 'Grube', eff: rk.perk }); rew.rankUp = rk;
+        addSeal(DESCENT.sealRank); rew.seal = DESCENT.sealRank; } } }
   S.honor += honor; rew.honor = honor; P.ts = now() + PIT.cdWin * 1000;
   return { A, B, r, win, rew, pit: true };
 }

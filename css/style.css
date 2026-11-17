@@ -981,6 +981,9 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 /* Ortsbild im Kopf der Akt-Ansicht. Das Bild liegt 9 px INNERHALB des Panels, damit der
    Eisenrahmen stehen bleibt; darueber ein Schleier von links, auf dem Titel und Satz liegen.
    Sichtbar ist ein schmales Band aus der Bildmitte (center 45 %) – alles Wichtige sitzt dort. */
+/* Grabsiegel-Vorrat im Kopf des Abgrunds: Symbol und Zahl auf einer Linie. */
+.desc .seals { display: inline-flex; align-items: center; gap: 3px; }
+.desc .seals .matimg { width: 16px; height: 16px; object-fit: contain; }
 .actv .ahead.pic { position: relative; z-index: 0; }
 /* Das Bild steht als eigenes Element da, nicht als CSS-Variable: eine url() in einer
    Custom Property wird gegen das STYLESHEET aufgeloest (css/assets/... -> 404), ein

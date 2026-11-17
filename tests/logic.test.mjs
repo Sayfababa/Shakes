@@ -479,7 +479,9 @@ test('Krit-Schaden, Prozent-Schaden und Zauber-Bonus wirken in Werten und Kampfk
 test('Krit-Schaden steckt im Kampf: höherer Multiplikator → mehr Schaden pro Krit', () => {
   const S = fresh('assassin'); S.lvl = 15; S.attrs.dex += 50;
   const mon = G.makeMonster(15, 1); mon.hp = 1e7; mon.cur = 1e7; mon.dex = 0; mon.armor = 0;
-  const avgCrit = mult => { const a = { ...G.stats(), crit: 0.6, critMult: mult, spells: [] }; let sum = 0, n = 0;
+  // Der Held bekommt dasselbe Riesenleben wie der Gegner: sonst entscheidet der Zufall, nach wie
+  // vielen Zuegen er faellt, und damit die Zahl der Krit-Proben – der Test flockte selten.
+  const avgCrit = mult => { const a = { ...G.stats(), hp: 1e7, cur: 1e7, crit: 0.6, critMult: mult, spells: [] }; let sum = 0, n = 0;
     for (let i = 0; i < 40; i++) for (const l of fight(a, { ...mon }).log) if (l.who === 'a' && l.crit && l.dmg) { sum += l.dmg; n++; } return sum / n; };
   assert.ok(avgCrit(3) > avgCrit(2) * 1.3);
 });
@@ -683,10 +685,14 @@ test('Abstieg: Karte – Reihen, Ausgänge, jeder Raum erreichbar, Boss oben', (
 test('Abstieg: nur nach dem Boss der Gruft, je Tag begrenzt, nicht neben Expedition/Streifzug; Umkehren vor Raum 1 zählt nicht', () => {
   const S = fresh(); assert.equal(Game.descStart('c2'), null, 'ohne Bosssieg gesperrt');
   descHero(); assert.ok(Game.descStart('c2')); assert.equal(Game.descStart('c2'), null, 'nicht zweimal');
-  assert.equal(Game.descStair().kind, 'back'); assert.equal(G.S.desc, null); assert.equal(Game.descLeft(), D.DESCENT.daily, 'Umkehren kostet keinen Abstieg');
-  for (let i = 0; i < D.DESCENT.daily; i++) { assert.ok(Game.descStart('c2')); G.S.desc = null; }
-  assert.equal(Game.descLeft(), 0); assert.equal(Game.descStart('c2'), null, 'Tageslimit');
-  G.S.descDay.d = 'gestern'; assert.ok(Game.descStart('c2'), 'neuer Tag'); G.S.desc = null;
+  assert.equal(Game.descStair().kind, 'back'); assert.equal(G.S.desc, null); assert.equal(Game.descLeft(), D.DESCENT.sealMax, 'Umkehren kostet kein Siegel');
+  for (let i = 0; i < D.DESCENT.sealMax; i++) { assert.ok(Game.descStart('c2')); G.S.desc = null; }
+  assert.equal(Game.descLeft(), 0); assert.equal(Game.descStart('c2'), null, 'ohne Siegel kein Abstieg');
+  // Ein verpasster Tag wird nachgetragen, ein unlesbares Datum gibt genau eine Gutschrift.
+  G.S.seals = { day: new Date(Date.now() - 3 * 864e5).toISOString().slice(0, 10), n: 0 };
+  assert.equal(Game.descLeft(), 3 * D.DESCENT.sealDay, 'drei verpasste Tage werden nachgetragen');
+  G.S.seals = { day: 'kaputt', n: 0 }; assert.equal(Game.descLeft(), D.DESCENT.sealDay, 'unlesbares Datum = eine Gutschrift');
+  assert.ok(Game.descStart('c2'), 'neuer Tag'); G.S.desc = null;
   G.S.active = { loc: 'friedhof', end: Date.now() + 1e6 }; assert.equal(Game.descStart('c2'), null, 'nicht während eines Streifzugs'); G.S.active = null;
   assert.ok(Game.descStart('c2')); assert.equal(Game.startExped('friedhof', 1, [0]), false, 'keine Expedition während des Abstiegs');
   G.S.crypt.cd = 0; assert.equal(Game.cryptFight('c1'), null, 'keine Krypta während des Abstiegs'); assert.equal(G.startTrip('friedhof'), false, 'kein Streifzug');
@@ -966,8 +972,14 @@ test('Fusionieren: der Bonus wandert, das Futter zerfällt, einmal je Teil', asy
 
   // --- Dazu: freier Platz, der Bonus kommt einfach hinzu, die Stufe wandert mit
   frisch();
-  let a = mk(1), b = mk(2); G.S.bag.push(a, b);
-  let k = Object.keys(G.baseMods(b)).find(x => !(x in G.baseMods(a)) && D.AFFIXES.some(y => y.stat === x && (!y.slots || y.slots.includes('weapon'))));
+  // Welcher Bonus wandern darf, entscheidet `fuseCheck` – die Regel hier nachzubauen ging schief
+  // (der Test fiel etwa jedes 25. Mal mit „Bonus im Futter antippen" durch). Also fragen wir das
+  // System und wuerfeln neue Teile, bis ein Paar wirklich zueinander passt.
+  const paar = (nA, nB) => { for (let t = 0; t < 40; t++) {
+    G.S.bag.length = 0; const x = mk(nA), y = mk(nB); G.S.bag.push(x, y);
+    const kk = Object.keys(G.baseMods(y)).find(z => !G.fuseCheck(x, y, z, null));
+    if (kk) return [x, y, kk]; } return []; };
+  let [a, b, k] = paar(1, 2);
   assert.ok(k, 'kein übertragbarer Bonus gefunden');
   const stufeVorher = b.tiers[k], bagVorher = G.S.bag.length;
   let r = G.fuse(a.id, b.id, k, null);
@@ -984,8 +996,7 @@ test('Fusionieren: der Bonus wandert, das Futter zerfällt, einmal je Teil', asy
   // --- Aufstieg: volles magisches Teil bekommt einen dritten Bonus und wird selten,
   //     der Grundschaden bleibt aber magisch (sonst heimlicher Machtsprung)
   frisch();
-  a = mk(2); b = mk(2); G.S.bag.push(a, b);
-  k = Object.keys(G.baseMods(b)).find(x => !(x in G.baseMods(a)) && D.AFFIXES.some(y => y.stat === x && (!y.slots || y.slots.includes('weapon'))));
+  [a, b, k] = paar(2, 2); assert.ok(k, 'kein übertragbarer Bonus gefunden');
   const dmgVorher = JSON.stringify(a.dmg);
   assert.equal(G.fusePromote(a, null), 'rare', 'volles magisches Teil müsste aufsteigen können');
   r = G.fuse(a.id, b.id, k, null);
@@ -996,8 +1007,7 @@ test('Fusionieren: der Bonus wandert, das Futter zerfällt, einmal je Teil', asy
 
   // --- Ersetzen statt Aufstieg: der gewählte Bonus weicht
   frisch();
-  a = mk(2); b = mk(2); G.S.bag.push(a, b);
-  k = Object.keys(G.baseMods(b)).find(x => !(x in G.baseMods(a)) && D.AFFIXES.some(y => y.stat === x && (!y.slots || y.slots.includes('weapon'))));
+  [a, b, k] = paar(2, 2); assert.ok(k, 'kein übertragbarer Bonus gefunden');
   const weg = Object.keys(G.baseMods(a))[0];
   r = G.fuse(a.id, b.id, k, weg);
   assert.ok(!r.err, r.err);

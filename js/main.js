@@ -94,7 +94,7 @@ function descRewText(res) {
   const w = res.rew, g = w.sack, L = [`+${w.xp} EP${w.up ? ` · <b class="hot">Stufe ${G.S.lvl}!</b>` : ''}`];
   const bits = [`${g.gold} Gold`, ...g.mats.map(([k, n]) => `${MATS[k]} ×${n}`), ...g.herbs.map(([k, n]) => `${HERBS[k].name} ×${n}`), ...g.items.map(it => `<span class="r-${it.rarity}">${it.name}</span>${betterTxt(it)}`)];
   L.push(`Im Sack: ${bits.join(' · ')}`);
-  if (res.desc.out) L.push(`<b class="gold">Entkommen! Alles gesichert.</b>`);
+  if (res.desc.out) L.push(`<b class="gold">Entkommen! Alles gesichert.</b>${res.desc.seal ? ' Das Grabsiegel bekommst du zurück.' : ''}`);
   else L.push(`<i class="dim">Leben ${Math.round(res.desc.hpf * 100)} % – es füllt sich unten nicht auf.</i>`);
   return L.join('<br>');
 }
@@ -142,6 +142,7 @@ function rewText(w) {
   if (w.tier) L.push(`<b class="gold">Krypta-Stufe ${w.tier} bezwungen.</b> Die nächste ist schwerer – und reicher.`);
   if (w.rankUp) L.push(`<b class="gold">Neuer Rang: ${w.rankUp.name}</b> · Titel „${w.rankUp.title}“ + Segen`);
   if (w.omen) L.push('<b class="gold">Das Omen hat sich erfüllt.</b>');
+  if (w.seal) L.push(`<b class="gold">Grabsiegel gefunden.</b> Ein Abstieg mehr.`);
   if (w.set) { const st = SETS.find(x => x.id === w.set.set), own = G.setOwned(w.set.set).size;
     L.push(`<b class="r-set">${st.name}: ${own}/${SET.parts} Teile</b>${own >= SET.parts ? ' – vollständig!' : ''}`); }
   if (w.trophy) L.push(`<b class="r-legendary">Trophäe: ${w.trophy.name}</b>`);

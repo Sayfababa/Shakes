@@ -29,7 +29,7 @@ function check(act) {
     if (d.path.length > d.rows.length || d.path.some((j, i) => !d.rows[i][j] || (i && !Game.expLinked(d.rows[i - 1][d.path[i - 1]], d.rows[i][j])))) fail('Abstieg: Weg ungültig', act);
     if (d.path.some((j, i) => D.DESC_ROOMS[d.rows[i][j].t].exit)) fail('Abstieg: auf einem Ausgang stehen geblieben', act);
     if (!Number.isInteger(d.sack.gold) || d.sack.gold < 0) fail(`Abstieg: Sack-Gold ${d.sack.gold}`, act); }
-  if (S0.descDay && (S0.descDay.n < 0 || S0.descDay.n > D.DESCENT.daily)) fail(`Abstiege je Tag: ${S0.descDay.n}`, act);
+  if (S0.seals && (S0.seals.n < 0 || S0.seals.n > D.DESCENT.sealMax)) fail(`Grabsiegel: ${S0.seals.n}`, act);
   prevExp = S0.exp; prevFights = nf; prevDesc = S0.desc;
   const S = G.S, f = (v, n) => { if (typeof v !== 'number' || !Number.isFinite(v)) fail(`${n} ist keine Zahl: ${v}`, act); };
   f(S.gold, 'Gold'); if (S.gold < 0) fail(`Gold negativ: ${S.gold}`, act);
