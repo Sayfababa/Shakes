@@ -38,3 +38,49 @@ Matching the attached monster portrait for style.
 5 a witch's cauldron bubbling green without fire, bottles lined up beside it, swamp (kessel)
 6 a kneeling revenant in front of a grave, a ring on its bony hand, moonlight (kniet)
 ```
+
+## Sheet C – die letzten 5 Ereignis-Bilder (3×2, 1536×768, je 512×384)
+
+Diese fünf Ereignisse leihen sich bis heute ein Monster- oder NPC-Porträt. Das fällt kaum auf, ist
+aber eine Lücke: ein Porträt zeigt *wen* man trifft, eine Szene zeigt *was geschieht*.
+**Szenen, kein Freistellen** – Zuschnitt mit `python3 tools/cut_sheet.py --plain`.
+
+| Zelle | Ablage | Ereignis | geliehen von |
+|---|---|---|---|
+| 1 | `assets/expedition/ev_nest.webp` | Das Nest | `monsters/pestratte.jpg` |
+| 2 | `assets/expedition/ev_seher.webp` | Der Seher am Wegrand | `npcs/prophet.jpg` |
+| 3 | `assets/expedition/ev_hund.webp` | Der Knochenhund | `monsters/knochenhund.jpg` |
+| 4 | `assets/expedition/ev_glocke.webp` | Eine Glocke läutet | `monsters/bellringer.jpg` |
+| 5 | `assets/expedition/ev_ghul.webp` | Der fressende Ghul | `monsters/ghul.jpg` |
+| 6 | – | bleibt leer | |
+
+Mitschicken: ein vorhandenes Ereignis-Bild aus `assets/expedition/` (z. B. `ev_altar.webp`) als
+Stilvorlage. Danach nur noch `img` des Ereignisses in `EXP_EVENTS` umstellen – sonst kein Code.
+
+```
+Create ONE image, 1536x768 px: a grid of 3 columns x 2 rows = 6 cells of 512x384, separated by thin
+pure black gutters. Five separate dark fantasy scene paintings; the sixth cell (bottom right) stays
+completely empty black.
+Style: painterly, gritty, Diablo II loading-screen mood, muted browns and greys, single warm light
+source, heavy vignette, no people's faces in close-up. Matching the attached scene for style.
+No text, no letters, no frames, no borders inside the cells.
+
+1 THE NEST: a huge breathing mound of matted fur, rat tails, splintered bone and torn rags filling
+  the corner of a stone cellar; dozens of tiny eyes glinting inside it; a few coins and a dagger hilt
+  caught in the matted hair; the viewer stands back in the dark
+2 THE SEER AT THE ROADSIDE: an old blind seer sitting cross-legged on a fallen milestone where two
+  foggy paths cross, cloth bound over his eyes, grey ash settled on his shoulders like snow, a bone
+  staff across his knees; seen from a few steps away, small in the frame
+3 THE BONE HOUND: a gaunt hound of bone and dried sinew standing still on a ridge of a misty moor
+  path, head low, watching the viewer, not charging; distance between it and the viewer; cold blue
+  fog, the only warm light from behind the viewer
+4 A BELL TOLLS: a narrow stone stairwell going down into black earth inside a graveyard, a thick
+  frayed bell rope hanging down the shaft and pulled taut, dust and grit shaken loose and drifting
+  in the air; nothing visible at the bottom
+5 THE FEEDING GHOUL: seen from behind and to one side, a hunched grey ghoul crouched over a dead
+  pilgrim in a dark wood, the pilgrim's staff and scattered bundle on the ground, the ghoul has not
+  noticed the viewer; branches frame the view
+```
+
+**Negativ:** text, letters, numbers, watermark, labels, grid lines, frames, cartoon, flat vector,
+3d render, plastic, glossy, bright saturated colors, modern objects.

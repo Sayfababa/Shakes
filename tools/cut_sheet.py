@@ -6,7 +6,10 @@ Das Alpha entsteht aus der Helligkeit mit weicher Kante – harte Schwellen reis
 Rauch und dunkle Kanten ab, und genau die machen bei diesen Bildern die Stimmung.
 
 Aufruf:
-  python3 tools/cut_sheet.py <sheet.png> <spalten> <reihen> <ziel.webp:zelle> ...
+  python3 tools/cut_sheet.py [--plain] <sheet.png> <spalten> <reihen> <ziel.webp:zelle> ...
+
+--plain: Szenen statt Symbole. Kein Freistellen, kein Beschneiden – die Zelle wird nur
+herausgeschnitten (Ereignis-Bilder der Expedition sind Szenen, kein Inventar).
 
 Beispiel (4x2-Blatt, Zellen von links oben nach rechts unten gezaehlt, ab 0):
   python3 tools/cut_sheet.py blatt.png 4 2 \\
@@ -45,6 +48,8 @@ def trim_square(img, size):
 
 
 def main(argv):
+    plain = '--plain' in argv
+    argv = [a for a in argv if a != '--plain']
     if len(argv) < 4:
         raise SystemExit(__doc__)
     sheet = Image.open(argv[0])
@@ -55,9 +60,14 @@ def main(argv):
         path, idx = parts[0], int(parts[1])
         size = int(parts[2]) if len(parts) > 2 else 128
         x, y = (idx % cols) * cw, (idx // cols) * ch
-        img = trim_square(alpha_from_black(sheet.crop((x, y, x + cw, y + ch))), size)
+        cell = sheet.crop((x, y, x + cw, y + ch))
+        if plain:
+            img = cell.convert('RGB')
+            print(f'{path}  {img.width}x{img.height}  aus Zelle {idx} (Szene)')
+        else:
+            img = trim_square(alpha_from_black(cell), size)
+            print(f'{path}  {size}x{size}  aus Zelle {idx}')
         img.save(path, 'WEBP', quality=92, method=6)
-        print(f'{path}  {size}x{size}  aus Zelle {idx}')
 
 
 if __name__ == '__main__':
