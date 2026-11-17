@@ -222,7 +222,10 @@ export function power(A = stats()) {
   const strike = (A.dmg[0] + A.dmg[1]) / 2 * (1 + A[A.main] / CFG.mainDiv);
   const onHit = (1 + crit * ((A.critMult || 2) - 1 + (A.bleed || 0))) * (1 + (A.execute || 0) * (0.2 + (A.execHp || 0)) + (A.poison || 0));   // gilt für Hieb und Zauber
   let dpt = strike * (1 - red) * hit * onHit * (1 + (A.rage || 0) * 0.3);
-  let heal = (A.regen || 0) * A.hp * (A.lastStand ? 1.15 : 1), takenF = 1, vulnF = 1;
+  // Einzigartige, die eine Regel ändern (grobe Schätzung; die echten Werte misst tests/uniques.mjs)
+  dpt *= 1 + (A.vengeance || 0) * 0.35;        // Vergeltung: im Schnitt etwa ein Drittel Leben fehlt
+  dpt *= 1 + (A.zeal || 0) / 3;                // Eifer: jeder dritte Hieb trifft zweimal
+  let heal = (A.regen || 0) * A.hp * (A.lastStand ? 1.15 : 1) + (A.siphon || 0) * A.hp * crit * 0.6, takenF = 1, vulnF = 1;
   const stunner = (A.spells || []).some(s => s.kind === 'stun' || s.m?.stun), dotter = (A.spells || []).some(s => s.kind === 'dot' || s.m?.poison);
   for (const s of A.spells || []) {
     const m = s.m || {}, cm = (A.critMult || 2) - 1;
@@ -261,10 +264,14 @@ export function power(A = stats()) {
   heal += dpt * (A.leech || 0) * (A.lastStand ? 1.15 : 1);   // Lebensraub aus Hieben und Zaubern (Set: unter halbem Leben doppelt)
   if (A.venom) heal += dpt * (A.poison || 0) * A.venom * 2;
   if (A.tollback) takenF *= 0.97;   // betäubte Gegner schlagen seltener – gegen die Glocke viel mehr
+  if (A.shred) dpt *= 1 + A.shred * 0.8;       // gebrochene Rüstung wirkt den Rest des Kampfs
+  if (A.bulwark) heal += A.hp * A.bulwark * Math.min(0.5, A.block || 0);
+  if (A.secondWind) heal += A.hp * A.secondWind * 0.1;
+  if (A.nohealSelf) heal = 0;
   if (A.firstEcho) dpt *= 1.04;
   const taken = eDmg * (1 - Math.min(0.6, A.armor / (A.armor + 20 + L * 8))) * (1 - Math.min(0.5, A.dex / (A.dex + en * 3 + 40) + (A.evade || 0))) * (1 - Math.min(0.5, A.block || 0)) * takenF;
   dpt += taken * (A.thorns || 0);   // Dornen: Teil jedes erlittenen Treffers geht zurück
-  const ehp = A.hp * (1 + (A.ward || 0)) / (taken * Math.max(0.3, 1 - heal * 0.6 / Math.max(1, taken))) * eDmg;   // Leben, umgerechnet in "wie viele Gegner-Hiebe halte ich aus"
+  const ehp = A.hp * (1 + (A.ward || 0)) * (A.lastBreath ? 1.12 : 1) / (taken * Math.max(0.3, 1 - heal * 0.6 / Math.max(1, taken))) * eDmg;   // Leben, umgerechnet in "wie viele Gegner-Hiebe halte ich aus"
   return Math.round(Math.sqrt(Math.max(1, dpt) * ehp) * 20);
 }
 // Kampfkraft, wenn ein Item angelegt wäre (Ringe: ersetzt den schwächeren bzw. freien Platz)

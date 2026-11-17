@@ -130,6 +130,23 @@ export const UNIQUES = [
   { name: 'Ring der Ertrunkenen', slot: 'ring', mods: { lck: 2, int: 3 }, eff: { poison: 0.1 }, lore: 'Aus Gerlindes Brunnen gefischt.' },
   { name: 'Siegel des Kronenlosen', slot: 'ring', mods: { str: 3, dex: 3 }, eff: { pen: 0.3, crit: 0.05 }, lore: 'Die Krone fehlt. Die Macht nicht.' },
   { name: 'Gürtel der Büßer', slot: 'belt', mods: { con: 1, armor: 3 }, eff: { hpPct: 0.15 }, lore: 'Jeder Knoten eine Sünde.' },
+  // Zweite Welle: jedes Stück ändert eine Regel oder handelt etwas ein, statt nur Zahlen zu erhöhen
+  { name: 'Scherbenschneide', slot: 'weapon', kind: 'dagger', mods: { dex: 3, lck: 3 }, eff: { dmgPct: 0.45, hpPct: -0.25 }, lore: 'Scharf genug für zwei Leben. Deins zählt mit.' },
+  { name: 'Wut der Witwe', slot: 'weapon', kind: 'axe', mods: { str: 2, dmg: 3 }, eff: { vengeance: 0.8 }, lore: 'Sie schlug zu, als nichts mehr zu verlieren war.' },
+  { name: 'Eiferklinge', slot: 'weapon', kind: 'sword', mods: { str: 3, dex: 3 }, eff: { zeal: 0.6 }, lore: 'Drei Schläge für den Herrn. Der dritte zählt doppelt.' },
+  { name: 'Splittermal', slot: 'weapon', kind: 'staff', mods: { int: 2, con: 3 }, eff: { shred: 0.18, crit: 0.05 }, lore: 'Jeder Treffer sucht den Riss.' },
+  { name: 'Aderlass', slot: 'weapon', kind: 'wand', mods: { int: 2, lck: 2 }, eff: { siphon: 0.07, crit: 0.08 }, lore: 'Was sie nimmt, gibt sie dir.' },
+  { name: 'Die Lange Stille', slot: 'weapon', kind: 'bow', mods: { dex: 2, dmg: 3 }, eff: { pen: 0.35, nohealSelf: 1 }, lore: 'Kein Pfeil kehrt zurück. Kein Atem auch.' },
+  { name: 'Haube des Pakts', slot: 'helm', mods: { int: 2, con: 3 }, eff: { dmgPct: 0.3, nohealSelf: 1 }, lore: 'Ein Handel: deine Heilung gegen seinen Zorn.' },
+  { name: 'Der Letzte Atem', slot: 'chest', mods: { con: 2, armor: 3 }, eff: { lastBreath: 1 }, lore: 'Einmal noch. Nur einmal noch.' },
+  { name: 'Eisernes Gelübde', slot: 'chest', mods: { armor: 2, con: 3 }, eff: { bulwark: 0.06, block: 0.1 }, lore: 'Jeder abgewehrte Schlag macht den Schild dicker.' },
+  { name: 'Gerlindes Schwur', slot: 'amulet', mods: { con: 2, int: 3 }, eff: { siphon: 0.035, regen: 0.012 }, lore: 'Sie ertrank und kam doch zurück.' },
+  { name: 'Herz der Glocke', slot: 'amulet', mods: { str: 3, haste: 3 }, eff: { toll: 1, rage: 0.12 }, lore: 'Jeder dritte Schlag ist ein Läuten.' },
+  { name: 'Fäuste des Eifers', slot: 'gloves', mods: { dex: 2, dmg: 3 }, eff: { zeal: 0.5 }, lore: 'Sie hören nie beim ersten Mal auf.' },
+  { name: 'Schritt des Verwehten', slot: 'boots', mods: { dex: 3, lck: 3 }, eff: { evade: 0.1, first: 1 }, lore: 'Er war schon fort, als der Schlag kam.' },
+  { name: 'Ring der Vergeltung', slot: 'ring', mods: { str: 3, con: 3 }, eff: { vengeance: 0.5, thorns: 0.12 }, lore: 'Je tiefer die Wunde, desto schwerer die Hand.' },
+  { name: 'Reif der Zuflucht', slot: 'ring', mods: { con: 3, lck: 3 }, eff: { secondWind: 0.25 }, lore: 'Einmal darfst du Luft holen.' },
+  { name: 'Gurt des Bollwerks', slot: 'belt', mods: { armor: 2, con: 3 }, eff: { bulwark: 0.05, hpPct: 0.08 }, lore: 'Stehen bleiben ist auch ein Angriff.' },
 ];
 // --- Grab-Sets: je Krypta ein Set aus 3 Teilen (Mockup mockups/sets.html) ---
 // Teile fallen nur beim Boss ihrer Krypta, ab Stufe SET.minTier. 2 Teile = ein guter Bonus (etwa Stufe III),
@@ -510,6 +527,9 @@ export const EFFECT_NAMES = { dmgPct: 'Schaden', hpPct: 'Leben', armorPct: 'Rüs
   block: 'Blocken', leech: 'Lebensraub', bleed: 'Bluten bei Krit', rage: 'Raserei', pen: 'Rüstung ignorieren', regen: 'Regeneration/Runde',
   thorns: 'Dornen', execute: 'Schaden gg. Sterbende', first: 'Erstschlag', poison: 'Gift', toll: 'Betäuben', haste: 'Zaubertempo', echo: 'Zauber-Nachhall', ward: 'Knochenschild bei Kampfbeginn',
   lastStand: 'Doppelte Heilung unter halbem Leben', venom: 'Dein Gift heilt dich', execHp: 'Henker-Schwelle',
+  vengeance: 'Mehr Schaden, je weniger Leben', zeal: 'Jeder dritte Hieb trifft zweimal', siphon: 'Krit heilt dich',
+  bulwark: 'Blocken gibt Schild', shred: 'Krit bricht Rüstung', secondWind: 'Heilt einmal, wenn es eng wird', lastBreath: 'Überlebt einen tödlichen Treffer',
+  nohealSelf: 'Du kannst dich nicht heilen',
   tollback: 'Betäubung prallt zurück', firstEcho: 'Erster Zauber wirkt zweimal' };
 
 // Talentbaum je Klasse: 3 Pfade × 3 Stufen. Stufe n braucht 1 Rang im Talent davor + Charakterstufe TIER_LVL[n].

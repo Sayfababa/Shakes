@@ -20,8 +20,8 @@ export const fmtN = n => n.toLocaleString('de-DE');
 export const itemGain = it => { if (!it?.slot || Object.values(S.equip).includes(it)) return null; const p = powerWith(it); return (p.then - p.now) / Math.max(1, p.now); };
 const gainTag = it => { const g = itemGain(it); return g > 0.01 ? `<i class="better" title="besser">▲</i>` : ''; };
 const pct = (a, b) => Math.max(0, Math.min(100, (a / b) * 100));
-const FLAGS = new Set(['first', 'toll', 'lastStand', 'tollback', 'firstEcho', 'venom']);   // an/aus – keine Prozentzahl
-const effLine = e => Object.entries(e).map(([k, v]) => `${EFFECT_NAMES[k]}${FLAGS.has(k) ? '' : ' +' + Math.round(v * 100) + '%'}`).join(', ');
+const FLAGS = new Set(['first', 'toll', 'lastStand', 'tollback', 'firstEcho', 'venom', 'lastBreath', 'nohealSelf']);   // an/aus – keine Prozentzahl
+const effLine = e => Object.entries(e).map(([k, v]) => `${EFFECT_NAMES[k]}${FLAGS.has(k) ? '' : (v < 0 ? ' −' : ' +') + Math.abs(Math.round(v * 100)) + '%'}`).join(', ');
 
 // Gemalte Monster/Bosse in assets/monsters/<glyph>.jpg, sonst SVG-Silhouette
 const MON_IMG = new Set(['totengraeber', 'muellerin', 'knochenordner', 'strickmutter', 'kultist1', 'aschenkoenig', 'gerlinde', 'aldemar', 'butcher', 'bellringer', 'ghul', 'fallen', 'skelett', 'grabraeuber', 'pestratte', 'kultist',

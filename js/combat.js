@@ -13,6 +13,7 @@ export function fight(A, B) {
   const cast = [];
   for (const f of [a, b]) {
     if (f.ward) f.shield = Math.round(f.hp * f.ward);   // Knochenschild zu Beginn
+    if (f.nohealSelf) f.noheal = Infinity;   // Pakt: dieser Kämpfer kann sich nie heilen
     (f.spells || []).forEach((x, i) => { if (x.m?.open) f.ch[i] = x.every; });   // Zauber-Weg „sofort zu Kampfbeginn“
     f.poisonLeech = Math.max(0, f.venom || 0, ...(f.spells || []).map(x => x.m?.poisonLeech || 0));   // Set „Kutte des Verseuchten“: dein Gift heilt dich
     f.belt = (f.belt || []).map(p => ({ ...p, used: false }));
@@ -36,6 +37,10 @@ export function fight(A, B) {
     if (atk.rageN > 0) atk.rageN--;   // Berserkersud läuft ab (eigener Faktor, stört Zauber-Stärkung nicht)
     for (const p of atk.belt) if (!p.used && trig(atk, def, p.trig)) potion(atk, def, p);
     def.didHeal = false;
+    // Zuflucht: einmal je Kampf, sobald es eng wird
+    if (atk.secondWind && !atk.swUsed && atk.cur > 0 && atk.cur < atk.hp * 0.3 && !(atk.noheal > 0)) {
+      atk.swUsed = true; const h = healSelf(atk, Math.round(atk.hp * atk.secondWind));
+      if (h) say(atk.side, `${atk.name} schöpft Atem (+${h}).`, { heal: h, status: 'Zuflucht' }); }
     if (atk.regen && atk.cur < atk.hp && !(atk.noheal > 0)) { const h = Math.round(atk.hp * atk.regen * healMul(atk)); atk.cur = Math.min(atk.hp, atk.cur + h); atk.didHeal = true; say(atk.side, `${atk.name} regeneriert ${h}.`, { heal: h }); }
     if (atk.stunned) { atk.stunned = atk.stunned === true ? 0 : atk.stunned - 1; say(def.side, `${atk.name} ist betäubt und taumelt.`); [atk, def] = [def, atk]; continue; }
     atk.turn++;
@@ -84,7 +89,9 @@ export function fight(A, B) {
     if (by && y.tollback && !(by.stunImm > 0) && !by.stunned) { by.stunned = 1; by.dazed = 2; ev.status = 'Zurückgeläutet'; }
     return true; }
   function healSelf(x, h) { if (x.noheal > 0) return 0; h = Math.round(h * healMul(x)); const room = x.hp - x.cur; x.cur = Math.min(x.hp, x.cur + h); if (h > 0 && room > 0) x.didHeal = true; return Math.min(h, room); }
-  function hurt(y, d) { if (y.shield) { const s = Math.min(y.shield, d); y.shield -= s; d -= s; } y.cur -= d; }
+  function hurt(y, d) { if (y.shield) { const s = Math.min(y.shield, d); y.shield -= s; d -= s; } y.cur -= d;
+    // Einzigartig „Letzter Atem“: der erste tödliche Treffer lässt 1 Leben übrig (einmal je Kampf)
+    if (y.cur <= 0 && y.lastBreath && !y.lbUsed) { y.lbUsed = true; y.cur = 1; ev.status = 'Letzter Atem'; } }
   function spell(x, y, s) {
     const m = s.m || {}, amp = (x.amp || 1) * (s.boost || 1);
     const red = 1 - Math.min(0.6, y.armor / (y.armor + 20 + x.lvl * 8)) * (1 - Math.min(0.9, x.pen || 0)) * (1 - Math.min(1, m.pierce || 0));
@@ -153,6 +160,7 @@ export function fight(A, B) {
   // Henker und Krit auf rohen Schaden (für Hieb und Zauber); o: Zusatz-Krit/Henker eines Zauber-Wegs, force = sicherer Krit (Kombo)
   function finish(x, y, raw, o = {}) {
     let d = raw; const ex = (x.execute || 0) + (o.execute || 0); if (ex && y.cur < y.hp * (0.3 + (x.execHp || 0))) d *= 1 + ex;   // Set „Schürze des Metzgers“ hebt die Schwelle
+    if (x.vengeance) d *= 1 + x.vengeance * (1 - Math.max(0, x.cur) / x.hp);   // Vergeltung: je weniger eigenes Leben, desto härter
     if (x.weakN > 0) d *= 1 - x.weak;                  // geschwächt: macht weniger Schaden
     if (y.vulnN > 0) d *= 1 + y.vuln;                  // verwundbar: nimmt mehr Schaden
     const crit = o.force || chance(Math.min(0.6 + (o.crit || 0), CFG.critBase + x.lck / (x.lck + 100 + y.lvl * 5) + (x.crit || 0) + (o.crit || 0)) - (y.critRes || 0));
@@ -163,6 +171,10 @@ export function fight(A, B) {
   function onHit(x, y, d, crit) {
     let t = '';
     if (x.leech) { const h = healSelf(x, Math.round(d * x.leech)); if (h) { t += ` +${h} Leben.`; ev.heal = (ev.heal || 0) + h; } }
+    // Splittern: jeder Krit bricht ein Stück der gegnerischen Rüstung heraus (bis zur Hälfte)
+    if (crit && x.shred) { const a0 = y.armor0 ??= y.armor; y.armor = Math.max(Math.round(a0 * 0.5), Math.round(y.armor * (1 - x.shred)));
+      t += ` Die Rüstung splittert (${y.armor}).`; ev.status = 'Rüstung bricht'; }
+    if (crit && x.siphon) { const h = healSelf(x, Math.round(x.hp * x.siphon)); if (h) { t += ` +${h} Leben.`; ev.heal = (ev.heal || 0) + h; } }
     if (crit && x.bleed && !(y.cureN > 0)) y.bleedDmg = Math.max(y.bleedDmg || 0, Math.round(d * x.bleed));
     if (x.poison && !(y.cureN > 0)) y.poisonDmg = Math.min(Math.round(y.hp * 0.08), (y.poisonDmg || 0) + Math.max(1, Math.round(d * x.poison)));
     if (x.toll && (x.hits = (x.hits || 0) + 1) % 3 === 0) { if (stun(y, 1, x)) { t += ' Die Glocke dröhnt!'; ev.stun = true; } else t += ` ${y.name} widersteht der Glocke.`; }
@@ -173,12 +185,19 @@ export function fight(A, B) {
   function strike(x, y) {
     const evade = Math.max(0, Math.min(0.5, y.dex / (y.dex + x.dex * 3 + 40) + (y.evade || 0)) - (x.acc || 0));
     if (chance(evade)) return say(x.side, `${y.name} weicht aus.`, { miss: 'Ausgewichen' });
-    if (y.block && chance(Math.min(0.5, y.block))) return say(x.side, `${y.name} blockt.`, { miss: 'Geblockt' });
+    if (y.block && chance(Math.min(0.5, y.block))) {
+      if (y.bulwark) { const sh = Math.round(y.hp * y.bulwark); y.shield = (y.shield || 0) + sh; ev.shield = sh; }   // Bollwerk: Blocken baut einen Schild auf
+      return say(x.side, `${y.name} blockt.`, { miss: 'Geblockt' }); }
     const raw = roll(x.dmg[0], x.dmg[1]) * (1 + x[x.main] / CFG.mainDiv) * x.buff * pb(x)
       * (1 - Math.min(0.6, y.armor / (y.armor + 20 + x.lvl * 8)) * (1 - Math.min(0.9, x.pen || 0)));
     const { d, crit } = finish(x, y, raw);
     hurt(y, d);
-    const t = `${x.name} trifft ${crit ? 'KRITISCH ' : ''}für ${d}.` + onHit(x, y, d, crit);
-    say(x.side, t, { crit, dmg: d });
+    let t = `${x.name} trifft ${crit ? 'KRITISCH ' : ''}für ${d}.` + onHit(x, y, d, crit);
+    // Eifer: jeder dritte eigene Hieb trifft ein zweites Mal
+    const hits = [d];
+    if (x.zeal && (x.zealN = (x.zealN || 0) + 1) % 3 === 0 && y.cur > 0) {
+      const z = finish(x, y, raw * x.zeal); hurt(y, z.d); hits.push(z.d);
+      t += ` Und noch einmal${z.crit ? ' KRITISCH' : ''}: ${z.d}.` + onHit(x, y, z.d, z.crit); }
+    say(x.side, t, { crit, dmg: hits.reduce((p, q) => p + q, 0), hits: hits.length > 1 ? hits : undefined });
   }
 }

@@ -133,4 +133,5 @@ Save-Version 14 → 16, mit Migration und Tests dafür.
 - **Erledigt:** Schärfen/Verstärken hängen am Platz statt am Teil (Save v17) – Material ist nie verschwendet.
 - **Erledigt:** Erster Sieg in einem Akt-Gebiet gibt sicher 2 Material (Elite 3, Boss 4).
 - **Erledigt:** Grab-Sets gebaut – 5 Sets à 3 Teile, nur beim Krypta-Boss, 2 Teile Bonus / 3 Teile Regeländerung (`tests/sets.mjs` eicht sie).
-- **Als Nächstes:** mehr Einzigartige mit Regeländerung, dann Akt II glätten und die Klassen angleichen.
+- **Erledigt:** 16 neue Einzigartige (jetzt 30), jedes mit Regeländerung oder Tauschgeschäft; 9 neue Kampf-Schlüssel; `tests/uniques.mjs` eicht sie.
+- **Als Nächstes:** Akt II glätten (~350 Glut gegen 250 in Akt III) und die Klassen angleichen (Jägerin/Hexe spät ~30 % langsamer).

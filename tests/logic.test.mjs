@@ -808,3 +808,56 @@ test('Set-Teile fallen nur beim Krypta-Boss ab der zweiten Stufe', () => {
   assert.equal(teile.size, 3, 'alle Teile können fallen');
   assert.equal(Game.setDrop({ id: 'c3' }, 2)?.set ?? 's3', 's3', 'jede Krypta gibt ihr eigenes Set');
 });
+
+test('Einzigartige: gültige Daten, eigene Namen, jede Basis vorhanden', () => {
+  const namen = new Set();
+  for (const u of D.UNIQUES) {
+    assert.ok(!namen.has(u.name), 'Name doppelt: ' + u.name); namen.add(u.name);
+    assert.ok(D.SLOTS[u.slot], `${u.name}: Platz ${u.slot}`);
+    assert.ok(D.BASES.some(b => b.slot === u.slot && (!u.kind || b.kind === u.kind)), `${u.name}: keine Basis`);
+    for (const st of Object.keys(u.mods)) assert.ok(D.AFFIXES.some(a => a.stat === st), `${u.name}: ${st} ist kein Bonus`);
+    for (const k of Object.keys(u.eff)) assert.ok(D.EFFECT_NAMES[k], `${u.name}: ${k} ist kein Effekt`);
+    assert.ok(u.lore && u.lore.length < 70, `${u.name}: Spruch fehlt oder zu lang`);
+  }
+  // jede Klassenwaffe hat mindestens ein einzigartiges Stück
+  for (const c of Object.values(D.CLASSES)) assert.ok(D.UNIQUES.some(u => u.kind === c.weapon), 'ohne Einzigartiges: ' + c.weapon);
+});
+
+test('Neue Einzigartig-Mechaniken wirken im Kampf', async () => {
+  const { fight } = await import('../js/combat.js');
+  const base = { name: 'A', str: 20, dex: 20, int: 20, con: 20, lck: 20, main: 'str', lvl: 10, armor: 10, dmg: [10, 14], hp: 300 };
+  const feind = { ...base, name: 'B', dmg: [40, 60], hp: 4000, armor: 200 };
+  // Letzter Atem: der tödliche Treffer lässt 1 Leben übrig (einmal)
+  const ohne = fight({ ...base }, { ...feind }), mit = fight({ ...base, lastBreath: 1 }, { ...feind });
+  assert.ok(mit.log.some(l => l.status === 'Letzter Atem'), 'Letzter Atem greift nicht');
+  assert.ok(mit.log.length > ohne.log.length, 'Letzter Atem verlängert den Kampf nicht');
+  // Zuflucht: heilt genau einmal, wenn es eng wird
+  const zu = fight({ ...base, secondWind: 0.25 }, { ...feind });
+  assert.equal(zu.log.filter(l => l.status === 'Zuflucht').length, 1);
+  // Pakt: keine Heilung mehr, obwohl Regeneration und Lebensraub angelegt sind
+  const heilt = fight({ ...base, regen: 0.1, leech: 0.5 }, { ...feind });
+  const pakt = fight({ ...base, regen: 0.1, leech: 0.5, nohealSelf: 1 }, { ...feind });
+  assert.ok(heilt.log.some(l => l.heal), 'Heilung fehlt im Vergleich');
+  assert.ok(!pakt.log.some(l => l.heal), 'Pakt heilt trotzdem');
+  // Splittern: jeder Krit bricht Rüstung, aber nie unter die Hälfte
+  const sch = fight({ ...base, crit: 1, shred: 0.3, dmg: [1, 1] }, { ...feind, hp: 99999 });
+  assert.ok(sch.log.some(l => l.status === 'Rüstung bricht'), 'Splittern greift nicht');
+  // Eifer: jeder dritte Hieb trifft zweimal
+  const ei = fight({ ...base, zeal: 0.6 }, { ...feind, hp: 99999 });
+  assert.ok(ei.log.some(l => Array.isArray(l.hits) && l.hits.length === 2), 'Eifer trifft nie zweimal');
+  // Bollwerk: Blocken baut Schild auf
+  const bo = fight({ ...base, block: 1, bulwark: 0.1 }, { ...feind, hp: 99999 });
+  assert.ok(bo.log.some(l => l.shield), 'Bollwerk gibt keinen Schild');
+  // Vergeltung und Aderlass zählen in der Kampfkraft mit
+  const S = fresh(); const p0 = G.power();
+  for (const k of ['vengeance', 'zeal', 'siphon', 'shred', 'lastBreath', 'secondWind', 'bulwark']) {
+    S.trophies.push({ key: 't' + k, name: k, eff: { [k]: k === 'lastBreath' ? 1 : 0.3 } });
+    assert.ok(G.power() > p0, k + ' zählt nicht in der Kampfkraft');
+    S.trophies.pop();
+  }
+  // Pakt kostet Kampfkraft
+  S.trophies.push({ key: 'tp', name: 'p', eff: { regen: 0.05 } }); const mitRegen = G.power();
+  S.trophies.push({ key: 'tn', name: 'n', eff: { nohealSelf: 1 } });
+  assert.ok(G.power() < mitRegen, 'Pakt kostet keine Kampfkraft');
+  S.trophies.length = 0;
+});
