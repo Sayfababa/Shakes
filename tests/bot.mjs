@@ -116,5 +116,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log('Quests:', log.quests.join(' '));
     console.log(`Akt-Bosse (Akt@Stufe): ${log.actBoss.join(' ')}`);
     console.log(`Kämpfe: Akte ${log.acts} neu + ${log.farm} gefarmt (−${log.actLoss}) · Grube ${log.pit} (−${log.pitLoss}) · Krypta ${log.crypt} (−${log.cryptLoss}) · Grube ${log.arena} (−${log.arenaLoss}) · gekauft ${log.bought} · Titel ${S.title || '-'}${pots ? ` · gebraut ${log.brewed} (${log.brewGold} Gold) · getrunken ${log.used} in ${log.potFights} Kämpfen` : ''}`);
+    // Zutaten je Art: die Summe allein verbirgt, dass eine Zutat nur im letzten Akt fällt
+    if (pots) console.log('  Zutaten übrig: ' + Object.keys(D.HERBS).map(k => `${D.HERBS[k].name} ${S.herbs[k] || 0}`).join(' · '));
   }
 }
