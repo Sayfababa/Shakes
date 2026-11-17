@@ -45,7 +45,13 @@ function manage(log) {
   }
   // Alchemie (wenn eingeschaltet): gewöhnliche Tränke auf Vorrat brauen, seltene mit Herz; Gold-Reserve fürs Ausrüsten behalten
   if (POTS) for (const p of [...D.POTIONS].sort((a, b) => (b.rare || 0) - (a.rare || 0))) {
-    while ((S.pots[p.id] || 0) < (p.rare ? 1 : 3) && S.gold > 150 + G.brewCost(p.id).gold && G.canBrew(p.id).ok) { const g = S.gold; G.brew(p.id); log.brewed++; log.brewGold += g - S.gold; }
+    while ((S.pots[p.id] || 0) < (p.rare ? 1 : 3) && S.gold > 150 + G.brewCost(p.id).gold && G.canBrew(p.id).ok) { const g = S.gold; for (const [k, n] of Object.entries(p.cost)) log.spent[k] = (log.spent[k] || 0) + n;
+      G.brew(p.id); log.brewed++; log.brewGold += g - S.gold; }
+    // Woran scheiterte der nächste Sud? Nur so sieht man, welche Zutat wirklich knapp ist –
+    // ein Vorrat von 0 heißt nur „verbraucht", nicht „zu wenig".
+    if ((S.pots[p.id] || 0) < (p.rare ? 1 : 3)) { const r = G.canBrew(p.id).reason || '';
+      const m = /^Fehlt: (.+)$/.exec(r); if (m) log.miss[m[1]] = (log.miss[m[1]] || 0) + 1;
+      else if (r) log.blocked[r] = (log.blocked[r] || 0) + 1; }
   }
   // Quests abgeben
   for (const t of D.GIVERS) { const r = Q.complete(t, 'break'); if (r) log.quests.push(`${t}:${r.q.id}@${S.lvl}`); }
@@ -77,7 +83,7 @@ export function run(cls = 'paladin', days = 7, risk = 0.8, pots = false) {
   RISK = risk; POTS = pots;
   clock = Date.UTC(2026, 0, 5, 8, 0, 0);
   G.newChar('Bot', cls); G.S.tut = 99;
-  const log = { acts: 0, actLoss: 0, farm: 0, actBoss: [], pit: 0, pitLoss: 0, delves: 0, delveLoss: 0, lostGold: 0, tracks: { safe: 0, norm: 0, blood: 0 }, quests: [], bought: 0, trips: 0, tripLoss: 0, crypt: 0, cryptLoss: 0, arena: 0, arenaLoss: 0, perDay: [], brewed: 0, brewGold: 0, used: 0, potFights: 0 };
+  const log = { acts: 0, actLoss: 0, farm: 0, actBoss: [], pit: 0, pitLoss: 0, delves: 0, delveLoss: 0, lostGold: 0, tracks: { safe: 0, norm: 0, blood: 0 }, quests: [], bought: 0, trips: 0, tripLoss: 0, crypt: 0, cryptLoss: 0, arena: 0, arenaLoss: 0, perDay: [], brewed: 0, brewGold: 0, used: 0, potFights: 0, miss: {}, blocked: {}, spent: {} };
   const end = clock + days * 86400000;
   let nextDay = clock + 86400000, rival = null;
   while (clock < end) {
@@ -117,6 +123,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log(`Akt-Bosse (Akt@Stufe): ${log.actBoss.join(' ')}`);
     console.log(`Kämpfe: Akte ${log.acts} neu + ${log.farm} gefarmt (−${log.actLoss}) · Grube ${log.pit} (−${log.pitLoss}) · Krypta ${log.crypt} (−${log.cryptLoss}) · Grube ${log.arena} (−${log.arenaLoss}) · gekauft ${log.bought} · Titel ${S.title || '-'}${pots ? ` · gebraut ${log.brewed} (${log.brewGold} Gold) · getrunken ${log.used} in ${log.potFights} Kämpfen` : ''}`);
     // Zutaten je Art: die Summe allein verbirgt, dass eine Zutat nur im letzten Akt fällt
-    if (pots) console.log('  Zutaten übrig: ' + Object.keys(D.HERBS).map(k => `${D.HERBS[k].name} ${S.herbs[k] || 0}`).join(' · '));
+    if (pots) { console.log('  Zutaten übrig: ' + Object.keys(D.HERBS).map(k => `${D.HERBS[k].name} ${S.herbs[k] || 0}`).join(' · '));
+      const srt = o => Object.entries(o).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}×`).join(' · ') || '–';
+      // Angebot = verbraucht + übrig. Das ist, was in der Spielzeit wirklich gefallen ist.
+      console.log('  Gefallen (verbraucht+übrig): ' + Object.keys(D.HERBS).map(k => `${D.HERBS[k].name} ${(log.spent[k] || 0) + (S.herbs[k] || 0)}`).join(' · '));
+      console.log('  Sud fiel aus, weil Zutat fehlte: ' + srt(log.miss));
+      console.log('  Sud fiel aus, anderer Grund:     ' + srt(log.blocked)); }
   }
 }
