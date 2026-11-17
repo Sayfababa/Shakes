@@ -17,7 +17,20 @@ const wrongWeapon = it => it.slot === 'weapon' && it.kind !== D.CLASSES[G.S.cls]
 function manage(log) {
   const S = G.S, c = D.CLASSES[S.cls];
   while (S.points > 0) G.addAttr(S.points % 5 < 2 ? 'con' : c.main);
-  for (let i = 0; i < 9; i++) for (let b = 0; b < 3; b++) for (let t = 2; t >= 0; t--) if (G.learn(b, t)) break;
+  // Talente: Klassen mit Brett brauchen die Brett-Schnittstelle. Ohne diesen Zweig landeten die
+  // Punkte in alten Knoten-IDs, die das Brett nicht kennt – die Assassine spielte ohne jedes
+  // wirkende Talent und sah im Tempo-Vergleich 2 Akte langsamer aus als alle anderen.
+  if (G.treeOf(S.cls)) {
+    const T = G.treeOf(S.cls);
+    for (let i = 0; i < 60 && G.talentPoints() > 0; i++) {
+      // gierig nach Kampfkraft: den offenen Knoten nehmen, der am meisten bringt (Brücken eingeschlossen)
+      let best = null, bp = -1;
+      const probe = fn => { const vor = JSON.parse(JSON.stringify(S.tal)); if (!fn()) return null; const p = G.power(); S.tal = vor; return p; };
+      T.cols.forEach((c, ci) => c.nodes.forEach((n, ri) => { const p = probe(() => G.learnNode(ci, ri)); if (p > bp) { bp = p; best = () => G.learnNode(ci, ri); } }));
+      (T.bridges || []).forEach((b, bi) => { const p = probe(() => G.learnBridge(bi)); if (p > bp) { bp = p; best = () => G.learnBridge(bi); } });
+      if (!best || !best()) break;
+    }
+  } else for (let i = 0; i < 9; i++) for (let b = 0; b < 3; b++) for (let t = 2; t >= 0; t--) if (G.learn(b, t)) break;
     // Zauber-Wege: offene Stufen wählen (den Weg mit der höheren Kampfkraft)
     for (const sp of D.SPELLS[S.cls]) (D.SPELL_TREE[sp.id] || []).forEach((opts, t) => { if (!G.wayOpen(sp, t) || G.S.sp?.[sp.id]?.[t] != null) return;
       const pw = opts.map((o, i) => { (G.S.sp[sp.id] ||= [null, null, null])[t] = i; return G.power(); }); G.S.sp[sp.id][t] = pw[1] > pw[0] ? 1 : 0; });
