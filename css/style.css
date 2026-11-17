@@ -978,6 +978,23 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .acts .act .pr i.on { background: #b08a3e; } .acts .act .pr i.boss { flex: 1.6; } .acts .act .pr i.boss.on { background: #a8241a; }
 .acts .act.done { opacity: .78; } .acts .act.cur { box-shadow: inset 0 0 0 2px #b08a3e; } .acts .act.locked { opacity: .45; filter: grayscale(.8); cursor: default; }
 .acts.tight .act small { display: none; } .acts.tight .act .portrait { width: 38px; height: 38px; } .acts.tight .act { grid-template-columns: 38px 1fr auto; padding: 4px 8px; }
+/* Ortsbild im Kopf der Akt-Ansicht. Das Bild liegt 9 px INNERHALB des Panels, damit der
+   Eisenrahmen stehen bleibt; darueber ein Schleier von links, auf dem Titel und Satz liegen.
+   Sichtbar ist ein schmales Band aus der Bildmitte (center 45 %) – alles Wichtige sitzt dort. */
+.actv .ahead.pic { position: relative; z-index: 0; }
+/* Das Bild steht als eigenes Element da, nicht als CSS-Variable: eine url() in einer
+   Custom Property wird gegen das STYLESHEET aufgeloest (css/assets/... -> 404), ein
+   style-Attribut dagegen gegen die Seite. Alle Pfade bleiben relativ (Pages-Unterordner). */
+.actv .ahead.pic .bg { position: absolute; inset: 9px; z-index: -2;
+  background-position: center 45%; background-size: cover; background-repeat: no-repeat;
+  /* Die Vorlagen sind sehr dunkel, und sichtbar ist nur ein schmales Band – ohne diese
+     Anhebung bleibt von der Szene auf dem Handy nichts als Schwarz. */
+  filter: brightness(1.45) contrast(1.08); }
+.actv .ahead.pic::after { content: ''; position: absolute; inset: 9px; z-index: -1;
+  background: linear-gradient(90deg, rgba(11,9,7,.9) 0%, rgba(11,9,7,.66) 40%, rgba(11,9,7,.34) 74%, rgba(11,9,7,.14) 100%); }
+/* Der Schleier allein muesste so dick sein, dass vom Bild nichts bleibt – die Lesbarkeit
+   traegt deshalb die Schriftkante, nicht die Flaeche. */
+.actv .ahead.pic h2, .actv .ahead.pic small { text-shadow: 0 1px 3px #0b0907, 0 0 8px #0b0907; }
 .actv .ahead h2 { margin: 0; font-family: 'Grenze Gotisch'; color: var(--gold-hi); font-size: 1.25rem; } .actv .ahead small { color: var(--dim); font-size: .78rem; }
 .actv .path { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column-reverse; justify-content: space-between; padding: 6px 10px; overflow: hidden; }
 .zone { display: grid; grid-template-columns: 32px 1fr auto; gap: 8px; align-items: center; padding: 2px 0; position: relative; cursor: pointer; }

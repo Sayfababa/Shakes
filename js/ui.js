@@ -865,7 +865,8 @@ export function viewAct(a) {
     return `<div class="zone ${done ? 'done' : ''} ${cur ? 'cur' : ''} ${fog ? 'fog' : ''} ${el ? 'elite' : ''} ${boss ? 'boss' : ''}" ${fog ? '' : `data-action="zone" data-a="${a.id}" data-z="${z}"`}>
       <span class="dot">${boss || cur ? monsterArt(boss ? a.boss.glyph : MONSTERS.find(m => m.name === actZoneMob(a, z)).glyph) : done ? '<i class="ok"></i>' : ''}</span>
       <div><b>${name}</b><small>${sub}</small></div><span class="r">${cur ? pcT(actChance(a, z)) : lootDots(z, el, boss)}</span></div>`; };
-  return `<div class="col actv"><section class="panel ahead"><h2>Akt ${a.n} · ${l.name}</h2><small class="lore">${actDone(a) ? a.outro : p >= ACT.zones ? `„${a.boss.name.split(',')[0]}: ${a.say}“` : a.intro}</small></section>
+  // Ortsbild als Hintergrund des Kopfes: kostet keine Hoehe, und auf dem SE ist keine uebrig.
+  return `<div class="col actv"><section class="panel ahead pic"><i class="bg" style="background-image:url(assets/places/${l.id}.webp)"></i><h2>Akt ${a.n} · ${l.name}</h2><small class="lore">${actDone(a) ? a.outro : p >= ACT.zones ? `„${a.boss.name.split(',')[0]}: ${a.say}“` : a.intro}</small></section>
     <section class="panel path">${Array.from({ length: ACT.zones + 1 }, (_, z) => row(z)).join('')}</section>
     <div class="btns two"><button data-action="go" data-v="trips">Zurück</button>${actDone(a) ? `<button disabled>Akt geschafft</button>` : `<button class="red" data-action="zone" data-a="${a.id}" data-z="${nz}">Weiter · ${nz >= ACT.zones ? 'Boss' : a.zones[nz]}</button>`}</div></div>`;
 }
