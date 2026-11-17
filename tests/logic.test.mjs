@@ -469,7 +469,9 @@ test('Krit-Schaden steckt im Kampf: höherer Multiplikator → mehr Schaden pro 
 test('Eichung: jeder Prozent-Bonus der Stufe III liegt nah am Hauptattribut (Stufe 20)', async () => {
   const { execFileSync } = await import('node:child_process');
   const out = execFileSync('node', ['tests/calib.mjs'], { encoding: 'utf8' });
-  for (const k of ['critc', 'dmgp', 'spellp', 'penp', 'leechp', 'lifep', 'blockp', 'evadep', 'haste', 'sk_*']) {
+  // Alle elf Prozent-Boni. critd fehlte hier lange – deshalb konnte Krit-Schaden auf ein Drittel
+  // seines Werts absacken, ohne dass der Testlauf etwas merkte. Neuer pct-Bonus → hier eintragen.
+  for (const k of ['critc', 'critd', 'dmgp', 'spellp', 'penp', 'leechp', 'lifep', 'blockp', 'evadep', 'thornsp', 'haste', 'sk_*']) {
     const row = out.split('\n').find(l => l.startsWith(k)); assert.ok(row, k);
     const v20 = parseFloat(row.trim().split(/\s+/).slice(-3)[0]);   // Spalte St.20
     assert.ok(v20 > 0.7 && v20 < 1.4, `${k}: ${v20} weicht zu weit vom Hauptattribut ab`);
