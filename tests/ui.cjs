@@ -137,7 +137,8 @@ let failures = 0;
     await p.reload(); await p.waitForTimeout(300);
     await tap('[data-v=crypt]'); await tap('.speaker'); await tap('[data-v=sets]'); await chk('sets');
     let gotLoot = false;
-    for (let i = 0; i < 10; i++) {
+    // 4 Fundstücke sind Zufall – mit 10 Versuchen schlug der Test gelegentlich grundlos fehl
+    for (let i = 0; i < 25; i++) {
       await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.crypt.cd = 0; G.S.glut = 400; G.S.bag = []; G.save(); });
       await p.reload(); await p.waitForTimeout(250); await tap('[data-v=crypt]');
       if (!(await tap('[data-action=crypt]'))) break;

@@ -541,9 +541,11 @@ export const EFFECT_NAMES = { dmgPct: 'Schaden', hpPct: 'Leben', armorPct: 'Rüs
 // Drei Zweige, von unten nach oben: kleine Knoten, dazwischen zwei Notable (ändern eine Regel),
 // oben ein Schlüsselstein, der etwas Großes gibt und etwas wegnimmt. Zwei Brücken verbinden
 // benachbarte Zweige: man erreicht den Schlüsselstein des Nachbarn, zahlt den Weg aber mit Punkten.
-// Gemessen (tests/tree.mjs): reine Ausweich-Knoten sind für die Assassine wirkungslos – neun magische
-// Teile füllen die Grenze (CAPS.evade 0,5) schon allein. Ausweichen steht hier deshalb nur dort, wo es
-// die Grenze ANHEBT (Verwischt, Schattenform); die kleinen Knoten geben Leben und Schaden.
+// Zur Ausweich-Grenze: zwei Teile mit hohem „Ausweichen“ (gemessen 15 % + 32 %) setzen einen Helden
+// schon auf CAPS.evade (0,5) – dann bringt jeder weitere Punkt null. Im Mittel über mehrere
+// Ausrüstungswürfe steht er aber bei ~0,09, und Ausweichen trägt deutlich. Darum beides: kleine
+// Ausweich-Knoten UND zwei Knoten, die die Grenze anheben (Verwischt, Schattenform) – die machen
+// genau die Ausrüstung wertvoll, die sonst am Deckel verpufft.
 // Knappheit ist Absicht: 41 Ränge gegen ~24 Punkte (der Bot beendet die Geschichte auf Stufe 24),
 // also rund 60 % erreichbar. Ein Schlüsselstein kostet 10 Punkte in seiner Spalte – zwei davon sind fast alles.
 // Eine Klasse ohne Eintrag hier benutzt weiter TALENTS.
@@ -557,15 +559,15 @@ export const TREE = {
         N('ak3', 'Ätzend', 3, { pen: 0.05 }, 'Zersetzt Rüstung.'),
         N('ak4', 'Todesstoß', 1, { execute: 0.35, execHp: 0.12 }, 'Gegen Sterbende +35 % Schaden – und der Henker schlägt schon bei 42 % Leben zu.', 'nt'),
         N('ak5', 'Schnitt', 2, { dmgPct: 0.05 }, 'Mehr Schaden.'),
-        N('ak6', 'Ausbluten', 1, { hemorrhage: 1 }, 'Jeder Treffer lässt bluten – 30 % des Schadens plus dein Bluten-Bonus. Dafür triffst du nie mehr kritisch.', 'key'),
+        N('ak6', 'Ausbluten', 1, { hemorrhage: 1 }, 'Jeder Treffer lässt bluten – 40 % des Schadens plus dein Bluten-Bonus. Dafür triffst du nie mehr kritisch.', 'key'),
       ] },
       { name: 'Schatten', nodes: [
-        N('as1', 'Nebelschritt', 3, { hpPct: 0.05 }, 'Du gibst weniger Angriffsfläche.'),
+        N('as1', 'Nebelschritt', 3, { evade: 0.045 }, 'Ausweichen.'),
         N('as2', 'Verwischt', 1, { evadeCap: 0.08, evade: 0.05, first: 1 }, 'Deine Ausweich-Grenze steigt von 50 % auf 58 % – erst damit zählt dein Ausweichen aus der Ausrüstung. Und du schlägst zuerst zu.', 'nt'),
         N('as3', 'Flinkheit', 3, { hpPct: 0.06 }, 'Mehr Leben.'),
         N('as4', 'Zweiter Atem', 1, { secondWind: 0.25 }, 'Heilt dich einmal, wenn du unter 30 % fällst.', 'nt'),
         N('as5', 'Hinterhalt', 2, { dmgPct: 0.05 }, 'Aus dem Dunkel trifft es härter.'),
-        N('as6', 'Schattenform', 1, { evadeCap: 0.2, evade: 0.1, hpPct: -0.18 }, 'Deine Ausweich-Grenze steigt von 50 % auf 70 % – erst jetzt zahlt sich jeder Punkt Ausweichen aus. Dafür bist du nur noch ein Hauch von einem Körper.', 'key'),
+        N('as6', 'Schattenform', 1, { evade: 0.3, evadeCap: 0.2, hpPct: -0.15 }, 'Du weichst viel öfter aus, und deine Grenze steigt von 50 % auf 70 % – erst damit kommt alles an. Dafür bist du nur noch ein Hauch von einem Körper.', 'key'),
       ] },
       { name: 'Gift', nodes: [
         N('ag1', 'Toxin', 3, { crit: 0.024 }, 'Krit-Chance.'),

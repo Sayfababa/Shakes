@@ -177,7 +177,7 @@ export function fight(A, B) {
       t += ` Die Rüstung splittert (${y.armor}).`; ev.status = 'Rüstung bricht'; }
     if (crit && x.siphon) { const h = healSelf(x, Math.round(x.hp * x.siphon)); if (h) { t += ` +${h} Leben.`; ev.heal = (ev.heal || 0) + h; } }
     // Bluten: sonst nur bei Krit, mit Ausbluten bei jedem Treffer und mit 20 % Grundstärke obendrauf
-    const bl = x.hemorrhage ? 0.3 + (x.bleed || 0) : (crit ? x.bleed || 0 : 0);
+    const bl = x.hemorrhage ? 0.4 + (x.bleed || 0) : (crit ? x.bleed || 0 : 0);
     if (bl && !(y.cureN > 0)) y.bleedDmg = Math.max(y.bleedDmg || 0, Math.round(d * bl));
     if (x.poison && !(y.cureN > 0)) y.poisonDmg = Math.min(Math.round(y.hp * 0.08), (y.poisonDmg || 0) + Math.max(1, Math.round(d * x.poison)));
     if (x.toll && (x.hits = (x.hits || 0) + 1) % 3 === 0) { if (stun(y, 1, x)) { t += ' Die Glocke dröhnt!'; ev.stun = true; } else t += ` ${y.name} widersteht der Glocke.`; }
