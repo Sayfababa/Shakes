@@ -96,7 +96,7 @@ export function fight(A, B) {
     const m = s.m || {}, amp = (x.amp || 1) * (s.boost || 1);
     const red = 1 - Math.min(0.6, y.armor / (y.armor + 20 + x.lvl * 8)) * (1 - Math.min(0.9, x.pen || 0)) * (1 - Math.min(1, m.pierce || 0));
     const dmgKind = !['heal', 'shield', 'buff'].includes(s.kind);
-    if (dmgKind && chance(Math.max(0, Math.min(0.5, y.dex / (y.dex + x.dex * 3 + 40) + (y.evade || 0)) - (x.acc || 0)))) return say(x.side, `${x.name} wirkt ${s.name} – ${y.name} weicht aus.`, { spell: s.name, sid: s.id, miss: 'Ausgewichen' });
+    if (dmgKind && chance(Math.max(0, Math.min(0.5 + (y.evadeCap || 0), y.dex / (y.dex + x.dex * 3 + 40) + (y.evade || 0)) - (x.acc || 0)))) return say(x.side, `${x.name} wirkt ${s.name} – ${y.name} weicht aus.`, { spell: s.name, sid: s.id, miss: 'Ausgewichen' });
     let t = `${x.name} wirkt ${s.name}`, d = 0, anyCrit = false, extra = '';
     // Ein Zauber-Treffer läuft durch dieselben Werte wie ein Hieb (Henker, Krit, Lebensraub, Bluten, Gift, Glocke, Dornen)
     const hits = [];
@@ -163,7 +163,8 @@ export function fight(A, B) {
     if (x.vengeance) d *= 1 + x.vengeance * (1 - Math.max(0, x.cur) / x.hp);   // Vergeltung: je weniger eigenes Leben, desto härter
     if (x.weakN > 0) d *= 1 - x.weak;                  // geschwächt: macht weniger Schaden
     if (y.vulnN > 0) d *= 1 + y.vuln;                  // verwundbar: nimmt mehr Schaden
-    const crit = o.force || chance(Math.min(0.6 + (o.crit || 0), CFG.critBase + x.lck / (x.lck + 100 + y.lvl * 5) + (x.crit || 0) + (o.crit || 0)) - (y.critRes || 0));
+    // Ausbluten (Schlüsselstein): nie ein kritischer Treffer – dafür blutet jeder Hieb (siehe onHit)
+    const crit = x.hemorrhage ? false : (o.force || chance(Math.min(0.6 + (o.crit || 0), CFG.critBase + x.lck / (x.lck + 100 + y.lvl * 5) + (x.crit || 0) + (o.crit || 0)) - (y.critRes || 0)));
     if (crit) d *= x.critMult || 2;
     return { d: Math.max(1, Math.round(d)), crit };
   }
@@ -175,7 +176,9 @@ export function fight(A, B) {
     if (crit && x.shred) { const a0 = y.armor0 ??= y.armor; y.armor = Math.max(Math.round(a0 * 0.5), Math.round(y.armor * (1 - x.shred)));
       t += ` Die Rüstung splittert (${y.armor}).`; ev.status = 'Rüstung bricht'; }
     if (crit && x.siphon) { const h = healSelf(x, Math.round(x.hp * x.siphon)); if (h) { t += ` +${h} Leben.`; ev.heal = (ev.heal || 0) + h; } }
-    if (crit && x.bleed && !(y.cureN > 0)) y.bleedDmg = Math.max(y.bleedDmg || 0, Math.round(d * x.bleed));
+    // Bluten: sonst nur bei Krit, mit Ausbluten bei jedem Treffer und mit 20 % Grundstärke obendrauf
+    const bl = x.hemorrhage ? 0.3 + (x.bleed || 0) : (crit ? x.bleed || 0 : 0);
+    if (bl && !(y.cureN > 0)) y.bleedDmg = Math.max(y.bleedDmg || 0, Math.round(d * bl));
     if (x.poison && !(y.cureN > 0)) y.poisonDmg = Math.min(Math.round(y.hp * 0.08), (y.poisonDmg || 0) + Math.max(1, Math.round(d * x.poison)));
     if (x.toll && (x.hits = (x.hits || 0) + 1) % 3 === 0) { if (stun(y, 1, x)) { t += ' Die Glocke dröhnt!'; ev.stun = true; } else t += ` ${y.name} widersteht der Glocke.`; }
     if (y.thorns && y.cur > 0) { const r = Math.round(d * y.thorns); hurt(x, r); if (r) { t += ` Dornen: ${r}.`; ev.thorns = (ev.thorns || 0) + r; } }
@@ -183,7 +186,8 @@ export function fight(A, B) {
   }
 
   function strike(x, y) {
-    const evade = Math.max(0, Math.min(0.5, y.dex / (y.dex + x.dex * 3 + 40) + (y.evade || 0)) - (x.acc || 0));
+    // Schattenform hebt die Ausweich-Grenze (sonst stapelt der Schatten-Zweig in einen Deckel)
+    const evade = Math.max(0, Math.min(0.5 + (y.evadeCap || 0), y.dex / (y.dex + x.dex * 3 + 40) + (y.evade || 0)) - (x.acc || 0));
     if (chance(evade)) return say(x.side, `${y.name} weicht aus.`, { miss: 'Ausgewichen' });
     if (y.block && chance(Math.min(0.5, y.block))) {
       if (y.bulwark) { const sh = Math.round(y.hp * y.bulwark); y.shield = (y.shield || 0) + sh; ev.shield = sh; }   // Bollwerk: Blocken baut einen Schild auf

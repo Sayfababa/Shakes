@@ -10,6 +10,7 @@ pots() { for c in barbarian paladin assassin huntress sorceress witch; do node t
   grep -h '^!!' "$T"/pot.*; n=$(grep -l 'im Rahmen' "$T"/pot.* | wc -l); echo "Tränke im Rahmen: $n/6 Klassen"; [ "$n" -eq 6 ]; }
 acts() { node tests/acts.mjs all 3 --check > "$T/acts.full"; rc=$?; cat "$T/acts.full"; return $rc; }
 sets() { node tests/sets.mjs all all 400 --check > "$T/sets.full"; rc=$?; grep -E '^!!|Rahmen' "$T/sets.full"; return $rc; }
+tree() { node tests/tree.mjs all all 300 --check > "$T/tree.full"; rc=$?; grep -E '^!!|Rahmen' "$T/tree.full"; return $rc; }
 uniq() { node tests/uniques.mjs all all 300 --check > "$T/uniq.full"; rc=$?; grep -E '^!!|Rahmen' "$T/uniq.full"; return $rc; }
 desc() { node tests/descent.mjs all 10 120 --check > "$T/desc.full"; rc=$?; grep -E '⚠|Stufe 10' "$T/desc.full"; return $rc; }
 bot() { for c in barbarian paladin assassin huntress sorceress witch; do node tests/bot.mjs $c 3 1 | grep -E "Kämpfe" | sed "s/^/$c: /" & done; wait; }
@@ -17,7 +18,7 @@ bot() { for c in barbarian paladin assassin huntress sorceress witch; do node te
 if [ "$1" = "quick" ]; then
   set -- logic ui trader prep
 else
-  set -- logic bot fuzz ways potions descent acts sets uniques ui trader prep uifuzz
+  set -- logic bot fuzz ways potions descent acts sets uniques tree ui trader prep uifuzz
 fi
 for t in "$@"; do
   case $t in
@@ -33,6 +34,7 @@ for t in "$@"; do
     acts) acts ;;
     sets) sets ;;
     uniques) uniq ;;
+    tree) tree ;;
     uifuzz) node tests/uifuzz.cjs 120 ;;
   esac > "$T/$t.out" 2>&1 &
   echo $! > "$T/$t.pid"

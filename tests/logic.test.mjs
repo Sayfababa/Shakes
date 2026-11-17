@@ -871,3 +871,68 @@ test('Neue Einzigartig-Mechaniken wirken im Kampf', async () => {
   assert.ok(G.power() < mitRegen, 'Pakt kostet keine Kampfkraft');
   S.trophies.length = 0;
 });
+
+test('Das Brett: Wege, Knappheit und Migration', async () => {
+  const D = await import('../js/data.js');
+  for (const [cls, T] of Object.entries(D.TREE)) {
+    assert.ok(D.CLASSES[cls], cls + ' ist keine Klasse');
+    const ids = new Set();
+    for (const c of T.cols) { assert.equal(c.nodes.length, T.cols[0].nodes.length, 'Spalten müssen gleich hoch sein');
+      for (const n of c.nodes) { assert.ok(!ids.has(n.id), 'doppelte Knoten-ID ' + n.id); ids.add(n.id);
+        assert.ok(n.max >= 1 && n.text && n.name, n.id + ' unvollständig');
+        for (const k of Object.keys(n.eff)) assert.ok(D.EFFECT_NAMES[k], `${n.id}: „${k}“ ist kein Effekt-Schlüssel – wirkt nicht`); } }
+    for (const b of T.bridges || []) { assert.ok(!ids.has(b.id), 'doppelte ID ' + b.id); ids.add(b.id);
+      assert.ok(b.row >= 1, 'eine Brücke darf nicht in der untersten Reihe sitzen');
+      assert.ok(b.a !== b.b && T.cols[b.a] && T.cols[b.b], b.id + ': ungültige Spalten');
+      for (const k of Object.keys(b.eff)) assert.ok(D.EFFECT_NAMES[k], `${b.id}: „${k}“ ist kein Effekt-Schlüssel`); }
+    // Knappheit: ein Held am Ende der Geschichte (Stufe ~24) darf das Brett nicht füllen
+    const S = fresh(cls); S.lvl = 24;
+    assert.ok(G.talentPointsTotal() < G.treeRanks(cls) * 0.75,
+      `${cls}: ${G.talentPointsTotal()} Punkte auf ${G.treeRanks(cls)} Ränge – zu wenig Knappheit`);
+  }
+  // Wege: unten offen, darüber erst wenn der Knoten darunter voll ist
+  const S = fresh('assassin'); S.lvl = 30; S.tal = {};
+  assert.ok(G.nodeState(0, 0).open && !G.nodeState(0, 1).open, 'Reihe 1 darf nicht offen sein');
+  assert.ok(!G.learnNode(0, 1), 'gesperrter Knoten ließ sich setzen');
+  const n0 = D.TREE.assassin.cols[0].nodes[0];
+  for (let i = 0; i < n0.max; i++) assert.ok(G.learnNode(0, 0));
+  assert.ok(!G.learnNode(0, 0), 'über den Höchstrang hinaus gesetzt');
+  assert.ok(G.nodeState(0, 1).open, 'voller Knoten öffnet den darüber nicht');
+  // Brücke: öffnet sich erst, wenn eine Seite voll ist – und gilt dann als Vorgänger für beide Spalten
+  const b = D.TREE.assassin.bridges[0], bi = 0;
+  S.tal = {}; assert.ok(!G.bridgeState(bi).open, 'Brücke war ohne Vorarbeit offen');
+  const below = D.TREE.assassin.cols[b.a].nodes.slice(0, b.row);
+  for (const n of below) S.tal[n.id] = n.max;
+  assert.ok(G.bridgeState(bi).open, 'Brücke öffnet sich nicht');
+  assert.ok(!G.nodeState(b.b, b.row).open, 'Nachbarspalte war schon ohne volle Brücke offen');
+  S.tal[b.id] = b.max;
+  assert.ok(G.nodeState(b.b, b.row).open, 'volle Brücke öffnet die Nachbarspalte nicht');
+  // Punkte sind knapp: ohne freie Punkte geht nichts mehr
+  S.lvl = 1; assert.ok(!G.nodeState(0, 0).can, 'ohne Punkte ließ sich setzen');
+  // Migration v17 -> v18 gibt Talentpunkte zurück, weil die alten Knoten-IDs im Brett fehlen
+  fresh('assassin'); const d = JSON.parse(JSON.stringify(G.S)); d.v = 17; d.tal = { a1: 5, a4: 3 };
+  localStorage.setItem('aschenkrone_v1', JSON.stringify(d));
+  const sig = await import('../js/state.js'); G.load();
+  assert.deepEqual(G.S.tal, {}, 'alte Talentpunkte wurden nicht zurückgegeben');
+  assert.equal(G.S.v, G.SAVE_VERSION);
+});
+
+test('Ausbluten: blutet bei jedem Treffer und schaltet Krits ab', async () => {
+  const { fight } = await import('../js/combat.js');
+  const held = { name: 'A', str: 20, dex: 20, int: 20, con: 20, lck: 80, main: 'str', lvl: 10, armor: 10, dmg: [10, 14], hp: 999999, crit: 0.5 };
+  const puppe = { ...held, name: 'B', dmg: [1, 1], hp: 999999, armor: 0, crit: 0 };
+  const ohne = fight({ ...held }, { ...puppe });
+  assert.ok(ohne.log.some(l => l.crit), 'ohne Ausbluten sollte es Krits geben');
+  const mit = fight({ ...held, hemorrhage: 1 }, { ...puppe });
+  assert.ok(!mit.log.some(l => l.who === 'a' && l.crit), 'Ausbluten trifft trotzdem kritisch');
+  assert.ok(mit.log.some(l => l.tk === 'bleed'), 'Ausbluten lässt nicht bluten');
+  // Ausweich-Grenze: ohne evadeCap bei 50 %, mit darüber
+  const flink = { ...held, dex: 400, hp: 999999 }, schlaeger = { ...puppe, dex: 10, dmg: [5, 5] };
+  const quote = e => { let aus = 0, tr = 0;
+    for (let i = 0; i < 60; i++) for (const l of fight({ ...flink, ...e }, { ...schlaeger }).log) {
+      if (l.who !== 'b') continue; if (l.miss) aus++; else if (l.dmg) tr++; }
+    return aus / (aus + tr); };
+  const q0 = quote({}), q1 = quote({ evadeCap: 0.2 });
+  assert.ok(q0 <= 0.55, `Ausweichen sollte bei 50 % gedeckelt sein, war ${(q0 * 100).toFixed(0)} %`);
+  assert.ok(q1 > q0 + 0.08, `evadeCap hebt die Grenze nicht (${(q0 * 100).toFixed(0)} % → ${(q1 * 100).toFixed(0)} %)`);
+});

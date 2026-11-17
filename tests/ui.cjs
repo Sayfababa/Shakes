@@ -51,6 +51,17 @@ let failures = 0;
     await tap('[data-v=crypt]'); await chk('wanderaway'); await tap('[data-v=trips]'); await tap('[data-action=wclaim]'); await chk('wanderres'); await tap('[data-action=wok]');
     await tap('.act[data-action=act]'); await chk('actboss'); await tap('.zone.boss'); await chk('zoneboss'); await tap('.pback'); await tap('.zone.done'); await chk('zonereplay');
     for (const v of ['trips', 'hero', 'stats', 'talents', 'spells', 'crypt', 'forge', 'alch']) { await tap('[data-v=hero]'); await tap(`[data-v=${v}]`); await chk(v); }
+    // Das Brett (Klassen mit TREE): voll gesetzte Spalte, angetippter Schlüsselstein – der höchste Fall
+    await p.evaluate(async () => { const G = await import('./js/state.js'), D = await import('./js/data.js');
+      if (!D.TREE[G.S.cls]) { G.S.cls = 'assassin'; }
+      const T = D.TREE[G.S.cls]; G.S.lvl = 30; G.S.tal = {};
+      T.cols[0].nodes.slice(0, -1).forEach(n => G.S.tal[n.id] = n.max); G.save(); });
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=hero]'); await tap('[data-v=talents]');
+    if (await p.$('.tree2')) { await chk('tree');
+      if (!(await tap('.nd.key'))) { failures++; console.log(`FEHLER ${tag}: Schlüsselstein nicht antippbar`); }
+      await chk('treekey');
+      if (!(await p.$('.tdet .row button'))) { failures++; console.log(`FEHLER ${tag}: Schlüsselstein ohne Knopf`); }
+      await tap('.nd.br'); await chk('treebridge'); }
     await tap('[data-v=crypt]'); await tap('.ctabs [data-v=arena]'); await chk('arena'); await tap('.riv'); await chk('pitprep');
     // Vargos Laden mit allen verdienten Titeln (der schlimmste Fall für die Höhe). Aus der Vorbereitung
     // führt kein Reiter zurück, darum neu laden statt zu tippen – sonst zeigte „pitshop“ die Vorbereitung.

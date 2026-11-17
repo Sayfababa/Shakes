@@ -131,6 +131,10 @@ export const UNIQUES = [
   { name: 'Siegel des Kronenlosen', slot: 'ring', mods: { str: 3, dex: 3 }, eff: { pen: 0.3, crit: 0.05 }, lore: 'Die Krone fehlt. Die Macht nicht.' },
   { name: 'Gürtel der Büßer', slot: 'belt', mods: { con: 1, armor: 3 }, eff: { hpPct: 0.15 }, lore: 'Jeder Knoten eine Sünde.' },
   // Zweite Welle: jedes Stück ändert eine Regel oder handelt etwas ein, statt nur Zahlen zu erhöhen
+  // Drei Stücke, die ohne den passenden Zweig schwach sind und mit ihm tragen (Synergie statt Zahlen)
+  { name: 'Schartige Schneide', slot: 'weapon', kind: 'dagger', mods: { dex: 3, str: 2 }, eff: { bleed: 0.4, dmgPct: -0.15 }, lore: 'Stumpf geworden an zu vielen Rippen. Sie reißt, statt zu schneiden.' },
+  { name: 'Mantel der Leere', slot: 'chest', mods: { dex: 4, con: 2 }, eff: { evade: 0.12, thorns: 0.3 }, lore: 'Wer danach greift, greift ins Dunkel – und blutet dafür.' },
+  { name: 'Lotusfläschchen', slot: 'offhand', mods: { int: 3, lck: 3 }, eff: { poison: 0.18, siphon: 0.05 }, lore: 'Ein Tropfen auf die Klinge. Mehr braucht die Geduld nicht.' },
   { name: 'Scherbenschneide', slot: 'weapon', kind: 'dagger', mods: { dex: 3, lck: 3 }, eff: { dmgPct: 0.45, hpPct: -0.25 }, lore: 'Scharf genug für zwei Leben. Deins zählt mit.' },
   { name: 'Wut der Witwe', slot: 'weapon', kind: 'axe', mods: { str: 2, dmg: 3 }, eff: { vengeance: 0.8 }, lore: 'Sie schlug zu, als nichts mehr zu verlieren war.' },
   { name: 'Eiferklinge', slot: 'weapon', kind: 'sword', mods: { str: 3, dex: 3 }, eff: { zeal: 0.6 }, lore: 'Drei Schläge für den Herrn. Der dritte zählt doppelt.' },
@@ -530,8 +534,55 @@ export const EFFECT_NAMES = { dmgPct: 'Schaden', hpPct: 'Leben', armorPct: 'Rüs
   vengeance: 'Mehr Schaden, je weniger Leben', zeal: 'Jeder dritte Hieb trifft zweimal', siphon: 'Krit heilt dich',
   bulwark: 'Blocken gibt Schild', shred: 'Krit bricht Rüstung', secondWind: 'Heilt einmal, wenn es eng wird', lastBreath: 'Überlebt einen tödlichen Treffer',
   nohealSelf: 'Du kannst dich nicht heilen',
+  hemorrhage: 'Bluten bei jedem Treffer – dafür nie kritisch', evadeCap: 'Ausweich-Grenze',
   tollback: 'Betäubung prallt zurück', firstEcho: 'Erster Zauber wirkt zweimal' };
 
+// --- Das Brett (neuer Talentbaum) ---
+// Drei Zweige, von unten nach oben: kleine Knoten, dazwischen zwei Notable (ändern eine Regel),
+// oben ein Schlüsselstein, der etwas Großes gibt und etwas wegnimmt. Zwei Brücken verbinden
+// benachbarte Zweige: man erreicht den Schlüsselstein des Nachbarn, zahlt den Weg aber mit Punkten.
+// Gemessen (tests/tree.mjs): reine Ausweich-Knoten sind für die Assassine wirkungslos – neun magische
+// Teile füllen die Grenze (CAPS.evade 0,5) schon allein. Ausweichen steht hier deshalb nur dort, wo es
+// die Grenze ANHEBT (Verwischt, Schattenform); die kleinen Knoten geben Leben und Schaden.
+// Knappheit ist Absicht: 41 Ränge gegen ~24 Punkte (der Bot beendet die Geschichte auf Stufe 24),
+// also rund 60 % erreichbar. Ein Schlüsselstein kostet 10 Punkte in seiner Spalte – zwei davon sind fast alles.
+// Eine Klasse ohne Eintrag hier benutzt weiter TALENTS.
+const N = (id, name, max, eff, text, kind = '') => ({ id, name, max, eff, text, kind });
+export const TREE = {
+  assassin: {
+    cols: [
+      { name: 'Klinge', nodes: [
+        N('ak1', 'Schärfe', 3, { dmgPct: 0.065 }, 'Mehr Schaden.'),
+        N('ak2', 'Offene Wunden', 1, { bleed: 0.25 }, 'Kritische Treffer lassen tiefe Wunden.', 'nt'),
+        N('ak3', 'Ätzend', 3, { pen: 0.05 }, 'Zersetzt Rüstung.'),
+        N('ak4', 'Todesstoß', 1, { execute: 0.35, execHp: 0.12 }, 'Gegen Sterbende +35 % Schaden – und der Henker schlägt schon bei 42 % Leben zu.', 'nt'),
+        N('ak5', 'Schnitt', 2, { dmgPct: 0.05 }, 'Mehr Schaden.'),
+        N('ak6', 'Ausbluten', 1, { hemorrhage: 1 }, 'Jeder Treffer lässt bluten – 30 % des Schadens plus dein Bluten-Bonus. Dafür triffst du nie mehr kritisch.', 'key'),
+      ] },
+      { name: 'Schatten', nodes: [
+        N('as1', 'Nebelschritt', 3, { hpPct: 0.05 }, 'Du gibst weniger Angriffsfläche.'),
+        N('as2', 'Verwischt', 1, { evadeCap: 0.08, evade: 0.05, first: 1 }, 'Deine Ausweich-Grenze steigt von 50 % auf 58 % – erst damit zählt dein Ausweichen aus der Ausrüstung. Und du schlägst zuerst zu.', 'nt'),
+        N('as3', 'Flinkheit', 3, { hpPct: 0.06 }, 'Mehr Leben.'),
+        N('as4', 'Zweiter Atem', 1, { secondWind: 0.25 }, 'Heilt dich einmal, wenn du unter 30 % fällst.', 'nt'),
+        N('as5', 'Hinterhalt', 2, { dmgPct: 0.05 }, 'Aus dem Dunkel trifft es härter.'),
+        N('as6', 'Schattenform', 1, { evadeCap: 0.2, evade: 0.1, hpPct: -0.18 }, 'Deine Ausweich-Grenze steigt von 50 % auf 70 % – erst jetzt zahlt sich jeder Punkt Ausweichen aus. Dafür bist du nur noch ein Hauch von einem Körper.', 'key'),
+      ] },
+      { name: 'Gift', nodes: [
+        N('ag1', 'Toxin', 3, { crit: 0.024 }, 'Krit-Chance.'),
+        N('ag2', 'Ätzende Wunde', 1, { shred: 0.25 }, 'Kritische Treffer brechen Rüstung heraus.', 'nt'),
+        N('ag3', 'Zersetzung', 3, { pen: 0.047 }, 'Ignoriert Rüstung.'),
+        N('ag4', 'Aderlass', 1, { siphon: 0.06 }, 'Jeder Krit heilt dich.', 'nt'),
+        N('ag5', 'Lotusblatt', 2, { crit: 0.03 }, 'Krit-Chance.'),
+        N('ag6', 'Schwarzer Lotus', 1, { venom: 1, poison: 0.17, dmgPct: 0.2, armorPct: -0.25 }, 'Jeder Treffer vergiftet, und das Gift nährt dich. Dafür zerfrisst es auch deine Rüstung.', 'key'),
+      ] },
+    ],
+    // Brücken sitzen neben der Reihe, die sie öffnen. Voll ausgebaut gilt sie als Vorgänger für beide Seiten.
+    bridges: [
+      { id: 'ab1', name: 'Narbe des Schattens', a: 0, b: 1, row: 2, max: 4, eff: { dmgPct: 0.027, evade: 0.012 }, text: 'Verbindet Klinge und Schatten.' },
+      { id: 'ab2', name: 'Kalter Schweiß', a: 1, b: 2, row: 3, max: 4, eff: { hpPct: 0.027, crit: 0.012 }, text: 'Verbindet Schatten und Gift.' },
+    ],
+  },
+};
 // Talentbaum je Klasse: 3 Pfade × 3 Stufen. Stufe n braucht 1 Rang im Talent davor + Charakterstufe TIER_LVL[n].
 export const TIER_LVL = [2, 8, 16];
 const T = (id, name, max, eff, desc) => ({ id, name, max, eff, desc });

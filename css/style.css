@@ -1063,3 +1063,41 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 /* Tod des Gegners: sackt zusammen, kurzer Blutrand (vorher nur grau) */
 .fighter.dead .pwrap > .portrait { animation: slump .7s ease-in both; }
 @keyframes slump { 0% { translate: 0 0; rotate: 0deg; box-shadow: 0 0 0 2px var(--blood-hi), 0 0 18px var(--blood); } 100% { translate: 0 5px; rotate: -3deg; } }
+
+/* --- Das Brett (Talentbaum der Klassen mit TREE) --- */
+/* Drei Zweige von unten nach oben; die Reihen teilen sich die freie Höhe, damit es auf dem SE passt. */
+.treev { height: 100%; }
+.thead { display: flex; align-items: baseline; gap: 8px; padding: 6px 9px; }
+.thead > b { font-family: 'Grenze Gotisch'; color: var(--gold-hi); font-size: 1.15rem; font-weight: 500; }
+.thead > span { font-family: 'Alegreya SC'; font-size: max(11px, .7rem); color: var(--dim); margin-right: auto; }
+.tcols { display: grid; grid-template-columns: 1fr 30px 1fr 30px 1fr; gap: 3px; padding: 0 6px; }
+.tcols i { font-family: 'Alegreya SC'; font-style: normal; font-size: max(11px, .66rem); color: var(--gold); text-align: center; }
+.tree2 { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 1fr 30px 1fr 30px 1fr;
+  grid-template-rows: repeat(var(--rows), 1fr); gap: 3px; padding: 5px 4px; }
+.tree2 .nd { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  background: #0a0908; box-shadow: inset 0 0 0 1px #2a2620, 0 0 0 1px #000; cursor: pointer; overflow: hidden; padding: 1px; }
+.tree2 .nd s { text-decoration: none; font-family: 'Grenze Gotisch'; font-size: max(11px, .8rem); color: #6b6052; line-height: 1.05; text-align: center; }
+.tree2 .nd em { font-style: normal; font-family: 'Alegreya SC'; font-size: max(11px, .6rem); color: var(--dim); line-height: 1; }
+.tree2 .nd.can s { color: #8d8172; }
+.tree2 .nd.has { background: #14100b; box-shadow: inset 0 0 0 1px #6e5a30, 0 0 0 1px #000; }
+.tree2 .nd.has s { color: var(--gold); } .tree2 .nd.has em { color: var(--text); }
+.tree2 .nd.lock { opacity: .45; }
+.tree2 .nd.nt { background: #130f0a; }
+.tree2 .nd.nt.has { background: #1b1409; box-shadow: inset 0 0 0 1px #8a6f33, 0 0 0 1px #000; }
+.tree2 .nd.key { background: #130a09; box-shadow: inset 0 0 0 1px #4a2420, 0 0 0 1px #000; }
+.tree2 .nd.key s { color: #a8564a; }
+.tree2 .nd.key.has { background: #1d0c0a; box-shadow: inset 0 0 0 1px #8a1c13, 0 0 0 1px #000; }
+.tree2 .nd.key.has s { color: #d8766a; }
+.tree2 .nd.sel { box-shadow: inset 0 0 0 2px var(--gold-hi), 0 0 0 1px #000; }
+/* Beschreibung unten: feste Höhe, sonst springt das Brett beim Antippen */
+.tdet { min-height: 92px; padding: 7px 9px; display: flex; flex-direction: column; gap: 3px; }
+.tdet h4 { margin: 0; font-family: 'Grenze Gotisch'; font-size: 1.1rem; color: var(--gold-hi); font-weight: 500; }
+.tdet h4.keyn { color: #d8766a; }
+.tdet h4 small { font-family: 'Alegreya SC'; font-size: max(11px, .7rem); color: var(--dim); margin-left: 6px; }
+.tdet p { margin: 0; font-size: max(11px, .84rem); color: var(--text); line-height: 1.25; }
+.tdet p.hint { font-family: 'Alegreya SC'; font-size: max(11px, .72rem); color: var(--dim); }
+.tdet p.dim2 { color: #6b6052; }
+.tdet p.cost { color: #c8705f; font-style: italic; }
+.tdet .row { display: flex; gap: 6px; margin-top: auto; }
+.tdet .row button { flex: 1; font-size: max(11px, .82rem); padding: 6px; }
+.tdet .row button.off { color: var(--dim); }

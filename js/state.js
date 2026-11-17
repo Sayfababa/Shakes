@@ -1,9 +1,9 @@
-import { SETS, SET, ACTS, ACT, CRYPT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, ALCH } from './data.js';
+import { TREE, SETS, SET, ACTS, ACT, CRYPT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, ALCH } from './data.js';
 import { affixPool, makeItem, itemValue, rollTier, affixValue, renameMagic, adj, fixName } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
-export const SAVE_VERSION = 17;
+export const SAVE_VERSION = 18;
 export let S = null; // aktueller Spielstand
 
 export const now = () => Date.now();
@@ -86,6 +86,10 @@ function migrate(d) {
         it.value = Math.max(1, Math.round(it.value / 1.3 ** it.up)); }
       delete it.up; }
     d.v = 17; }
+  if (d.v === 17) {   // Das Brett löst den alten Baum ab: Klassen mit TREE bekommen ihre Talentpunkte zurück,
+    // weil die alten Knoten-IDs dort nicht mehr vorkommen. Punkte zählt talentPoints() aus S.tal, also reicht Leeren.
+    if (TREE[d.cls]) d.tal = {};
+    d.v = 18; }
   d.name = cleanName(d.name);
   return d.v === SAVE_VERSION ? d : null;
 }
@@ -120,6 +124,30 @@ export function talentState(cls, branch, tier) {
   return { node, r, can: prev && lvlOk && r < node.max && talentPoints() > 0, locked: !prev || !lvlOk, needLvl: TIER_LVL[tier] };
 }
 export function learn(branch, tier) { const t = talentState(S.cls, branch, tier); if (t.can) S.tal[t.node.id] = t.r + 1; return t.can; }
+// --- Das Brett (neuer Talentbaum, Klassen mit Eintrag in TREE) ---
+// Ein Knoten ist offen, wenn der darunter voll ist – oder eine voll ausgebaute Brücke daneben endet.
+// Dadurch kann man in den Nachbarzweig wechseln, zahlt den Umweg aber mit Punkten.
+export const treeOf = (cls = S.cls) => TREE[cls] || null;
+export const nodeRank = (id, p = S) => p.tal?.[id] || 0;
+const nodeFull = (n, p = S) => nodeRank(n.id, p) >= n.max;
+export function bridgeState(bi, p = S) {
+  const T = treeOf(p.cls); const b = T?.bridges[bi]; if (!b) return null;
+  const r = nodeRank(b.id, p);
+  const open = nodeFull(T.cols[b.a].nodes[b.row - 1], p) || nodeFull(T.cols[b.b].nodes[b.row - 1], p);
+  return { b, r, full: r >= b.max, open, can: open && r < b.max && talentPoints() > 0 };
+}
+export function nodeState(col, row, p = S) {
+  const T = treeOf(p.cls); const n = T?.cols[col]?.nodes[row]; if (!n) return null;
+  const r = nodeRank(n.id, p);
+  const viaBridge = (T.bridges || []).some((b, i) => b.row === row && (b.a === col || b.b === col) && bridgeState(i, p)?.full);
+  const open = row === 0 || nodeFull(T.cols[col].nodes[row - 1], p) || viaBridge;
+  return { node: n, r, full: r >= n.max, open, can: open && r < n.max && talentPoints() > 0 };
+}
+export function learnNode(col, row) { const t = nodeState(col, row); if (!t?.can) return false; S.tal[t.node.id] = t.r + 1; return true; }
+export function learnBridge(bi) { const t = bridgeState(bi); if (!t?.can) return false; S.tal[t.b.id] = t.r + 1; return true; }
+export const treeRanks = (cls = S.cls) => { const T = treeOf(cls); if (!T) return 0;
+  return T.cols.reduce((a, c) => a + c.nodes.reduce((x, n) => x + n.max, 0), 0) + (T.bridges || []).reduce((a, b) => a + b.max, 0); };
+
 export function addAttr(k) { if (S.points > 0) { S.attrs[k]++; S.points--; return true; } return false; }
 export const respecCost = () => S.respecs === 0 ? 0 : S.lvl * CFG.respecPerLvl;
 export function respec() {
@@ -136,7 +164,10 @@ export const setsWorn = (p = S) => SETS.map(set => ({ set, n: setCount(set.id, p
 export function effects(p = S) {
   const e = { ...CLASSES[p.cls].passive };
   const add = (k, v) => e[k] = (e[k] || 0) + v;
-  for (const br of TALENTS[p.cls]) for (const n of br.nodes) { const r = p.tal?.[n.id] || 0; if (r) for (const [k, v] of Object.entries(n.eff)) add(k, v * r); }
+  const T = TREE[p.cls];   // Klassen mit Brett nutzen dieses, alle anderen weiter den alten Baum
+  if (T) { for (const c of T.cols) for (const n of c.nodes) { const r = p.tal?.[n.id] || 0; if (r) for (const [k, v] of Object.entries(n.eff)) add(k, v * r); }
+    for (const b of T.bridges || []) { const r = p.tal?.[b.id] || 0; if (r) for (const [k, v] of Object.entries(b.eff)) add(k, v * r); } }
+  else for (const br of TALENTS[p.cls]) for (const n of br.nodes) { const r = p.tal?.[n.id] || 0; if (r) for (const [k, v] of Object.entries(n.eff)) add(k, v * r); }
   for (const t of p.trophies || []) for (const [k, v] of Object.entries(t.eff)) add(k, v);
   for (const it of Object.values(p.equip || {})) if (it?.fx) for (const [k, v] of Object.entries(it.fx)) add(k, v);   // Sonderboni und Einzigartige
   for (const set of SETS) { const n = setCount(set.id, p);   // Grab-Sets: 2 Teile = Bonus, 3 Teile = Regeländerung
@@ -194,7 +225,7 @@ export function stats(p = S) {
     // Item-Prozente stapeln nur bis zur Obergrenze; was Klasse/Talente schon geben, wird nie gekürzt
     crit: cap(e.crit, P('critc'), CAPS.crit), critMult: cap(2 + (e.critDmg || 0), P('critd'), CAPS.critMult),
     pen: cap(e.pen, P('penp'), CAPS.pen), leech: cap(e.leech, P('leechp'), CAPS.leech),
-    evade: cap(e.evade, P('evadep'), CAPS.evade), block: cap(e.block, P('blockp'), CAPS.block), thorns: cap(e.thorns, P('thornsp'), CAPS.thorns),
+    evade: cap(e.evade, P('evadep'), CAPS.evade + (e.evadeCap || 0)), block: cap(e.block, P('blockp'), CAPS.block), thorns: cap(e.thorns, P('thornsp'), CAPS.thorns),
     haste: (e.haste || 0) + (st.haste || 0) / 100,
     armor: Math.round((st.armor + st.str * CFG.strArmor) * (1 + (e.armorPct || 0))),
     dmg: [Math.round((base[0] + st.dmgBonus) * dm), Math.round((base[1] + st.dmgBonus) * dm)],
@@ -218,9 +249,13 @@ export function power(A = stats()) {
   const L = A.lvl, en = 3 + L * 2.7, eArmor = L * 5, eDmg = ((2 + L * 1.7) + (5 + L * 3)) / 2 * (1 + en * 1.4 / CFG.mainDiv);
   const red = Math.min(0.6, eArmor / (eArmor + 20 + L * 8)) * (1 - Math.min(0.9, A.pen || 0));
   const hit = 1 - Math.min(0.5, en / (en + A.dex * 3 + 40));
-  const crit = Math.min(0.6, CFG.critBase + A.lck / (A.lck + 100 + L * 5) + (A.crit || 0));
+  const myEvade = Math.min(0.5 + (A.evadeCap || 0), A.dex / (A.dex + en * 3 + 40) + (A.evade || 0));   // eigenes Ausweichen inkl. angehobener Grenze
+  // Ausbluten: keine Krits mehr, dafür blutet jeder Treffer (unten in onHit eingerechnet)
+  const crit = A.hemorrhage ? 0 : Math.min(0.6, CFG.critBase + A.lck / (A.lck + 100 + L * 5) + (A.crit || 0));
   const strike = (A.dmg[0] + A.dmg[1]) / 2 * (1 + A[A.main] / CFG.mainDiv);
-  const onHit = (1 + crit * ((A.critMult || 2) - 1 + (A.bleed || 0))) * (1 + (A.execute || 0) * (0.2 + (A.execHp || 0)) + (A.poison || 0));   // gilt für Hieb und Zauber
+  // Bluten: sonst nur bei Krit, mit Ausbluten bei jedem Treffer (0,2 + eigener Bonus), dafür ohne Krit-Schaden
+  const bleedT = A.hemorrhage ? (0.3 + (A.bleed || 0)) * 2.2 : crit * (A.bleed || 0);
+  const onHit = (1 + crit * ((A.critMult || 2) - 1) + bleedT) * (1 + (A.execute || 0) * (0.2 + (A.execHp || 0)) + (A.poison || 0));   // gilt für Hieb und Zauber
   let dpt = strike * (1 - red) * hit * onHit * (1 + (A.rage || 0) * 0.3);
   // Einzigartige, die eine Regel ändern (grobe Schätzung; die echten Werte misst tests/uniques.mjs)
   dpt *= 1 + (A.vengeance || 0) * 0.35;        // Vergeltung: im Schnitt etwa ein Drittel Leben fehlt
@@ -269,7 +304,7 @@ export function power(A = stats()) {
   if (A.secondWind) heal += A.hp * A.secondWind * 0.1;
   if (A.nohealSelf) heal = 0;
   if (A.firstEcho) dpt *= 1.04;
-  const taken = eDmg * (1 - Math.min(0.6, A.armor / (A.armor + 20 + L * 8))) * (1 - Math.min(0.5, A.dex / (A.dex + en * 3 + 40) + (A.evade || 0))) * (1 - Math.min(0.5, A.block || 0)) * takenF;
+  const taken = eDmg * (1 - Math.min(0.6, A.armor / (A.armor + 20 + L * 8))) * (1 - myEvade) * (1 - Math.min(0.5, A.block || 0)) * takenF;
   dpt += taken * (A.thorns || 0);   // Dornen: Teil jedes erlittenen Treffers geht zurück
   const ehp = A.hp * (1 + (A.ward || 0)) * (A.lastBreath ? 1.12 : 1) / (taken * Math.max(0.3, 1 - heal * 0.6 / Math.max(1, taken))) * eDmg;   // Leben, umgerechnet in "wie viele Gegner-Hiebe halte ich aus"
   return Math.round(Math.sqrt(Math.max(1, dpt) * ehp) * 20);

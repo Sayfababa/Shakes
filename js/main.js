@@ -20,7 +20,7 @@ function render() {
   if (['crypt', 'prep'].includes(view) && S.crypt.cd && Date.now() >= S.crypt.cd) S.crypt.cd = 0;
   if (['arena', 'pitprep', 'pitshop'].includes(view) && S.pit.ts && Date.now() >= S.pit.ts) S.pit.ts = 0;
   const views = {
-    fight: () => UI.viewFight(F), trips: () => wanderRes ? UI.viewWander(wanderRes) : expRes ? UI.viewExpRes(expRes) : S.desc ? UI.viewDescAway('prophet') : UI.viewTrips(expAsk), stats: UI.viewStats, spells: UI.viewSpells, ways: () => UI.viewWays(waySel), talents: UI.viewTalents, crypt: () => S.wander && !S.desc ? UI.viewWanderAway('ilse') : S.exp ? UI.viewAway('ilse') : S.desc || descSt.res ? UI.viewDesc(descSt) : UI.viewCrypts(),
+    fight: () => UI.viewFight(F), trips: () => wanderRes ? UI.viewWander(wanderRes) : expRes ? UI.viewExpRes(expRes) : S.desc ? UI.viewDescAway('prophet') : UI.viewTrips(expAsk), stats: UI.viewStats, spells: UI.viewSpells, ways: () => UI.viewWays(waySel), talents: () => UI.viewTalents(talSel), crypt: () => S.wander && !S.desc ? UI.viewWanderAway('ilse') : S.exp ? UI.viewAway('ilse') : S.desc || descSt.res ? UI.viewDesc(descSt) : UI.viewCrypts(),
     desc: () => S.wander && !S.desc ? UI.viewWanderAway('ilse') : S.exp ? UI.viewAway('ilse') : UI.viewDesc(descSt),
     traders: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewTrader(trader),
     bounties: UI.viewBounties,
@@ -220,6 +220,7 @@ function combatFx(l) {
 }
 
 let waySel = null, sellSure = null;
+let talSel = null;   // angetippter Knoten im Talentbaum
 const precious = it => ['rare', 'legendary', 'set'].includes(it.rarity) || !!it.special || !!it.unique || !!it.set || !!it.runes?.length;
 const actions = {
   ways: d => { waySel = d.s; view = 'ways'; render(); },
@@ -234,6 +235,10 @@ const actions = {
   go: d => { view = d.v; turnin = null; expAsk = false; if (d.v === 'alch') alchBack = null; if (d.v === 'forge') { forgeRes = null; stopForge(); } if (d.v === 'npc') npc = d.n || npc; if (view !== 'fight') { F = null; clearTimeout(fightTimer); } render(); },
   attr: d => { G.addAttr(d.k); render(); },
   learn: d => { if (G.learn(+d.b, +d.t)) render(); },
+  // Das Brett: erst antippen (Beschreibung unten), dann setzen – wie beim Item-Fenster
+  tnode: d => { talSel = { c: +d.c, r: +d.r }; render(); },
+  tbridge: d => { talSel = { br: +d.i }; render(); },
+  tlearn: () => { const ok = talSel?.br != null ? G.learnBridge(talSel.br) : G.learnNode(talSel.c, talSel.r); if (ok) render(); },
   respec: () => { const c = G.respecCost(); ask(c ? `Für <b>${c} Gold</b> alle Attribute und Talente zurücksetzen?` : 'Attribute und Talente zurücksetzen?<small>Einmalig gratis.</small>', 'Läutern', () => { G.respec(); render(); }); },
   equip: d => { const p = G.power(); if (!G.equip(d.id)) note('Kein Platz im Beutel.'); render(); toast(p); },
   unequip: d => { const p = G.power(); G.unequip(d.s); render(); toast(p); },

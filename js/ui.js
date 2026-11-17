@@ -1,8 +1,8 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
-import { AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, BOUNTIES, SETS, SET } from './data.js';
+import { TREE, AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, BOUNTIES, SETS, SET } from './data.js';
 import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
 import { potion, beltSlots, brewCost, canBrew, potMax, unreadable } from './state.js';
-import { setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
+import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 // Name eines Item-Bonus: Attribute, Rüstung/Schaden, Prozent-Boni ("% Krit-Chance", "% Feuerball")
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
@@ -20,7 +20,7 @@ export const fmtN = n => n.toLocaleString('de-DE');
 export const itemGain = it => { if (!it?.slot || Object.values(S.equip).includes(it)) return null; const p = powerWith(it); return (p.then - p.now) / Math.max(1, p.now); };
 const gainTag = it => { const g = itemGain(it); return g > 0.01 ? `<i class="better" title="besser">▲</i>` : ''; };
 const pct = (a, b) => Math.max(0, Math.min(100, (a / b) * 100));
-const FLAGS = new Set(['first', 'toll', 'lastStand', 'tollback', 'firstEcho', 'venom', 'lastBreath', 'nohealSelf']);   // an/aus – keine Prozentzahl
+const FLAGS = new Set(['first', 'toll', 'lastStand', 'tollback', 'firstEcho', 'venom', 'lastBreath', 'nohealSelf', 'hemorrhage']);   // an/aus – keine Prozentzahl
 const effLine = e => Object.entries(e).map(([k, v]) => `${EFFECT_NAMES[k]}${FLAGS.has(k) ? '' : (v < 0 ? ' −' : ' +') + Math.abs(Math.round(v * 100)) + '%'}`).join(', ');
 
 // Gemalte Monster/Bosse in assets/monsters/<glyph>.jpg, sonst SVG-Silhouette
@@ -213,7 +213,8 @@ export function viewWays(sid) {
 }
 const GRADES_TXT = () => GRADES.map(g => `<div class="stat small"><span class="g-${g.id}">${g.name}</span><span>${g.min ? `≥ ${Math.round(g.min * 100)} % Leben` : 'sonst'} → ${g.bonus ? `+${Math.round(g.bonus * 100)} % Gold${g.id === 'dom' ? ', mehr Beute' : ''}` : 'kein Bonus'}</span></div>`).join('');
 
-export function viewTalents() {
+// Der alte Baum (Klassen ohne Eintrag in TREE)
+function viewTalentsOld() {
   const tp = talentPoints();
   return `<div class="col"><section class="panel"><h2>Talente <span class="h2r">${tp ? `<b class="hot">${tp}</b> Punkte` : 'keine Punkte'}</span><button class="tiny" data-action="go" data-v="hero">Zurück</button></h2></section>
     <div class="tree">${TALENTS[S.cls].map((br, bi) => `<section class="panel branch"><h3>${br.name}</h3>
@@ -222,6 +223,42 @@ export function viewTalents() {
           <div class="tn">${t.node.name}</div><div class="tr">${t.locked && S.lvl < t.needLvl ? `ab Stufe ${t.needLvl}` : `${t.r} / ${t.node.max}`}</div>
           <div class="te">${effLine(t.node.eff)}${t.node.max > 1 ? ' je Rang' : ''}</div></div>`; }).join('<div class="link"></div>')}
     </section>`).join('')}</div></div>`;
+}
+
+// Das Brett: drei Zweige von unten nach oben, zwei Brücken dazwischen, unten die Beschreibung
+// des angetippten Knotens. `sel` ist { c, r } für einen Knoten oder { br } für eine Brücke.
+export function viewTalents(sel = null) {
+  const T = TREE[S.cls]; if (!T) return viewTalentsOld();
+  const tp = talentPoints(), rows = T.cols[0].nodes.length, ranks = treeRanks(), spent = talentPointsSpent();
+  const cls = st => `${st.r ? 'has' : ''} ${st.open ? 'can' : 'lock'}`;
+  const cells = [];
+  T.cols.forEach((col, c) => col.nodes.forEach((n, r) => { const st = nodeState(c, r), on = sel?.c === c && sel?.r === r;
+    cells.push(`<div class="nd ${n.kind} ${cls(st)} ${on ? 'sel' : ''}" style="grid-area:${rows - r}/${c * 2 + 1}"
+      data-action="tnode" data-c="${c}" data-r="${r}"><s>${n.name}</s><em>${st.r}/${n.max}</em></div>`); }));
+  (T.bridges || []).forEach((b, i) => { const st = bridgeState(i), on = sel?.br === i;
+    cells.push(`<div class="nd br ${cls(st)} ${on ? 'sel' : ''}" style="grid-area:${rows - b.row}/${b.a * 2 + 2}"
+      data-action="tbridge" data-i="${i}"><s>&#8286;</s><em>${st.r}/${b.max}</em></div>`); });
+
+  // Beschreibung unten – feste Höhe, damit beim Antippen nichts springt
+  let det = `<p class="hint">Tippe einen Knoten an.</p><p class="hint dim2">Gold = gesetzt · hell = erreichbar · rot = Schlüsselstein</p>`;
+  if (sel?.br != null) { const st = bridgeState(sel.br), b = st.b;
+    det = `<h4>${b.name} <small>Brücke · ${st.r} / ${b.max}</small></h4><p>${effLine(b.eff)} je Rang.</p>
+      <p class="hint">${b.text} Voll ausgebaut öffnet sie beide Seiten.</p>
+      <div class="row">${st.can ? '<button data-action="tlearn">Rang setzen</button>' : `<button class="off">${st.open ? (tp ? 'voll' : 'keine Punkte') : 'noch gesperrt'}</button>`}</div>`; }
+  else if (sel) { const st = nodeState(sel.c, sel.r), n = st.node, key = n.kind === 'key';
+    const good = Object.fromEntries(Object.entries(n.eff).filter(([, v]) => v > 0)), bad = Object.fromEntries(Object.entries(n.eff).filter(([, v]) => v < 0));
+    det = `<h4 class="${key ? 'keyn' : ''}">${n.name} <small>${key ? 'Schlüsselstein' : n.kind === 'nt' ? 'Notable' : `${st.r} / ${n.max}`}</small></h4>
+      <p>${n.text}</p><p class="hint">${effLine(good)}${n.max > 1 ? ' je Rang' : ''}</p>
+      ${Object.keys(bad).length ? `<p class="cost">${effLine(bad)}</p>` : ''}
+      <div class="row">${st.can ? `<button class="${key ? 'red' : ''}" data-action="tlearn">${key ? 'Schwören' : 'Rang setzen'}</button>`
+        : `<button class="off">${st.full ? 'gesetzt' : st.open ? 'keine Punkte' : 'noch gesperrt'}</button>`}</div>`; }
+
+  return `<div class="col treev"><section class="panel thead"><b>Talente</b>
+      <span>${tp ? `<b class="hot">${tp}</b> frei · ` : ''}${spent} gesetzt · ${ranks} im Baum</span>
+      <button class="tiny" data-action="go" data-v="hero">Zurück</button></section>
+    <div class="tcols">${T.cols.map(c => `<i>${c.name}</i><i></i>`).join('').slice(0, -7)}</div>
+    <section class="panel tree2" style="--rows:${rows}">${cells.join('')}</section>
+    <section class="panel tdet">${det}</section></div>`;
 }
 
 // --- Streifzüge ---
