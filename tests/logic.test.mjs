@@ -828,25 +828,35 @@ test('Neue Einzigartig-Mechaniken wirken im Kampf', async () => {
   const base = { name: 'A', str: 20, dex: 20, int: 20, con: 20, lck: 20, main: 'str', lvl: 10, armor: 10, dmg: [10, 14], hp: 300 };
   const feind = { ...base, name: 'B', dmg: [40, 60], hp: 4000, armor: 200 };
   // Letzter Atem: der tödliche Treffer lässt 1 Leben übrig (einmal)
-  const ohne = fight({ ...base }, { ...feind }), mit = fight({ ...base, lastBreath: 1 }, { ...feind });
+  const mit = fight({ ...base, lastBreath: 1 }, { ...feind });
   assert.ok(mit.log.some(l => l.status === 'Letzter Atem'), 'Letzter Atem greift nicht');
-  assert.ok(mit.log.length > ohne.log.length, 'Letzter Atem verlängert den Kampf nicht');
-  // Zuflucht: heilt genau einmal, wenn es eng wird
-  const zu = fight({ ...base, secondWind: 0.25 }, { ...feind });
+  // Einzelne Kämpfe streuen stark: zwei unabhängige Würfe verglichen schlug in 29 % der Läufe
+  // grundlos fehl. Darum über 60 Kämpfe mitteln – der Unterschied ist dort ~7,5 zu ~10,8 Runden.
+  const avgLog = f => { let s = 0; for (let i = 0; i < 60; i++) s += fight(f(), { ...feind }).log.length; return s / 60; };
+  assert.ok(avgLog(() => ({ ...base, lastBreath: 1 })) > avgLog(() => ({ ...base })) * 1.15, 'Letzter Atem verlängert den Kampf nicht');
+  // Zuflucht: heilt genau einmal, wenn es eng wird. Sie greift zu Rundenbeginn – gegen `feind`
+  // starb der Held in 20 % der Läufe aus über 30 % Leben heraus, bevor sie je prüfen konnte.
+  // Darum ein Gegner, der langsam zusetzt: dann greift sie in 3000 von 3000 Kämpfen genau einmal.
+  const langsam = { ...feind, hp: 999999, dmg: [20, 24], armor: 0 };
+  const zu = fight({ ...base, secondWind: 0.25 }, langsam);
   assert.equal(zu.log.filter(l => l.status === 'Zuflucht').length, 1);
   // Pakt: keine Heilung mehr, obwohl Regeneration und Lebensraub angelegt sind
   const heilt = fight({ ...base, regen: 0.1, leech: 0.5 }, { ...feind });
   const pakt = fight({ ...base, regen: 0.1, leech: 0.5, nohealSelf: 1 }, { ...feind });
   assert.ok(heilt.log.some(l => l.heal), 'Heilung fehlt im Vergleich');
   assert.ok(!pakt.log.some(l => l.heal), 'Pakt heilt trotzdem');
+  // Die folgenden Mechaniken brauchen viele Runden (jeder dritte Hieb, Krit, Block). Gegen `feind`
+  // stirbt der Held nach ~6 Runden und sie kamen oft gar nicht vor – darum ein Übungsgegner,
+  // bei dem keiner von beiden fällt.
+  const puppe = { ...feind, hp: 999999, dmg: [1, 1], armor: 0 }, zaeh = { ...base, hp: 999999 };
   // Splittern: jeder Krit bricht Rüstung, aber nie unter die Hälfte
-  const sch = fight({ ...base, crit: 1, shred: 0.3, dmg: [1, 1] }, { ...feind, hp: 99999 });
+  const sch = fight({ ...zaeh, crit: 1, shred: 0.3, dmg: [1, 1] }, { ...puppe, armor: 200 });
   assert.ok(sch.log.some(l => l.status === 'Rüstung bricht'), 'Splittern greift nicht');
   // Eifer: jeder dritte Hieb trifft zweimal
-  const ei = fight({ ...base, zeal: 0.6 }, { ...feind, hp: 99999 });
+  const ei = fight({ ...zaeh, zeal: 0.6 }, { ...puppe });
   assert.ok(ei.log.some(l => Array.isArray(l.hits) && l.hits.length === 2), 'Eifer trifft nie zweimal');
   // Bollwerk: Blocken baut Schild auf
-  const bo = fight({ ...base, block: 1, bulwark: 0.1 }, { ...feind, hp: 99999 });
+  const bo = fight({ ...zaeh, block: 1, bulwark: 0.1 }, { ...puppe });
   assert.ok(bo.log.some(l => l.shield), 'Bollwerk gibt keinen Schild');
   // Vergeltung und Aderlass zählen in der Kampfkraft mit
   const S = fresh(); const p0 = G.power();

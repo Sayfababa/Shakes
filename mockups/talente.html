@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup – Talentbaum</title>
+<link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+SC:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  html, body { overflow: auto; height: auto; }
+  .wrap { display: flex; gap: 28px; padding: 24px; align-items: flex-start; width: max-content; }
+  .phone { width: 375px; height: 667px; position: relative; display: flex; flex-direction: column; padding: 8px; gap: 5px;
+    border: 1px solid #2a2118; box-shadow: 0 0 0 6px #0b0907, 0 0 40px #000; background: var(--noise), var(--stonetex), radial-gradient(ellipse at 50% 20%, #241a12, #070504 70%); }
+  .phone > * { flex: none; }
+  .cap { font-family: 'Alegreya SC'; color: var(--gold); text-align: center; margin-bottom: 8px; font-size: 1rem; }
+  .note2 { width: 375px; color: var(--dim); font-size: .85rem; margin-top: 10px; line-height: 1.4; } .note2 b { color: var(--gold); font-weight: 500; }
+  .hudm { display: flex; align-items: center; justify-content: space-between; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.4rem; }
+  .hudm small { font-family: 'Alegreya SC'; font-size: .78rem; color: var(--text); }
+  .tabsm { margin-top: auto; display: flex; gap: 3px; } .tabsm a { flex: 1; text-align: center; padding: 8px 2px; font-family: 'Alegreya SC'; font-size: .68rem; color: var(--dim); border-image: url('../assets/ui/tab.webp') 16 fill / 8px stretch; }
+  .tabsm a.on { color: var(--gold-hi); border-image-source: url('../assets/ui/tab_on.webp'); }
+
+  /* Kopfzeile des Baums: freie Punkte + Zweig-Namen */
+  .thead { display: flex; align-items: baseline; justify-content: space-between; padding: 0 2px; }
+  .thead b { font-family: 'Grenze Gotisch'; color: var(--gold-hi); font-size: 1.15rem; font-weight: 500; }
+  .thead span { font-family: 'Alegreya SC'; font-size: .74rem; color: var(--dim); }
+  .tcols { display: grid; grid-template-columns: 1fr 30px 1fr 30px 1fr; gap: 3px; padding: 0 2px; }
+  .tcols i { font-family: 'Alegreya SC'; font-style: normal; font-size: max(11px,.64rem); color: var(--gold); text-align: center; letter-spacing: .02em; }
+
+  /* Das Brett */
+  .tree { position: relative; flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 1fr 30px 1fr 30px 1fr;
+    grid-template-rows: repeat(6, 1fr); gap: 3px; padding: 5px 4px; }
+  .tree .lines { position: absolute; inset: 0; pointer-events: none; }
+  .nd { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+    background: #0a0908; box-shadow: inset 0 0 0 1px #2a2620, 0 0 0 1px #000; cursor: pointer; }
+  .nd em { font-style: normal; font-family: 'Alegreya SC'; font-size: max(11px,.58rem); color: var(--dim); line-height: 1; }
+  .nd s { text-decoration: none; font-family: 'Grenze Gotisch'; font-size: .82rem; color: #6b6052; line-height: 1; }
+  /* Zustände */
+  .nd.has { background: #14100b; box-shadow: inset 0 0 0 1px #6e5a30, 0 0 0 1px #000; }
+  .nd.has em { color: var(--text); } .nd.has s { color: var(--gold); }
+  .nd.can { box-shadow: inset 0 0 0 1px #4a4136, 0 0 0 1px #000; }
+  .nd.can em { color: #8d8172; }
+  .nd.sel { box-shadow: inset 0 0 0 2px var(--gold-hi), 0 0 0 1px #000, 0 0 10px rgba(176,138,62,.35); }
+  /* Arten */
+  .nd.nt { background: #130f0a; } .nd.nt s { font-size: .95rem; }
+  .nd.nt.has { background: #1b1409; box-shadow: inset 0 0 0 1px #8a6f33, 0 0 0 1px #000; }
+  .nd.key { background: #130a09; box-shadow: inset 0 0 0 1px #4a2420, 0 0 0 1px #000; }
+  .nd.key.has { background: #1d0c0a; box-shadow: inset 0 0 0 1px #8a1c13, 0 0 0 1px #000, 0 0 12px rgba(138,28,19,.4); }
+  .nd.key s { color: #a8564a; } .nd.key.has s { color: #d8766a; }
+  .nd.br { } /* Brücke */
+  .nd.lock { opacity: .4; cursor: default; }
+  .mk { position: absolute; top: 2px; right: 3px; font-family: 'Alegreya SC'; font-size: max(11px,.55rem); color: var(--gold); }
+
+  /* Detail-Leiste unten – fest hoch, damit nichts springt */
+  .tdet { min-height: 92px; padding: 7px 9px; display: flex; flex-direction: column; gap: 3px; }
+  .tdet h4 { margin: 0; font-family: 'Grenze Gotisch'; font-size: 1.1rem; color: var(--gold-hi); font-weight: 500; }
+  .tdet h4 small { font-family: 'Alegreya SC'; font-size: .7rem; color: var(--dim); margin-left: 6px; }
+  .tdet p { margin: 0; font-size: .84rem; color: var(--text); line-height: 1.25; }
+  .tdet p.cost { color: #c8705f; font-style: italic; }
+  .tdet .row { display: flex; gap: 6px; margin-top: auto; }
+  .tdet button { flex: 1; font-size: .82rem; padding: 6px; }
+  .tdet .hint { font-family: 'Alegreya SC'; font-size: max(11px,.68rem); color: var(--dim); }
+</style></head><body>
+
+<div class="wrap">
+
+  <!-- 1 ------------------------------------------------------------------ -->
+  <div>
+    <div class="cap">1 · Das Brett</div>
+    <div class="phone">
+      <div class="hudm">Sayfa <small>Stufe 24</small></div>
+      <div class="thead"><b>Talente</b><span>7 frei · 17 gesetzt · 60 im Baum</span></div>
+      <div class="tcols"><i>Blutrausch</i><i></i><i>Fell</i><i></i><i>Schrei</i></div>
+
+      <section class="panel tree">
+        <!-- Reihe 6 (oben): Schlüsselsteine -->
+        <div class="nd key" style="grid-area:1/1"><s>Ahnenzorn</s><em>0/1</em></div>
+        <div></div>
+        <div class="nd key" style="grid-area:1/3"><s>Unsterblich</s><em>0/1</em></div>
+        <div></div>
+        <div class="nd key" style="grid-area:1/5"><s>Blutpakt</s><em>0/1</em></div>
+
+        <!-- Reihe 5 -->
+        <div class="nd can" style="grid-area:2/1"><s>Narbenzorn</s><em>0/3</em></div>
+        <div></div>
+        <div class="nd" style="grid-area:2/3"><s>Zähigkeit</s><em>0/3</em></div>
+        <div></div>
+        <div class="nd" style="grid-area:2/5"><s>Ahnenruf</s><em>0/3</em></div>
+
+        <!-- Reihe 4: Notable -->
+        <div class="nd nt has" style="grid-area:3/1"><s>Schlächter</s><em>1/1</em></div>
+        <div></div>
+        <div class="nd nt" style="grid-area:3/3"><s>Bollwerk</s><em>0/1</em></div>
+        <div class="nd br" style="grid-area:3/4"><s>⁞</s><em>0/6</em></div>
+        <div class="nd nt" style="grid-area:3/5"><s>2. Atem</s><em>0/1</em></div>
+
+        <!-- Reihe 3 -->
+        <div class="nd has" style="grid-area:4/1"><s>Knochen</s><em>5/5</em></div>
+        <div class="nd br has" style="grid-area:4/2"><s>⁞</s><em>3/6</em></div>
+        <div class="nd can" style="grid-area:4/3"><s>Hornhaut</s><em>0/5</em></div>
+        <div></div>
+        <div class="nd" style="grid-area:4/5"><s>Splittern</s><em>0/5</em></div>
+
+        <!-- Reihe 2: Notable -->
+        <div class="nd nt has" style="grid-area:5/1"><s>Ungebändigt</s><em>1/1</em></div>
+        <div></div>
+        <div class="nd nt" style="grid-area:5/3"><s>Narbe</s><em>0/1</em></div>
+        <div></div>
+        <div class="nd nt" style="grid-area:5/5"><s>Eifer</s><em>0/1</em></div>
+
+        <!-- Reihe 1 (unten): Einstieg -->
+        <div class="nd has" style="grid-area:6/1"><s>Zorn</s><em>5/5</em></div>
+        <div></div>
+        <div class="nd has" style="grid-area:6/3"><s>Fell</s><em>2/5</em></div>
+        <div></div>
+        <div class="nd can" style="grid-area:6/5"><s>Brüllen</s><em>0/5</em></div>
+      </section>
+
+      <section class="panel tdet">
+        <p class="hint">Tippe einen Knoten an.</p>
+        <p class="hint" style="color:#6b6052">Gold umrandet = gesetzt · hell = jetzt erreichbar · rot = Schlüsselstein</p>
+      </section>
+
+      <nav class="tabsm"><a>Held</a><a>Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></nav>
+    </div>
+    <div class="note2"><b>17 von 60 Rängen.</b> Mit rund 36 Punkten im Endspiel erreichst du etwa
+      60 % des Bretts – zwei Zweige ordentlich und einen Schlüsselstein. Nie alles.</div>
+  </div>
+
+  <!-- 2 ------------------------------------------------------------------ -->
+  <div>
+    <div class="cap">2 · Knoten angetippt</div>
+    <div class="phone">
+      <div class="hudm">Sayfa <small>Stufe 24</small></div>
+      <div class="thead"><b>Talente</b><span>7 frei · 17 gesetzt · 60 im Baum</span></div>
+      <div class="tcols"><i>Blutrausch</i><i></i><i>Fell</i><i></i><i>Schrei</i></div>
+
+      <section class="panel tree">
+        <div class="nd key" style="grid-area:1/1"><s>Ahnenzorn</s><em>0/1</em></div><div></div>
+        <div class="nd key" style="grid-area:1/3"><s>Unsterblich</s><em>0/1</em></div><div></div>
+        <div class="nd key" style="grid-area:1/5"><s>Blutpakt</s><em>0/1</em></div>
+
+        <div class="nd can" style="grid-area:2/1"><s>Narbenzorn</s><em>0/3</em></div><div></div>
+        <div class="nd" style="grid-area:2/3"><s>Zähigkeit</s><em>0/3</em></div><div></div>
+        <div class="nd" style="grid-area:2/5"><s>Ahnenruf</s><em>0/3</em></div>
+
+        <div class="nd nt has" style="grid-area:3/1"><s>Schlächter</s><em>1/1</em></div><div></div>
+        <div class="nd nt" style="grid-area:3/3"><s>Bollwerk</s><em>0/1</em></div>
+        <div class="nd br" style="grid-area:3/4"><s>⁞</s><em>0/6</em></div>
+        <div class="nd nt" style="grid-area:3/5"><s>2. Atem</s><em>0/1</em></div>
+
+        <div class="nd has" style="grid-area:4/1"><s>Knochen</s><em>5/5</em></div>
+        <div class="nd br has sel" style="grid-area:4/2"><s>⁞</s><em>3/6</em><span class="mk">+</span></div>
+        <div class="nd can" style="grid-area:4/3"><s>Hornhaut</s><em>0/5</em></div><div></div>
+        <div class="nd" style="grid-area:4/5"><s>Splittern</s><em>0/5</em></div>
+
+        <div class="nd nt has" style="grid-area:5/1"><s>Ungebändigt</s><em>1/1</em></div><div></div>
+        <div class="nd nt" style="grid-area:5/3"><s>Narbe</s><em>0/1</em></div><div></div>
+        <div class="nd nt" style="grid-area:5/5"><s>Eifer</s><em>0/1</em></div>
+
+        <div class="nd has" style="grid-area:6/1"><s>Zorn</s><em>5/5</em></div><div></div>
+        <div class="nd has" style="grid-area:6/3"><s>Fell</s><em>2/5</em></div><div></div>
+        <div class="nd can" style="grid-area:6/5"><s>Brüllen</s><em>0/5</em></div>
+      </section>
+
+      <section class="panel tdet">
+        <h4>Narbe des Kriegers <small>Brücke · 3 / 6</small></h4>
+        <p>Leben +2 %, Schaden +2 % je Rang.</p>
+        <p class="hint">Verbindet Blutrausch und Fell. Drei weitere Ränge öffnen den Weg zu
+          <b style="color:var(--gold)">Bollwerk</b>.</p>
+        <div class="row"><button>Rang setzen</button><button>Zurück</button></div>
+      </section>
+
+      <nav class="tabsm"><a>Held</a><a>Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></nav>
+    </div>
+    <div class="note2"><b>Die Brücke ist der Trick.</b> Du kannst den Schlüsselstein des Nachbarzweigs
+      holen – aber du bezahlst den Weg dorthin mit Punkten, die dann im eigenen Zweig fehlen.</div>
+  </div>
+
+  <!-- 3 ------------------------------------------------------------------ -->
+  <div>
+    <div class="cap">3 · Schlüsselstein</div>
+    <div class="phone">
+      <div class="hudm">Sayfa <small>Stufe 24</small></div>
+      <div class="thead"><b>Talente</b><span>7 frei · 17 gesetzt · 60 im Baum</span></div>
+      <div class="tcols"><i>Blutrausch</i><i></i><i>Fell</i><i></i><i>Schrei</i></div>
+
+      <section class="panel tree">
+        <div class="nd key sel" style="grid-area:1/1"><s>Ahnenzorn</s><em>0/1</em></div><div></div>
+        <div class="nd key" style="grid-area:1/3"><s>Unsterblich</s><em>0/1</em></div><div></div>
+        <div class="nd key" style="grid-area:1/5"><s>Blutpakt</s><em>0/1</em></div>
+
+        <div class="nd has" style="grid-area:2/1"><s>Narbenzorn</s><em>3/3</em></div><div></div>
+        <div class="nd" style="grid-area:2/3"><s>Zähigkeit</s><em>0/3</em></div><div></div>
+        <div class="nd" style="grid-area:2/5"><s>Ahnenruf</s><em>0/3</em></div>
+
+        <div class="nd nt has" style="grid-area:3/1"><s>Schlächter</s><em>1/1</em></div><div></div>
+        <div class="nd nt" style="grid-area:3/3"><s>Bollwerk</s><em>0/1</em></div>
+        <div class="nd br" style="grid-area:3/4"><s>⁞</s><em>0/6</em></div>
+        <div class="nd nt" style="grid-area:3/5"><s>2. Atem</s><em>0/1</em></div>
+
+        <div class="nd has" style="grid-area:4/1"><s>Knochen</s><em>5/5</em></div>
+        <div class="nd br has" style="grid-area:4/2"><s>⁞</s><em>3/6</em></div>
+        <div class="nd can" style="grid-area:4/3"><s>Hornhaut</s><em>0/5</em></div><div></div>
+        <div class="nd" style="grid-area:4/5"><s>Splittern</s><em>0/5</em></div>
+
+        <div class="nd nt has" style="grid-area:5/1"><s>Ungebändigt</s><em>1/1</em></div><div></div>
+        <div class="nd nt" style="grid-area:5/3"><s>Narbe</s><em>0/1</em></div><div></div>
+        <div class="nd nt" style="grid-area:5/5"><s>Eifer</s><em>0/1</em></div>
+
+        <div class="nd has" style="grid-area:6/1"><s>Zorn</s><em>5/5</em></div><div></div>
+        <div class="nd has" style="grid-area:6/3"><s>Fell</s><em>2/5</em></div><div></div>
+        <div class="nd can" style="grid-area:6/5"><s>Brüllen</s><em>0/5</em></div>
+      </section>
+
+      <section class="panel tdet">
+        <h4 style="color:#d8766a">Ahnenzorn <small>Schlüsselstein</small></h4>
+        <p>Je weniger Leben du hast, desto härter schlägst du – bis zu +80 % bei einem Hauch.</p>
+        <p class="cost">Du kannst nicht mehr blocken.</p>
+        <div class="row"><button class="red">Schwören</button><button>Zurück</button></div>
+      </section>
+
+      <nav class="tabsm"><a>Held</a><a>Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></nav>
+    </div>
+    <div class="note2"><b>Jeder Schlüsselstein nimmt etwas weg.</b> Das ist der Unterschied zu einem
+      Prozentknoten: er ändert, wie dein Held kämpft, statt die Zahlen zu erhöhen. Umverteilen
+      kostet weiter Gold – die Wahl soll wehtun.</div>
+  </div>
+
+</div>
+</body></html>
