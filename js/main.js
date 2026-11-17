@@ -133,8 +133,10 @@ function loseText(res) {
 }
 function rewText(w) {
   const L = [];
-  if (w.gold || w.xp) L.push(`+${w.gold} Gold${w.xp ? ` · +${w.xp} EP` : ''}${w.honor ? ` · +${w.honor} Ehre` : ''}`);
-  else if (w.honor) L.push(`+${w.honor} Ehre`);
+  const seal = w.seal ? ' · <b class="gold">Grabsiegel</b>' : '';   // eigene Zeile sprengte den SE
+  if (w.gold || w.xp) L.push(`+${w.gold} Gold${w.xp ? ` · +${w.xp} EP` : ''}${w.honor ? ` · +${w.honor} Ehre` : ''}${seal}`);
+  else if (w.honor) L.push(`+${w.honor} Ehre${seal}`);
+  else if (seal) L.push(seal.slice(3));
   // Material und Zutaten je EINE Zeile: seit ein Herz die Feldzutat mitbringt, sind es zwei
   // Funde statt einem, und auf dem SE schob jede zusätzliche Zeile „Weiter“ unter den Rand.
   if (w.mats.length) L.push(w.mats.map(([k, n]) => `${MATS[k]} ×${n}`).join(' · '));
@@ -143,7 +145,7 @@ function rewText(w) {
   if (w.tier) L.push(`<b class="gold">Krypta-Stufe ${w.tier} bezwungen.</b> Die nächste ist schwerer – und reicher.`);
   if (w.rankUp) L.push(`<b class="gold">Neuer Rang: ${w.rankUp.name}</b> · Titel „${w.rankUp.title}“ + Segen`);
   if (w.omen) L.push('<b class="gold">Das Omen hat sich erfüllt.</b>');
-  if (w.seal) L.push(`<b class="gold">Grabsiegel gefunden.</b> Ein Abstieg mehr.`);
+
   if (w.set) { const st = SETS.find(x => x.id === w.set.set), own = G.setOwned(w.set.set).size;
     L.push(`<b class="r-set">${st.name}: ${own}/${SET.parts} Teile</b>${own >= SET.parts ? ' – vollständig!' : ''}`); }
   if (w.trophy) L.push(`<b class="r-legendary">Trophäe: ${w.trophy.name}</b>`);

@@ -50,9 +50,9 @@ export const BASES = [
 // Beutel 10x6: unter dem Beutel lagen auf JEDEM geprueften Bildschirm mindestens 111 px
 // ungenutzt (auch auf dem SE) – das war reservierte Flaeche, die nie jemand gebraucht hat.
 // Zwei Reihen mehr passen ueberall und lassen oben wie unten noch Luft.
-export const INV_W = 10, INV_H = 5;
+export const INV_W = 10, INV_H = 6;
 // Das Lager teilt sich den Platz mit dem Beutel (ein Knopf schaltet um), also dasselbe Raster.
-export const STASH_W = 10, STASH_H = 5;
+export const STASH_W = 10, STASH_H = 6;
 
 // Affixe: stat, Wert pro Itemstufe, Präfix/Suffix-Namen
 export const AFFIXES = [

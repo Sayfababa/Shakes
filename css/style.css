@@ -269,7 +269,16 @@ img.portrait.monster { object-fit: cover; }
 .tut b { color: #6a140a; } .tutin { flex: 1; } .tut button { flex: none; }
 @media (max-height: 720px) { .services { padding: 4px 6px; } .svc small { display: none; } .note p { -webkit-line-clamp: 2; } }
 @media (max-height: 720px) {
-  :root { --u: clamp(19px, 3.15vh, 32px); } .doll { padding: 6px 8px; } .mats { margin-top: 3px; }
+  :root { --u: clamp(19px, 3.15vh, 32px); } .doll { padding: 6px 8px; } .mats { margin-top: 1px; }
+  /* Die sechste Beutelreihe kostet auf kurzen Bildschirmen ~10 px, die hier wieder hereinkommen:
+     kleinere Material-Symbole und ein schmalerer Steg unter dem Raster. Die Zellen bleiben gleich. */
+  .mats .matimg { width: 14px; height: 14px; }
+  /* Das Raster haengt an `aspect-ratio`, die Hoehe folgt also der Breite. Ein paar Prozent
+     schmaler sind ein paar Prozent flacher – das rechnet sich selbst aus, statt dass man
+     Pixel an Raendern zusammensucht. Die Zellen bleiben quadratisch. */
+  .inv { width: 96%; margin-inline: auto; } .mats { gap: 1px 10px; }
+  .invp { padding: 2px 8px 1px !important; } .doll { padding: 3px 8px !important; }
+  .hero { gap: 2px; }
   .trip .lore { display: none; } .crypt .dim.small { display: none; }
   .speaker { grid-template-columns: calc(var(--u) * 1.8) 1fr; padding: 4px 8px; } .speaker .lore { font-size: .74rem; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
 }
