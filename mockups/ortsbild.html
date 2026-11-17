@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup – Ortsbilder</title>
+<link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+SC:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  html, body { overflow: auto; height: auto; }
+  .wrap { display: flex; gap: 28px; padding: 24px; align-items: flex-start; width: max-content; }
+  .phone { width: 375px; height: 667px; position: relative; display: flex; flex-direction: column; padding: 8px; gap: 5px;
+    border: 1px solid #2a2118; box-shadow: 0 0 0 6px #0b0907, 0 0 40px #000; background: var(--noise), var(--stonetex), radial-gradient(ellipse at 50% 20%, #241a12, #070504 70%); }
+  .phone > * { flex: none; }
+  .cap { font-family: 'Alegreya SC'; color: var(--gold); text-align: center; margin-bottom: 8px; font-size: 1rem; }
+  .note2 { width: 375px; color: var(--dim); font-size: .85rem; margin-top: 10px; line-height: 1.4; } .note2 b { color: var(--gold); font-weight: 500; }
+  .hudm { display: flex; align-items: center; justify-content: space-between; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.4rem; }
+  .hudm small { font-family: 'Alegreya SC'; font-size: .78rem; color: var(--text); }
+  .tabsm { margin-top: auto; display: flex; gap: 3px; } .tabsm a { flex: 1; text-align: center; padding: 8px 2px; font-family: 'Alegreya SC'; font-size: .68rem; color: var(--dim); border-image: url('../assets/ui/tab.webp') 16 fill / 8px stretch; }
+  .tabsm a.on { color: var(--gold-hi); border-image-source: url('../assets/ui/tab_on.webp'); }
+
+  .ahead h2 { margin: 0; font-family: 'Grenze Gotisch'; color: var(--gold-hi); font-size: 1.25rem; }
+  .ahead small { display: block; color: var(--dim); font-size: .78rem; line-height: 1.15; }
+  .path { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+  .zn { display: grid; grid-template-columns: 26px 1fr auto; gap: 6px; align-items: center; padding: 3px 5px; }
+  .zn .dot { width: 26px; height: 26px; background: #0a0908; box-shadow: inset 0 0 0 1px #2a2620; }
+  .zn b { display: block; font-size: .8rem; color: var(--text); font-weight: 400; font-family: 'Alegreya SC'; }
+  .zn small { font-size: max(11px,.64rem); color: var(--dim); }
+  .zn.fog { opacity: .45; } .zn.cur b { color: var(--gold-hi); }
+  .zn .r { font-family: 'Alegreya SC'; font-size: max(11px,.66rem); color: var(--dim); }
+  .btm { display: flex; gap: 6px; } .btm button { flex: 1; font-size: .82rem; padding: 7px; }
+
+  /* --- der Vorschlag: Ortsbild als Hintergrund des Kopf-Panels. Kostet KEINE Höhe. --- */
+  .ahead.pic { position: relative; overflow: hidden; }
+  /* 9 px Abstand: der Eisenrahmen des Panels (border-image, 12 px) bleibt sichtbar – sonst verliert
+     die Ansicht ihre Fassung, und genau die ist die Hausregel. */
+  .ahead.pic > .bg { position: absolute; inset: 9px; background-size: cover; background-position: center 38%; z-index: 0; }
+  /* Der Schleier ist das Entscheidende: Text muss auf jedem Bild lesbar bleiben */
+  .ahead.pic > .veil { position: absolute; inset: 9px; z-index: 1;
+    background: linear-gradient(90deg, rgba(8,7,5,.92) 0%, rgba(8,7,5,.78) 45%, rgba(8,7,5,.45) 100%); }
+  .ahead.pic > * { position: relative; z-index: 2; }
+  /* Variante 3: zusätzlich ganz schwach hinter dem Weg */
+  .actbg { position: absolute; inset: 0; background-size: cover; background-position: center 30%;
+    opacity: .14; filter: grayscale(.4) blur(1px); pointer-events: none; z-index: 0; }
+  .phone.deep > * { position: relative; z-index: 1; }
+</style></head><body>
+<div class="wrap">
+
+  <!-- 1 -------------------------------------------------------------- -->
+  <div>
+    <div class="cap">1 · heute</div>
+    <div class="phone">
+      <div class="hudm">Akt I <small>Stufe 7</small></div>
+      <section class="panel ahead"><h2>Akt I · Friedhof von Vhal</h2>
+        <small class="lore">Die Glocke hat sie geweckt. Ansgar gräbt nicht mehr für die Toten – er gräbt sie aus.</small></section>
+      <section class="panel path">
+        <div class="zn"><span class="dot"></span><div><b>Ansgar, der Totengräber</b><small>Gräbt sich ein</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Das Leichenhaus</b><small>Grabräuber · Stufe 5</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Der Mauerbruch</b><small>Elite · Stufe 4</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Die Gräbergasse</b><small>Wiedergänger · Stufe 4</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Der Weidenhang</b><small>Grabräuber · Stufe 3</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Die Wacht am Beinhaus</b><small>Elite · Stufe 3</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Das offene Grab</b><small>Wiedergänger · Stufe 2</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Die Reihen der Armen</b><small>Grabräuber · Stufe 2</small></div><span class="r">··</span></div>
+        <div class="zn cur"><span class="dot"></span><div><b>Das Friedhofstor</b><small>Verfaulter Ghul · Stufe 1</small></div><span class="r">92 %</span></div>
+      </section>
+      <div class="btm"><button>Zurück</button><button class="red">Weiter · Das Friedhofstor</button></div>
+      <nav class="tabsm"><a>Held</a><a class="on">Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></nav>
+    </div>
+    <div class="note2">Der Ort steht nur im Titel. „Friedhof von Vhal“ ist ein Wort, kein Ort.</div>
+  </div>
+
+  <!-- 2 -------------------------------------------------------------- -->
+  <div>
+    <div class="cap">2 · Bild im Kopf</div>
+    <div class="phone">
+      <div class="hudm">Akt I <small>Stufe 7</small></div>
+      <section class="panel ahead pic">
+        <span class="bg" style="background-image:url('../assets/expedition/ev_kniet.webp')"></span><span class="veil"></span>
+        <h2>Akt I · Friedhof von Vhal</h2>
+        <small class="lore">Die Glocke hat sie geweckt. Ansgar gräbt nicht mehr für die Toten – er gräbt sie aus.</small></section>
+      <section class="panel path">
+        <div class="zn"><span class="dot"></span><div><b>Ansgar, der Totengräber</b><small>Gräbt sich ein</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Das Leichenhaus</b><small>Grabräuber · Stufe 5</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Der Mauerbruch</b><small>Elite · Stufe 4</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Die Gräbergasse</b><small>Wiedergänger · Stufe 4</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Der Weidenhang</b><small>Grabräuber · Stufe 3</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Die Wacht am Beinhaus</b><small>Elite · Stufe 3</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Das offene Grab</b><small>Wiedergänger · Stufe 2</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Die Reihen der Armen</b><small>Grabräuber · Stufe 2</small></div><span class="r">··</span></div>
+        <div class="zn cur"><span class="dot"></span><div><b>Das Friedhofstor</b><small>Verfaulter Ghul · Stufe 1</small></div><span class="r">92 %</span></div>
+      </section>
+      <div class="btm"><button>Zurück</button><button class="red">Weiter · Das Friedhofstor</button></div>
+      <nav class="tabsm"><a>Held</a><a class="on">Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></nav>
+    </div>
+    <div class="note2"><b>Kostet keine einzige Zeile Höhe.</b> Das Bild liegt hinter Titel und Satz, ein
+      Schleier von links sorgt dafür, dass die Schrift auf jedem Bild steht. Rechts bleibt das Bild offen –
+      dort ist Platz, weil der Text kurz ist.</div>
+  </div>
+
+  <!-- 3 -------------------------------------------------------------- -->
+  <div>
+    <div class="cap">3 · dazu ein Hauch dahinter</div>
+    <div class="phone deep">
+      <span class="actbg" style="background-image:url('../assets/expedition/ev_kniet.webp')"></span>
+      <div class="hudm">Akt I <small>Stufe 7</small></div>
+      <section class="panel ahead pic">
+        <span class="bg" style="background-image:url('../assets/expedition/ev_kniet.webp')"></span><span class="veil"></span>
+        <h2>Akt I · Friedhof von Vhal</h2>
+        <small class="lore">Die Glocke hat sie geweckt. Ansgar gräbt nicht mehr für die Toten – er gräbt sie aus.</small></section>
+      <section class="panel path">
+        <div class="zn"><span class="dot"></span><div><b>Ansgar, der Totengräber</b><small>Gräbt sich ein</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Das Leichenhaus</b><small>Grabräuber · Stufe 5</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Der Mauerbruch</b><small>Elite · Stufe 4</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Die Gräbergasse</b><small>Wiedergänger · Stufe 4</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Der Weidenhang</b><small>Grabräuber · Stufe 3</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Die Wacht am Beinhaus</b><small>Elite · Stufe 3</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Das offene Grab</b><small>Wiedergänger · Stufe 2</small></div><span class="r">··</span></div>
+        <div class="zn fog"><span class="dot"></span><div><b>Die Reihen der Armen</b><small>Grabräuber · Stufe 2</small></div><span class="r">··</span></div>
+        <div class="zn cur"><span class="dot"></span><div><b>Das Friedhofstor</b><small>Verfaulter Ghul · Stufe 1</small></div><span class="r">92 %</span></div>
+      </section>
+      <div class="btm"><button>Zurück</button><button class="red">Weiter · Das Friedhofstor</button></div>
+      <nav class="tabsm"><a>Held</a><a class="on">Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></nav>
+    </div>
+    <div class="note2">Dasselbe Bild zusätzlich hinter dem ganzen Weg, auf 14 % Deckkraft, entfärbt und
+      weichgezeichnet. <b>Das ist die Variante, bei der ich zögere</b> – sie gibt dem Akt eine Farbe,
+      macht die Liste aber unruhiger. Zum Vergleichen, nicht als Empfehlung.</div>
+  </div>
+
+</div>
+</body></html>
