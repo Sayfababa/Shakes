@@ -413,7 +413,6 @@ export const SERVICES = {
       cost: [{ leinen: 2 }, { leinen: 4 }, { staub: 4 }, { siegel: 3 }, { asche: 4 }], gold: [20, 60, 150, 350, 800] },
   ],
   ysolde: [
-    { id: 'reroll', name: 'Amulett neu weihen', slot: 'amulet', cost: [{ schwanz: 2 }], gold: [40], perLvl: 8 },
     // Glücksgriff: zufälliges, meist magisches Stück – Gold-Senke wie das Glücksspiel bei Gheed/Anya
     { id: 'gamble', name: 'Glücksgriff', cost: [{}], gold: [60], perLvl: 45 },
   ],

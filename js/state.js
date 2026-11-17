@@ -549,13 +549,6 @@ export function craftCheck(it, opId, stat) {
   return null;
 }
 // Alle unversiegelten Boni neu (gleiche Anzahl), versiegelter bleibt – auch für Ysoldes „Neu weihen“
-function rerollUnsealed(it) {
-  const base = baseMods(it), tiers = { ...(it.tiers || {}) }, free = Object.keys(base).filter(k => k !== it.sealed);
-  for (const k of free) { delete base[k]; delete tiers[k]; }
-  for (const a of affixPool(it).filter(a => !(a.stat in base)).sort(() => rand() - 0.5).slice(0, free.length)) {
-    const T = rollTier(it.lvl); tiers[a.stat] = T.t; base[a.stat] = affixValue(a, it.lvl, T, it.rarity === 'legendary'); }
-  it.tiers = tiers; setBase(it, base); renameMagic(it);
-}
 // Schmiedeglut abziehen; reicht der Rest für nichts mehr → vollendet
 function spendGlut(it, n) {
   ensureGlut(it); const cost = Math.min(it.glut, n + Math.floor(rand() * (CRAFT.glutJitter + 1))); it.glut -= cost;
@@ -690,9 +683,6 @@ export function serviceState(sv) {
   let reason = '';
   if (sv.max && step >= sv.max) reason = 'Vollendet';
   else if (sv.slot && !sv.max && !it) reason = 'Nichts angelegt';
-  else if (sv.id === 'reroll' && (it.unique || it.set)) reason = it.set ? 'Set-Teile lassen sich nicht neu weihen' : 'Einzigartiges lässt sich nicht neu weihen';
-  else if (sv.id === 'reroll' && (ensureGlut(it), it.crafted || it.glut < CRAFT.ops.find(o => o.id === 'chaos').glut)) reason = 'Schmiedeglut erschöpft';
-  else if (sv.id === 'reroll' && !Object.keys(it.mods).length) reason = 'Keine Zauber';
   const enough = S.gold >= gold && Object.entries(cost).every(([k, n]) => (S.mats[k] || 0) >= n);
   return { it, step, costText, reason, can: !reason && enough, questMat: Object.keys(cost).find(k => questNeedsMat(k)) };
 }
@@ -701,12 +691,6 @@ export function doService(tid, svId) {
   const cost = costOf(sv, st.step); S.gold -= goldOf(sv, st.step); for (const [k, n] of Object.entries(cost)) S.mats[k] -= n;
   const it = st.it;
   if (sv.max) { (S.temper ||= {})[sv.slot] = st.step + 1; return { name: sv.name, up: st.step + 1 }; }   // bleibt am Platz, auch wenn das Teil wechselt
-  if (sv.id === 'reroll') {
-    // Neue Boni gleicher Seltenheit; Sonderbonus und eingeschmiedete Runen bleiben erhalten
-    // Wie „Neu würfeln“ beim Umschmieden: versiegelter Bonus bleibt, kostet Schmiedeglut (sonst endloses Würfeln am Glut-Limit vorbei)
-    rerollUnsealed(it); spendGlut(it, CRAFT.ops.find(o => o.id === 'chaos').glut);
-    it.value = itemValue(it); return it;
-  }
   if (sv.id === 'gamble') {
     const g = makeItem(S.lvl, { luck: S.attrs.lck, minRarity: 2 });   // meist magisch, selten mehr – wie das Glücksspiel in D2
     if (!addToBag(g)) { S.gold += goldOf(sv, 0); return null; }

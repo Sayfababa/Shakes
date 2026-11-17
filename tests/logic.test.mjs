@@ -302,15 +302,6 @@ test('Nachhall: Zauber wirkt zweites Mal, nie in Schleife', () => {
   assert.ok(seen);
 });
 
-test('Neu weihen: behält Runen und Sonderbonus, Einzigartiges gesperrt, nie Einzigartiges als Ergebnis', () => {
-  const S = fresh(); S.gold = 99999; S.mats.schwanz = 99; S.mats.zahn = 10;
-  S.equip.amulet = makeItem(20, { slot: 'amulet', minRarity: 3 }); delete S.equip.amulet.unique; S.equip.amulet.fx = { crit: 0.06 }; S.equip.amulet.special = 'crit';
-  const r = G.forge('amulet', 'zahn', 15); assert.ok(r); S.equip.amulet.glut = S.equip.amulet.glutMax = 9999;
-  for (let i = 0; i < 30; i++) { assert.ok(G.doService('ysolde', 'reroll')); const a = S.equip.amulet;
-    assert.ok((a.mods.dmg || 0) >= r.v, 'Rune verloren'); assert.equal(a.special, 'crit'); assert.ok(!a.unique); }
-  S.equip.amulet.unique = 'Blutglocke'; assert.equal(G.doService('ysolde', 'reroll'), null);
-});
-
 test('Siegel: unveränderter Spielstand ist sauber, von Hand geänderter wird markiert', () => {
   const S = fresh(); G.save(); assert.ok(!G.load().tampered);
   const d = JSON.parse(localStorage.getItem('aschenkrone_v1')); d.gold = 999999; localStorage.setItem('aschenkrone_v1', JSON.stringify(d));
@@ -424,14 +415,6 @@ test('Höhere Grundgegenstände erst ab ihrer Stufe; Bild-Varianten gehören zur
   for (const b of hi) assert.ok(seen.has(b.name), `${b.name} kommt auf Stufe 30 nie vor`);
 });
 
-test('Neu weihen (Ysolde) respektiert das Siegel und verbraucht Schmiedeglut wie Umschmieden', () => {
-  const S = fresh(); S.gold = 1e7; S.mats.schwanz = 999; S.mats.siegel = 99;
-  let it; do it = makeItem(25, { slot: 'amulet', minRarity: 3 }); while (it.unique || it.rarity !== 'rare'); S.equip.amulet = it;
-  const k = Object.keys(G.baseMods(it))[0], v = G.baseMods(it)[k]; assert.ok(!G.craft(it.id, 'seal', k).err);
-  let n = 0; while (G.doService('ysolde', 'reroll')) { n++; assert.equal(G.baseMods(it)[k], v, 'Siegel gebrochen'); assert.ok(n < 50, 'endlos'); }
-  assert.ok(it.crafted || it.glut < D.CRAFT.ops.find(o => o.id === 'chaos').glut, 'Glut muss irgendwann erschöpft sein');   // Rest reicht evtl. noch für billigere Eingriffe assert.ok(n >= 3);
-});
-
 test('Name: kein HTML im Charakternamen', () => {
   G.newChar('<img src=x onerror=alert(1)>Böse"', 'paladin'); assert.ok(!/[<>"]/.test(G.S.name)); assert.ok(G.S.name.length <= 16);
   G.newChar('   ', 'paladin'); assert.equal(G.S.name, 'Namenloser');
@@ -453,7 +436,7 @@ test('Boni-Pools: Kampf-Boni nur auf passenden Plätzen, Zauber-Boni nur auf der
   assert.ok(!affixPool({ slot: 'boots' }).some(a => ['critd', 'penp', 'sk_feuerball'].includes(a.stat)));
 });
 
-test('Umschmieden bleibt im Pool des Teils (Chaos/Hinzufügen/Neu weihen)', () => {
+test('Umschmieden bleibt im Pool des Teils (Chaos/Hinzufügen/Werte)', () => {
   const S = fresh('sorceress'); S.gold = 1e9; for (const k of Object.keys(D.MATS)) S.mats[k] = 999;
   for (let r = 0; r < 40; r++) {
     let it; do it = makeItem(25, { slot: r % 2 ? 'boots' : 'weapon', minRarity: 3 }); while (it.unique); it.kind = r % 2 ? it.kind : 'staff';
@@ -820,10 +803,8 @@ test('Grab-Sets: gültige Daten, Teile nur beim Boss ihrer Krypta, Boni wirken',
   assert.equal(G.setCount(set.id), 3); assert.equal(G.effects()[key3], set.b3[key3]);
   // dasselbe Teil zweimal zählt nicht doppelt
   S.equip.ring2 = parts[0]; assert.equal(G.setCount(set.id), 3);
-  // Set-Teile lassen sich nicht umschmieden oder neu weihen
+  // Set-Teile lassen sich nicht umschmieden
   assert.ok(!G.craftItems().some(it => it.set));
-  S.equip.amulet = L.makeSetItem('s2', 0, 10); S.gold = 9999; S.mats.schwanz = 9;
-  assert.ok(/Set/.test(G.serviceState(D.SERVICES.ysolde[0]).reason));
 });
 test('Set-Teile fallen nur beim Krypta-Boss ab der zweiten Stufe', () => {
   fresh();
@@ -857,8 +838,11 @@ test('Neue Einzigartig-Mechaniken wirken im Kampf', async () => {
   const mit = fight({ ...base, lastBreath: 1 }, { ...feind });
   assert.ok(mit.log.some(l => l.status === 'Letzter Atem'), 'Letzter Atem greift nicht');
   // Einzelne Kämpfe streuen stark: zwei unabhängige Würfe verglichen schlug in 29 % der Läufe
-  // grundlos fehl. Darum über 60 Kämpfe mitteln – der Unterschied ist dort ~7,5 zu ~10,8 Runden.
-  const avgLog = f => { let s = 0; for (let i = 0; i < 60; i++) s += fight(f(), { ...feind }).log.length; return s / 60; };
+  // grundlos fehl. Darum mitteln – der Unterschied ist ~7,5 zu ~10,8 Runden.
+  // 60 Kämpfe reichten dafür NICHT: über 120 Versuche gemessen lag das kleinste Verhältnis bei
+  // 1,156, die Schranke steht bei 1,15 – der Test fiel selten grundlos durch. Bei 250 Kämpfen
+  // liegt das Minimum bei 1,192, also mit echtem Abstand.
+  const avgLog = f => { let s = 0; for (let i = 0; i < 250; i++) s += fight(f(), { ...feind }).log.length; return s / 250; };
   assert.ok(avgLog(() => ({ ...base, lastBreath: 1 })) > avgLog(() => ({ ...base })) * 1.15, 'Letzter Atem verlängert den Kampf nicht');
   // Zuflucht: heilt genau einmal, wenn es eng wird. Sie greift zu Rundenbeginn – gegen `feind`
   // starb der Held in 20 % der Läufe aus über 30 % Leben heraus, bevor sie je prüfen konnte.
