@@ -75,6 +75,16 @@ let failures = 0;
     await p.reload(); await p.waitForTimeout(300); await tap('[data-v=crypt]'); await tap('.ctabs [data-v=arena]');
     if (!(await tap('[data-action=pitshop]'))) { failures++; console.log(`FEHLER ${tag}: Vargos Laden nicht erreichbar`); }
     await chk('pitshop');
+    // Und mit nur EINEM offenen Rang: die Warenreihen teilen sich die Resthoehe, eine einzelne Reihe
+    // bekam dadurch das ganze Panel und die Kacheln wurden mannshoch (vom Besitzer gemeldet).
+    await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.pit.best = 40; G.S.pit.shop = {}; G.save(); });
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=crypt]'); await tap('.ctabs [data-v=arena]'); await tap('[data-action=pitshop]');
+    await chk('pitshop1');
+    const hoch = await p.evaluate(() => { const t = document.querySelector('.pitrow .sitem'); if (!t) return 'keine Ware';
+      const r = t.getBoundingClientRect(); return r.height > r.width ? `Kachel ${Math.round(r.width)}x${Math.round(r.height)}` : ''; });
+    if (hoch) { failures++; console.log(`FEHLER ${tag}: Vargos Ware zu hoch bei einem Rang: ${hoch}`); }
+    await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.pit.best = 1; G.S.pit.shop = {}; G.save(); });
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=crypt]'); await tap('.ctabs [data-v=arena]'); await tap('[data-action=pitshop]');
     if (!(await tap('[data-action=titles]'))) { failures++; console.log(`FEHLER ${tag}: Titel-Fenster nicht erreichbar`); }
     await chk('titles'); await tap('[data-action=pitshop]'); await tap('.ctabs [data-v=desc]'); await chk('desclocked');
     // Vargo steht jetzt auch bei den Händlern: vierter Reiter, sein Laden hinter einem Knopf,

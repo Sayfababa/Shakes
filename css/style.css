@@ -792,9 +792,20 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .prep .chance { padding-left: 16px; padding-right: 12px; }
 .prep .chance .cl { display: flex; flex-direction: column; line-height: 1.15; } .prep .chance .cl small { font-size: max(11px, .7rem); }
 .prep .chance b { margin-left: 0; } .prep .chance button { min-width: 6.5rem; margin: 0; }
-.prep .etags .etag { display: block; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+/* Kein harter Zeilen-Deckel mehr: der kappte den Hinweis auch dann auf drei Zeilen, wenn darunter
+   Platz frei war – und was wegfiel, war der Ort („fehlt Schwarzes Herz (Bosse)"), also genau die
+   Auskunft, fuer die das Kaertchen da ist. Wird die Ansicht dadurch zu hoch, nimmt fitPrep im
+   zweiten Schritt zwei Kaertchen ganz weg. Lieber zwei ganze Hinweise als vier abgeschnittene. */
+.prep .etags .etag { display: block; }
 .prep .etags .etag b { display: block; }
 .prep > .panel:last-child { margin-top: auto; }
+/* Zweiter Sparschritt (fitPrep in main.js), wenn `tight` nicht reicht – sonst rutscht die Siegchance
+   mitsamt „Kämpfen“ unter die Tab-Leiste. Gekürzt wird an den Hinweisen, nicht an der Schrift:
+   die hinteren beiden fallen weg, die vorderen bleiben ganz lesbar. */
+.prep.tighter .etags .etag:nth-child(n+3) { display: none; }
+.prep.tighter .chance .cl small { display: none; }
+.prep.tighter .prephead { grid-template-columns: 56px 1fr; } .prep.tighter .prephead .portrait { width: 56px; height: 56px; }
+.prep.tighter .panel { padding-top: 4px; padding-bottom: 4px; }
 @media (min-height: 760px) { .bcell { grid-template-columns: 46px minmax(0, 1fr); } .bcell .pslot { width: 46px; height: 46px; } .bcell .bn b { font-size: .88rem; } .bcell .bn small { font-size: max(11px, .7rem); } }
 @media (max-height: 620px) { .bcell { grid-template-columns: 32px minmax(0, 1fr); gap: 4px; } .bcell .pslot { width: 32px; height: 32px; } .prep .chance button { min-height: 32px; padding: 4px 8px; } }
 
@@ -967,10 +978,14 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .pitrow .sitem { aspect-ratio: 4 / 3; }
 /* Vargos Laden: mit jedem Rang kommt eine Reihe dazu – die Ware füllt den Rest wie beim Händler,
    statt die Ansicht unten hinauszuschieben (auf dem SE ragten 4 offene Ränge heraus). */
-.pitshopv > .panel { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
+.pitshopv > .panel { display: flex; flex-direction: column; min-height: 0; flex: 0 1 auto; }   /* nimmt, was es braucht – schrumpft bei vier offenen Raengen, waechst nie ins Leere */
 .pitshopv > .panel > h2, .pitshopv .tier { flex: none; }
-.pitshopv .pitrow { flex: 1 1 0; min-height: 0; overflow: hidden; }
-.pitshopv .pitrow .sitem { aspect-ratio: auto; height: 100%; min-height: 0; } .pware .matimg { position: absolute; left: 50%; top: 4px; translate: -50% 0; height: calc(100% - 30px); width: auto; }
+/* Die Warenreihen teilen sich den Rest der Hoehe – aber sie wachsen NICHT ueber ihr eigenes Mass
+   hinaus: mit nur einem offenen Rang bekam die eine Reihe sonst die ganze Panel-Hoehe und die
+   Kacheln wurden mannshoch. `flex: 0 1 auto` laesst sie schrumpfen (vier offene Raenge auf dem SE),
+   aber nie wachsen; das Seitenverhaeltnis der Kachel gibt die natuerliche Hoehe. */
+.pitshopv .pitrow { flex: 0 1 auto; min-height: 0; overflow: hidden; }
+.pitshopv .pitrow .sitem { height: 100%; min-height: 0; } .pware .matimg { position: absolute; left: 50%; top: 4px; translate: -50% 0; height: calc(100% - 30px); width: auto; }
 .pware .wn { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-size: max(11px, .62rem); font-style: normal; color: var(--text); }
 .pware.sold { filter: grayscale(1) brightness(.5); }
 .titles { display: flex; flex-wrap: wrap; gap: 4px; } .titles button.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }

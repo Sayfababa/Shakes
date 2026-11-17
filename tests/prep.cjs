@@ -2,7 +2,10 @@
 const { chromium, devices } = require('playwright'); const { spawn } = require('child_process');
 const OUT = __dirname + '/out/prep'; require('fs').mkdirSync(OUT, { recursive: true });
 const srv = spawn('python3', ['-m', 'http.server', '8782'], { cwd: '/home/user/Shakes', stdio: 'ignore' });
-const SCR = [['ios932', 430, 932, 75], ['ios932b', 430, 932, 0], ['app', 430, 867, 0], ['real', 430, 800, 0], ['i13', 390, 664, 0], ['i13app', 390, 844, 60], ['se', 375, 667, 0], ['tiny', 320, 568, 0]];
+// `cut` schneidet unten von der gezeichneten Flaeche ab – so frisst auf dem iPhone ein Band oben
+// (Karten-Navigation, Telefonat) Hoehe, waehrend `vh` auf der vollen Bildschirmhoehe bleibt.
+// `band` ist genau dieser Fall: nur dort greift der zweite Sparschritt (.prep.tighter).
+const SCR = [['ios932', 430, 932, 75], ['ios932b', 430, 932, 0], ['app', 430, 867, 0], ['real', 430, 800, 0], ['i13', 390, 664, 0], ['i13app', 390, 844, 60], ['se', 375, 667, 0], ['tiny', 320, 568, 0], ['band', 402, 874, 180]];
 // [Krypta-Index, Ebene, Stufe, Treue (3 Plätze), Tränke vorrätig]
 const CASES = [[0, 0, 3, 0, 0], [1, 4, 7, 0, 0], [1, 4, 60, 1, 1], [3, 4, 30, 1, 1], [2, 2, 15, 0, 1]];
 (async () => { await new Promise(r => setTimeout(r, 700)); const b = await chromium.launch(); let bad = 0, n = 0;
@@ -27,5 +30,27 @@ const CASES = [[0, 0, 3, 0, 0], [1, 4, 7, 0, 0], [1, 4, 60, 1, 1], [3, 4, 30, 1,
         return out.join(' '); });
       if (r) { bad++; console.log(nm, id, 'Ebene', fl, 'Stufe', lvl, r); await p.screenshot({ path: `${OUT}/${nm}_${id}_${fl}.png` }); }
     }
+    // --- Die Vorbereitung eines AKT-GEBIETS (nicht der Krypta). Ihr Kopf ist hoeher: Ortsbild,
+    // Akt-/Gebietszeile und bei Elite-Gebieten eine rote Zeile, die oft umbricht. Genau diese
+    // Ansicht war nie geprueft – gemeldet hat sie der Besitzer, unten abgeschnitten.
+    const aid = await p.evaluate(async () => { const D = await import('./js/data.js'); const G = await import('./js/state.js'); const S = G.S;
+      Object.assign(S, { lvl: 11, tut: 99, gold: 10857 });
+      for (let i = 0; i < 4; i++) S.acts.prog[D.ACTS[i].id] = i < 3 ? D.ACT.zones + 1 : 6;   // Akt IV bis zum Elite-Gebiet 7
+      S.pots = {}; S.herbs = {}; S.belt = [null, null, null]; S.view = 'hero'; G.save(); return D.ACTS[3].id; });
+    await p.reload(); await p.waitForTimeout(250);
+    if (cut) await p.addStyleTag({ content: `#app { bottom: ${cut}px !important; }` });
+    await p.tap('[data-v=trips]'); await p.waitForTimeout(80);
+    await p.tap(`.act[data-action=act][data-id=${aid}]`).catch(() => {}); await p.waitForTimeout(100);
+    const zs = await p.$$('.actv .two [data-action=zone]');
+    if (zs.length) { await zs[Math.min(6, zs.length - 1)].tap(); await p.waitForTimeout(160); n++;
+      const z = await p.evaluate(() => { const m = document.querySelector('main').getBoundingClientRect(), out = [];
+        const go = document.querySelector('[data-action=actgo]');
+        if (!go) out.push('KEIN KÄMPFEN'); else if (go.getBoundingClientRect().bottom > m.bottom + 1) out.push('KÄMPFEN ABGESCHNITTEN');
+        for (const e of document.querySelectorAll('main *')) { const q = e.getBoundingClientRect(); if (q.height && q.bottom > m.bottom + 1) { out.push('UNTER MAIN ' + (e.className || e.tagName)); break; } }
+        // Ein Hinweis, der seinen eigenen Text verschluckt, ragt nirgends heraus – trotzdem fehlt er.
+        for (const e of document.querySelectorAll('.prep .etag')) if (e.scrollHeight > e.clientHeight + 4) { out.push('HINWEIS VERSCHLUCKT'); break; }
+        if (!document.querySelectorAll('.prep .etag').length) out.push('KEINE HINWEISE');
+        return out.join(' '); });
+      if (z) { bad++; console.log(nm, 'Gebiet', z); await p.screenshot({ path: `${OUT}/${nm}_gebiet.png` }); } }
     await c.close(); }));
-  await b.close(); srv.kill(); console.log(bad ? `${bad} Probleme (Screenshots in tests/out/prep)` : `Vorbereitung ok: ${n} Lagen auf 8 Bildschirmen, Kämpfen immer sichtbar.`); process.exit(bad ? 1 : 0); })();
+  await b.close(); srv.kill(); console.log(bad ? `${bad} Probleme (Screenshots in tests/out/prep)` : `Vorbereitung ok: ${n} Lagen (Krypta + Akt-Gebiet) auf ${SCR.length} Bildschirmen, Kämpfen immer sichtbar.`); process.exit(bad ? 1 : 0); })();
