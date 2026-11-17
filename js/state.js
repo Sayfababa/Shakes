@@ -519,6 +519,13 @@ function ensureGlut(it) {
 }
 export const craftGold = it => Math.round(CRAFT.gold[0] + it.lvl * CRAFT.gold[1] + it.value * CRAFT.goldValue);   // mit Wert: Craften+Verkaufen darf nie Gold bringen
 // Warum geht ein Eingriff nicht? null = möglich
+// „Hinzufügen" an einem vollen Teil: mit einem Kronsplitter geht es doch, und das Teil steigt auf.
+// null = normaler Fall. Eine Aufwertung je Teil, egal über welchen Weg (`it.risen`).
+export const craftRaises = (it, opId) => opId !== 'add' || !it || it.risen
+  || Object.keys(baseMods(it)).length < CRAFT.maxAff[it.rarity] ? null : (CRAFT.raise.from[it.rarity] || null);
+// Welches Material ein Eingriff wirklich kostet – das Erheben nimmt ein anderes als das Hinzufügen.
+export const craftMat = (it, opId) => craftRaises(it, opId) ? CRAFT.raise : CRAFT.ops.find(o => o.id === opId);
+
 export function craftCheck(it, opId, stat) {
   const op = CRAFT.ops.find(o => o.id === opId);
   if (!it || !op) return 'Nichts gewählt.';
@@ -526,13 +533,15 @@ export function craftCheck(it, opId, stat) {
   if (!CRAFT.glut[it.rarity]) return 'Nur magische, seltene und legendäre Items.';
   ensureGlut(it);
   if (it.crafted) return `Vollendet von ${it.crafted}.`;
-  if (it.glut < op.glut) return 'Zu wenig Schmiedeglut.';
-  if ((S.mats[op.mat] || 0) < op.n) return 'Zu wenig Material.';
+  const need = craftMat(it, opId), rise = craftRaises(it, opId);
+  if (it.glut < need.glut) return 'Zu wenig Schmiedeglut.';
+  if ((S.mats[need.mat] || 0) < need.n) return rise ? `Es braucht ${MATS[CRAFT.raise.mat]} aus dem Abgrund.` : 'Zu wenig Material.';
   if (S.gold < craftGold(it)) return 'Zu wenig Gold.';
   const base = baseMods(it), keys = Object.keys(base), free = keys.filter(k => k !== it.sealed);
   if (opId === 'seal') { if (it.sealed) return 'Schon ein Bonus versiegelt.'; if (!stat || !base[stat]) return 'Bonus antippen, der bleiben soll.'; }
   if ((opId === 'chaos' || opId === 'values' || opId === 'remove') && !free.length) return 'Kein unversiegelter Bonus.';
-  if (opId === 'add' && keys.length >= CRAFT.maxAff[it.rarity]) return 'Kein Platz für weitere Boni.';
+  if (opId === 'add' && keys.length >= CRAFT.maxAff[it.rarity] && !rise)
+    return it.risen ? 'Dieses Teil wurde schon erhoben.' : 'Kein Platz für weitere Boni.';
   if (opId === 'add' && !affixPool(it).some(a => !(a.stat in base))) return 'Alle Boni schon vorhanden.';
   return null;
 }
@@ -553,6 +562,7 @@ function spendGlut(it, n) {
 export function craft(id, opId, stat) {
   const it = findAny(id), err = craftCheck(it, opId, stat); if (err) return { err };
   const op = CRAFT.ops.find(o => o.id === opId), legend = it.rarity === 'legendary';
+  const need = craftMat(it, opId), rise = craftRaises(it, opId);
   const gold = craftGold(it), base = baseMods(it), tiers = { ...(it.tiers || {}) };
   const roll1 = k => { const T = rollTier(it.lvl); tiers[k] = T.t; base[k] = affixValue(AFFIXES.find(a => a.stat === k), it.lvl, T, legend); };
   const free = Object.keys(base).filter(k => k !== it.sealed);
@@ -563,10 +573,13 @@ export function craft(id, opId, stat) {
   else if (opId === 'add') { const pool = affixPool(it).filter(a => !(a.stat in base)); roll1(pool[Math.floor(rand() * pool.length)].stat); }
   else if (opId === 'remove') { const k = free[Math.floor(rand() * free.length)]; delete base[k]; delete tiers[k]; }
   it.tiers = tiers; setBase(it, base);
-  S.mats[op.mat] -= op.n; S.gold -= gold;
-  const cost = spendGlut(it, op.glut);
+  // Der Aufstieg ändert nur die Zahl der Boni und die Farbe – dmg/armor des Grundgegenstands bleiben,
+  // sonst bekäme man einen seltenen Grundwert geschenkt (gleiche Regel wie beim Fusionieren).
+  if (rise) { it.rarity = rise; it.risen = true; }
+  S.mats[need.mat] -= need.n; S.gold -= gold;
+  const cost = spendGlut(it, need.glut);
   renameMagic(it); it.value = itemValue(it);
-  return { it, op, cost };
+  return { it, op, cost, rise };
 }
 
 // --- Fusionieren: ein Bonus wandert von einem gleichartigen Teil herüber, der Spender zerfällt ---
@@ -584,7 +597,7 @@ export const fuseFoods = main => !main ? [] : S.bag.filter(it =>
   it.id !== main.id && fusable(it) && fuseForm(main, it) && it.rarity === main.rarity && Object.keys(baseMods(it)).length);
 // Ist das Hauptteil voll, muss entweder ein Bonus weichen (mainStat) oder das Teil steigt auf.
 export const fuseFull = main => Object.keys(baseMods(main)).length >= CRAFT.maxAff[main.rarity];
-export const fusePromote = (main, mainStat) => fuseFull(main) && !mainStat ? nextRar(main.rarity) : null;
+export const fusePromote = (main, mainStat) => fuseFull(main) && !mainStat && !main.risen ? nextRar(main.rarity) : null;
 
 // Warum geht die Fusion nicht? null = möglich
 export function fuseCheck(main, food, foodStat, mainStat) {
@@ -620,7 +633,7 @@ export function fuse(mainId, foodId, foodStat, mainStat) {
   main.tiers = tiers; setBase(main, mb);
   // Aufstieg ändert nur die Zahl der Boni und die Farbe – Schaden und Rüstung des Grundgegenstands
   // bleiben, sonst bekäme man durch zwei magische Teile heimlich einen seltenen Grundwert geschenkt.
-  if (promote) main.rarity = promote;
+  if (promote) { main.rarity = promote; main.risen = true; }
   main.fused = fuseCount(main) + 1;
   const gold = craftGold(main); S.gold -= gold;
   const cost = spendGlut(main, CRAFT.fuse.glut);

@@ -469,6 +469,8 @@ img.sic { object-fit: cover; padding: 0; background: #000; width: 48px; height: 
 .special-l { color: #ff9a3a; }
 .cops { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
 .cop { display: flex; flex-direction: column; align-items: center; padding: 3px 1px; line-height: 1.05; min-width: 0; }
+/* Erheben ist nicht der normale Eingriff – der Knopf trägt dasselbe Gold wie die Seltenheits-Marken. */
+.cop.rise:not(:disabled) b { color: var(--gold); }
 .cop img { width: 28px; height: 28px; object-fit: contain; } .cop b { font-size: max(11px, .6rem); white-space: nowrap; } .cop small { font-size: max(11px, .5rem); color: var(--dim); font-family: 'Alegreya'; text-align: center; }
 .cmsg { margin: 4px 0 0; min-height: 1.2em; }
 

@@ -205,6 +205,7 @@ export const UNIQUE_CHANCE = 0.6;   // so viele Legendäre sind Einzigartige (so
 export const MATS = {
   zahn: 'Ghulzahn', staub: 'Knochenstaub', schwanz: 'Pestrattenschwanz', siegel: 'Kultistensiegel',
   blutstein: 'Blutstein', haar: 'Hexenhaar', asche: 'Höllenasche', leinen: 'Grableinen',
+  kronsplitter: 'Kronsplitter',                       // nur aus dem Abgrund – siehe CRAFT.raise
 };
 // --- Schmiede (Halvar): Minispiel für die Wartezeit. Material bestimmt die Rune, Treffer die Güte. ---
 export const RUNES = {
@@ -233,6 +234,11 @@ export const CRAFT = {
     { id: 'add', name: 'Hinzufügen', mat: 'blutstein', n: 2, glut: 5, text: 'Ein neuer Bonus, wenn Platz ist.' },
     { id: 'remove', name: 'Tilgen', mat: 'leinen', n: 2, glut: 2, text: 'Ein zufälliger unversiegelter Bonus verschwindet.' },
   ],
+  // Erheben: „Hinzufügen" ist bei einem vollen Teil sonst tot. Mit einem Kronsplitter geht es doch –
+  // das Teil bekommt einen gewürfelten Bonus und steigt eine Seltenheit auf. Der Preis ist bewusst
+  // NICHT Gold (davon hat jeder genug), sondern ein Material, das nur der Abgrund hergibt.
+  // Nur magisch → selten: selten → legendär bliebe sonst der kürzeste Weg zu einem Spitzenteil.
+  raise: { mat: 'kronsplitter', n: 1, glut: 6, from: { magic: 'rare' } },
   glutJitter: 2,                                                   // jeder Eingriff kostet zusätzlich 0..2 Glut (Unsicherheit wie Last Epoch)
   // Fusionieren: ein Bonus wandert von einem gleichartigen Teil herüber, der Spender zerfällt.
   // `max` ist die Bremse – drei von vier Boni müssen weiter aus dem Würfel kommen, sonst baut
@@ -877,6 +883,7 @@ export const DESCENT = {
   gold: 1.1, xp: 0.6,               // gegenüber einem Krypta-Kampf
   item: 0.35, eliteMinR: 2, bossMinR: 3,
   heart: 0.1, eliteHeart: 0.35,
+  kronBoss: 1, kronElite: 0.12,     // Kronsplitter: sicher beim Abgrund-Boss, selten bei Elite (× Unruhe)
   heal: 0.35, trap: 0.3, trapDmg: 0.15,
   wellGold: 6,                      // Brunnen: × Gegnerstufe
   stairUnrest: 1,                   // Rückweg über die Stiege: ein Kampf mit Unruhe +1

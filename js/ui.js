@@ -3,7 +3,7 @@ import { TREE, AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, S
 import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
 import { affixPool } from './loot.js';
 import { potion, beltSlots, brewCost, canBrew, potMax, unreadable, herbPrice, canBuyHerb, herbLeft } from './state.js';
-import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, fuseMains, fuseFoods, fuseCheck, fuseFull, fusePromote, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
+import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, craftRaises, craftMat, baseMods, fuseMains, fuseFoods, fuseCheck, fuseFull, fusePromote, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 // Name eines Item-Bonus: Attribute, Rüstung/Schaden, Prozent-Boni ("% Krit-Chance", "% Feuerball")
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
@@ -556,19 +556,34 @@ function viewCraft(sel) {
       <div class="caffs">${rows || '<span class="dim small">Keine eigenen Boni.</span>'}</div>
       ${it.fx ? `<div class="small special-l">✦ ${effLine(it.fx)} <i class="dim">(bleibt)</i></div>` : ''}${it.runes?.length ? `<div class="small rune">${it.runes.map(r => r.name + ' +' + r.v).join(', ')} <i class="dim">(bleibt)</i></div>` : ''}
       ${it.crafted ? `<div class="small gold">Vollendet von ${it.crafted}</div>` : ''}</div>`; })();
+  // Ist das Teil voll, kostet „Hinzufügen" einen Kronsplitter und hebt die Seltenheit – der Knopf
+  // heißt dann anders und zeigt das andere Material, sonst verspricht er etwas, das er nicht tut.
   const ops = CRAFT.ops.map(op => { const err = it ? craftCheck(it, op.id, sel.stat) : 'Kein Item';
-    return `<button class="cop" data-action="craftop" data-o="${op.id}" ${err ? 'disabled' : ''} title="${op.text} (${MATS[op.mat]})">${matImg(op.mat)}<b>${op.name}</b><small><i class="${(S.mats[op.mat] || 0) < op.n ? 'down' : ''}">${S.mats[op.mat] || 0}/${op.n}</i><br>Glut ${op.glut}+</small></button>`; }).join('');
+    const rise = it ? craftRaises(it, op.id) : null, need = it ? craftMat(it, op.id) : op;
+    const nm = rise ? 'Erheben' : op.name, tip = rise ? `Ein gewürfelter Bonus – und das Teil steigt zu ${RARITIES.find(r => r.id === rise).name.toLowerCase()} auf.` : op.text;
+    return `<button class="cop ${rise ? 'rise' : ''}" data-action="craftop" data-o="${op.id}" ${err ? 'disabled' : ''} title="${tip} (${MATS[need.mat]})">${matImg(need.mat)}<b>${nm}</b><small><i class="${(S.mats[need.mat] || 0) < need.n ? 'down' : ''}">${S.mats[need.mat] || 0}/${need.n}</i><br>Glut ${need.glut}+</small></button>`; }).join('');
   const why = it && CRAFT.ops.map(op => craftCheck(it, op.id, sel.stat)).find(e => e && !/Material|Bonus antippen/.test(e));
   return `<div class="col forge craft">${forgeTabs(sel)}
     <section class="panel"><div class="cpick">${list.map(x => `<div class="fslot r-${x.rarity} ${x.id === sel.item ? 'on' : ''} ${x.crafted ? 'full' : ''} ${Object.values(S.equip).includes(x) ? 'eq' : ''}" data-action="craftpick" data-id="${x.id}">${itemArt(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`).join('') || '<span class="dim small">Nichts zum Umschmieden. Magische Items fallen bei Monstern und Händlern.</span>'}</div></section>
     <section class="panel grow">${card}</section>
     <section class="panel"><div class="cops">${ops}</div>
-      <p class="small cmsg">${sel.msg || (it ? `Je Eingriff ${craftGold(it)} Gold · ${sel.stat ? `<b>${STAT_NAME(sel.stat)}</b> gewählt` : 'zum Versiegeln einen Bonus antippen'}${why ? ` · <span class="down">${why}</span>` : ''}` : 'Material bestimmt den Eingriff, Schmiedeglut wie oft.')}</p></section></div>`;
+      <p class="small cmsg">${sel.msg || (it ? `Je Eingriff ${craftGold(it)} Gold · ${sel.stat ? `<b>${STAT_NAME(sel.stat)}</b> gewählt` : 'zum Versiegeln einen Bonus antippen'}${why ? ` · <span class="down">${why}</span>` : ''}${craftHint(it)}` : 'Material bestimmt den Eingriff, Schmiedeglut wie oft.')}</p></section></div>`;
 }
 
 // --- Fusionieren: zwei gleichartige Teile, ein Bonus wandert, das Futter zerfällt ---
 // Links bleibt, rechts zerfällt – die Richtung steht in der Überschrift, im Rahmen und am Pfeil,
 // damit niemand aus Versehen das falsche Teil opfert.
+// Ein volles Teil ist in der Umschmiede zu Ende – aber nicht im Spiel. Hier steht, wie es weitergeht,
+// denn sonst liest man nur „Kein Platz für weitere Boni" und hält das für das Ende.
+function craftHint(it) {
+  if (!it || it.risen) return '';
+  const full = Object.keys(baseMods(it)).length >= CRAFT.maxAff[it.rarity], up = CRAFT.raise.from[it.rarity];
+  if (!full || !up) return '';
+  const nm = RARITIES.find(r => r.id === up).name.toLowerCase();
+  return (S.mats[CRAFT.raise.mat] || 0) >= CRAFT.raise.n
+    ? `<br><span class="gold">Erheben macht es ${nm}: ein gewürfelter Bonus für einen ${MATS[CRAFT.raise.mat]}.</span>`
+    : `<br>Über diese Grenze führen zwei Wege: <b>Fusionieren</b> mit einem zweiten Teil gleicher Form – oder <b>Erheben</b> mit einem ${MATS[CRAFT.raise.mat]} aus dem Abgrund.`;
+}
 function fuseRows(it, picked, side, dropped, blocked) {
   const base = baseMods(it);
   return Object.entries(base).map(([k, v]) => { const t = it.tiers?.[k] || 3, sealed = it.sealed === k;
@@ -602,8 +617,14 @@ function viewFuse(sel) {
            <p class="small dim fwarn">Der andere Bonus geht mit verloren.</p>`
         : `<p class="dim small">Kein Futter gewählt.${foods.length ? '' : ' Es braucht ein zweites Teil gleicher Grundform und gleicher Seltenheit im Beutel.'}</p>`}</div>
     </div>`;
+  // Ohne diese zwei Sätze sieht beides wie „geht nicht" aus: dass heute überhaupt ein Paar da ist,
+  // und dass ein halbvolles Teil den Bonus zwar nimmt, aber die Farbe behält.
+  const pairs = !main && mains.some(m => fuseFoods(m).length);
+  const room = main && !fuseFull(main) && CRAFT.maxAff[main.rarity] - Object.keys(baseMods(main)).length;
   const msg = sel.msg ? sel.msg
-    : !main ? `Je Teil nur ${CRAFT.fuse.max === 1 ? 'eine Fusion' : CRAFT.fuse.max + ' Fusionen'} – danach nie wieder.`
+    : !main ? (pairs ? '<span class="gold">Zwei Teile im Beutel passen zusammen.</span> Hauptteil oben wählen.'
+      : `Je Teil nur ${CRAFT.fuse.max === 1 ? 'eine Fusion' : CRAFT.fuse.max + ' Fusionen'} – danach nie wieder.`)
+    : room ? `Hier ist noch Platz für ${room === 1 ? 'einen Bonus' : room + ' Boni'} – der neue kommt dazu, die Farbe bleibt. Aufsteigen kann nur ein <b>volles</b> Teil.`
     : !food ? 'Futter unten antippen. Nur gleiche Grundform, gleiche Seltenheit, nur aus dem Beutel.'
     : blocked && blocked.size >= Object.keys(baseMods(food)).length ? '<span class="down">Von diesem Futter kann nichts herüber</span> – das Hauptteil hat die Boni schon oder sie gehören nicht auf diesen Platz.'
     : err ? `<span class="down">${err}</span>`

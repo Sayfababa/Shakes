@@ -367,8 +367,26 @@ test('Umschmieden: Grenzen – Einzigartige, gewöhnliche, zu wenig Material/Gol
   const n = makeItem(5, { slot: 'helm' }); n.rarity = 'normal'; S.bag = [n]; assert.ok(G.craft(n.id, 'add').err);
   const it = craftable(2, 20); S.bag = [it]; it.glut = 1; assert.ok(G.craft(it.id, 'values').err);
   it.glut = 50; S.mats.staub = 1; assert.ok(G.craft(it.id, 'values').err); S.mats.staub = 99; S.gold = 0; assert.ok(G.craft(it.id, 'values').err);
-  S.gold = 1e6; while (Object.keys(G.baseMods(it)).length < 2) G.craft(it.id, 'add'); assert.ok(G.craft(it.id, 'add').err, 'magisch über 2 Boni');
+  S.gold = 1e6; while (Object.keys(G.baseMods(it)).length < 2) G.craft(it.id, 'add');
+  S.mats.kronsplitter = 0; assert.ok(G.craft(it.id, 'add').err, 'magisch über 2 Boni ohne Kronsplitter');
   assert.ok(G.craft('gibtsnicht', 'add').err);
+});
+
+// Erheben: der einzige Weg, in der Umschmiede über die Grenze der Seltenheit zu kommen.
+test('Erheben: Kronsplitter macht ein volles magisches Teil selten – einmal je Teil', () => {
+  const S = richCraft(), it = craftable(2, 20); S.bag = [it]; it.glut = 99;
+  while (Object.keys(G.baseMods(it)).length < 2) G.craft(it.id, 'add');
+  const dmg = JSON.stringify([it.dmg, it.armor]), splitter = S.mats.kronsplitter;
+  const r = G.craft(it.id, 'add');
+  assert.ok(!r.err, 'mit Kronsplitter muss es gehen: ' + r.err);
+  assert.equal(it.rarity, 'rare', 'steigt zu selten auf');
+  assert.equal(Object.keys(G.baseMods(it)).length, 3, 'dritter Bonus da');
+  assert.equal(S.mats.kronsplitter, splitter - D.CRAFT.raise.n, 'Splitter verbraucht');
+  assert.equal(JSON.stringify([it.dmg, it.armor]), dmg, 'Grundwerte bleiben – kein geschenkter Grundwert');
+  // Zweimal erheben darf niemand, auch nicht über die Fusion.
+  while (Object.keys(G.baseMods(it)).length < 4) G.craft(it.id, 'add');
+  assert.ok(G.craft(it.id, 'add').err, 'selten -> legendär ist zu');
+  assert.equal(G.fusePromote(it, null), null, 'auch die Fusion hebt ein erhobenes Teil nicht weiter');
 });
 
 test('Umschmieden: Stufe I nur ab Gegenstandsstufe 20, auch beim Neu-Würfeln', () => {

@@ -500,7 +500,7 @@ export function descChance(j) {
   let w = 0; for (let i = 0; i < 24; i++) if (fight(A, descEnemy(stair ? { t: 'fight', mob: pick(c.floors) } : nd, u)).winner === 'a') w++;
   const p = w / 24; if (threatCache.size > 200) threatCache.clear(); threatCache.set(key, p); return p;
 }
-function descLoot(lvl, u, { gold = 1, item = 0, minR = 0, heart = 0, mat = null }) {
+function descLoot(lvl, u, { gold = 1, item = 0, minR = 0, heart = 0, mat = null, kron = 0 }) {
   const S = G.S, s = S.desc.sack, k = descMult(u), got = { gold: Math.round((10 + lvl * 5) * DESCENT.gold * gold * k), items: [], mats: [], herbs: [] };
   s.gold += got.gold;
   for (let n = rollN(item * Math.sqrt(k)); n > 0; n--) {
@@ -508,6 +508,9 @@ function descLoot(lvl, u, { gold = 1, item = 0, minR = 0, heart = 0, mat = null 
     s.items.push(it); got.items.push(it); }
   if (mat && chance(Math.min(1, CFG.matChance * k))) { const n = Math.max(1, rollN(k / 2)); s.mats[mat] = (s.mats[mat] || 0) + n; got.mats.push([mat, n]); }
   if (heart && chance(Math.min(1, heart * k))) { s.herbs.herz = (s.herbs.herz || 0) + 1; got.herbs.push(['herz', 1]); }
+  // Kronsplitter: der einzige Weg, ein volles magisches Teil zu erheben. Er liegt tief und
+  // zählt erst, wenn der Sack oben ankommt – stirbt man, ist er weg.
+  if (kron && chance(Math.min(1, kron * k))) { s.mats.kronsplitter = (s.mats.kronsplitter || 0) + 1; got.mats.push(['kronsplitter', 1]); }
   return got;
 }
 function descExtract(how) {
@@ -529,7 +532,7 @@ function descFight(nd, u, exit = null) {
   rew.grade = gradeOf(r); if (rew.grade.id === 'dom') G.bountyEvent({ type: 'dom' });
   const xp = Math.round((25 + m.lvl * 14) * DESCENT.xp * (boss ? 3 : elite ? 1.5 : 1)); rew.xp = xp; rew.up = G.gainXp(xp); D.xp += xp;
   const gb = 1 + rew.grade.bonus;   // Kampfbewertung: mehr Gold wie überall
-  rew.sack = descLoot(m.lvl, u, boss ? { gold: 4 * gb, item: 2, minR: DESCENT.bossMinR, heart: 1, mat: m.mat } : elite ? { gold: 1.8 * gb, item: 1, minR: DESCENT.eliteMinR, heart: DESCENT.eliteHeart, mat: m.mat }
+  rew.sack = descLoot(m.lvl, u, boss ? { gold: 4 * gb, item: 2, minR: DESCENT.bossMinR, heart: 1, mat: m.mat, kron: DESCENT.kronBoss } : elite ? { gold: 1.8 * gb, item: 1, minR: DESCENT.eliteMinR, heart: DESCENT.eliteHeart, mat: m.mat, kron: DESCENT.kronElite }
     : { gold: gb, item: DESCENT.item, heart: DESCENT.heart, mat: m.mat });
   if (boss || exit) return { A, B: m, r, win, rew, desc: { out: descExtract(boss ? c.boss.name : exit) } };
   return { A, B: m, r, win, rew, desc: { hpf: D.hpf } };
