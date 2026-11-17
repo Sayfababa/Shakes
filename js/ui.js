@@ -119,8 +119,8 @@ export function navBar(view) {
   const tabs = [['hero', 'Held'], ['trips', 'Streifzug'], ['traders', 'Händler'], ['forge', 'Schmiede'], ['alch', 'Alchemie'], ['crypt', 'Krypta']];
   const map = { wplan: 'trips', opts: 'hero', act: 'trips', zoneprep: 'trips', prep: 'crypt', desc: 'crypt', arena: 'crypt', pitprep: 'crypt', pitshop: 'crypt', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', exped: 'trips' };
   // Nur echte Handlungsaufforderungen markieren – ein Dauer-Punkt auf jedem Tab sagt nichts mehr
-  const badge = { hero: S.points + talentPoints() + waysPending() > 0, traders: Object.keys(TRADERS).some(canComplete), arena: canComplete('vargo'),
-    crypt: canComplete('ilse') || canComplete('vargo'), trips: canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) };
+  const badge = { hero: S.points + talentPoints() + waysPending() > 0, traders: [...Object.keys(TRADERS), 'vargo'].some(canComplete), arena: false,
+    crypt: canComplete('ilse'), trips: canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) };
   // Grün: eine Wartezeit ist abgelaufen – wieder bereit (verschwindet, sobald man hinschaut)
   const ready = readyDots();
   const on = map[view] || view;
@@ -400,13 +400,43 @@ export function viewNpc(id) {
 }
 
 // --- Händler ---
+// Vier Reiter brauchen Kurznamen: „Mutter Ysolde“ und „Bruder Kaspar“ sprengen die Leiste auf dem SE.
+// Der volle Name steht ohnehin eine Zeile darunter im Panel.
+const SHOPKEEPERS = { ...TRADERS, vargo: NPCS.vargo };
+const shortName = n => n.split(' ').pop();
+const traderTabs = tid => `<nav class="subtabs">${Object.entries(SHOPKEEPERS).map(([k, x]) =>
+  `<a class="${k === tid ? 'on' : ''} ${canComplete(k) ? 'badge' : ''}" data-action="trader" data-t="${k}">${shortName(x.name)}</a>`).join('')}</nav>`;
+
+// Vargo steht bei den Händlern wie die anderen – nur zählt bei ihm Ehre statt Treue, und sein Laden
+// liegt hinter einem Knopf, genau wie Halvars Schmiede und Ysoldes Alchemie.
+function viewVargo() {
+  const t = NPCS.vargo, rk = pitRank(), place = pitPlace();
+  return `<div class="col trader">
+    ${traderTabs('vargo')}
+    <section class="panel npcrow">${npcArt(t.glyph)}
+      <div><h2>${t.name} <span class="h2r">${t.role}</span></h2><p class="lore">„${t.lines[Math.floor(Date.now() / 60000) % t.lines.length]}“</p>
+        <div class="loyal"><span>Ehre <b>${S.honor}</b></span><div class="bar rep"><i style="width:${pct(Math.min(S.honor, 500), 500)}%"></i></div>
+          <small>Platz ${place} · ${rk.name} · ${S.wins} Siege</small></div></div>
+    </section>
+    ${questNote('vargo')}
+    <section class="panel services"><button class="svc red" data-action="pitshop" data-b="traders"><b>Vargos Laden</b><small>Ehre ausgeben</small></button>
+      <button class="svc" data-action="go" data-v="titles"><b>Titel</b><small>${S.pit.titles.length} verdient</small></button>
+      <button class="svc" data-action="go" data-v="arena"><b>Zur Grube</b><small>Ehre verdienen</small></button></section>
+    ${(() => { const Pw = pitWeek(), rule = PIT_RULES.find(r => r.id === Pw.ch?.rule), nx = PIT_RANKS[PIT_RANKS.indexOf(rk) + 1];
+      return `<section class="panel grow pitstand"><div class="invhead"><span>Die Grube</span><small class="dim">noch ${PIT.weekBuys - Pw.buys} Käufe diese Woche</small></div>
+        <p class="small">${nx ? `Nächster Rang <b>${nx.name}</b> ab Platz ${nx.max}.` : 'Höchster Rang erreicht.'}</p>
+        ${rule ? `<p class="small">Herausforderung der Woche: <b>${rule.name}</b>${Pw.ch.won ? ' <i class="up">geschafft</i>' : ` · noch ${Pw.ch.tries} Versuche`}</p>
+          <p class="small dim lore">${rule.text}</p>` : ''}</section>`; })()}
+  </div>`;
+}
 export function viewTrader(tid) {
+  if (tid === 'vargo') return viewVargo();
   const t = TRADERS[tid], st = S.traders[tid], L = loyalty(tid), q = current(tid);
   const next = L + 1 < t.need.length ? `${st.rep}/${t.need[L + 1]} Ruf${S.lvl < t.lvl[L + 1] ? ` · Stufe ${t.lvl[L + 1]}` : ''}` : 'Höchste Treue';
   const note = questNote(tid);
   const shop = shopFor(tid);
   return `<div class="col trader">
-    <nav class="subtabs">${Object.entries(TRADERS).map(([k, x]) => `<a class="${k === tid ? 'on' : ''} ${canComplete(k) ? 'badge' : ''}" data-action="trader" data-t="${k}">${x.name}</a>`).join('')}</nav>
+    ${traderTabs(tid)}
     <section class="panel npcrow">${npcArt(t.glyph)}
       <div><h2>${t.name} <span class="h2r">${t.role}</span></h2><p class="lore">„${(t.lines || [t.quote])[Math.floor(Date.now() / 60000) % (t.lines?.length || 1)]}“</p>
         <div class="loyal"><span>Treue <b>${LOYALTY[L]}</b></span><div class="bar rep"><i style="width:${L + 1 < t.need.length ? pct(st.rep - t.need[L], t.need[L + 1] - t.need[L]) : 100}%"></i></div><small>${next}</small></div></div>
@@ -666,20 +696,20 @@ export function viewArena() {
       <img src="${P(f.B.cls)}" alt=""><h4>${f.B.name}</h4><span class="pz">${f.place}.</span><span class="st">${f.foe ? 'Hat dich zweimal besiegt.' : st.text}</span>
       <div class="meta"><span>Stufe ${f.B.lvl} · ${st.name}</span><b>${pcT(f.p)}</b><span>${hon(f.honor)}${f.foe ? ' ×2' : ''}</span></div></section>`; }).join('') || '<section class="panel"><p class="lore">Niemand steht mehr über dir. Der Sand gehört dir.</p></section>'}
     ${ch ? `<div class="bountybar pitch ${ch.won ? '' : 'ready'}" ${ch.won || ch.tries <= 0 ? '' : `data-action="pitsel" data-id="${ch.rid}" data-ch="1"`}><span>Woche: ${chR.name}</span><b>${chV.name}</b>${ch.won ? '<i>geschafft</i>' : `<i>${hon(PIT.chHonor)} · ${ch.tries}/${PIT.chTries}</i>`}</div>` : ''}
-    <div class="btns pitbtns"><button data-action="go" data-v="pitshop">Vargos Laden</button><button data-action="npc" data-n="vargo">Vargo</button></div>
+    <div class="btns pitbtns"><button data-action="pitshop" data-b="arena">Vargos Laden</button><button data-action="npc" data-n="vargo">Vargo</button></div>
   </div>`;
 }
-export function viewPitShop() {
+export function viewPitShop(back) {
   const shop = pitShop(), Pw = S.pit, left = PIT.weekBuys - Pw.buys;
   const ware = (w, t, k) => { const can = !w.sold && left > 0 && S.honor >= w.price;
     const art = w.t === 'item' ? itemArt(w.item) : w.t === 'herb' ? herbImg(w.id) : matImg(w.id), nm = w.t === 'item' ? '' : `<i class="wn">${w.t === 'herb' ? HERBS[w.id].name : MATS[w.id]} ×${w.n}</i>`;
     return `<div class="sitem pware ${w.t === 'item' ? 'r-' + w.item.rarity : ''} ${w.sold ? 'sold' : ''}" ${w.t === 'item' ? `data-tip="${w.item.id}"` : ''} data-action="pitbuy" data-t="${t}" data-k="${k}">${art}${nm}<span class="price ${can ? '' : 'no'}">${w.sold ? 'verkauft' : hon(w.price)}</span></div>`; };
-  return `<div class="col pitshopv">${cryptTabs('arena')}
+  return `<div class="col pitshopv">${back === 'traders' ? '' : cryptTabs('arena')}
     <section class="panel"><h2>Vargos Laden <span class="h2r">${hon(S.honor)} · noch ${left} diese Woche</span></h2>
     ${PIT_SHOP.map(t => { const rk = PIT_RANKS.find(r => r.id === t.rank); return pitTierOpen(t.rank)
       ? `<div class="tier">${rk.name}</div><div class="shoprow pitrow">${shop[t.rank].map((w, k) => ware(w, t.rank, k)).join('')}</div>`
       : `<div class="tier off">${rk.name} · ab Platz ${rk.max}</div>`; }).join('')}</section>
-    <div class="btns"><button data-action="go" data-v="titles">Titel${Pw.titles.length ? ` <span class="h2r">${Pw.titles.length}</span>` : ''}</button><button data-action="go" data-v="arena">Zurück</button></div>
+    <div class="btns"><button data-action="go" data-v="titles">Titel${Pw.titles.length ? ` <span class="h2r">${Pw.titles.length}</span>` : ''}</button><button data-action="${back === 'traders' ? 'trader" data-t="vargo' : 'go" data-v="arena'}">Zurück</button></div>
   </div>`;
 }
 // Titel aus den Rang-Aufstiegen – eigenes Fenster, damit Vargos Laden die ganze Höhe behält

@@ -30,5 +30,22 @@ const SCR = [['ios932', 430, 932, 75], ['ios932b', 430, 932, 0], ['app', 430, 86
       
     }
     if (sizes.size > 1) { bad++; console.log(nm, 'Ware/Dienste ungleich groß:', [...sizes].join(' ')); }
+    // Vargo: vierter Reiter, aber keine Ware – eigene Prüfung (Ehre statt Treue, Laden hinter einem Knopf)
+    for (const [honor, titles] of [[0, 0], [9999, 5]]) {
+      await p.evaluate(async ([honor, titles]) => { const G = await import('./js/state.js');
+        Object.assign(G.S, { lvl: 25, tut: 99, honor }); G.S.pit.titles = Array.from({ length: titles }, (_, i) => 'T' + i); }, [honor, titles]);
+      await p.tap('[data-v=traders]').catch(() => {}); await p.tap('[data-t=vargo]'); await p.waitForTimeout(60);
+      const r = await p.evaluate(() => { const m = document.querySelector('main').getBoundingClientRect(), out = [];
+        if (!document.querySelector('.npcrow')) return { out: 'VARGO-SEITE FEHLT' };
+        for (const e of document.querySelectorAll('main *')) { const q = e.getBoundingClientRect(); if (q.height && q.bottom > m.bottom + 1) { out.push('UNTER MAIN ' + e.className); break; } }
+        const k = document.querySelector('.npcrow'), kb = k.getBoundingClientRect().bottom;
+        for (const e of k.querySelectorAll('h2, .lore, .loyal, small, .bar')) if (e.offsetParent && e.getBoundingClientRect().bottom > kb - 2) out.push('KOPF ZU KLEIN ' + e.className);
+        if (!document.querySelector('[data-action=pitshop]')) out.push('LADEN-KNOPF FEHLT');
+        const tabs = [...document.querySelectorAll('.subtabs a')].map(a => a.textContent.trim());
+        if (tabs.length !== 4) out.push('REITER ' + tabs.length + ' statt 4');
+        for (const a of document.querySelectorAll('.subtabs a')) if (a.scrollWidth > a.clientWidth + 1) out.push('REITER-NAME ABGESCHNITTEN ' + a.textContent.trim());
+        return { out: out.join(' ') }; });
+      if (r.out) { bad++; console.log(nm, 'vargo', honor, r.out); await p.screenshot({ path: `${OUT}/${nm}_vargo_${honor}.png` }); }
+    }
     await c.close(); }));
-  await b.close(); srv.kill(); console.log(bad ? `${bad} Probleme (Screenshots in tests/out/trader)` : 'Händler ok: 3 Händler × alle Aufträge × offen/fertig × 8 Bildschirme, gleich groß, nichts abgeschnitten.'); process.exit(bad ? 1 : 0); })();
+  await b.close(); srv.kill(); console.log(bad ? `${bad} Probleme (Screenshots in tests/out/trader)` : 'Händler ok: 3 Händler × alle Aufträge + Vargo × offen/fertig × 8 Bildschirme, gleich groß, nichts abgeschnitten.'); process.exit(bad ? 1 : 0); })();

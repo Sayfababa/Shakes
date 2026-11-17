@@ -7,6 +7,7 @@ import * as Sound from './sound.js';
 
 const app = document.getElementById('app'), tip = document.getElementById('tip');
 let expSel = { loc: null, h: 8, path: [] }, expRes = null, expAsk = false;
+let pitBack = 'arena';   // woher man in Vargos Laden kam
 let forgeSel = { mat: null, slot: null, mode: 'rune', item: null, stat: null, msg: '' }, forgeRes = null, FG = null;
 let descSt = { c: null, j: null, msg: '', res: null };
 let wPath = [], wInfo = null, wanderRes = null, actSel = null, zoneSel = null, prepC = null, prepM = null, alchSel = POTIONS[0].id, alchBack = 'traders';
@@ -28,7 +29,7 @@ function render() {
     npc: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewNpc(npc),
     arena: () => S.wander && !S.desc ? UI.viewWanderAway('vargo') : S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : UI.viewArena(), hero: UI.viewHero,
     pitprep: () => S.wander && !S.desc ? UI.viewWanderAway('vargo') : S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : pitSel && prepM ? UI.viewPitPrep(pitSel, prepM) : UI.viewArena(),
-    pitshop: () => UI.viewPitShop(),
+    pitshop: () => UI.viewPitShop(pitBack),
     wplan: () => S.wander || S.exp || S.desc || !Game.wanderAct() ? UI.viewTrips() : UI.viewWanderPlan(wPath, wInfo),
     opts: () => UI.viewOpts(Sound.opt, Sound.LEVELS),
     sets: UI.viewSets,
@@ -248,6 +249,8 @@ const actions = {
     sellSure = null; G.sell(d.id); render(); },
   sort: () => { G.sortBag(); render(); },
   trader: d => { trader = d.t; turnin = null; view = 'traders'; render(); },
+  // Vargos Laden hat zwei Türen (Grube und Händler) – „Zurück“ muss dorthin, wo man herkam
+  pitshop: d => { pitBack = d.b || 'arena'; view = 'pitshop'; render(); },
   buy: d => { const S = G.S, shop = S.traders[d.t].shop, i = shop.findIndex(x => x.id === d.id), it = shop[i];
     if (!it || S.gold < it.price) return;
     const bought = { ...it }; delete bought.price; delete bought.lock;
