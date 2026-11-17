@@ -945,7 +945,13 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .pitwin { margin: 2px 0 0; }
 .pitshopv .tier { font-family: 'Alegreya SC'; font-size: .8rem; color: var(--gold); margin: 6px 0 3px; } .pitshopv .tier.off { color: var(--dim); }
 .pitrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
-.pitrow .sitem { aspect-ratio: 4 / 3; } .pware .matimg { position: absolute; left: 50%; top: 4px; translate: -50% 0; height: calc(100% - 30px); width: auto; }
+.pitrow .sitem { aspect-ratio: 4 / 3; }
+/* Vargos Laden: mit jedem Rang kommt eine Reihe dazu – die Ware füllt den Rest wie beim Händler,
+   statt die Ansicht unten hinauszuschieben (auf dem SE ragten 4 offene Ränge heraus). */
+.pitshopv > .panel { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
+.pitshopv > .panel > h2, .pitshopv .tier { flex: none; }
+.pitshopv .pitrow { flex: 1 1 0; min-height: 0; overflow: hidden; }
+.pitshopv .pitrow .sitem { aspect-ratio: auto; height: 100%; min-height: 0; } .pware .matimg { position: absolute; left: 50%; top: 4px; translate: -50% 0; height: calc(100% - 30px); width: auto; }
 .pware .wn { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-size: max(11px, .62rem); font-style: normal; color: var(--text); }
 .pware.sold { filter: grayscale(1) brightness(.5); }
 .titles { display: flex; flex-wrap: wrap; gap: 4px; } .titles button.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }

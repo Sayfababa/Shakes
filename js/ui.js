@@ -587,10 +587,18 @@ export function viewPitShop() {
     ${PIT_SHOP.map(t => { const rk = PIT_RANKS.find(r => r.id === t.rank); return pitTierOpen(t.rank)
       ? `<div class="tier">${rk.name}</div><div class="shoprow pitrow">${shop[t.rank].map((w, k) => ware(w, t.rank, k)).join('')}</div>`
       : `<div class="tier off">${rk.name} · ab Platz ${rk.max}</div>`; }).join('')}</section>
-    <section class="panel"><h2>Titel</h2><div class="titles">${Pw.titles.length ? Pw.titles.map(t => `<button class="tiny ${S.title === t ? 'on' : ''}" data-action="pittitle" data-t="${t}">${t}</button>`).join('') + (S.title ? '<button class="tiny" data-action="pittitle" data-t="">Ohne</button>' : '') : '<span class="dim small">Steig auf, um Titel zu tragen. Jeder neue Rang gibt einmalig einen Segen.</span>'}</div></section>
-    <div class="btns"><button data-action="go" data-v="arena">Zurück</button></div>
+    <div class="btns"><button data-action="go" data-v="titles">Titel${Pw.titles.length ? ` <span class="h2r">${Pw.titles.length}</span>` : ''}</button><button data-action="go" data-v="arena">Zurück</button></div>
   </div>`;
 }
+// Titel aus den Rang-Aufstiegen – eigenes Fenster, damit Vargos Laden die ganze Höhe behält
+export function viewTitles() {
+  const T = S.pit.titles;
+  return `<div class="col titlev"><section class="panel"><h2>Titel <span class="h2r">${T.length} verdient</span></h2>
+    ${T.length ? `<div class="titles">${T.map(t => `<button class="tiny ${S.title === t ? 'on' : ''}" data-action="pittitle" data-t="${t}">${t}</button>`).join('')}${S.title ? '<button class="tiny" data-action="pittitle" data-t="">Ohne</button>' : ''}</div>` : ''}
+    <p class="dim small">${T.length ? 'Der Titel steht neben deinem Namen in der Kopfzeile.' : 'Steig in der Grube in einen neuen Rang auf, um einen Titel zu tragen. Jeder neue Rang gibt einmalig einen Segen.'}</p></section>
+    <button data-action="go" data-v="pitshop">Zurück</button></div>`;
+}
+
 // Reiter im Krypta-Tab: Krypten | Abgrund | Grube (eigene Fenster)
 export const cryptTabs = on => { const cd = Math.max(0, Math.ceil((S.crypt.cd - Date.now()) / 1000));   // Erholung der Krypta steht am Reiter (auch wenn die Kopfzeile kompakt wegfällt)
   return `<nav class="subtabs ctabs">${[['crypt', 'Krypten'], ['desc', 'Abgrund'], ['arena', 'Grube']].map(([v, n]) => `<a class="${on === v ? 'on' : ''}" data-action="go" data-v="${v}">${n}${v === 'crypt' && cd ? ` <span class="cdt" data-until="${S.crypt.cd}">${fmtT(cd)}</span>` : ''}</a>`).join('')}</nav>`; };

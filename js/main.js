@@ -32,6 +32,7 @@ function render() {
     wplan: () => S.wander || S.exp || S.desc || !Game.wanderAct() ? UI.viewTrips() : UI.viewWanderPlan(wPath, wInfo),
     opts: () => UI.viewOpts(Sound.opt, Sound.LEVELS),
     sets: UI.viewSets,
+    titles: UI.viewTitles,
     act: () => S.exp || S.desc || S.wander ? (S.desc ? UI.viewDescAway('prophet') : UI.viewTrips()) : UI.viewAct(ACTS.find(a => a.id === actSel) || G.curAct()),
     zoneprep: () => S.exp || S.desc || S.wander || !prepM || zoneSel == null ? UI.viewTrips() : UI.viewZonePrep(ACTS.find(a => a.id === actSel), zoneSel, prepM),
     exped: () => S.desc ? UI.viewDescAway('prophet') : S.exp ? UI.viewTrips(expAsk) : UI.viewExped(expSel),

@@ -51,7 +51,17 @@ let failures = 0;
     await tap('[data-v=crypt]'); await chk('wanderaway'); await tap('[data-v=trips]'); await tap('[data-action=wclaim]'); await chk('wanderres'); await tap('[data-action=wok]');
     await tap('.act[data-action=act]'); await chk('actboss'); await tap('.zone.boss'); await chk('zoneboss'); await tap('.pback'); await tap('.zone.done'); await chk('zonereplay');
     for (const v of ['trips', 'hero', 'stats', 'talents', 'spells', 'crypt', 'forge', 'alch']) { await tap('[data-v=hero]'); await tap(`[data-v=${v}]`); await chk(v); }
-    await tap('[data-v=crypt]'); await tap('.ctabs [data-v=arena]'); await chk('arena'); await tap('.riv'); await chk('pitprep'); await tap('.ctabs [data-v=arena]'); await tap('[data-v=pitshop]'); await chk('pitshop'); await tap('.ctabs [data-v=desc]'); await chk('desclocked');
+    await tap('[data-v=crypt]'); await tap('.ctabs [data-v=arena]'); await chk('arena'); await tap('.riv'); await chk('pitprep');
+    // Vargos Laden mit allen verdienten Titeln (der schlimmste Fall für die Höhe). Aus der Vorbereitung
+    // führt kein Reiter zurück, darum neu laden statt zu tippen – sonst zeigte „pitshop“ die Vorbereitung.
+    await p.evaluate(async () => { const G = await import('./js/state.js'), D = await import('./js/data.js');
+      G.S.pit.titles = D.PIT_RANKS.filter(r => r.title).map(r => r.title); G.S.title = G.S.pit.titles[0];
+      G.S.honor = 500; G.S.pit.best = 1; G.S.pit.shop = {}; G.save(); });   // best 1 = jede Rangstufe offen, der Laden zeigt alle Waren
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=crypt]'); await tap('.ctabs [data-v=arena]');
+    if (!(await tap('[data-v=pitshop]'))) { failures++; console.log(`FEHLER ${tag}: Vargos Laden nicht erreichbar`); }
+    await chk('pitshop');
+    if (!(await tap('[data-v=titles]'))) { failures++; console.log(`FEHLER ${tag}: Titel-Fenster nicht erreichbar`); }
+    await chk('titles'); await tap('[data-v=pitshop]'); await tap('.ctabs [data-v=desc]'); await chk('desclocked');
     await tap('[data-v=hero]'); await tap('[data-v=spells]'); if (await tap('[data-action=ways]')) await chk('ways'); else { failures++; console.log(`FEHLER ${tag}: Zauber-Wege nicht erreichbar`); }
     await tap('[data-v=traders]'); for (const t of ['halvar', 'ysolde', 'kaspar']) { await tap(`[data-t=${t}]`); await chk(t); }
     if (await tap('[data-action=turnin]')) await chk('turnin');
