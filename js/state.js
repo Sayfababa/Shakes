@@ -3,7 +3,7 @@ import { affixPool, makeItem, itemValue, rollTier, affixValue, renameMagic, adj,
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
-export const SAVE_VERSION = 20;
+export const SAVE_VERSION = 21;
 export let S = null; // aktueller Spielstand
 
 export const now = () => Date.now();
@@ -96,6 +96,15 @@ function migrate(d) {
   if (d.v === 18) { d.seals = { day: today(), n: DESCENT.sealMax }; d.descDay = null; d.v = 19; }
   // v20: Lager. Der Beutel ist von 10x4 auf 10x6 gewachsen – alte Plaetze (y 0..3) bleiben gueltig.
   if (d.v === 19) { d.stash = []; d.v = 20; }
+  // v21: Die Zauberin hat jetzt ein Brett. Wie bei v17 gibt es keine Umrechnung alter Knoten –
+  // die IDs des alten Baums kommen auf dem Brett nicht vor. Leeren reicht, talentPoints() zählt
+  // die Punkte aus S.tal, sie kommen also von selbst zurück. Die Pruefung laeuft ueber die IDs,
+  // nicht ueber eine Klassenliste – damit gilt sie auch fuer die naechste Klasse, die aufs Brett kommt.
+  if (d.v === 20) {
+    const T = TREE[d.cls];
+    if (T) { const ids = new Set([...T.cols.flatMap(c => c.nodes.map(n => n.id)), ...(T.bridges || []).map(b => b.id)]);
+      if (Object.keys(d.tal || {}).some(k => !ids.has(k))) d.tal = {}; }
+    d.v = 21; }
   return d.v === SAVE_VERSION ? d : null;
 }
 
@@ -226,7 +235,7 @@ export function stats(p = S) {
   const base = w ? w.dmg.map(v => tempered(v, 'weapon', p)) : [1, 3], dm = (1 + (e.dmgPct || 0) + P('dmgp')) * (fit ? 1 : CFG.offWeapon);
   return { ...e, ...st, name: p.name, cls: p.cls, lvl: p.lvl, main: c.main,
     spells: SPELLS[p.cls].filter(s => p.lvl >= s.lvl).map(s => withWays({ ...s, boost: 1 + P('sk_' + s.id) }, p)),
-    amp: (1 + st.int / (st.int + CFG.spellK)) * (1 + P('spellp')) * (fit ? 1 : CFG.offWeaponSpell), offWeapon: !fit,
+    amp: (1 + st.int / (st.int + CFG.spellK)) * (1 + P('spellp') + (e.spellPct || 0)) * (fit ? 1 : CFG.offWeaponSpell), offWeapon: !fit,
     // Item-Prozente stapeln nur bis zur Obergrenze; was Klasse/Talente schon geben, wird nie gekürzt
     crit: cap(e.crit, P('critc'), CAPS.crit), critMult: cap(2 + (e.critDmg || 0), P('critd'), CAPS.critMult),
     pen: cap(e.pen, P('penp'), CAPS.pen), leech: cap(e.leech, P('leechp'), CAPS.leech),
@@ -292,6 +301,10 @@ export function power(A = stats()) {
     if (m.fresh) v *= 1 + m.fresh * 0.35;
     if (m.dotStack && s.kind === 'dot') v *= 1.6;
     let ev = s.every / (1 + (A.haste || 0)); if (m.open) ev *= 0.82; if (m.desperate) ev *= 1 - m.desperate * 0.3;
+    // Verbrennung: jeder Zauber brennt nach. Der Brand stapelt NICHT – der naechste Zauber ueberschreibt ihn,
+    // also tickt er hoechstens bis zum naechsten Wurf. Dazu ein Drittel Abzug fuer Ticks, die am toten Gegner verfallen.
+    // Ohne diese Deckel schaetzte power() den Schluesselstein auf +75 %, gemessen sind es +11,6 Punkte Siegchance.
+    if (A.ignite && !['heal', 'shield', 'buff'].includes(s.kind)) v += raw * A.ignite * Math.min(CFG.igniteTurns, ev) * 0.65;
     dpt += (v * (1 + (A.echo || 0)) - dpt) / ev;
     if (m.buff) dpt *= 1 + m.buff * 1.5 / ev;
     if (s.kind === 'heal' || s.kind === 'shield') heal += A.hp * s.pct * A.amp * b * (m.overshield ? 1.15 : 1) / ev;

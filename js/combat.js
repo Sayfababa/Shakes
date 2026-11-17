@@ -123,6 +123,12 @@ export function fight(A, B) {
       x.buff = Math.max(x.buff, Math.min(1 + (s.max || 9) * (s.boost || 1), x.buff + s.v * (s.boost || 1))); t += `: Schaden +${Math.round((x.buff - 1) * 100)} %.`; ev.buff = Math.round((x.buff - 1) * 100);
     }
     t += ways(x, y, s, m, d, amp, red, zap);
+    // Verbrennung (Schlüsselstein der Zauberin): jeder Zauber, der trifft, lässt den Gegner brennen.
+    // Läuft über dasselbe y.burn wie der Zauber-Weg „Brand“, überschreibt also den schwächeren.
+    if (x.ignite && d > 0 && !(y.cureN > 0)) {
+      const bd = Math.max(1, Math.round(d * x.ignite / (s.hits || 1)));
+      if (!(y.burn?.n > 0) || bd >= y.burn.d) { y.burn = { d: bd, n: CFG.igniteTurns }; t += ` ${y.name} brennt.`; }
+    }
     if (x.side === 'a') cast.push(s.name);
     say(x.side, t + extra, { spell: s.name, sid: s.id, dmg: d || undefined, crit: anyCrit, hits: hits.length > 1 ? hits : undefined, stun: s.kind === 'stun' || undefined });
     // Nachhall: der Zauber wirkt ein zweites Mal (nie öfter)

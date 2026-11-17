@@ -477,6 +477,7 @@ export const CFG = {
   spellK: 60,                         // Zauberkraft = 1 + Int / (Int + spellK)  (sättigt, max. ×2)
   monHp: 1.3, monDmg: 1.1,
   hemoBleed: 0.85,                    // Ausbluten: Grundstärke des Blutens je Treffer (dafür nie kritisch)
+  igniteTurns: 3,                     // Brand (Schlüsselstein Verbrennung): wie viele Runden der Brand des Zaubers läuft
   offWeapon: 0.7, offWeaponSpell: 0.6,  // fremde Waffe (nicht die der Klasse): Schaden ×0,7, Zauberkraft ×0,6                // Ausgleich für Zauber (Monster-Leben/-Schaden)
 };
 
@@ -550,7 +551,8 @@ export const EFFECT_NAMES = { dmgPct: 'Schaden', hpPct: 'Leben', armorPct: 'Rüs
   bulwark: 'Blocken gibt Schild', shred: 'Krit bricht Rüstung', secondWind: 'Heilt einmal, wenn es eng wird', lastBreath: 'Überlebt einen tödlichen Treffer',
   nohealSelf: 'Du kannst dich nicht heilen',
   hemorrhage: 'Bluten bei jedem Treffer – dafür nie kritisch', evadeCap: 'Ausweich-Grenze', critDmg: 'Krit-Schaden',
-  tollback: 'Betäubung prallt zurück', firstEcho: 'Erster Zauber wirkt zweimal' };
+  tollback: 'Betäubung prallt zurück', firstEcho: 'Erster Zauber wirkt zweimal',
+  spellPct: 'Zauberschaden', ignite: 'Jeder Zauber setzt in Brand' };
 
 // --- Das Brett (neuer Talentbaum) ---
 // Drei Zweige, von unten nach oben: kleine Knoten, dazwischen zwei Notable (ändern eine Regel),
@@ -597,6 +599,41 @@ export const TREE = {
     bridges: [
       { id: 'ab1', name: 'Narbe des Schattens', a: 0, b: 1, row: 2, max: 4, eff: { dmgPct: 0.027, evade: 0.012 }, text: 'Verbindet Klinge und Schatten.' },
       { id: 'ab2', name: 'Kalter Schweiß', a: 1, b: 2, row: 3, max: 4, eff: { hpPct: 0.027, crit: 0.012 }, text: 'Verbindet Schatten und Gift.' },
+    ],
+  },
+  // Die Zauberin kämpft über ihre Zauber, nicht über den Stab: ihre Zweige hängen deshalb an
+  // Zauberschaden (spellPct), Zaubertempo (haste) und Nachhall (echo) – Werte, die beim Hieb nichts tun.
+  // Feuer gibt Schaden und nimmt Rüstung, Frost gibt Panzer und nimmt Tempo, Arkan gibt Tempo und nimmt Leben.
+  sorceress: {
+    cols: [
+      { name: 'Feuer', nodes: [
+        N('sf1', 'Glut', 3, { spellPct: 0.075 }, 'Deine Zauber brennen heißer.'),
+        N('sf2', 'Zündschnur', 1, { firstEcho: 1 }, 'Der erste Zauber eines Kampfs wirkt zweimal.', 'nt'),
+        N('sf3', 'Flammenzunge', 3, { crit: 0.024 }, 'Krit-Chance.'),
+        N('sf4', 'Schmerzrausch', 1, { vengeance: 0.4 }, 'Je weniger Leben du hast, desto wilder brennt es – bis zu 40 % mehr Schaden.', 'nt'),
+        N('sf5', 'Lohe', 2, { spellPct: 0.06 }, 'Deine Zauber brennen heißer.'),
+        N('sf6', 'Verbrennung', 1, { ignite: 0.7, spellPct: 0.1, nohealSelf: 1 }, 'Jeder Zauber setzt den Gegner in Brand: 70 % des Schadens noch drei Runden lang. Dafür wächst keine Wunde mehr zu – kein Trank, kein Lebensraub, keine Zuflucht heilt dich noch.', 'key'),
+      ] },
+      { name: 'Frost', nodes: [
+        N('sk1', 'Eishaut', 3, { block: 0.045 }, 'Das Eis fängt Hiebe ab.'),
+        N('sk2', 'Frostpanzer', 1, { ward: 0.2 }, 'Du beginnst jeden Kampf mit einem Schild aus 20 % deines Lebens.', 'nt'),
+        N('sk3', 'Klirrende Kälte', 3, { hpPct: 0.055 }, 'Mehr Leben.'),
+        N('sk4', 'Kältestarre', 1, { toll: 1 }, 'Jeder dritte Treffer von dir betäubt den Gegner.', 'nt'),
+        N('sk5', 'Reif', 2, { thorns: 0.055 }, 'Wer dich trifft, schneidet sich.'),
+        N('sk6', 'Eisgrab', 1, { ward: 0.35, hpPct: 0.18, block: 0.12, haste: -0.3 }, 'Du stehst wie ein Eisblock: ein Schild aus 35 % deines Lebens, mehr Leben, mehr Blocken. Dafür laden deine Zauber um ein Drittel langsamer.', 'key'),
+      ] },
+      { name: 'Arkan', nodes: [
+        N('sa1', 'Mana', 3, { spellPct: 0.06 }, 'Deine Zauber wiegen schwerer.'),
+        N('sa2', 'Manabrand', 1, { haste: 0.3 }, 'Deine Zauber laden 30 % schneller.', 'nt'),
+        N('sa3', 'Fokus', 3, { haste: 0.07 }, 'Zaubertempo.'),
+        N('sa4', 'Zuflucht', 1, { secondWind: 0.3 }, 'Heilt dich einmal, wenn du unter 30 % fällst.', 'nt'),
+        N('sa5', 'Seelenzehrung', 2, { leech: 0.035 }, 'Lebensraub.'),
+        N('sa6', 'Nachhall', 1, { echo: 0.5, haste: 0.25, spellPct: 0.15, hpPct: -0.05 }, 'Jeder zweite Zauber wirkt ein zweites Mal, alle laden schneller und wiegen schwerer. Dafür hält dein Körper etwas weniger aus.', 'key'),
+      ] },
+    ],
+    bridges: [
+      { id: 'sb1', name: 'Dampf', a: 0, b: 1, row: 2, max: 4, eff: { spellPct: 0.025, hpPct: 0.022 }, text: 'Verbindet Feuer und Frost.' },
+      { id: 'sb2', name: 'Leere', a: 1, b: 2, row: 3, max: 4, eff: { hpPct: 0.02, haste: 0.025 }, text: 'Verbindet Frost und Arkan.' },
     ],
   },
 };

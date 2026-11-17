@@ -927,6 +927,45 @@ test('Das Brett: Wege, Knappheit und Migration', async () => {
   assert.equal(G.S.v, G.SAVE_VERSION);
 });
 
+test('Zauberin: Zauberschaden, Brand und die Migration aufs Brett', async () => {
+  const D = await import('../js/data.js');
+  const { fight } = await import('../js/combat.js');
+  // 1) spellPct landet in der Zauberkraft (amp) – und NUR dort, nicht im Hieb
+  const S = fresh('sorceress'); S.lvl = 24; S.tal = {};
+  const a0 = G.stats().amp, d0 = G.stats().dmg[1];
+  S.tal = { sf1: D.TREE.sorceress.cols[0].nodes[0].max };
+  const a1 = G.stats().amp, d1 = G.stats().dmg[1];
+  assert.ok(a1 > a0 * 1.1, `Zauberschaden kommt nicht an: ${a0.toFixed(2)} → ${a1.toFixed(2)}`);
+  assert.equal(d1, d0, 'Zauberschaden darf den Hieb nicht verstärken');
+  // 2) Verbrennung setzt den Gegner in Brand, und der Brand tickt
+  const held = { name: 'A', str: 10, dex: 20, int: 60, con: 20, lck: 10, main: 'int', lvl: 10, armor: 10, dmg: [10, 14], hp: 1e7, cur0: 1e7,
+    amp: 1.5, spells: [{ id: 'feuerball', name: 'Feuerball', lvl: 1, every: 2, kind: 'hit', mult: 1.7 }] };
+  const puppe = { ...held, name: 'B', dmg: [1, 1], hp: 1e7, armor: 0, amp: 1, spells: [] };
+  const ohne = fight({ ...held }, { ...puppe });
+  assert.ok(!ohne.log.some(l => l.tk === 'burn'), 'ohne Verbrennung darf nichts brennen');
+  const mit = fight({ ...held, ignite: 0.7 }, { ...puppe });
+  const ticks = mit.log.filter(l => l.tk === 'burn');
+  assert.ok(ticks.length >= 3, `Brand tickt nicht (${ticks.length} Runden)`);
+  assert.ok(ticks.every(l => l.tick >= 1), 'Brand ohne Schaden');
+  // Der Brand stapelt nicht: er kostet dem Gegner Leben, aber nie mehr als ein Zauber selbst.
+  // Nur Zauber nehmen, die auch getroffen haben – ein ausgewichener Zauber hat kein `dmg`,
+  // und der Vergleich gegen undefined wäre ein Test, der mal grün und mal rot ist.
+  const stark = mit.log.find(l => l.spell && l.dmg > 0);
+  assert.ok(stark, 'kein Zauber hat getroffen');
+  assert.ok(ticks[0].tick < stark.dmg, 'ein Brand-Tick darf nicht härter sein als der Zauber selbst');
+  // 3) Migration v20 → v21: die Zauberin hatte den alten Baum, ihre IDs kommen im Brett nicht vor
+  fresh('sorceress'); const d = JSON.parse(JSON.stringify(G.S)); d.v = 20; d.tal = { s1: 5, s4: 3 };
+  localStorage.setItem('aschenkrone_v1', JSON.stringify(d));
+  G.load();
+  assert.deepEqual(G.S.tal, {}, 'alte Talentpunkte der Zauberin wurden nicht zurückgegeben');
+  assert.equal(G.S.v, G.SAVE_VERSION);
+  // Ein Stand, der schon auf dem Brett steht, darf NICHT geleert werden
+  fresh('sorceress'); const d2 = JSON.parse(JSON.stringify(G.S)); d2.v = 20; d2.tal = { sf1: 2 };
+  localStorage.setItem('aschenkrone_v1', JSON.stringify(d2));
+  G.load();
+  assert.deepEqual(G.S.tal, { sf1: 2 }, 'gesetzte Brett-Ränge wurden weggeworfen');
+});
+
 test('Ausbluten: blutet bei jedem Treffer und schaltet Krits ab', async () => {
   const { fight } = await import('../js/combat.js');
   const held = { name: 'A', str: 20, dex: 20, int: 20, con: 20, lck: 80, main: 'str', lvl: 10, armor: 10, dmg: [10, 14], hp: 999999, crit: 0.5 };
