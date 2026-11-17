@@ -19,7 +19,7 @@ let failures = 0;
       // Namen und Überstand mitgeben – sonst sucht man beim nächsten Fehler lange
       const over = await p.evaluate(() => { const m = document.querySelector('main').getBoundingClientRect();
         return [...document.querySelectorAll('main *')].filter(e => { const r = e.getBoundingClientRect();
-          return (r.bottom > m.bottom + 1 || r.right > m.right + 1) && !e.closest('.vscroll, .log, .note p, .fnum, .goldpop, .proj, .burst, .spellname'); })
+          return (r.bottom > m.bottom + 1 || r.right > m.right + 1) && !e.closest('.vscroll, .wlist, .log, .note p, .fnum, .goldpop, .proj, .burst, .spellname'); })
           .map(e => { const r = e.getBoundingClientRect(); return (e.className || e.tagName) + ' +' + Math.round(Math.max(r.bottom - m.bottom, r.right - m.right)); }); });
       if (over.length) { failures++; console.log(`FEHLER ${tag} ${n}: ${over.length} Elemente ragen heraus`, over.slice(0, 3)); }
       // Item-Felder dürfen nie über ihr Panel hinausragen (Laden, Beutel, Figur, Schmiede)
@@ -209,6 +209,34 @@ let failures = 0;
     const quelle = await p.evaluate(() => document.querySelector('.potdet')?.textContent || '');
     if (!/Feuergruben/.test(quelle)) { failures++; console.log(`FEHLER ${tag}: fehlende Zutat ohne Fundort („${quelle.slice(0, 120)}“)`); }
     await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.herbs.schwefel = 6; G.save(); });
+    // Das Verzeichnis (Einstellungen -> Verzeichnis). Jede Kategorie einmal oeffnen: die Listen
+    // sind die einzige Stelle ausser Kampflog und Werte-Ansicht, die scrollen darf.
+    await tap('[data-action=go][data-v=opts]');
+    if (!(await tap('[data-action=wikicat][data-c=""]'))) { failures++; console.log(`FEHLER ${tag}: Verzeichnis nicht erreichbar`); }
+    await chk('wiki');
+    const kats = await p.evaluate(() => [...document.querySelectorAll('.wcat')].map(e => e.dataset.c));
+    if (kats.length < 6) { failures++; console.log(`FEHLER ${tag}: nur ${kats.length} Kategorien`); }
+    for (const k of kats) {
+      await tap(`[data-action=wikicat][data-c=${k}]`);
+      const n = await p.evaluate(() => document.querySelectorAll('.wrow, .urow').length);
+      if (!n) { failures++; console.log(`FEHLER ${tag}: Kategorie ${k} ist leer`); }
+      await chk('wiki-' + k);
+      const erst = await p.$('.wrow[data-action=wikisel]');
+      if (erst) { await erst.tap(); await p.waitForTimeout(150);
+        if (!(await p.$('.wdet'))) { failures++; console.log(`FEHLER ${tag}: Eintrag in ${k} oeffnet nicht`); }
+        else await chk('wiki-' + k + '-eintrag');
+        await tap('.wdet .tiny'); }
+      await tap('.wiki h2 .tiny');
+    }
+    // Was hinter einem verschlossenen Akt liegt, darf nirgends durchsickern.
+    const leck = await p.evaluate(async () => {
+      const D = await import('./js/data.js'), G = await import('./js/state.js');
+      const zu = D.ACTS.filter(a => !G.actOpen(a)).map(a => D.LOCATIONS.find(l => l.id === a.loc).name);
+      const W = await import('./js/wiki.js');
+      const txt = ['herbs', 'pots', 'mats', 'locs', 'mobs'].map(c => JSON.stringify(W.wikiList(c))).join(' ');
+      return zu.filter(n => txt.includes(n));
+    });
+    if (leck.length) { failures++; console.log(`FEHLER ${tag}: Verzeichnis verraet ${leck.join(', ')}`); }
     await tap('[data-v=crypt]'); if (await tap('[data-action=crypt]')) { await chk('prep'); await tap('[data-action=prepPot]'); await tap('[data-action=bestBelt]'); await chk('prep2'); await tap('[data-action=trig]'); await tap('[data-action=cryptgo]'); await p.waitForTimeout(600); await chk('fightpot');
       if (!(await p.$('.pbelt img'))) { failures++; console.log(`FEHLER ${tag}: Tränke im Kampf nicht sichtbar`); } }
     else { failures++; console.log(`FEHLER ${tag}: Krypta nicht antippbar`); }

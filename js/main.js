@@ -13,6 +13,7 @@ let stashOn = false;        // Beutel oder Lager im Helden-Bildschirm
 let forgeSel = { mat: null, slot: null, mode: 'rune', item: null, stat: null, msg: '' }, forgeRes = null, FG = null;
 let descSt = { c: null, j: null, msg: '', res: null };
 let wPath = [], wInfo = null, wanderRes = null, actSel = null, zoneSel = null, prepC = null, prepM = null, alchSel = POTIONS[0].id, alchBack = 'traders';
+let wikiCat = null, wikiSel = null;   // Verzeichnis: Kategorie und Eintrag
 let view = 'hero', pickCls = null, F = null, pitSel = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
 
 function render() {
@@ -34,6 +35,7 @@ function render() {
     pitshop: () => UI.viewPitShop(pitBack),
     wplan: () => S.wander || S.exp || S.desc || !Game.wanderAct() ? UI.viewTrips() : UI.viewWanderPlan(wPath, wInfo),
     opts: () => UI.viewOpts(Sound.opt, Sound.LEVELS),
+    wiki: () => UI.viewWiki(wikiCat, wikiSel),
     sets: UI.viewSets,
     titles: () => UI.viewTitles(titleBack),
     act: () => S.exp || S.desc || S.wander ? (S.desc ? UI.viewDescAway('prophet') : UI.viewTrips()) : UI.viewAct(ACTS.find(a => a.id === actSel) || G.curAct()),
@@ -289,6 +291,9 @@ const actions = {
   cryptgo: () => { const m = prepM; prepM = null; showFight(Game.cryptFight(prepC, m), 'crypt'); },
   alch: d => { alchBack = d.b === 'prep' ? (['pitprep', 'zoneprep'].includes(view) ? view : 'prep') : d.b === 'desc' ? d.b : 'traders'; view = 'alch'; render(); },
   potsel: d => { alchSel = d.id; render(); },
+  // Verzeichnis: eine Lage tiefer oder wieder hinauf. Leeres data-c heisst „zurueck zu den Kategorien".
+  wikicat: d => { if (wikiSel) wikiSel = null; else wikiCat = d.c || null; view = 'wiki'; render(); },
+  wikisel: d => { wikiCat = d.c; wikiSel = d.id; render(); },
   brew: d => { if (G.brew(d.id)) { alchSel = d.id; render(); } },
   beltin: d => { const n = G.beltSlots(), p = G.potion(d.id); let i = G.S.belt.slice(0, n).findIndex(b => !b), weg = null;
     // Höchstens ein seltener Trank im Gürtel: ein zweiter ersetzt den ersten. Das muss dastehen – sonst sieht es

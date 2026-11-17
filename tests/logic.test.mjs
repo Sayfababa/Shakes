@@ -1105,3 +1105,55 @@ test('Jede Zutat sagt, wo sie fällt – und zwar aus den Daten, nicht aus einem
   assert.equal(new Set(je).size, je.length, 'Zwei Orte liefern dieselbe Zutat');
   assert.equal(je.length, D.LOCATIONS.length, 'Nicht jeder Ort liefert eine Zutat');
 });
+
+// Das Verzeichnis muss sich selbst aktuell halten. Prüft NICHT, ob die Texte schön sind,
+// sondern ob sie aus den Daten kommen – ein abgetippter Satz würde hier durchfallen.
+test('Das Verzeichnis leitet ab und vergisst keinen Weg', async () => {
+  const G = await import('../js/state.js'), D = await import('../js/data.js'), W = await import('../js/wiki.js');
+  G.newChar('V1', 'sorceress');
+  for (const a of D.ACTS.slice(0, 3)) G.S.acts.prog[a.id] = D.ACT.zones + 1;
+
+  // Jede Kategorie liefert etwas, und keine Zeile hat ein Loch im Text.
+  for (const c of W.WIKI_CATS) {
+    if (c.id === 'up') continue;
+    const L = W.wikiList(c.id);
+    assert.ok(L.length, `Kategorie ${c.id} ist leer`);
+    for (const r of L) { assert.ok(r.sub && !/undefined|NaN/.test(r.sub), `${c.id}/${r.id}: „${r.sub}"`);
+      assert.ok(r.unknown || r.name, `${c.id}/${r.id} ohne Namen`); }
+  }
+  // Zutaten: der Ort folgt HERB_LOC – oder bleibt verschwiegen, solange der Akt zu ist.
+  for (const k of Object.keys(D.HERBS)) {
+    const wo = W.herbWhere(k);
+    if (k === 'herz') { assert.match(wo, /Boss/); continue; }
+    const ort = Object.keys(D.HERB_LOC).find(l => D.HERB_LOC[l] === k);
+    assert.equal(wo, W.locKnown(ort) ? D.LOCATIONS.find(l => l.id === ort).name : 'an einem Ort, den du noch nicht kennst',
+      `Zutat ${k} sagt „${wo}"`);
+  }
+  // Nichts aus einem verschlossenen Akt darf durchsickern.
+  const zu = D.ACTS.find(a => !G.actOpen(a));
+  if (zu) { const l = D.LOCATIONS.find(x => x.id === zu.loc);
+    const txt = JSON.stringify(W.wikiList('locs')) + JSON.stringify(W.wikiList('mobs')) + JSON.stringify(W.wikiList('mats'));
+    assert.ok(!txt.includes(l.name), `Der verschlossene Ort ${l.name} steht im Verzeichnis`);
+    assert.equal(W.wikiEntry('locs', zu.loc), null, 'Ein verschlossener Ort hat einen Eintrag'); }
+
+  // Aufwerten: JEDER Weg muss dabei sein. Wer eine Operation ergänzt und das hier vergisst,
+  // baut eine Auskunft, die stillschweigend unvollständig ist – schlimmer als gar keine.
+  const P = W.upgradePaths();
+  // Umschmieden-Operationen + Schärfen, Verstärken, Rune schmieden, Fusionieren, Erheben
+  const soll = D.CRAFT.ops.length + 5;
+  assert.equal(P.length, soll, `Aufwerten zählt ${P.length} Wege statt ${soll}`);
+  assert.equal(new Set(P.map(x => x.name)).size, P.length, 'Ein Weg steht doppelt im Verzeichnis');
+  for (const o of D.CRAFT.ops) assert.ok(P.some(x => x.name === o.name), `Weg „${o.name}" fehlt`);
+  for (const n of ['Rune schmieden', 'Fusionieren', 'Erheben']) assert.ok(P.some(x => x.name === n), `Weg „${n}" fehlt`);
+  for (const u of P) { assert.ok(u.cost && !/undefined|NaN/.test(u.cost), `„${u.name}": ${u.cost}`);
+    assert.ok(u.grp && u.where, `„${u.name}" ohne Ort`); }
+  // Grenzen, die man sonst erst beim Scheitern erfährt, müssen dastehen.
+  assert.match(P.find(x => x.name === 'Rune schmieden').limit, new RegExp(String(D.FORGE.maxRunes)));
+  assert.match(P.find(x => x.name === 'Fusionieren').limit, /für immer/);
+
+  // Material-Engpass: die Aschenrune zählt mit, sonst sieht Höllenasche harmloser aus als sie ist.
+  const n = W.matNeeds('asche');
+  assert.ok(n.length >= 3 && n.includes(D.RUNES.asche.name), `Höllenasche: ${n.join(', ')}`);
+  G.S.mats = { asche: 0, siegel: 9, staub: 9, blutstein: 9, leinen: 9, zahn: 9 };
+  assert.equal(W.matBottleneck()?.k, 'asche', 'Der Engpass zeigt nicht auf das knappste Material');
+});

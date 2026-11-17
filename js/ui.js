@@ -3,6 +3,7 @@ import { TREE, AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, S
 import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
 import { affixPool } from './loot.js';
 import { potion, beltSlots, brewCost, canBrew, potMax, unreadable, herbPrice, canBuyHerb, herbLeft, herbSource } from './state.js';
+import { WIKI_CATS, wikiList, wikiEntry, upgradePaths, matBottleneck } from './wiki.js';
 import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, craftRaises, craftMat, baseMods, fuseMains, fuseFoods, fuseCheck, fuseFull, fusePromote, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 // Name eines Item-Bonus: Attribute, Rüstung/Schaden, Prozent-Boni ("% Krit-Chance", "% Feuerball")
@@ -861,6 +862,8 @@ export function viewOpts(opt, levels) {
   return `<div class="col opts"><section class="panel"><h2>Einstellungen</h2>
     ${row('sfx', 'Kampfgeräusche')}${row('music', 'Musik', 'kommt später')}
     <p class="small dim">Am iPhone: Stummschalter aus, sonst bleibt es still.</p></section>
+    <section class="panel"><h2>Das Verzeichnis</h2><p class="small dim">Wo was fällt, was es tut, und jeder Weg, ein Teil besser zu machen.</p>
+      <div class="btns"><button data-action="wikicat" data-c="">Verzeichnis öffnen</button></div></section>
     <section class="panel"><h2>Held</h2><p class="small dim">Vernichten löscht ${S.name} für immer – Stufe, Beute, alles.</p>
       <div class="btns"><button data-action="dbg">Anzeige-Maße</button><button class="red" data-action="wipe">Held vernichten</button></div></section>
     <div class="btns"><button data-action="go" data-v="hero">Zurück</button></div></div>`;
@@ -940,4 +943,46 @@ export function viewWanderPlan(path, info = null) {
         <span class="node goal ${full ? 'on' : ''}" style="left:50%;top:${Y(R + 1)}%">${nodeArt('camp')}<label>Heimweg</label></span></div></section>
     <section class="panel xsum"><h2>Dein Weg <span class="h2r">${R} Stationen · ${Math.round(WANDER.maxSec / 3600)} Std.</span></h2>${hint}</section>
     <div class="btns"><button data-action="go" data-v="trips">Zurück</button><button class="red" data-action="wstart" ${full ? '' : 'disabled'}>Losziehen</button></div></div>`;
+}
+
+// --- Das Verzeichnis (Einstellungen -> Verzeichnis) ---
+// Drei Lagen: Kategorien, Liste, Eintrag. Alle Texte kommen aus js/wiki.js und sind dort
+// abgeleitet - hier steht nur, wie sie aussehen. Die Liste ist die einzige Stelle neben dem
+// Kampflog und der Werte-Ansicht, die scrollen darf (vom Besitzer so freigegeben): zehn
+// Aufwertungs-Wege und vierzehn Traenke passen auf kein iPhone.
+export function viewWiki(cat, sel) {
+  const zurueck = (v, c) => `<button class="tiny" data-action="${v}" ${c ? `data-c="${c}"` : ''}>Zurück</button>`;
+  if (!cat) return `<div class="col wiki"><section class="panel"><h2>Das Verzeichnis <span class="h2r">Was du bisher gesehen hast</span>${zurueck('go" data-v="opts')}</h2>
+    <div class="wcats">${WIKI_CATS.map(c => `<div class="wcat ${c.wide ? 'wide' : ''}" data-action="wikicat" data-c="${c.id}"><img src="${c.img}" alt="">
+      <b>${c.name}</b><small>${wikiCount(c.id)}</small></div>`).join('')}</div></section>
+    <section class="panel grow"><p class="small dim">Das Verzeichnis füllt sich, während du spielst. Was du noch nie gesehen hast, steht nur als Lücke darin.</p></section></div>`;
+
+  if (cat === 'up') {
+    const P = upgradePaths(); let grp = '';
+    const eng = matBottleneck();
+    return `<div class="col wiki"><section class="panel grow wcol"><h2>Aufwerten <span class="h2r">${P.length} Wege</span>${zurueck('wikicat', '')}</h2>
+      <div class="wlist">${P.map(u => `${u.grp !== grp ? `<p class="ugrp">${grp = u.grp}</p>` : ''}
+        <div class="urow"><div class="u1"><b>${u.name}</b><span class="uw">${u.where}</span></div>
+        <p class="uc">${u.cost}</p>${u.limit ? `<p class="ul">${u.limit}</p>` : ''}</div>`).join('')}</div></section>
+      ${eng ? `<section class="panel"><p class="uwarn"><b>${MATS[eng.k]} wird von ${eng.n.length} Wegen verlangt:</b> ${eng.n.join(', ')}. Du hast ${eng.have}.</p></section>` : ''}</div>`;
+  }
+
+  const C = WIKI_CATS.find(c => c.id === cat); if (!C) return viewWiki(null);
+  const e = sel && wikiEntry(cat, sel);
+  if (e) return `<div class="col wiki"><section class="panel grow wdet"><h2 class="${e.rare ? 'r-rare' : ''}">${e.name} <span class="h2r">${e.kind}</span>${zurueck('wikicat', cat)}</h2>
+    <img class="big ${e.wide ? 'wide' : ''}" src="${e.img}" alt="">
+    ${e.lines.map(l => `<p class="small ${l.dim ? 'dim' : ''}">${l.b ? `<b>${l.b}</b> ` : ''}${l.t}</p>`).join('')}
+    ${e.tags?.length ? `<hr><p class="small wuse"><b>${e.tagLabel}</b></p><p>${e.tags.map(t => `<span class="wtag">${t}</span>`).join('')}</p>` : ''}
+    ${e.foot ? `<p class="small dim wfoot">${e.foot}</p>` : ''}</section></div>`;
+
+  const L = wikiList(cat);
+  return `<div class="col wiki"><section class="panel grow wcol"><h2>${C.name} <span class="h2r">${wikiCount(cat)}</span>${zurueck('wikicat', '')}</h2>
+    <div class="wlist">${L.map(r => `<div class="wrow ${r.unknown ? 'unk' : ''} ${r.rare ? 'rare' : ''}" ${r.unknown ? '' : `data-action="wikisel" data-c="${cat}" data-id="${r.id}"`}>
+      <img src="${r.img}" alt=""><b>${r.unknown ? 'Noch unbekannt' : r.name}</b>${r.right === '' || r.right == null ? '' : `<i>${r.right}</i>`}<small>${r.sub}</small></div>`).join('')}</div></section></div>`;
+}
+// „5 von 7" - macht aus einer Liste eine Sammlung und sagt, dass es noch etwas zu finden gibt.
+function wikiCount(cat) {
+  if (cat === 'up') return 'Alle Wege, ein Teil besser zu machen';
+  const L = wikiList(cat), u = L.filter(r => r.unknown).length;
+  return u ? `${L.length - u} von ${L.length}` : `${L.length}`;
 }
