@@ -672,7 +672,7 @@ function beltCell(i) {
 export function viewAlch(sel, back) {
   const p = potion(sel) || POTIONS[0], c = brewCost(p.id), cb = canBrew(p.id), inBelt = S.belt.some(b => b?.id === p.id);
   return `<div class="col alch">
-    <section class="panel"><h2>Alchemie <span class="h2r">Tränke wirken nur in der Krypta</span>${back ? `<button class="tiny" data-action="${back === 'prep' || back === 'desc' ? `go" data-v="${back}` : 'trader" data-t="ysolde'}">Zurück</button>` : ''}</h2>
+    <section class="panel"><h2>Alchemie <span class="h2r">Tränke wirken nur in der Krypta</span>${back ? `<button class="tiny" data-action="${back === 'traders' ? 'trader" data-t="ysolde' : `go" data-v="${back}`}">Zurück</button>` : ''}</h2>
       <div class="belt">${[0, 1, 2].map(i => beltRow(i, true)).join('')}</div></section>
     <section class="panel herbs">${Object.entries(HERBS).map(([k, h]) => `<span class="herb ${k === 'herz' ? 'nobuy' : canBuyHerb(k) ? 'can' : 'poor'}" title="${h.name}${k === 'herz' ? ' – nur von Krypta-Bossen' : ` – kaufen für ${herbPrice()} Gold`}" ${k === 'herz' ? '' : `data-action="buyherb" data-id="${k}"`}>${potImg(h.img)}<i>${S.herbs[k] || 0}</i></span>`).join('')}
       <p class="small dim hbuy">Antippen kauft · ${herbPrice()} Gold · heute noch ${herbLeft()}</p></section>

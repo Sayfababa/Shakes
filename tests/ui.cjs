@@ -66,7 +66,24 @@ let failures = 0;
       if (!(await p.$('.tdet .row button'))) { failures++; console.log(`FEHLER ${tag}: Schlüsselstein ohne Knopf (${bcls})`); }
       await tap('.nd.br'); await chk(`treebridge_${bcls}`);
     }
+    // „Zurück" muss dorthin fuehren, wo man herkam. Der Knopf der Alchemie kannte nur zwei
+    // Rueckwege (Krypta-Vorbereitung und Abgrund) – aus der Gruben- und der Gebiets-Vorbereitung
+    // landete man bei Ysolde im Laden. Gemeldet hat es der Besitzer: „Guertel vor Kampf, kurz
+    // Traenke brauen, zack bin ich bei der Alchemistin."
+    const zurueck = async (von, hin) => {
+      if (!(await p.$(von))) { failures++; console.log(`FEHLER ${tag}: ${von} nicht offen`); return; }
+      if (!(await tap('[data-action=alch][data-b=prep], [data-action=alch][data-b=desc]'))) { failures++; console.log(`FEHLER ${tag}: „Alle Tränke" fehlt in ${von}`); return; }
+      if (!(await p.$('.alch'))) { failures++; console.log(`FEHLER ${tag}: Alchemie nicht geoeffnet aus ${von}`); return; }
+      if (!(await tap('.alch h2 .tiny'))) { failures++; console.log(`FEHLER ${tag}: Alchemie ohne Zurück aus ${von}`); return; }
+      if (!(await p.$(hin))) { failures++; console.log(`FEHLER ${tag}: Zurück aus der Alchemie landet nicht wieder in ${hin} (von ${von})`); }
+    };
+    // aus der Gebiets-Vorbereitung (Streifzug)
+    await tap('[data-v=trips]'); await tap('.act[data-action=act]'); await tap('.actv .two [data-action=zone]');
+    await zurueck('.prep', '.prep');
     await tap('[data-v=crypt]'); await tap('.ctabs [data-v=arena]'); await chk('arena'); await tap('.riv'); await chk('pitprep');
+    // aus der Gruben-Vorbereitung
+    await zurueck('.pitprep', '.pitprep');
+    await tap('[data-v=crypt]'); await tap('.ctabs [data-v=arena]'); await tap('.riv');
     // Vargos Laden mit allen verdienten Titeln (der schlimmste Fall für die Höhe). Aus der Vorbereitung
     // führt kein Reiter zurück, darum neu laden statt zu tippen – sonst zeigte „pitshop“ die Vorbereitung.
     await p.evaluate(async () => { const G = await import('./js/state.js'), D = await import('./js/data.js');
