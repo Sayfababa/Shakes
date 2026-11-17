@@ -877,7 +877,10 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .drows p:last-child { border: 0; box-shadow: none; } .drows b { font-weight: 500; } .drows .up { color: #9fc870; }
 .descres > .btns, .desc > .btns, .descv > .btns { margin-top: 0; }
 .descres h2.hot { color: var(--blood-hi); } .descres .down { color: var(--blood-hi); } .descres .up { color: #9fc870; }
-.desc.tight .drules p:nth-of-type(4), .desc.tight .dhead p { display: none; } .desc.tight .drules p { font-size: .76rem; margin: 2px 0; }
+/* Eng wird eine Zeile geopfert – die ueber das Grabsiegel, NICHT die Todeswarnung.
+   Die Regel zaehlte frueher Absaetze (`:nth-of-type(4)`); als eine Zeile dazukam, verschwand
+   damit still die wichtigste des Bildschirms. Deshalb jetzt per Klasse, nicht per Position. */
+.desc.tight .drules .sealnote, .desc.tight .dhead p { display: none; } .desc.tight .drules p { font-size: .76rem; margin: 2px 0; }
 .dhead .xhead b { font-size: .82rem; text-align: center; line-height: 1.15; } .desc.tight .dhead .portrait { width: 48px; height: 48px; } .desc.tight .dhead { grid-template-columns: 48px 1fr; }
 .descv.tight .dsackp h2 { display: none; } .descv.tight .dtop h2 { display: none; }
 @media (max-height: 620px) { .desc .panel, .descv .panel, .descres .panel { padding-top: 5px; padding-bottom: 5px; } .desc h2, .descv h2 { font-size: 1rem; margin-bottom: 2px; } .dit { width: 26px; height: 26px; } }
