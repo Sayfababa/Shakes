@@ -39,10 +39,15 @@ Matching the attached monster portrait for style.
 6 a kneeling revenant in front of a grave, a ring on its bony hand, moonlight (kniet)
 ```
 
-## Sheet C – die letzten 5 Ereignis-Bilder (3×2, 1536×768, je 512×384)
+## Sheet C – die letzten 5 Ereignis-Bilder (3×2, je 512×512) — **erledigt**
 
-Diese fünf Ereignisse leihen sich bis heute ein Monster- oder NPC-Porträt. Das fällt kaum auf, ist
-aber eine Lücke: ein Porträt zeigt *wen* man trifft, eine Szene zeigt *was geschieht*.
+Damit haben **alle 12 Ereignisse eine eigene Szene**. Vorher liehen sich diese fünf ein Monster-
+oder NPC-Porträt: ein Porträt zeigt *wen* man trifft, eine Szene zeigt *was geschieht* – und bei
+dreien von ihnen ist genau das der Reiz („er wartet", „sie wartet", „hat dich noch nicht bemerkt").
+
+**Beim Nachbauen beachten:** die Szenen werden im Spiel **nicht quadratisch** gezeigt, sondern als
+breites Band (`.evt .pic`: `object-fit: cover`, `object-position: center 30 %`, etwa 2,4 : 1). Das
+Motiv gehört deshalb ins **obere Mittelfeld**, sonst schneidet das Band es weg.
 **Szenen, kein Freistellen** – Zuschnitt mit `python3 tools/cut_sheet.py --plain`.
 
 | Zelle | Ablage | Ereignis | geliehen von |
@@ -84,3 +89,9 @@ No text, no letters, no frames, no borders inside the cells.
 
 **Negativ:** text, letters, numbers, watermark, labels, grid lines, frames, cartoon, flat vector,
 3d render, plastic, glossy, bright saturated colors, modern objects.
+
+---
+
+**Sheet A und B sind fertig und brauchen keine Neuauflage.** Eine zweite Generation beider Blätter
+wurde gegen den Bestand gestellt: gleiche Bildaufbauten, gleiche Stimmung, kein Gewinn. Wer hier
+Zeit investiert, investiert sie besser in Ortsbilder für die Akte – die fehlen wirklich.
