@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup – Das Verzeichnis</title>
+<link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+SC:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  html, body { overflow: auto; height: auto; }
+  .wrap { display: flex; gap: 28px; padding: 24px; align-items: flex-start; width: max-content; }
+  .col2 { width: 390px; }
+  .phone { width: 390px; height: 800px; position: relative; display: flex; flex-direction: column; padding: 10px; gap: 7px;
+    border: 1px solid #2a2118; box-shadow: 0 0 0 6px #0b0907, 0 0 40px #000; background: var(--noise), var(--stonetex), radial-gradient(ellipse at 50% 20%, #241a12, #070504 70%); }
+  .phone > .panel { flex: none; }
+  .cap { font-family: 'Alegreya SC'; color: var(--gold); text-align: center; margin-bottom: 8px; font-size: 1rem; }
+  .note2 { color: var(--dim); font-size: .85rem; margin-top: 10px; line-height: 1.35; }
+  .note2 b { color: var(--gold); font-weight: 500; }
+  .hudm { display: flex; align-items: center; justify-content: space-between; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.5rem; }
+  .hudm small { font-family: 'Alegreya SC'; font-size: .8rem; color: var(--text); }
+  .tabsm { margin-top: auto; display: flex; gap: 3px; }
+  .tabsm a { flex: 1; text-align: center; padding: 9px 2px; font-family: 'Alegreya SC'; font-size: .76rem; color: var(--dim); border-image: url('../assets/ui/tab.webp') 16 fill / 8px stretch; }
+  .tabsm a.on { color: var(--gold-hi); border-image-source: url('../assets/ui/tab_on.webp'); }
+
+  /* Verzeichnis: Kategorien */
+  .wcats { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .wcat { display: grid; grid-template-columns: 34px 1fr; gap: 2px 8px; align-items: center; padding: 8px 9px; cursor: pointer;
+    border-image: url('../assets/ui/panel_s.webp') 18 fill / 9px stretch; }
+  .wcat img { width: 34px; grid-row: span 2; filter: brightness(1.1); }
+  .wcat b { font-family: 'Alegreya SC'; font-weight: 500; color: var(--gold-hi); font-size: .92rem; align-self: end; }
+  .wcat small { color: var(--dim); font-size: .74rem; align-self: start; }
+  .wcat.on { box-shadow: inset 0 0 0 1px var(--gold); }
+
+  /* Liste einer Kategorie – der einzige Teil, der scrollt */
+  .wlist { overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+  .wrow { display: grid; grid-template-columns: 40px 1fr auto; gap: 2px 9px; align-items: center; padding: 6px 8px;
+    border-image: url('../assets/ui/panel_s.webp') 18 fill / 9px stretch; }
+  .wrow img { width: 40px; grid-row: span 2; }
+  .wrow b { font-family: 'Alegreya SC'; font-weight: 500; color: var(--text); font-size: .9rem; align-self: end; }
+  .wrow small { color: var(--dim); font-size: .76rem; align-self: start; grid-column: 2; }
+  .wrow i { font-family: 'Grenze Gotisch'; color: var(--gold-hi); font-size: 1.05rem; font-style: normal; grid-row: span 2; }
+  .wrow.unk { opacity: .45; } .wrow.unk img { filter: brightness(0) invert(.28); }
+  .wrow.unk b { color: var(--dim); font-style: italic; }
+  .wscr { position: relative; }
+  .wscr::after { content: ''; position: absolute; right: 1px; top: 8%; width: 3px; height: 38%; background: #5a4832; border-radius: 2px; }
+
+  /* Detail */
+  .wdet img.big { width: 76px; float: left; margin: 0 10px 4px 0; }
+  .wdet h3 { margin: 0; font-family: 'Alegreya SC'; font-weight: 500; color: #ffff64; font-size: 1.05rem; }
+  .wdet p { margin: 3px 0; font-size: .84rem; line-height: 1.3; }
+  .wsrc { color: var(--gold-hi); } .wuse { color: var(--text); }
+  .wdet hr { border: 0; height: 1px; background: #3a2e22; margin: 7px 0; clear: both; }
+  .wtag { display: inline-block; font-size: .76rem; color: var(--dim); padding: 2px 7px; margin: 2px 3px 0 0;
+    border-image: url('../assets/ui/slot.webp') 16 fill / 6px stretch; }
+  .wtag.hit { color: var(--gold-hi); }
+  .wfoot { font-size: .78rem; color: var(--dim); font-style: italic; }
+  h2 .h2r { font-size: .72rem; }
+</style></head><body>
+
+<div class="wrap">
+
+<!-- 1 — Kategorien -->
+<div class="col2">
+  <p class="cap">1 · Einstellungen → Verzeichnis</p>
+  <div class="phone">
+    <div class="hudm"><span>Dino</span><small>Stufe 12 · 15 469 Gold</small></div>
+    <section class="panel"><h2>Das Verzeichnis <span class="h2r">Was du bisher gesehen hast</span><button class="tiny">Zurück</button></h2>
+      <div class="wcats">
+        <div class="wcat on"><img src="../assets/potions/i_schwefel.webp" alt=""><b>Zutaten</b><small>5 / 7</small></div>
+        <div class="wcat"><img src="../assets/potions/rostsaeure.webp" alt=""><b>Tränke</b><small>9 / 14</small></div>
+        <div class="wcat"><img src="../assets/forge/blutstein.webp" alt=""><b>Materialien</b><small>6 / 9</small></div>
+        <div class="wcat"><img src="../assets/forge/r_zahn.webp" alt=""><b>Runen</b><small>4 / 8</small></div>
+        <div class="wcat"><img src="../assets/potions/i_grabmoos.webp" alt=""><b>Orte</b><small>4 / 6</small></div>
+        <div class="wcat"><img src="../assets/forge/siegel.webp" alt=""><b>Gegner</b><small>8 / 12</small></div>
+        <div class="wcat"><img src="../assets/forge/kronsplitter.webp" alt=""><b>Gegenstände</b><small>31 / 70</small></div>
+        <div class="wcat"><img src="../assets/forge/haar.webp" alt=""><b>Grab-Sets</b><small>1 / 5</small></div>
+      </div>
+    </section>
+    <section class="panel grow"><p class="small dim" style="margin:0">Das Verzeichnis füllt sich, während du spielst. Was du noch nie gesehen hast, steht nur als Lücke darin.</p></section>
+    <div class="tabsm"><a>Held</a><a>Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></div>
+  </div>
+  <p class="note2"><b>Wo es liegt:</b> hinter dem Zahnrad, nicht als siebter Tab – auf dem SE passen sechs. Es ist ein Nachschlagewerk, kein Spielort.<br><br>
+  <b>Die Zahlen sind die halbe Miete.</b> „5 / 7“ macht aus einer Liste eine Sammlung und sagt nebenbei, dass es noch etwas zu finden gibt – ohne zu verraten was.</p>
+</div>
+
+<!-- 2 — Liste -->
+<div class="col2">
+  <p class="cap">2 · Zutaten</p>
+  <div class="phone">
+    <div class="hudm"><span>Dino</span><small>Stufe 12 · 15 469 Gold</small></div>
+    <section class="panel" style="flex:1 1 0; display:flex; flex-direction:column; min-height:0">
+      <h2>Zutaten <span class="h2r">5 von 7</span><button class="tiny">Zurück</button></h2>
+      <div class="wlist wscr">
+        <div class="wrow"><img src="../assets/potions/i_rotwurz.webp" alt=""><b>Rotwurz</b><i>1</i><small>Die Alte Mühle · 3 Rezepte</small></div>
+        <div class="wrow"><img src="../assets/potions/i_grabmoos.webp" alt=""><b>Grabmoos</b><i>3</i><small>Friedhof von Vhal · 3 Rezepte</small></div>
+        <div class="wrow"><img src="../assets/potions/i_silberstaub.webp" alt=""><b>Silberstaub</b><i>1</i><small>Katakomben · 4 Rezepte</small></div>
+        <div class="wrow"><img src="../assets/potions/i_nachtschatten.webp" alt=""><b>Nachtschatten</b><i>2</i><small>Moor der Gehenkten · 3 Rezepte</small></div>
+        <div class="wrow" style="box-shadow: inset 0 0 0 1px var(--gold)"><img src="../assets/potions/i_schwefel.webp" alt=""><b>Schwefel</b><i>0</i><small>Die Feuergruben · 1 Rezept</small></div>
+        <div class="wrow"><img src="../assets/potions/i_herz.webp" alt=""><b>Schwarzes Herz</b><i>5</i><small>Krypta-Bosse · 8 Rezepte</small></div>
+        <div class="wrow unk"><img src="../assets/potions/i_weihrauch.webp" alt=""><b>Noch unbekannt</b><small>Eingestürzte Kapelle</small></div>
+      </div>
+    </section>
+    <div class="tabsm"><a>Held</a><a>Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></div>
+  </div>
+  <p class="note2"><b>Das ist die einzige Stelle, die scrollt.</b> Bisher darf das nur das Kampflog und die Werte-Ansicht. 70 Gegenstände lassen sich nicht anders zeigen – die Alternative wären Seiten zum Blättern, und die sind beim Suchen schlechter.<br><br>
+  <b>Unbekanntes bleibt als Lücke stehen</b>, mit dem Ort, aber ohne Namen und Bild. So sieht man, dass die Kapelle etwas hergibt, ohne zu wissen was.<br><br>
+  <b>Die Zahl rechts ist dein Vorrat.</b> Damit beantwortet die Liste schon die halbe Frage, ohne dass man irgendwo hineingeht.</p>
+</div>
+
+<!-- 3 — Detail -->
+<div class="col2">
+  <p class="cap">3 · Ein Eintrag</p>
+  <div class="phone">
+    <div class="hudm"><span>Dino</span><small>Stufe 12 · 15 469 Gold</small></div>
+    <section class="panel"><h2>Schwefel <span class="h2r">Zutat</span><button class="tiny">Zurück</button></h2>
+      <div class="wdet">
+        <img class="big" src="../assets/potions/i_schwefel.webp" alt="">
+        <p class="wsrc"><b>Fällt in:</b> Die Feuergruben (Akt VI)</p>
+        <p class="small dim">15 % je Sieg, auf Elite-Gebieten doppelt. Seltener auch auf Expeditionen und beim Umherziehen.</p>
+        <p class="small dim">Bei Mutter Ysolde für 86 Gold zu kaufen, 3 Stück je Tag.</p>
+        <hr>
+        <p class="wuse"><b>Gebraucht für:</b></p>
+        <p><span class="wtag hit">Rostsäure</span></p>
+        <p class="wfoot">Du hast 0. Ein Rezept wartet darauf.</p>
+      </div>
+    </section>
+    <section class="panel"><h2>Schwarzes Herz <span class="h2r">Zutat</span></h2>
+      <div class="wdet">
+        <img class="big" src="../assets/potions/i_herz.webp" alt="">
+        <p class="wsrc"><b>Fällt bei:</b> Krypta-Bossen und im Abgrund</p>
+        <p class="small dim">70 % je Boss. Jedes Herz bringt eine Feldzutat mit. Nicht käuflich.</p>
+        <hr>
+        <p class="wuse"><b>Gebraucht für:</b></p>
+        <p><span class="wtag hit">Falkenauge</span><span class="wtag hit">Knochenmark</span><span class="wtag hit">Schattentrank</span><span class="wtag hit">Jägerblick</span><span class="wtag hit">Bollwerk</span><span class="wtag hit">Rostsäure</span><span class="wtag hit">Zaubertinte</span><span class="wtag hit">Vampirsud</span></p>
+        <p class="wfoot">Du hast 5.</p>
+      </div>
+    </section>
+    <div class="tabsm"><a>Held</a><a>Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></div>
+  </div>
+  <p class="note2"><b>„Gebraucht für“ ist der eigentliche Gewinn.</b> Das Rezept sagt dir, was ein Trank braucht. Umgekehrt zu fragen – <i>was kann ich mit dem anfangen, was ich habe?</i> – geht heute nirgends. Die Liste ist aus den Rezepten rückwärts gelesen, also immer richtig.<br><br>
+  <b>Alles auf dieser Seite ist abgeleitet.</b> Ort aus <code>HERB_LOC</code>, Chance aus <code>ALCH</code>, Rezepte aus <code>POTIONS</code>, Preis aus <code>herbPrice()</code>. Kein einziger Satz ist abgetippt – sonst lügt er beim nächsten Balance-Wurf.</p>
+</div>
+
+</div>
+</body></html>
