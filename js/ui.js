@@ -1,8 +1,9 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
 import { TREE, AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, BOUNTIES, SETS, SET } from './data.js';
 import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
+import { affixPool } from './loot.js';
 import { potion, beltSlots, brewCost, canBrew, potMax, unreadable } from './state.js';
-import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
+import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, fuseMains, fuseFoods, fuseCheck, fuseFull, fusePromote, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 // Name eines Item-Bonus: Attribute, Rüstung/Schaden, Prozent-Boni ("% Krit-Chance", "% Feuerball")
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
@@ -498,6 +499,7 @@ export function viewForge(sel, res) {
       <p class="dim small">Runenplätze: ${res.it.runes.length}/${FORGE.maxRunes}</p></section>
     <div class="btns"><button data-action="forgeagain">Noch einmal</button><button class="red" data-action="trader" data-t="halvar">Zurück</button></div></div>`;
   if (sel.mode === 'craft') return viewCraft(sel);
+  if (sel.mode === 'fuse') return viewFuse(sel);
   return `<div class="col forge">${forgeTabs(sel)}
     <section class="panel smithy" id="forgeplay"><div class="scene"><img src="assets/forge/scene.jpg" alt="">
       <div class="iron"><div class="fz z1"></div><div class="fz z2"></div><div class="fz z3"></div><div class="fmark"></div></div><div class="sparks"></div>
@@ -511,7 +513,7 @@ export function viewForge(sel, res) {
 }
 const npcSay = (id, line) => `<section class="panel speaker">${npcArt(TRADERS[id].glyph)}<div><b>${TRADERS[id].name}</b> <span class="h2r">Schmiede</span><p class="lore">„${line}“</p></div></section>`;
 
-const forgeTabs = sel => `<nav class="subtabs"><a class="${sel.mode !== 'craft' ? 'on' : ''}" data-action="forgemode" data-m="rune">Runen</a><a class="${sel.mode === 'craft' ? 'on' : ''}" data-action="forgemode" data-m="craft">Umschmieden</a></nav>`;
+const forgeTabs = sel => `<nav class="subtabs"><a class="${!sel.mode || sel.mode === 'rune' ? 'on' : ''}" data-action="forgemode" data-m="rune">Runen</a><a class="${sel.mode === 'craft' ? 'on' : ''}" data-action="forgemode" data-m="craft">Umschmieden</a><a class="${sel.mode === 'fuse' ? 'on' : ''}" data-action="forgemode" data-m="fuse">Fusionieren</a></nav>`;
 // --- Umschmieden (Crafting) ---
 function viewCraft(sel) {
   const list = craftItems(), it = list.find(x => x.id === sel.item) || null;
@@ -532,6 +534,57 @@ function viewCraft(sel) {
     <section class="panel grow">${card}</section>
     <section class="panel"><div class="cops">${ops}</div>
       <p class="small cmsg">${sel.msg || (it ? `Je Eingriff ${craftGold(it)} Gold · ${sel.stat ? `<b>${STAT_NAME(sel.stat)}</b> gewählt` : 'zum Versiegeln einen Bonus antippen'}${why ? ` · <span class="down">${why}</span>` : ''}` : 'Material bestimmt den Eingriff, Schmiedeglut wie oft.')}</p></section></div>`;
+}
+
+// --- Fusionieren: zwei gleichartige Teile, ein Bonus wandert, das Futter zerfällt ---
+// Links bleibt, rechts zerfällt – die Richtung steht in der Überschrift, im Rahmen und am Pfeil,
+// damit niemand aus Versehen das falsche Teil opfert.
+function fuseRows(it, picked, side, dropped, blocked) {
+  const base = baseMods(it);
+  return Object.entries(base).map(([k, v]) => { const t = it.tiers?.[k] || 3, sealed = it.sealed === k;
+    // Gesperrt: versiegelt (im Hauptteil) oder nicht übertragbar (im Futter) – gar nicht erst antippbar,
+    // sonst tippt man drei Mal, bevor unten steht, warum es nicht geht.
+    const no = side === 'main' ? sealed : blocked?.has(k);
+    return `<div class="caff ${sealed ? 'sealed' : ''} ${no ? 'no' : ''} ${picked === k ? (side === 'food' ? 'onf' : 'on') : ''} ${dropped === k ? 'gone' : ''}"
+      ${no ? '' : `data-action="fuse${side}" data-k="${k}"`}><span>+${v} ${STAT_NAME(k)}</span><i class="tier t${t}">${TIERS[t - 1].name}</i>${sealed ? '<b class="seal">versiegelt</b>' : ''}</div>`;
+  }).join('') || '<span class="dim small">Keine eigenen Boni.</span>';
+}
+function viewFuse(sel) {
+  const mains = fuseMains(), main = mains.find(x => x.id === sel.item) || null;
+  if (main) craftCheck(main, 'values');   // legt bei alten Teilen die Glut fest
+  const foods = main ? fuseFoods(main) : [], food = foods.find(x => x.id === sel.food) || null;
+  const err = main && food ? fuseCheck(main, food, sel.stat, sel.mstat) : null;
+  const promote = main && food && !err ? fusePromote(main, sel.mstat) : null;
+  const drop = main && food && !err && fuseFull(main) && sel.mstat ? sel.mstat : null;
+  // Welche Futter-Boni können überhaupt herüber? Nicht die, die das Hauptteil schon hat,
+  // und nicht die, die auf diesem Platz nichts zu suchen haben (Blocken gehört nicht auf einen Dolch).
+  const blocked = main && food ? new Set(Object.keys(baseMods(food)).filter(k =>
+    k in baseMods(main) || !affixPool(main).some(a => a.stat === k))) : null;
+  const cell = (x, on, cls) => `<div class="fslot r-${x.rarity} ${on ? 'on' : ''} ${cls || ''}" data-action="fuse${cls === 'f' ? 'food' : 'pick'}" data-id="${x.id}">${itemArt(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`;
+  const board = !main ? '<p class="dim small">Wähle oben das Hauptteil – das Teil, das bleibt und den neuen Bonus bekommt.</p>'
+    : `<div class="fuse2">
+      <div class="fside main"><h5>Hauptteil – bleibt</h5><div class="fname r-${main.rarity}">${main.name}</div>
+        <div class="caffs">${fuseRows(main, sel.mstat, 'main', drop)}</div>
+        <div class="cglut"><span>Glut</span><div class="bar glutbar"><i style="width:${main.glutMax ? main.glut / main.glutMax * 100 : 0}%"></i></div><b>${main.glut}/${main.glutMax}</b></div></div>
+      <div class="fgut">${food ? '<span class="far">&larr;</span>' : ''}</div>
+      <div class="fside food"><h5>Futter – zerfällt</h5>${food
+        ? `<div class="fname r-${food.rarity}">${food.name}</div><div class="caffs">${fuseRows(food, sel.stat, 'food', null, blocked)}</div>
+           <p class="small dim fwarn">Der andere Bonus geht mit verloren.</p>`
+        : `<p class="dim small">Kein Futter gewählt.${foods.length ? '' : ' Es braucht ein zweites Teil gleicher Grundform und gleicher Seltenheit im Beutel.'}</p>`}</div>
+    </div>`;
+  const msg = sel.msg ? sel.msg
+    : !main ? `Je Teil nur ${CRAFT.fuse.max === 1 ? 'eine Fusion' : CRAFT.fuse.max + ' Fusionen'} – danach nie wieder.`
+    : !food ? 'Futter unten antippen. Nur gleiche Grundform, gleiche Seltenheit, nur aus dem Beutel.'
+    : err ? `<span class="down">${err}</span>`
+    : `Es wandert <b>${STAT_NAME(sel.stat)}</b>${drop ? `, dafür weicht <span class="down">${STAT_NAME(drop)}</span>` : promote ? ` – das Teil steigt zu <b class="r-${promote}">${RARITIES.find(r => r.id === promote).name.toLowerCase()}</b> auf` : ''} · ${craftGold(main)} Gold, Glut ${CRAFT.fuse.glut}+`;
+  return `<div class="col forge craft fusev">${forgeTabs(sel)}
+    <section class="panel"><div class="cpick">${mains.map(x => cell(x, x.id === sel.item)).join('')
+      || '<span class="dim small">Nichts zum Fusionieren. Es braucht magische, seltene oder legendäre Teile.</span>'}</div></section>
+    <section class="panel grow">${board}</section>
+    ${main ? `<section class="panel"><div class="cpick">${foods.map(x => cell(x, x.id === sel.food, 'f')).join('')
+      || '<span class="dim small">Kein passendes Futter im Beutel.</span>'}</div></section>` : ''}
+    <section class="panel"><p class="small cmsg">${msg}</p>
+      ${main && food && !err ? '<button class="red big-btn" data-action="fusego">Fusionieren</button>' : `<button disabled>Fusionieren</button>`}</section></div>`;
 }
 
 // --- Alchemie & Vorbereitung ---

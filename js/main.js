@@ -287,7 +287,19 @@ const actions = {
   optset: d => { Sound.setOpt(d.k, +d.v); Sound.unlock(); if (d.k === 'sfx') Sound.play('hit'); render(); },
   pitbuy: d => { const e = Game.pitBuy(d.t, +d.k); if (e) note(e); render(); },
   pittitle: d => { Game.pitTitle(d.t || null); G.save(); render(); },
-  forgemode: d => { forgeSel.mode = d.m; forgeRes = null; forgeSel.msg = ''; render(); },
+  forgemode: d => { forgeSel.mode = d.m; forgeRes = null; forgeSel.msg = ''; forgeSel.food = forgeSel.mstat = null; render(); },
+  // Fusionieren: Hauptteil, Futter, der Bonus der wandert und (wenn voll) der, welcher weicht
+  fusepick: d => { forgeSel.item = d.id; forgeSel.food = forgeSel.stat = forgeSel.mstat = null; forgeSel.msg = ''; render(); },
+  fusefood: d => { if (d.id) { forgeSel.food = d.id; forgeSel.stat = forgeSel.mstat = null; } else forgeSel.stat = forgeSel.stat === d.k ? null : d.k;
+    forgeSel.msg = ''; render(); },
+  fusemain: d => { forgeSel.mstat = forgeSel.mstat === d.k ? null : d.k; forgeSel.msg = ''; render(); },
+  fusego: () => { const pw = G.power();
+    const r = G.fuse(forgeSel.item, forgeSel.food, forgeSel.stat, forgeSel.mstat);
+    if (r.err) { forgeSel.msg = `<span class="down">${r.err}</span>`; return render(); }
+    forgeSel.food = forgeSel.stat = forgeSel.mstat = null; forgeSel.changed = [r.stat];
+    forgeSel.msg = `${r.food.name} zerfiel · der Bonus sitzt jetzt in <b class="gold">${r.it.name}</b>`
+      + (r.replaced ? ' · ein alter Bonus wich' : '') + (r.promote ? ' · <b class="gold">aufgestiegen</b>' : '') + ` · −${r.cost} Glut`;
+    render(); toast(pw); },
   craftpick: d => { forgeSel.item = d.id; forgeSel.stat = null; forgeSel.msg = ''; forgeSel.changed = null; render(); },
   craftstat: d => { forgeSel.stat = forgeSel.stat === d.k ? null : d.k; forgeSel.msg = ''; render(); },
   craftop: d => { const it = G.craftItems().find(x => x.id === forgeSel.item); const before = it ? { ...G.baseMods(it) } : {}, pw = G.power();

@@ -1,4 +1,4 @@
-import { TREE, SETS, SET, ACTS, ACT, CRYPT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, ALCH } from './data.js';
+import { RARITIES, TREE, SETS, SET, ACTS, ACT, CRYPT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, ALCH } from './data.js';
 import { affixPool, makeItem, itemValue, rollTier, affixValue, renameMagic, adj, fixName } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
@@ -562,6 +562,67 @@ export function craft(id, opId, stat) {
   const cost = spendGlut(it, op.glut);
   renameMagic(it); it.value = itemValue(it);
   return { it, op, cost };
+}
+
+// --- Fusionieren: ein Bonus wandert von einem gleichartigen Teil herüber, der Spender zerfällt ---
+// Der bestimmte Gegenpol zum Umschmieden: hier würfelt nichts, du wählst. Gebremst wird das über
+// CRAFT.fuse.max (je Teil nur eine Fusion) – sonst trägt jeder dasselbe perfekte Teil und kein
+// Fundstück ist mehr interessant. Die Stufe des Bonus wandert mit, darum lohnt das Warten auf
+// einen guten Spender. Futter kommt nur aus dem Beutel, nie vom Körper (sonst zerstört man aus
+// Versehen, was man anhat).
+export const fuseForm = (a, b) => a.slot === b.slot && a.kind === b.kind;   // Dolch zu Dolch, Gürtel zu Gürtel
+export const fuseCount = it => it?.fused || 0;
+const fusable = it => CRAFT.glut[it.rarity] && !it.unique && !it.set;
+const nextRar = r => { const n = RARITIES[RARITIES.findIndex(x => x.id === r) + 1]; return n && CRAFT.maxAff[n.id] ? n.id : null; };
+export const fuseMains = () => craftItems().filter(it => fuseCount(it) < CRAFT.fuse.max);
+export const fuseFoods = main => !main ? [] : S.bag.filter(it =>
+  it.id !== main.id && fusable(it) && fuseForm(main, it) && it.rarity === main.rarity && Object.keys(baseMods(it)).length);
+// Ist das Hauptteil voll, muss entweder ein Bonus weichen (mainStat) oder das Teil steigt auf.
+export const fuseFull = main => Object.keys(baseMods(main)).length >= CRAFT.maxAff[main.rarity];
+export const fusePromote = (main, mainStat) => fuseFull(main) && !mainStat ? nextRar(main.rarity) : null;
+
+// Warum geht die Fusion nicht? null = möglich
+export function fuseCheck(main, food, foodStat, mainStat) {
+  if (!main || !food) return 'Zwei Teile wählen.';
+  if (main.id === food.id) return 'Nicht mit sich selbst.';
+  if (!fusable(main) || !fusable(food)) return 'Einzigartige und Set-Teile bleiben, wie sie sind.';
+  if (!fuseForm(main, food)) return 'Nur die gleiche Grundform.';
+  if (main.rarity !== food.rarity) return 'Nur die gleiche Seltenheit.';
+  if (fuseCount(main) >= CRAFT.fuse.max) return 'Dieses Teil ist schon fusioniert.';
+  ensureGlut(main);
+  if (main.crafted) return `Vollendet von ${main.crafted}.`;
+  if (main.glut < CRAFT.fuse.glut) return 'Zu wenig Schmiedeglut.';
+  if (S.gold < craftGold(main)) return 'Zu wenig Gold.';
+  const fb = baseMods(food), mb = baseMods(main);
+  if (!foodStat || !(foodStat in fb)) return 'Bonus im Futter antippen.';
+  if (foodStat in mb) return 'Diesen Bonus hat das Hauptteil schon.';
+  if (!affixPool(main).some(a => a.stat === foodStat)) return 'Dieser Bonus passt nicht auf diesen Platz.';
+  if (!fuseFull(main)) return null;                                  // Platz frei: der Bonus kommt einfach dazu
+  if (mainStat) return mainStat === main.sealed ? 'Dieser Bonus ist versiegelt.'
+    : !(mainStat in mb) ? 'Bonus im Hauptteil antippen, der weichen soll.' : null;
+  return nextRar(main.rarity) ? null : 'Bonus im Hauptteil antippen, der weichen soll.';
+}
+
+export function fuse(mainId, foodId, foodStat, mainStat) {
+  const main = findAny(mainId), food = S.bag.find(x => x.id === foodId);
+  const err = fuseCheck(main, food, foodStat, mainStat); if (err) return { err };
+  const mb = baseMods(main), tiers = { ...(main.tiers || {}) };
+  const full = fuseFull(main), replaced = full && mainStat ? mainStat : null;
+  const promote = fusePromote(main, mainStat);
+  if (replaced) { delete mb[replaced]; delete tiers[replaced]; }
+  mb[foodStat] = baseMods(food)[foodStat];
+  tiers[foodStat] = food.tiers?.[foodStat] || 3;                     // die Stufe wandert mit
+  main.tiers = tiers; setBase(main, mb);
+  // Aufstieg ändert nur die Zahl der Boni und die Farbe – Schaden und Rüstung des Grundgegenstands
+  // bleiben, sonst bekäme man durch zwei magische Teile heimlich einen seltenen Grundwert geschenkt.
+  if (promote) main.rarity = promote;
+  main.fused = fuseCount(main) + 1;
+  const gold = craftGold(main); S.gold -= gold;
+  const cost = spendGlut(main, CRAFT.fuse.glut);
+  removeFromBag(food.id);
+  renameMagic(main); main.value = itemValue(main);
+  journal(`${food.name} zerfiel. Was gut an ihm war, trägt jetzt ${main.name}.`);
+  return { it: main, food, stat: foodStat, replaced, promote, cost, gold };
 }
 
 // --- Eilen: kostet mit Restzeit und Stufe ---

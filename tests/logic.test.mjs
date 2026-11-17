@@ -936,3 +936,96 @@ test('Ausbluten: blutet bei jedem Treffer und schaltet Krits ab', async () => {
   assert.ok(q0 <= 0.55, `Ausweichen sollte bei 50 % gedeckelt sein, war ${(q0 * 100).toFixed(0)} %`);
   assert.ok(q1 > q0 + 0.08, `evadeCap hebt die Grenze nicht (${(q0 * 100).toFixed(0)} % → ${(q1 * 100).toFixed(0)} %)`);
 });
+
+test('Fusionieren: der Bonus wandert, das Futter zerfällt, einmal je Teil', async () => {
+  const G = await import('../js/state.js'), L = await import('../js/loot.js'), D = await import('../js/data.js');
+  // zwei magische Dolche mit gewünschter Bonus-Zahl
+  const mk = (n, slot = 'weapon', kind = 'dagger', rar = 'magic') => { for (let i = 0; i < 9000; i++) {
+    const it = L.makeItem(22, { slot, kind }); if (it.rarity === rar && !it.unique && Object.keys(it.mods).length === n) return it; } };
+  const frisch = () => { G.newChar('F', 'assassin'); G.S.lvl = 22; G.S.gold = 999999; };
+
+  // --- Dazu: freier Platz, der Bonus kommt einfach hinzu, die Stufe wandert mit
+  frisch();
+  let a = mk(1), b = mk(2); G.S.bag.push(a, b);
+  let k = Object.keys(G.baseMods(b)).find(x => !(x in G.baseMods(a)) && D.AFFIXES.some(y => y.stat === x && (!y.slots || y.slots.includes('weapon'))));
+  assert.ok(k, 'kein übertragbarer Bonus gefunden');
+  const stufeVorher = b.tiers[k], bagVorher = G.S.bag.length;
+  let r = G.fuse(a.id, b.id, k, null);
+  assert.ok(!r.err, r.err);
+  assert.ok(k in r.it.mods, 'der Bonus ist nicht angekommen');
+  assert.equal(r.it.tiers[k], stufeVorher, 'die Stufe des Bonus ist beim Umzug verlorengegangen');
+  assert.equal(G.S.bag.length, bagVorher - 1, 'das Futter ist nicht zerfallen');
+  assert.equal(r.it.fused, 1);
+
+  // --- Nur eine Fusion je Teil, für immer: sonst baut jeder dasselbe perfekte Teil
+  const c = mk(2); G.S.bag.push(c);
+  assert.match(G.fuseCheck(r.it, c, Object.keys(G.baseMods(c))[0], null) || '', /schon fusioniert/);
+
+  // --- Aufstieg: volles magisches Teil bekommt einen dritten Bonus und wird selten,
+  //     der Grundschaden bleibt aber magisch (sonst heimlicher Machtsprung)
+  frisch();
+  a = mk(2); b = mk(2); G.S.bag.push(a, b);
+  k = Object.keys(G.baseMods(b)).find(x => !(x in G.baseMods(a)) && D.AFFIXES.some(y => y.stat === x && (!y.slots || y.slots.includes('weapon'))));
+  const dmgVorher = JSON.stringify(a.dmg);
+  assert.equal(G.fusePromote(a, null), 'rare', 'volles magisches Teil müsste aufsteigen können');
+  r = G.fuse(a.id, b.id, k, null);
+  assert.ok(!r.err, r.err);
+  assert.equal(r.it.rarity, 'rare', 'das Teil ist nicht aufgestiegen');
+  assert.equal(Object.keys(G.baseMods(r.it)).length, 3);
+  assert.equal(JSON.stringify(r.it.dmg), dmgVorher, 'der Grundschaden ist beim Aufstieg mitgewachsen');
+
+  // --- Ersetzen statt Aufstieg: der gewählte Bonus weicht
+  frisch();
+  a = mk(2); b = mk(2); G.S.bag.push(a, b);
+  k = Object.keys(G.baseMods(b)).find(x => !(x in G.baseMods(a)) && D.AFFIXES.some(y => y.stat === x && (!y.slots || y.slots.includes('weapon'))));
+  const weg = Object.keys(G.baseMods(a))[0];
+  r = G.fuse(a.id, b.id, k, weg);
+  assert.ok(!r.err, r.err);
+  assert.equal(r.it.rarity, 'magic', 'beim Ersetzen darf nichts aufsteigen');
+  assert.ok(!(weg in G.baseMods(r.it)), 'der ersetzte Bonus ist noch da');
+});
+
+test('Fusionieren: die Regeln halten (Form, Seltenheit, Siegel, Platz, Einzigartige)', async () => {
+  const G = await import('../js/state.js'), L = await import('../js/loot.js');
+  const mk = (slot, kind, rar) => { for (let i = 0; i < 9000; i++) { const it = L.makeItem(22, { slot, kind });
+    if (it.rarity === rar && !it.unique && Object.keys(it.mods).length) return it; } };
+  G.newChar('F2', 'assassin'); G.S.lvl = 22; G.S.gold = 999999;
+  const dolch = mk('weapon', 'dagger', 'magic'), dolch2 = mk('weapon', 'dagger', 'magic');
+  const klaue = mk('weapon', 'claw', 'magic'), selten = mk('weapon', 'dagger', 'rare');
+  G.S.bag.push(dolch, dolch2, klaue, selten);
+  const ein = Object.keys(G.baseMods(dolch2))[0];
+  assert.match(G.fuseCheck(dolch, klaue, Object.keys(G.baseMods(klaue))[0], null) || '', /Grundform/);
+  assert.match(G.fuseCheck(dolch, selten, Object.keys(G.baseMods(selten))[0], null) || '', /Seltenheit/);
+  assert.match(G.fuseCheck(dolch, dolch, ein, null) || '', /sich selbst/);
+  // Blocken gehört auf die Nebenhand, nicht auf einen Dolch
+  dolch2.mods = { blockp: 5 }; dolch2.tiers = { blockp: 3 };
+  assert.match(G.fuseCheck(dolch, dolch2, 'blockp', null) || '', /passt nicht auf diesen Platz/);
+  // Versiegeltes bleibt unantastbar
+  const x = mk('weapon', 'dagger', 'magic'), y = mk('weapon', 'dagger', 'magic');
+  G.newChar('F3', 'assassin'); G.S.lvl = 22; G.S.gold = 999999; G.S.bag.push(x, y);
+  if (Object.keys(G.baseMods(x)).length >= 2) {
+    x.sealed = Object.keys(G.baseMods(x))[0];
+    const k2 = Object.keys(G.baseMods(y)).find(q => !(q in G.baseMods(x)));
+    if (k2) assert.match(G.fuseCheck(x, y, k2, x.sealed) || '', /versiegelt/);
+  }
+  // Einzigartige und Set-Teile tauchen gar nicht erst als Hauptteil auf
+  const uniq = (() => { for (let i = 0; i < 9000; i++) { const it = L.makeItem(30, { slot: 'weapon', kind: 'dagger' }); if (it.unique) return it; } })();
+  if (uniq) { G.S.bag.push(uniq); assert.ok(!G.fuseMains().some(i => i.id === uniq.id), 'Einzigartiges steht als Hauptteil zur Wahl'); }
+});
+
+test('Fusionieren bringt nie Gold', async () => {
+  const G = await import('../js/state.js'), L = await import('../js/loot.js'), D = await import('../js/data.js');
+  const mk = n => { for (let i = 0; i < 9000; i++) { const it = L.makeItem(22, { slot: 'weapon', kind: 'dagger' });
+    if (it.rarity === 'magic' && !it.unique && Object.keys(it.mods).length === n) return it; } };
+  for (let runde = 0; runde < 12; runde++) {
+    G.newChar('F4', 'assassin'); G.S.lvl = 22; G.S.gold = 999999;
+    const a = mk(2), b = mk(2); G.S.bag.push(a, b);
+    const k = Object.keys(G.baseMods(b)).find(x => !(x in G.baseMods(a)) && D.AFFIXES.some(y => y.stat === x && (!y.slots || y.slots.includes('weapon'))));
+    if (!k) continue;
+    const vorher = G.S.gold + a.value + b.value;
+    const r = G.fuse(a.id, b.id, k, null);
+    if (r.err) continue;
+    const nachher = G.S.gold + r.it.value;
+    assert.ok(nachher < vorher, `Fusionieren+Verkaufen bringt Gold: ${vorher} → ${nachher}`);
+  }
+});

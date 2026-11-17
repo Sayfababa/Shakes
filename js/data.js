@@ -234,6 +234,10 @@ export const CRAFT = {
     { id: 'remove', name: 'Tilgen', mat: 'leinen', n: 2, glut: 2, text: 'Ein zufälliger unversiegelter Bonus verschwindet.' },
   ],
   glutJitter: 2,                                                   // jeder Eingriff kostet zusätzlich 0..2 Glut (Unsicherheit wie Last Epoch)
+  // Fusionieren: ein Bonus wandert von einem gleichartigen Teil herüber, der Spender zerfällt.
+  // `max` ist die Bremse – drei von vier Boni müssen weiter aus dem Würfel kommen, sonst baut
+  // jeder binnen Tagen dasselbe perfekte Teil und Beute wird bedeutungslos.
+  fuse: { glut: 4, max: 1 },
 };
 
 export const MONSTERS = [

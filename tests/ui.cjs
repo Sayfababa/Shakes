@@ -108,6 +108,34 @@ let failures = 0;
     for (let i = 0; i < 3; i++) if (!(await tap('[data-o=values]'))) { failures++; console.log(`FEHLER ${tag}: Werte würfeln gesperrt:`, await p.evaluate(() => document.querySelector('.cmsg')?.textContent)); }
     const v1 = await p.evaluate(() => document.querySelector('.caff.sealed span')?.textContent); await chk('craft2');
     if (!v0 || v0 !== v1) { failures++; console.log(`FEHLER ${tag}: Siegel hält nicht (${v0} → ${v1})`); }
+    // Fusionieren: zwei gleiche Dolche, ein Bonus wandert herüber, das Futter zerfällt
+    const fu = await p.evaluate(async () => { const L = await import('./js/loot.js'); const G = await import('./js/state.js');
+      const mk = n => { for (let i = 0; i < 6000; i++) { const it = L.makeItem(22, { slot: 'weapon', kind: 'dagger' });
+        if (it.rarity === 'magic' && !it.unique && Object.keys(it.mods).length === n) return it; } };
+      const a = mk(2), b = mk(2); if (!a || !b) return null;
+      G.addToBag(a); G.addToBag(b); G.S.gold = 99999; G.S.lvl = 22; G.save();   // Beutel NICHT leeren – spätere Fälle hängen daran
+      return { a: a.id, b: b.id, n: G.S.bag.length }; });
+    if (!fu) { failures++; console.log(`FEHLER ${tag}: keine zwei magischen Dolche erzeugt`); }
+    else {
+      await p.reload(); await p.waitForTimeout(300); await tap('[data-v=traders]'); await tap('[data-t=halvar]'); await tap('[data-v=forge]');
+      await tap('[data-action=forgemode][data-m=fuse]'); await chk('fuse0');
+      await tap(`.cpick [data-action=fusepick][data-id="${fu.a}"]`); await chk('fuse1');
+      await tap(`.cpick [data-action=fusefood][data-id="${fu.b}"]`); await chk('fuse2');
+      const fk = await p.evaluate(() => document.querySelector('.fside.food .caff[data-action=fusefood]:not(.no)')?.dataset.k);
+      if (!fk) { failures++; console.log(`FEHLER ${tag}: kein übertragbarer Bonus im Futter`); }
+      await tap(`.fside.food .caff[data-k="${fk}"]`);
+      // volles magisches Teil: entweder Aufstieg oder ein Bonus muss weichen – beides muss gehen
+      if (!(await p.$('[data-action=fusego]'))) { const mk2 = await p.evaluate(() => document.querySelector('.fside.main .caff[data-action=fusemain]')?.dataset.k);
+        await tap(`.fside.main .caff[data-k="${mk2}"]`); }
+      await chk('fuse3');
+      if (!(await tap('[data-action=fusego]'))) { failures++; console.log(`FEHLER ${tag}: Fusionieren gesperrt:`, await p.evaluate(() => document.querySelector('.cmsg')?.textContent)); }
+      await p.waitForTimeout(250); await chk('fuse4');
+      const after = await p.evaluate(async () => { const G = await import('./js/state.js');
+        return { n: G.S.bag.length, fused: G.S.bag.map(x => x.fused || 0) }; });
+      if (after.n !== fu.n - 1) { failures++; console.log(`FEHLER ${tag}: Futter nicht zerfallen (${fu.n} → ${after.n})`); }
+      if (!after.fused.some(x => x === 1)) { failures++; console.log(`FEHLER ${tag}: Fusion nicht am Teil vermerkt`); }
+    }
+
     // Item antippen → Schmieden: Schmiede öffnet direkt mit diesem Item, angelegte Teile grün umrandet
     await p.evaluate(async () => { const L = await import('./js/loot.js'); const G = await import('./js/state.js'); let r; do r = L.makeItem(25, { slot: 'ring', minRarity: 2 }); while (r.unique); G.S.equip.ring1 = r; G.save(); });
     await p.reload(); await p.waitForTimeout(300);
