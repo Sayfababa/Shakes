@@ -989,14 +989,17 @@ test('Fusionieren: der Bonus wandert, das Futter zerfällt, einmal je Teil', asy
 
 test('Fusionieren: die Regeln halten (Form, Seltenheit, Siegel, Platz, Einzigartige)', async () => {
   const G = await import('../js/state.js'), L = await import('../js/loot.js');
+  // Achtung: makeItem fällt bei unbekannter Art still auf eine beliebige Basis zurück (es gibt z. B.
+  // keine Waffenart „claw"). Deshalb die Art hier prüfen, sonst misst der Test etwas anderes.
   const mk = (slot, kind, rar) => { for (let i = 0; i < 9000; i++) { const it = L.makeItem(22, { slot, kind });
-    if (it.rarity === rar && !it.unique && Object.keys(it.mods).length) return it; } };
+    if (it.rarity === rar && !it.unique && (!kind || it.kind === kind) && Object.keys(it.mods).length) return it; } };
   G.newChar('F2', 'assassin'); G.S.lvl = 22; G.S.gold = 999999;
   const dolch = mk('weapon', 'dagger', 'magic'), dolch2 = mk('weapon', 'dagger', 'magic');
-  const klaue = mk('weapon', 'claw', 'magic'), selten = mk('weapon', 'dagger', 'rare');
-  G.S.bag.push(dolch, dolch2, klaue, selten);
+  const beil = mk('weapon', 'axe', 'magic'), selten = mk('weapon', 'dagger', 'rare');
+  G.S.bag.push(dolch, dolch2, beil, selten);
   const ein = Object.keys(G.baseMods(dolch2))[0];
-  assert.match(G.fuseCheck(dolch, klaue, Object.keys(G.baseMods(klaue))[0], null) || '', /Grundform/);
+  assert.ok(beil && dolch, 'Testware fehlt');
+  assert.match(G.fuseCheck(dolch, beil, Object.keys(G.baseMods(beil))[0], null) || '', /Grundform/);
   assert.match(G.fuseCheck(dolch, selten, Object.keys(G.baseMods(selten))[0], null) || '', /Seltenheit/);
   assert.match(G.fuseCheck(dolch, dolch, ein, null) || '', /sich selbst/);
   // Blocken gehört auf die Nebenhand, nicht auf einen Dolch

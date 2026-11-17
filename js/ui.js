@@ -2,7 +2,7 @@
 import { TREE, AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, BOUNTIES, SETS, SET } from './data.js';
 import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
 import { affixPool } from './loot.js';
-import { potion, beltSlots, brewCost, canBrew, potMax, unreadable } from './state.js';
+import { potion, beltSlots, brewCost, canBrew, potMax, unreadable, herbPrice, canBuyHerb, herbLeft } from './state.js';
 import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, baseMods, fuseMains, fuseFoods, fuseCheck, fuseFull, fusePromote, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 // Name eines Item-Bonus: Attribute, Rüstung/Schaden, Prozent-Boni ("% Krit-Chance", "% Feuerball")
@@ -612,7 +612,8 @@ export function viewAlch(sel, back) {
   return `<div class="col alch">
     <section class="panel"><h2>Alchemie <span class="h2r">Tränke wirken nur in der Krypta</span>${back ? `<button class="tiny" data-action="${back === 'prep' || back === 'desc' ? `go" data-v="${back}` : 'trader" data-t="ysolde'}">Zurück</button>` : ''}</h2>
       <div class="belt">${[0, 1, 2].map(i => beltRow(i, true)).join('')}</div></section>
-    <section class="panel herbs">${Object.entries(HERBS).map(([k, h]) => `<span class="herb" title="${h.name}">${potImg(h.img)}<i>${S.herbs[k] || 0}</i></span>`).join('')}</section>
+    <section class="panel herbs">${Object.entries(HERBS).map(([k, h]) => `<span class="herb ${k === 'herz' ? 'nobuy' : canBuyHerb(k) ? 'can' : 'poor'}" title="${h.name}${k === 'herz' ? ' – nur von Krypta-Bossen' : ` – kaufen für ${herbPrice()} Gold`}" ${k === 'herz' ? '' : `data-action="buyherb" data-id="${k}"`}>${potImg(h.img)}<i>${S.herbs[k] || 0}</i></span>`).join('')}
+      <p class="small dim hbuy">Antippen kauft · ${herbPrice()} Gold · heute noch ${herbLeft()}</p></section>
     <section class="panel potgrid">${POTIONS.map(x => `<span class="ptile ${x.rare ? 'rare' : ''} ${x.id === p.id ? 'on' : ''} ${canBrew(x.id).ok ? 'can' : ''}" data-action="potsel" data-id="${x.id}">${potImg(x.id)}${S.pots[x.id] ? `<i>${S.pots[x.id]}</i>` : ''}</span>`).join('')}</section>
     <section class="panel potdet"><h3 class="${p.rare ? 'r-rare' : ''}">${p.name} <span class="h2r">${p.rare ? 'selten · 1 Ladung' : `gewöhnlich · ${ALCH.charges} Ladungen`}</span></h3>
       <p class="small">${p.text}${p.rare ? '' : ` Zündet: ${p.trig.map(t => TRIGGERS[t]).join(' oder ')}.`}</p>

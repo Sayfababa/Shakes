@@ -333,6 +333,9 @@ const actions = {
   expclaim: () => { expAsk = false; Game.expBegin(); const r = Game.expAdvance(); if (r?.done) expRes = r.done; view = 'trips'; render(); },
   expchoose: d => { const r = Game.expChoose(+d.i); if (r?.done) expRes = r.done; render(); },
   expok: () => { expRes = null; render(); },
+  buyherb: d => { const pr = G.herbPrice();
+    if (!G.buyHerb(d.id)) return note(`${pr} Gold nötig.`);
+    note(`${HERBS[d.id].name} gekauft · −${pr} Gold`); render(); },
   forgemat: d => { forgeSel.mat = d.m; render(); },
   forgeslot: d => { forgeSel.slot = d.s; render(); },
   forgeagain: () => { forgeRes = null; render(); },

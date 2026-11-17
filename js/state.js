@@ -101,7 +101,7 @@ export function newChar(name, cls) {
   S = { v: SAVE_VERSION, name, cls, lvl: 1, xp: 0, gold: 40, attrs: baseAttrs(cls), points: CFG.startPoints, tal: {}, sp: {}, temper: {}, respecs: 0,
     crypt: { diff: 0, prog: {}, cd: 0 }, trophies: [], traders: freshTraders(), mats: {}, omen: null, omens: 0, shards: [], tut: 0, title: null, haul: null, bounty: null,
     equip: {}, bag: [], glut: CFG.maxGlut, glutTs: now(), active: null,
-    journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0, belt: [null, null, null], herbs: {}, pots: {}, potDay: today(), exp: null, bless: 0, desc: null, descDay: null, pit: freshPit(), acts: { prog: {} }, wander: null };
+    journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0, belt: [null, null, null], herbs: {}, pots: {}, potDay: today(), herbBuy: { day: today(), n: 0 }, exp: null, bless: 0, desc: null, descDay: null, pit: freshPit(), acts: { prog: {} }, wander: null };
   const wb = BASES.find(b => b.kind === c.weapon);
   S.equip.weapon = { id: 'start', slot: 'weapon', kind: wb.kind, base: wb.name, art: wb.art, w: wb.w, h: wb.h, name: adj('Rostiger', wb.name) + ' ' + wb.name,
     rarity: 'normal', lvl: 1, mods: {}, dmg: [...wb.dmg], value: 2 };
@@ -712,6 +712,14 @@ export const potion = id => POTIONS.find(p => p.id === id);
 export const beltSlots = () => loyalty('ysolde') >= ALCH.loyalNeed ? ALCH.slotsLoyal : ALCH.slots;
 export const potMax = p => p.rare ? ALCH.maxRare : ALCH.maxCommon;
 export function addHerb(id, n = 1) { S.herbs[id] = (S.herbs[id] || 0) + n; }
+// Zutaten bei Ysolde kaufen. Gemessen hat Gold im Brauen NIE gebremst, Zutaten immer – ein Tausch
+// zwischen beidem gibt dem Gold endlich eine Senke und hilft genau dann, wenn ein Kraut fehlt.
+// Das Schwarze Herz gibt es nicht zu kaufen, es bleibt der Fund vom Krypta-Boss.
+export const herbPrice = () => Math.round(ALCH.herbBuy[0] + S.lvl * ALCH.herbBuy[1]);
+// Ysoldes Tagesvorrat: zurückgesetzt beim ersten Blick an einem neuen Tag
+export function herbLeft() { if (S.herbBuy?.day !== today()) S.herbBuy = { day: today(), n: 0 }; return ALCH.herbStock - S.herbBuy.n; }
+export const canBuyHerb = id => id !== 'herz' && !!HERBS[id] && herbLeft() > 0 && S.gold >= herbPrice();
+export function buyHerb(id) { if (!canBuyHerb(id)) return false; S.gold -= herbPrice(); S.herbBuy.n++; addHerb(id, 1); return true; }
 export function brewCost(id) { const p = potion(id), [a, b] = p.rare ? ALCH.goldRare : ALCH.gold; return { herbs: p.cost, gold: Math.round(a + S.lvl * b) }; }
 export function canBrew(id) {
   const p = potion(id); if (!p) return { ok: false, reason: 'Unbekannt' };

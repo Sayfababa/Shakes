@@ -47,6 +47,15 @@ function manage(log) {
   if (POTS) for (const p of [...D.POTIONS].sort((a, b) => (b.rare || 0) - (a.rare || 0))) {
     while ((S.pots[p.id] || 0) < (p.rare ? 1 : 3) && S.gold > 150 + G.brewCost(p.id).gold && G.canBrew(p.id).ok) { const g = S.gold; for (const [k, n] of Object.entries(p.cost)) log.spent[k] = (log.spent[k] || 0) + n;
       G.brew(p.id); log.brewed++; log.brewGold += g - S.gold; }
+    // Fehlt genau eine Zutat und Gold ist reichlich da: bei Ysolde kaufen (höchstens `KAUF` je Runde,
+    // sonst leert der Bot den Beutel und die Messung sagt nur noch etwas über Gold aus).
+    for (let i = 0; i < 2; i++) { const r = G.canBrew(p.id).reason || ''; const m = /^Fehlt: (.+)$/.exec(r);
+      if (!m || m[1] === 'Schwarzes Herz') break;
+      const id = Object.keys(D.HERBS).find(k => D.HERBS[k].name === m[1]);
+      if (!id || S.gold < 400 + G.herbPrice() || !G.buyHerb(id)) break;
+      log.bought_herb = (log.bought_herb || 0) + 1;
+      if (G.canBrew(p.id).ok) { const g = S.gold; for (const [k, n] of Object.entries(p.cost)) log.spent[k] = (log.spent[k] || 0) + n;
+        G.brew(p.id); log.brewed++; log.brewGold += g - S.gold; } }
     // Woran scheiterte der nächste Sud? Nur so sieht man, welche Zutat wirklich knapp ist –
     // ein Vorrat von 0 heißt nur „verbraucht", nicht „zu wenig".
     if ((S.pots[p.id] || 0) < (p.rare ? 1 : 3)) { const r = G.canBrew(p.id).reason || '';
@@ -127,6 +136,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       const srt = o => Object.entries(o).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}×`).join(' · ') || '–';
       // Angebot = verbraucht + übrig. Das ist, was in der Spielzeit wirklich gefallen ist.
       console.log('  Gefallen (verbraucht+übrig): ' + Object.keys(D.HERBS).map(k => `${D.HERBS[k].name} ${(log.spent[k] || 0) + (S.herbs[k] || 0)}`).join(' · '));
+      console.log('  Zutaten gekauft: ' + (log.bought_herb || 0));
       console.log('  Sud fiel aus, weil Zutat fehlte: ' + srt(log.miss));
       console.log('  Sud fiel aus, anderer Grund:     ' + srt(log.blocked)); }
   }

@@ -731,12 +731,26 @@ export const SPELL_TREE = {
 // Auslöser: start (eigener 1. Zug), hp50/hp30 (eigenes Leben unter x), dot (Gift/Bluten/Brand auf dir), low (Gegner unter 50 %), heal (Gegner heilt/regeneriert).
 export const HERBS = {
   rotwurz: { name: 'Rotwurz', img: 'i_rotwurz' }, grabmoos: { name: 'Grabmoos', img: 'i_grabmoos' }, silberstaub: { name: 'Silberstaub', img: 'i_silberstaub' },
-  nachtschatten: { name: 'Nachtschatten', img: 'i_nachtschatten' }, schwefel: { name: 'Schwefel', img: 'i_schwefel' }, herz: { name: 'Schwarzes Herz', img: 'i_herz' },
+  nachtschatten: { name: 'Nachtschatten', img: 'i_nachtschatten' }, schwefel: { name: 'Schwefel', img: 'i_schwefel' },
+  weihrauch: { name: 'Weihrauchharz', img: 'i_weihrauch' }, herz: { name: 'Schwarzes Herz', img: 'i_herz' },
 };
 // Welche Zutat ein Streifzug-Ort liefert (Chance je Sieg), Herz von Krypta-Bossen
-export const HERB_LOC = { friedhof: 'grabmoos', muehle: 'rotwurz', katakomben: 'silberstaub', moor: 'nachtschatten', kapelle: 'grabmoos', gruben: 'schwefel' };
-export const ALCH = { herbChance: 0.15, slots: 2, slotsLoyal: 3, loyalNeed: 2, charges: 3, maxCommon: 6, maxRare: 2, bossHearts: 2, floorHeart: 0.12,
-  gold: [8, 2.5], goldRare: [30, 7] };   // Gold = a + Stufe × b
+// Jeder Ort eine eigene Zutat. Die Kapelle gab bisher Grabmoos wie der Friedhof: Akt V brachte
+// nichts Neues, Grabmoos steckte in 5 Rezepten – und weil Expedition und Umherziehen ihre
+// Zufallszutat aus diesen Werten ziehen, kam auch dort Grabmoos mit 33 % statt 20 %.
+export const HERB_LOC = { friedhof: 'grabmoos', muehle: 'rotwurz', katakomben: 'silberstaub', moor: 'nachtschatten', kapelle: 'weihrauch', gruben: 'schwefel' };
+// `foreign`: Anteil der Zutaten-Funde, die eine FREMDE Zutat geben statt der des Ortes. Ohne das
+// flutet der Akt, in dem man gerade farmt, seine Zutat (gemessen: 82 Grabmoos neben 3 Silberstaub)
+// und alle anderen verhungern – man scheitert nie an der Menge, immer an der Sorte. Expedition
+// (`herbAny`) und Umherziehen machen das längst, nur die Akt-Kämpfe nicht, wo 90 % der Siege fallen.
+// `heartChance`: Herzen waren garantiert 2 je Krypta-Boss und damit die einzige ortsungebundene
+// Zutat – 26 bis 68 je Woche, während jede Feldzutat bei 0 endete. Der Bossfund war der Überfluss.
+export const ALCH = { herbChance: 0.15, foreign: 0.3, slots: 2, slotsLoyal: 3, loyalNeed: 2, charges: 3, maxCommon: 6, maxRare: 2,
+  bossHearts: 1, heartChance: 0.7, herbBuy: [26, 5], herbStock: 3,
+  gold: [8, 2.5], goldRare: [30, 7] };   // Gold = a + Stufe × b, Zutat kaufen = herbBuy[0] + Stufe × herbBuy[1]
+// `herbStock`: Ysolde hat je Tag nur so viele Zutaten. Ohne diese Grenze ersetzt Gold das Farmen
+// vollständig – mit freiem Verkauf kaufte der Bot 400 bis 685 Zutaten je Woche und braute 350 statt
+// 30 Tränke. Der Laden soll aushelfen, wenn genau ein Kraut fehlt, nicht die Streifzüge ersetzen.
 export const POTIONS = [
   { id: 'rotwurz', name: 'Rotwurz-Trank', text: 'Heilt 11 % Leben.', fx: { heal: 0.11 }, trig: ['hp50', 'hp30'], cost: { rotwurz: 2 } },
   { id: 'steinhaut', name: 'Steinhaut', text: 'Schild aus 10 % Leben.', fx: { shield: 0.1 }, trig: ['start', 'hp50'], cost: { grabmoos: 2 } },
@@ -745,10 +759,10 @@ export const POTIONS = [
   { id: 'wachsaft', name: 'Wachsaft', text: '5 Züge nicht betäubbar.', fx: { stunImm: 5 }, trig: ['start'], cost: { nachtschatten: 2 } },
   { id: 'weihwasser', name: 'Weihwasser', text: 'Gegner kann 6 Züge nicht heilen.', fx: { noheal: 6 }, trig: ['start', 'heal'], cost: { silberstaub: 2 } },
   { id: 'falkenauge', rare: 1, name: 'Falkenauge', text: '+15 % Krit-Chance im ganzen Kampf.', fx: { crit: 0.15 }, cost: { herz: 1, silberstaub: 1 } },
-  { id: 'knochenmark', rare: 1, name: 'Knochenmark-Tonikum', text: 'Gegner trifft 10 % seltener kritisch.', fx: { critRes: 0.1 }, cost: { herz: 1, grabmoos: 1 } },
+  { id: 'knochenmark', rare: 1, name: 'Knochenmark-Tonikum', text: 'Gegner trifft 10 % seltener kritisch.', fx: { critRes: 0.1 }, cost: { herz: 1, weihrauch: 1 } },
   { id: 'schatten', rare: 1, name: 'Schattentrank', text: '+7 % Ausweichen im ganzen Kampf.', fx: { evade: 0.07 }, cost: { herz: 1, nachtschatten: 1 } },
   { id: 'jaegerblick', rare: 1, name: 'Jägerblick', text: 'Gegner weicht 8 % seltener aus.', fx: { acc: 0.08 }, cost: { herz: 1, silberstaub: 1 } },
-  { id: 'bollwerk', rare: 1, name: 'Bollwerk-Trank', text: '+7 % Blocken im ganzen Kampf.', fx: { block: 0.07 }, cost: { herz: 1, grabmoos: 1 } },
+  { id: 'bollwerk', rare: 1, name: 'Bollwerk-Trank', text: '+7 % Blocken im ganzen Kampf.', fx: { block: 0.07 }, cost: { herz: 1, weihrauch: 1 } },
   { id: 'rostsaeure', rare: 1, name: 'Rostsäure', text: 'Ignoriert 30 % der Rüstung.', fx: { pen: 0.3 }, cost: { herz: 1, schwefel: 1 } },
   { id: 'zaubertinte', rare: 1, name: 'Zaubertinte', text: 'Alle Zauber starten halb geladen.', fx: { charge: 0.5 }, cost: { herz: 1, nachtschatten: 1 } },
   { id: 'vampirsud', rare: 1, name: 'Vampirsud', text: '+8 % Lebensraub im ganzen Kampf.', fx: { leech: 0.08 }, cost: { herz: 1, rotwurz: 1 } },
