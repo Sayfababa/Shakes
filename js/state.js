@@ -1,4 +1,4 @@
-import { RARITIES, TREE, SETS, SET, ACTS, ACT, CRYPT, DESCENT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, STASH_W, STASH_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, ALCH } from './data.js';
+import { RARITIES, TREE, SETS, SET, ACTS, ACT, CRYPT, DESCENT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, STASH_W, STASH_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, HERB_LOC, ALCH } from './data.js';
 import { affixPool, makeItem, itemValue, rollTier, affixValue, renameMagic, adj, fixName } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
@@ -776,6 +776,14 @@ export function brew(id) {
   for (const [k, n] of Object.entries(c.herbs)) S.herbs[k] -= n;
   S.gold -= c.gold; S.pots[id] = Math.min(potMax(p), (S.pots[id] || 0) + (p.rare ? 1 : ALCH.charges));
   return true;
+}
+// Woher eine Zutat kommt. **Abgeleitet aus HERB_LOC, nie abgetippt** – ein handgeschriebenes
+// „fällt im Moor“ lügt in dem Moment, in dem eine Zutat den Ort wechselt. Die Kapelle hat ihren
+// schon einmal gewechselt (Grabmoos → Weihrauchharz), und niemand hätte den Text nachgezogen.
+export function herbSource(k) {
+  if (k === 'herz') return 'Krypta-Bosse';
+  const id = Object.keys(HERB_LOC).find(l => HERB_LOC[l] === k);
+  return LOCATIONS.find(l => l.id === id)?.name || '?';
 }
 // Gürtel: Platz i mit Trank belegen (oder leeren). Höchstens ein seltener, kein Trank doppelt.
 export function canBelt(i, id) {

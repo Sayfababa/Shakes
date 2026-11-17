@@ -203,6 +203,12 @@ let failures = 0;
       hinweis: document.querySelector('.toast.note')?.textContent || '' }));
     if (b2.ids !== 'rotwurz,schatten') { failures++; console.log(`FEHLER ${tag}: zweiter seltener Trank – Gürtel ${b2.ids}`); }
     if (!/seltener Trank/.test(b2.hinweis)) { failures++; console.log(`FEHLER ${tag}: kein Hinweis beim Ersetzen („${b2.hinweis}“)`); }
+    // „Fehlt: Schwefel“ allein beantwortet die Frage nicht – der Besitzer wusste, WAS fehlt, nicht WO es fällt.
+    await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.herbs.schwefel = 0; G.save(); });
+    await tap('[data-action=potsel][data-id=rostsaeure]');
+    const quelle = await p.evaluate(() => document.querySelector('.potdet')?.textContent || '');
+    if (!/Feuergruben/.test(quelle)) { failures++; console.log(`FEHLER ${tag}: fehlende Zutat ohne Fundort („${quelle.slice(0, 120)}“)`); }
+    await p.evaluate(async () => { const G = await import('./js/state.js'); G.S.herbs.schwefel = 6; G.save(); });
     await tap('[data-v=crypt]'); if (await tap('[data-action=crypt]')) { await chk('prep'); await tap('[data-action=prepPot]'); await tap('[data-action=bestBelt]'); await chk('prep2'); await tap('[data-action=trig]'); await tap('[data-action=cryptgo]'); await p.waitForTimeout(600); await chk('fightpot');
       if (!(await p.$('.pbelt img'))) { failures++; console.log(`FEHLER ${tag}: Tränke im Kampf nicht sichtbar`); } }
     else { failures++; console.log(`FEHLER ${tag}: Krypta nicht antippbar`); }

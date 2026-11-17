@@ -1085,3 +1085,23 @@ test('Fusionieren bringt nie Gold', async () => {
     assert.ok(nachher < vorher, `Fusionieren+Verkaufen bringt Gold: ${vorher} → ${nachher}`);
   }
 });
+
+// Die Frage des Besitzers war nicht „was brauche ich", sondern „wo kriege ich das her".
+// `herbSource` leitet das aus HERB_LOC ab; dieser Test wacht darüber, dass es abgeleitet BLEIBT.
+test('Jede Zutat sagt, wo sie fällt – und zwar aus den Daten, nicht aus einem Text', async () => {
+  const G = await import('../js/state.js'), D = await import('../js/data.js');
+  G.newChar('W1', 'sorceress');
+  const orte = Object.fromEntries(D.LOCATIONS.map(l => [l.id, l.name]));
+  for (const k of Object.keys(D.HERBS)) {
+    const q = G.herbSource(k);
+    assert.ok(q && q !== '?', `Zutat ${k} hat keine Quelle`);
+    if (k === 'herz') { assert.match(q, /Boss/, 'Das Schwarze Herz kommt von Krypta-Bossen'); continue; }
+    const ort = Object.keys(D.HERB_LOC).find(l => D.HERB_LOC[l] === k);
+    assert.ok(ort, `Zutat ${k} steht in keinem HERB_LOC`);
+    assert.equal(q, orte[ort], `Quelle von ${k} folgt nicht HERB_LOC (${q} statt ${orte[ort]})`);
+  }
+  // Umgekehrt: jeder Ort liefert genau eine Zutat, sonst verhungert eine Sorte (siehe Kapelle/Grabmoos)
+  const je = Object.values(D.HERB_LOC);
+  assert.equal(new Set(je).size, je.length, 'Zwei Orte liefern dieselbe Zutat');
+  assert.equal(je.length, D.LOCATIONS.length, 'Nicht jeder Ort liefert eine Zutat');
+});

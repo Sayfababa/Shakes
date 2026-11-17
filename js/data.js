@@ -457,7 +457,10 @@ export const BOUNTIES = [
 ];
 
 export const CFG = {
-  maxGlut: 120, glutRegenMin: 4,      // 1 Glut pro x Minuten (Echtzeit)
+  // Vom Besitzer gebeten („ein bisschen, nicht zu viel“): schneller nochmal zurück und gezielt farmen können.
+  // Gemessen (6 Klassen × 8 Läufe × 12 Tage): Farm-Kämpfe 384 → 517, Akt VI nur rund einen Tag früher.
+  // Der Takt ist das Warten zwischen zwei Sitzungen, maxGlut die Kämpfe je Sitzung (Feuergruben 15: 8 → 10).
+  maxGlut: 150, glutRegenMin: 3,      // 1 Glut pro x Minuten (Echtzeit)
   // --- Kurven (nach Bot-Review: Anfang strecken, Zahlen flach halten) ---
   xpBase: 90, xpExp: 1.75,            // EP für nächste Stufe = xpBase * Stufe^xpExp
   hpBase: 3, hpPerLvl: 0.25,          // Leben = Kon × Klassenfaktor × (hpBase + Stufe × hpPerLvl)  (Spieler und Monster)

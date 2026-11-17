@@ -2,7 +2,7 @@
 import { TREE, AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, STASH_W, STASH_H, SERVICES, SHARD_CRYPTS, TUTORIAL, BOUNTIES, SETS, SET } from './data.js';
 import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
 import { affixPool } from './loot.js';
-import { potion, beltSlots, brewCost, canBrew, potMax, unreadable, herbPrice, canBuyHerb, herbLeft } from './state.js';
+import { potion, beltSlots, brewCost, canBrew, potMax, unreadable, herbPrice, canBuyHerb, herbLeft, herbSource } from './state.js';
 import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, craftRaises, craftMat, baseMods, fuseMains, fuseFoods, fuseCheck, fuseFull, fusePromote, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 // Name eines Item-Bonus: Attribute, Rüstung/Schaden, Prozent-Boni ("% Krit-Chance", "% Feuerball")
@@ -674,12 +674,12 @@ export function viewAlch(sel, back) {
   return `<div class="col alch">
     <section class="panel"><h2>Alchemie <span class="h2r">Tränke wirken nur in der Krypta</span>${back ? `<button class="tiny" data-action="${back === 'traders' ? 'trader" data-t="ysolde' : `go" data-v="${back}`}">Zurück</button>` : ''}</h2>
       <div class="belt">${[0, 1, 2].map(i => beltRow(i, true)).join('')}</div></section>
-    <section class="panel herbs">${Object.entries(HERBS).map(([k, h]) => `<span class="herb ${k === 'herz' ? 'nobuy' : canBuyHerb(k) ? 'can' : 'poor'}" title="${h.name}${k === 'herz' ? ' – nur von Krypta-Bossen' : ` – kaufen für ${herbPrice()} Gold`}" ${k === 'herz' ? '' : `data-action="buyherb" data-id="${k}"`}>${potImg(h.img)}<i>${S.herbs[k] || 0}</i></span>`).join('')}
+    <section class="panel herbs">${Object.entries(HERBS).map(([k, h]) => `<span class="herb ${k === 'herz' ? 'nobuy' : canBuyHerb(k) ? 'can' : 'poor'}" title="${h.name} – ${herbSource(k)}${k === 'herz' ? '' : `, oder kaufen für ${herbPrice()} Gold`}" ${k === 'herz' ? '' : `data-action="buyherb" data-id="${k}"`}>${potImg(h.img)}<i>${S.herbs[k] || 0}</i></span>`).join('')}
       <p class="small dim hbuy">Antippen kauft · ${herbPrice()} Gold · heute noch ${herbLeft()}</p></section>
     <section class="panel potgrid">${POTIONS.map(x => `<span class="ptile ${x.rare ? 'rare' : ''} ${x.id === p.id ? 'on' : ''} ${canBrew(x.id).ok ? 'can' : ''}" data-action="potsel" data-id="${x.id}">${potImg(x.id)}${S.pots[x.id] ? `<i>${S.pots[x.id]}</i>` : ''}</span>`).join('')}</section>
     <section class="panel potdet"><h3 class="${p.rare ? 'r-rare' : ''}">${p.name} <span class="h2r">${p.rare ? 'selten · 1 Ladung' : `gewöhnlich · ${ALCH.charges} Ladungen`}</span></h3>
       <p class="small">${p.text}${p.rare ? ' Nur ein seltener Trank passt in den Gürtel.' : ` Zündet: ${p.trig.map(t => TRIGGERS[t]).join(' oder ')}.`}</p>
-      <p class="small dim">Vorrat ${S.pots[p.id] || 0}/${potMax(p)} · Kosten: ${Object.entries(c.herbs).map(([k, n]) => `${HERBS[k].name} ×${n} <i class="${(S.herbs[k] || 0) < n ? 'down' : ''}">(${S.herbs[k] || 0})</i>`).join(', ')}, ${c.gold} Gold</p>
+      <p class="small dim">Vorrat ${S.pots[p.id] || 0}/${potMax(p)} · Kosten: ${Object.entries(c.herbs).map(([k, n]) => `${HERBS[k].name} ×${n} <i class="${(S.herbs[k] || 0) < n ? 'down' : ''}">(${S.herbs[k] || 0}${(S.herbs[k] || 0) < n ? ` – ${herbSource(k)}` : ''})</i>`).join(', ')}, ${c.gold} Gold</p>
       <div class="btns"><button class="red" data-action="brew" data-id="${p.id}" ${cb.ok ? '' : 'disabled'}>${cb.ok ? 'Brauen' : cb.reason}</button>
         <button data-action="${inBelt ? 'beltout' : 'beltin'}" data-id="${p.id}" ${inBelt || S.pots[p.id] ? '' : 'disabled'}>${inBelt ? 'Aus dem Gürtel' : 'In den Gürtel'}</button></div></section>
   </div>`;
