@@ -69,9 +69,15 @@ for (const cls of only) for (const L of LV) {
     for (const { M, A0, r0: o } of saetze) { const A = { ...A0 };
       A[w.k] = Math.min(w.cap, (A0[w.k] || (w.k === 'critMult' ? 2 : 0)) + w.add);
       d += (rateA(A, M) - o) / GEAR; }
-    const tot = Math.abs(d * 100) < TOT;
+    // „Sitzt schon am Deckel“ ist kein Fehler, sondern die Grenze bei der Arbeit – nur ein Wert
+    // mit Kopfraum, der trotzdem nichts bringt, ist tot.
+    const amDeckel = (roh[w.k] || 0) >= w.cap * 0.85;
+    // Krit-Schaden hängt an der Krit-Chance: wer selten kritisch trifft, hat wenig zu vervielfachen.
+    // Das ist der Entwurf, kein toter Wert – darum hier nicht als Fehler werten.
+    const ohneKrit = w.k === 'critMult' && (roh.crit || 0) < 0.1;
+    const tot = Math.abs(d * 100) < TOT && !amDeckel && !ohneKrit;
     console.log(w.name.padEnd(20) + pad((roh[w.k] || 0).toFixed(2), 10) + pad(w.cap, 8)
-      + pad(`${amCap[w.k] || 0}/${WUERFE}`, 11) + pad(((d >= 0 ? '+' : '') + (d * 100).toFixed(1)), 13) + (tot ? '  TOT' : ''));
+      + pad(`${amCap[w.k] || 0}/${WUERFE}`, 11) + pad(((d >= 0 ? '+' : '') + (d * 100).toFixed(1)), 13) + (tot ? '  TOT' : amDeckel ? '  am Deckel' : ohneKrit ? '  (wenig Krit-Chance)' : ''));
     if (CHECK && tot) { bad++; console.log(`!! ${D.CLASSES[cls].name} Stufe ${L}: „${w.name}“ bringt nichts (+${w.add} → ${(d * 100).toFixed(1)} Pkt)`); }
   }
 }

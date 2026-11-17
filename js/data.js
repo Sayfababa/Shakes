@@ -62,7 +62,7 @@ export const AFFIXES = [
   // Kampf-Boni in % (nur auf passenden Teilen, `slots`). Werte sind gegen das Hauptattribut geeicht (tests/calib.mjs):
   // ein Bonus der Stufe III bringt etwa so viel Kampfkraft wie ein Hauptattribut-Bonus der Stufe III.
   { stat: 'critc', per: 1.0, pre: 'Scharfer', suf: 'der Schärfe', pct: 1, label: 'Krit-Chance', slots: ['weapon', 'gloves', 'ring', 'amulet'] },
-  { stat: 'critd', per: 3.0, pre: 'Brutaler', suf: 'des Gemetzels', pct: 1, label: 'Krit-Schaden', slots: ['weapon', 'gloves', 'amulet'] },
+  { stat: 'critd', per: 8.0, pre: 'Brutaler', suf: 'des Gemetzels', pct: 1, label: 'Krit-Schaden', slots: ['weapon', 'gloves', 'amulet'] },
   { stat: 'dmgp', per: 0.95, pre: 'Wütender', suf: 'des Zorns', pct: 1, label: 'Schaden', slots: ['weapon', 'gloves', 'ring'] },
   { stat: 'spellp', per: 1.2, pre: 'Arkaner', suf: 'der Zauberei', pct: 1, label: 'Zauberkraft', slots: ['weapon', 'offhand', 'helm', 'amulet'] },
   { stat: 'penp', per: 1.8, pre: 'Bohrender', suf: 'des Durchbohrens', pct: 1, label: 'Rüstung ignorieren', slots: ['weapon'] },
@@ -76,7 +76,7 @@ export const AFFIXES = [
 // Werden am Dateiende aus SPELLS erzeugt (stat 'sk_<id>', cls).
 export const SKILL_PER = 3.5;
 // Obergrenzen für Prozent-Boni (Summe aus allem)
-export const CAPS = { crit: 0.6, critMult: 3, leech: 0.4, thorns: 0.6, evade: 0.5, block: 0.5, pen: 0.9 };
+export const CAPS = { crit: 0.6, critMult: 3.5, leech: 0.4, thorns: 0.6, evade: 0.5, block: 0.5, pen: 0.9 };
 // Grammatisches Geschlecht der Grundgegenstände für Namen („Starke Kappe“, „Rostiges Beil“). Nicht Genanntes ist männlich. p = Mehrzahl.
 export const GENUS = {
   f: ['Kappe', 'Totenmaske', 'Schärpe', 'Kriegsaxt', 'Klauenklinge', 'Henkersaxt', 'Runenklinge', 'Sichelklinge'],
@@ -125,7 +125,7 @@ export const UNIQUES = [
   { name: 'Knochenkrone', slot: 'helm', mods: { con: 2, int: 3 }, eff: { ward: 0.2 }, lore: 'Gewachsen aus dem Schädel ihres Trägers.' },
   { name: 'Sünde von Vhal', slot: 'chest', mods: { armor: 1, con: 2 }, eff: { thorns: 0.25 }, lore: 'Getragen vom Metzger, bis er fiel.' },
   { name: 'Blutglocke', slot: 'amulet', mods: { str: 2, haste: 2 }, eff: { rage: 0.25 }, lore: 'Sie schlägt mit deinem Herzen.' },
-  { name: 'Totengräbers Griff', slot: 'gloves', mods: { str: 2, dmg: 3 }, eff: { execute: 0.4 }, lore: 'Er hat nie jemanden lebendig begraben. Fast nie.' },
+  { name: 'Totengräbers Griff', slot: 'gloves', mods: { str: 3, dmg: 4 }, eff: { execute: 0.9, execHp: 0.12, dmgPct: 0.12 }, lore: 'Er hat nie jemanden lebendig begraben. Fast nie.' },
   { name: 'Pfad der Asche', slot: 'boots', mods: { dex: 2, haste: 2 }, eff: { evade: 0.08 }, lore: 'Keine Spur bleibt zurück.' },
   { name: 'Ring der Ertrunkenen', slot: 'ring', mods: { lck: 2, int: 3 }, eff: { poison: 0.1 }, lore: 'Aus Gerlindes Brunnen gefischt.' },
   { name: 'Siegel des Kronenlosen', slot: 'ring', mods: { str: 3, dex: 3 }, eff: { pen: 0.3, crit: 0.05 }, lore: 'Die Krone fehlt. Die Macht nicht.' },
@@ -139,7 +139,7 @@ export const UNIQUES = [
   { name: 'Wut der Witwe', slot: 'weapon', kind: 'axe', mods: { str: 2, dmg: 3 }, eff: { vengeance: 0.8 }, lore: 'Sie schlug zu, als nichts mehr zu verlieren war.' },
   { name: 'Eiferklinge', slot: 'weapon', kind: 'sword', mods: { str: 3, dex: 3 }, eff: { zeal: 0.6 }, lore: 'Drei Schläge für den Herrn. Der dritte zählt doppelt.' },
   { name: 'Splittermal', slot: 'weapon', kind: 'staff', mods: { int: 2, con: 3 }, eff: { shred: 0.18, crit: 0.05 }, lore: 'Jeder Treffer sucht den Riss.' },
-  { name: 'Aderlass', slot: 'weapon', kind: 'wand', mods: { int: 2, lck: 2 }, eff: { siphon: 0.07, crit: 0.08 }, lore: 'Was sie nimmt, gibt sie dir.' },
+  { name: 'Aderlass', slot: 'weapon', kind: 'wand', mods: { int: 3, lck: 3 }, eff: { siphon: 0.1, crit: 0.12, critDmg: 0.3 }, lore: 'Was sie nimmt, gibt sie dir.' },
   { name: 'Die Lange Stille', slot: 'weapon', kind: 'bow', mods: { dex: 2, dmg: 3 }, eff: { pen: 0.35, nohealSelf: 1 }, lore: 'Kein Pfeil kehrt zurück. Kein Atem auch.' },
   { name: 'Haube des Pakts', slot: 'helm', mods: { int: 2, con: 3 }, eff: { dmgPct: 0.3, nohealSelf: 1 }, lore: 'Ein Handel: deine Heilung gegen seinen Zorn.' },
   { name: 'Der Letzte Atem', slot: 'chest', mods: { con: 2, armor: 3 }, eff: { lastBreath: 1 }, lore: 'Einmal noch. Nur einmal noch.' },
@@ -534,7 +534,7 @@ export const EFFECT_NAMES = { dmgPct: 'Schaden', hpPct: 'Leben', armorPct: 'Rüs
   vengeance: 'Mehr Schaden, je weniger Leben', zeal: 'Jeder dritte Hieb trifft zweimal', siphon: 'Krit heilt dich',
   bulwark: 'Blocken gibt Schild', shred: 'Krit bricht Rüstung', secondWind: 'Heilt einmal, wenn es eng wird', lastBreath: 'Überlebt einen tödlichen Treffer',
   nohealSelf: 'Du kannst dich nicht heilen',
-  hemorrhage: 'Bluten bei jedem Treffer – dafür nie kritisch', evadeCap: 'Ausweich-Grenze',
+  hemorrhage: 'Bluten bei jedem Treffer – dafür nie kritisch', evadeCap: 'Ausweich-Grenze', critDmg: 'Krit-Schaden',
   tollback: 'Betäubung prallt zurück', firstEcho: 'Erster Zauber wirkt zweimal' };
 
 // --- Das Brett (neuer Talentbaum) ---
