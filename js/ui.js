@@ -582,7 +582,8 @@ function craftHint(it) {
   const nm = RARITIES.find(r => r.id === up).name.toLowerCase();
   return (S.mats[CRAFT.raise.mat] || 0) >= CRAFT.raise.n
     ? `<br><span class="gold">Erheben macht es ${nm}: ein gewürfelter Bonus für einen ${MATS[CRAFT.raise.mat]}.</span>`
-    : `<br>Über diese Grenze führen zwei Wege: <b>Fusionieren</b> mit einem zweiten Teil gleicher Form – oder <b>Erheben</b> mit einem ${MATS[CRAFT.raise.mat]} aus dem Abgrund.`;
+    // Die rote Zeile darüber nennt den Splitter schon – hier steht nur noch der andere Weg.
+    : `<br>Sonst führt nur das <b>Fusionieren</b> darüber: ein zweites Teil gleicher Form und Seltenheit.`;
 }
 function fuseRows(it, picked, side, dropped, blocked) {
   const base = baseMods(it);
