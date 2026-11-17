@@ -77,7 +77,10 @@ input { background: #000; color: var(--text); border: 1px solid var(--edge); pad
 .r-rare { color: var(--r-rare); } .r-legendary { color: var(--r-legendary); } .r-set { color: var(--r-set); }
 
 /* --- Held: Ausrüstungsfigur --- */
-.hero { display: flex; flex-direction: column; gap: var(--gap); }
+/* Auf hohen Bildschirmen blieb die ganze Luft UNTER dem Beutel liegen – die Leiste unten stand
+   weit weg, oben klebte alles am HUD. `center` teilt den Rest gleichmaessig auf beide Seiten.
+   Auf engen Bildschirmen gibt es nichts zu verteilen, dort aendert sich nichts. */
+.hero { display: flex; flex-direction: column; gap: var(--gap); justify-content: center; }
 .doll { display: grid; grid-template-columns: calc(var(--u) * 2) 1fr calc(var(--u) * 2); gap: 8px; align-items: start; flex: none !important; padding: 10px; }
 .dcol { display: flex; flex-direction: column; gap: 4px; align-items: center; }
 .dmid { display: flex; flex-direction: column; align-items: center; gap: 5px; }
@@ -101,7 +104,9 @@ input { background: #000; color: var(--text); border: 1px solid var(--edge); pad
 .herobar b { color: var(--gold-hi); } .herobar button { padding: 5px 9px; font-size: .74rem; } .herobar button:first-of-type { margin-left: auto; }
 
 /* --- Raster-Inventar --- */
-.invp { flex: none !important; padding: 7px 8px; }
+/* Das Padding braucht !important wie das flex darueber: eine spaetere .panel-Regel (9-Slice am
+   Dateiende) gewinnt sonst. Mit der fuenften Beutelreihe zaehlen die paar Pixel. */
+.invp { flex: none !important; padding: 4px 8px 3px !important; }
 .invhead { display: flex; align-items: center; justify-content: space-between; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1rem; margin-bottom: 4px; }
 .inv { position: relative; width: 100%; aspect-ratio: calc(var(--w) / var(--h)); background-color: #07080b; border: 1px solid #000; box-shadow: 0 0 0 1px #2a2620;
   background-image: linear-gradient(to right, #1b1d24 1px, transparent 1px), linear-gradient(to bottom, #1b1d24 1px, transparent 1px);

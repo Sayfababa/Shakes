@@ -9,6 +9,7 @@ const app = document.getElementById('app'), tip = document.getElementById('tip')
 let expSel = { loc: null, h: 8, path: [] }, expRes = null, expAsk = false;
 let pitBack = 'arena';   // woher man in Vargos Laden kam
 let titleBack = 'pitshop';  // ... und woher man ins Titel-Fenster kam
+let stashOn = false;        // Beutel oder Lager im Helden-Bildschirm
 let forgeSel = { mat: null, slot: null, mode: 'rune', item: null, stat: null, msg: '' }, forgeRes = null, FG = null;
 let descSt = { c: null, j: null, msg: '', res: null };
 let wPath = [], wInfo = null, wanderRes = null, actSel = null, zoneSel = null, prepC = null, prepM = null, alchSel = POTIONS[0].id, alchBack = 'traders';
@@ -28,7 +29,7 @@ function render() {
     bounties: UI.viewBounties,
     forge: () => UI.viewForge(forgeSel, forgeRes),
     npc: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewNpc(npc),
-    arena: () => S.wander && !S.desc ? UI.viewWanderAway('vargo') : S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : UI.viewArena(), hero: UI.viewHero,
+    arena: () => S.wander && !S.desc ? UI.viewWanderAway('vargo') : S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : UI.viewArena(), hero: () => UI.viewHero(stashOn),
     pitprep: () => S.wander && !S.desc ? UI.viewWanderAway('vargo') : S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : pitSel && prepM ? UI.viewPitPrep(pitSel, prepM) : UI.viewArena(),
     pitshop: () => UI.viewPitShop(pitBack),
     wplan: () => S.wander || S.exp || S.desc || !Game.wanderAct() ? UI.viewTrips() : UI.viewWanderPlan(wPath, wInfo),
@@ -252,6 +253,12 @@ const actions = {
     if (precious(it) && d.sure !== '1') { sellSure = it.id; return showTouchTip({ dataset: { tip: it.id, action: 'equip', id: it.id } }); }
     sellSure = null; G.sell(d.id); render(); },
   sort: () => { G.sortBag(); render(); },
+  invmode: () => { stashOn = !stashOn; render(); },
+  stashput: d => { if (!G.stashPut(d.id)) return note('Im Lager ist kein Platz.'); hideTip(); render(); },
+  stashtip: d => { if (!G.stashTake(d.id)) return note('Im Beutel ist kein Platz.'); hideTip(); render(); },
+  sellstash: d => { const it = G.S.stash.find(x => x.id === d.id); if (!it) return;
+    if (precious(it) && sellSure !== it.id) { sellSure = it.id; return showTouchTip(document.querySelector(`[data-id="${d.id}"]`)) ?? render(); }
+    sellSure = null; G.sellStash(d.id); hideTip(); render(); },
   trader: d => { trader = d.t; turnin = null; view = 'traders'; render(); },
   // Vargos Laden hat zwei Türen (Grube und Händler) – „Zurück“ muss dorthin, wo man herkam
   pitshop: d => { pitBack = d.b || 'arena'; view = 'pitshop'; render(); },
@@ -387,7 +394,7 @@ function forgeHit() {
 
 // --- Eingabe ---
 const TOUCH = matchMedia('(hover: none)').matches;
-const ACT_LABEL = { equip: 'Anlegen', unequip: 'Ablegen', buy: 'Kaufen', pitbuy: 'Kaufen', sell: 'Verkaufen' };
+const ACT_LABEL = { equip: 'Anlegen', unequip: 'Ablegen', buy: 'Kaufen', pitbuy: 'Kaufen', sell: 'Verkaufen', stashtip: 'In den Beutel' };
 document.addEventListener('pointerdown', () => Sound.unlock(), { passive: true });
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-action]');
@@ -402,6 +409,10 @@ function showTouchTip(el) {
   let btns = `<button ${attrs}>${ACT_LABEL[a] || 'OK'}</button>`;
   if (a === 'buy') btns += `<button data-action="shoplock" data-t="${d.t}" data-id="${it.id}">${it.lock ? 'Entsperren' : 'Sperren'}</button>`;
   if (a === 'equip') btns += sellSure === it.id ? `<button class="red" data-action="sell" data-id="${it.id}" data-sure="1">Wirklich? · ${it.value}</button>` : `<button class="red" data-action="sell" data-id="${it.id}">Verkaufen · ${it.value}</button>`;
+  // Aus dem Beutel ins Lager und zurück. Im Lager heißt der erste Knopf „In den Beutel“ (ACT_LABEL),
+  // deshalb steht hier nur noch das Verkaufen.
+  if (a === 'equip') btns += `<button data-action="stashput" data-id="${it.id}" ${G.stashLeft() ? '' : 'disabled'}>Lagern</button>`;
+  if (a === 'stashtip') btns += sellSure === it.id ? `<button class="red" data-action="sellstash" data-id="${it.id}" data-sure="1">Wirklich? · ${it.value}</button>` : `<button class="red" data-action="sellstash" data-id="${it.id}">Verkaufen · ${it.value}</button>`;
   const slot = Object.entries(G.S.equip).find(([, x]) => x === it)?.[0];   // Schmieden: Umschmieden (magisch+), sonst Runen (nur angelegt)
   if ((a === 'equip' || a === 'unequip') && (G.craftItems().includes(it) || slot)) btns += `<button data-action="forgeitem" data-id="${it.id}">Schmieden</button>`;
   tip.innerHTML = UI.itemTip(it, compareTo(it)) + `<div class="act">${btns}<button data-action="noop">Zurück</button></div>`;
@@ -419,7 +430,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Enter' && document.ge
 function findItem(id) {
   const S = G.S; if (!S) return null;
   const shops = Object.values(S.traders).flatMap(t => t.shop);
-  return [...S.bag, ...shops, ...Object.values(S.equip).filter(Boolean), ...Object.values(G.S.pit?.shop || {}).flat().filter(w => w.item).map(w => w.item), ...(S.desc?.sack.items || [])].find(x => x.id === id);
+  return [...S.bag, ...(S.stash || []), ...shops, ...Object.values(S.equip).filter(Boolean), ...Object.values(G.S.pit?.shop || {}).flat().filter(w => w.item).map(w => w.item), ...(S.desc?.sack.items || [])].find(x => x.id === id);
 }
 function hideTip() { tip.hidden = true; tip.className = ''; sellSure = null; }
 app.addEventListener('mousemove', e => {

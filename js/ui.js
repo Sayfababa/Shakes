@@ -1,5 +1,5 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
-import { TREE, AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, SERVICES, SHARD_CRYPTS, TUTORIAL, BOUNTIES, SETS, SET } from './data.js';
+import { TREE, AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, STASH_W, STASH_H, SERVICES, SHARD_CRYPTS, TUTORIAL, BOUNTIES, SETS, SET } from './data.js';
 import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
 import { affixPool } from './loot.js';
 import { potion, beltSlots, brewCost, canBrew, potMax, unreadable, herbPrice, canBuyHerb, herbLeft } from './state.js';
@@ -137,7 +137,7 @@ export function viewCreate(sel) {
 }
 
 // --- Held: Ausrüstungsfigur + Raster-Inventar ---
-export function viewHero() {
+export function viewHero(stash) {
   const rk = rank(), st = stats(), pts = S.points + talentPoints();
   const slot = s => { const it = S.equip[s]; return `<div class="eslot es-${s} ${it ? 'r-' + it.rarity : ''}" ${it ? `data-tip="${it.id}" data-action="unequip" data-s="${s}"` : ''}>${it ? itemArt(it) : `<span class="ghost">${ghost(s)}</span>`}</div>`; };
   const mats = Object.entries(S.mats).filter(([, n]) => n > 0);
@@ -153,13 +153,23 @@ export function viewHero() {
       <button class="${talentPoints() ? 'red' : ''}" data-action="go" data-v="talents">Talente${talentPoints() ? ' ·' + talentPoints() : ''}</button>
       <button class="${waysPending() ? 'red' : ''}" data-action="go" data-v="spells">Zauber${waysPending() ? ' ·' + waysPending() : ''}</button>
     </div>
-    <section class="panel invp"><div class="invhead"><span>Beutel</span><button class="tiny" data-action="sort">Ordnen</button></div>
-      <div class="inv" style="--w:${INV_W};--h:${INV_H}">
-        ${S.bag.map(it => `<div class="cellitem r-${it.rarity}" style="left:${it.x / INV_W * 100}%;top:${it.y / INV_H * 100}%;width:${it.w / INV_W * 100}%;height:${it.h / INV_H * 100}%" data-tip="${it.id}" data-action="equip" data-id="${it.id}">${itemArt(it)}${gainTag(it)}</div>`).join('')}
+    ${invPanel(stash, mats)}
+  </div>`;
+}
+
+// Beutel und Lager liegen am selben Platz – ein Knopf schaltet um. Das Raster ist dasselbe,
+// nur die Liste und die Tipp-Aktion unterscheiden sich.
+function invPanel(stash, mats) {
+  const g = stash ? { list: S.stash || [], w: STASH_W, h: STASH_H } : { list: S.bag, w: INV_W, h: INV_H };
+  const act = stash ? 'stashtip' : 'equip';
+  return `<section class="panel invp"><div class="invhead"><span>${stash ? 'Lager' : 'Beutel'}</span>
+      <button class="tiny ${stash ? 'on' : ''}" data-action="invmode">${stash ? 'Beutel' : 'Lager'}</button>
+      ${stash ? '' : '<button class="tiny" data-action="sort">Ordnen</button>'}</div>
+      <div class="inv" style="--w:${g.w};--h:${g.h}">
+        ${g.list.map(it => `<div class="cellitem r-${it.rarity}" style="left:${it.x / g.w * 100}%;top:${it.y / g.h * 100}%;width:${it.w / g.w * 100}%;height:${it.h / g.h * 100}%" data-tip="${it.id}" data-action="${act}" data-id="${it.id}">${itemArt(it)}${gainTag(it)}</div>`).join('')}
       </div>
       <div class="mats">${mats.length ? mats.map(([k, n]) => `<span title="${MATS[k]}">${matImg(k)}<b>${n}</b></span>`).join('') : '<span class="dim">Keine Materialien. Monster lassen sie fallen.</span>'}</div>
-    </section>
-  </div>`;
+    </section>`;
 }
 
 // Was ein Attribut gerade bewirkt (gegen einen Gegner deiner Stufe)

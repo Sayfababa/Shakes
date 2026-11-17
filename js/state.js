@@ -1,9 +1,9 @@
-import { RARITIES, TREE, SETS, SET, ACTS, ACT, CRYPT, DESCENT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, ALCH } from './data.js';
+import { RARITIES, TREE, SETS, SET, ACTS, ACT, CRYPT, DESCENT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, STASH_W, STASH_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, ALCH } from './data.js';
 import { affixPool, makeItem, itemValue, rollTier, affixValue, renameMagic, adj, fixName } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
-export const SAVE_VERSION = 19;
+export const SAVE_VERSION = 20;
 export let S = null; // aktueller Spielstand
 
 export const now = () => Date.now();
@@ -94,6 +94,8 @@ function migrate(d) {
   // v19: Grabsiegel statt Tageszaehler. Der volle Vorrat zum Start, damit niemand
   // nach dem Aufspielen vor einem leeren Abgrund steht.
   if (d.v === 18) { d.seals = { day: today(), n: DESCENT.sealMax }; d.descDay = null; d.v = 19; }
+  // v20: Lager. Der Beutel ist von 10x4 auf 10x6 gewachsen – alte Plaetze (y 0..3) bleiben gueltig.
+  if (d.v === 19) { d.stash = []; d.v = 20; }
   return d.v === SAVE_VERSION ? d : null;
 }
 
@@ -104,7 +106,7 @@ export function newChar(name, cls) {
   S = { v: SAVE_VERSION, name, cls, lvl: 1, xp: 0, gold: 40, attrs: baseAttrs(cls), points: CFG.startPoints, tal: {}, sp: {}, temper: {}, respecs: 0,
     crypt: { diff: 0, prog: {}, cd: 0 }, trophies: [], traders: freshTraders(), mats: {}, omen: null, omens: 0, shards: [], tut: 0, title: null, haul: null, bounty: null,
     equip: {}, bag: [], glut: CFG.maxGlut, glutTs: now(), active: null,
-    journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0, belt: [null, null, null], herbs: {}, pots: {}, potDay: today(), herbBuy: { day: today(), n: 0 }, exp: null, bless: 0, desc: null, seals: { day: today(), n: DESCENT.sealMax }, pit: freshPit(), acts: { prog: {} }, wander: null };
+    journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0, belt: [null, null, null], herbs: {}, pots: {}, potDay: today(), herbBuy: { day: today(), n: 0 }, exp: null, bless: 0, desc: null, stash: [], seals: { day: today(), n: DESCENT.sealMax }, pit: freshPit(), acts: { prog: {} }, wander: null };
   const wb = BASES.find(b => b.kind === c.weapon);
   S.equip.weapon = { id: 'start', slot: 'weapon', kind: wb.kind, base: wb.name, art: wb.art, w: wb.w, h: wb.h, name: adj('Rostiger', wb.name) + ' ' + wb.name,
     rarity: 'normal', lvl: 1, mods: {}, dmg: [...wb.dmg], value: 2 };
@@ -393,17 +395,42 @@ export function gainXp(x) {
 }
 export function addMat(id, n = 1) { S.mats[id] = (S.mats[id] || 0) + n; }
 
-// --- Raster-Inventar (INV_W × INV_H). Items haben x,y,w,h ---
-function fits(x, y, w, h, ignore) {
-  if (x < 0 || y < 0 || x + w > INV_W || y + h > INV_H) return false;
-  return !S.bag.some(o => o !== ignore && x < o.x + o.w && o.x < x + w && y < o.y + o.h && o.y < y + h);
+// --- Raster-Inventar. Items haben x,y,w,h. Beutel und Lager sind dasselbe Raster mit
+// eigenen Maßen – deshalb nimmt die Logik das Behältnis als Argument statt S.bag fest zu
+// verdrahten. `grid('bag')` / `grid('stash')` ist die einzige Stelle, die das weiß.
+export const grid = (k = 'bag') => k === 'stash'
+  ? { list: S.stash || (S.stash = []), w: STASH_W, h: STASH_H }
+  : { list: S.bag, w: INV_W, h: INV_H };
+function fitsIn(g, x, y, w, h, ignore) {
+  if (x < 0 || y < 0 || x + w > g.w || y + h > g.h) return false;
+  return !g.list.some(o => o !== ignore && x < o.x + o.w && o.x < x + w && y < o.y + o.h && o.y < y + h);
 }
-export function findSpot(w, h) {
-  for (let x = 0; x < INV_W; x++) for (let y = 0; y < INV_H; y++) if (fits(x, y, w, h)) return { x, y };
+export function findSpotIn(g, w, h) {
+  for (let x = 0; x < g.w; x++) for (let y = 0; y < g.h; y++) if (fitsIn(g, x, y, w, h)) return { x, y };
   return null;
 }
-export function addToBag(it) { const p = findSpot(it.w || 1, it.h || 1); if (!p) return false; Object.assign(it, p); S.bag.push(it); return true; }
+export function addToGrid(g, it) { const p = findSpotIn(g, it.w || 1, it.h || 1); if (!p) return false; Object.assign(it, p); g.list.push(it); return true; }
+export const findSpot = (w, h) => findSpotIn(grid(), w, h);
+export const addToBag = it => addToGrid(grid(), it);
+export const addToStash = it => addToGrid(grid('stash'), it);
 export const removeFromBag = id => { const i = S.bag.findIndex(x => x.id === id); return i < 0 ? null : S.bag.splice(i, 1)[0]; };
+const removeFromStash = id => { const L = grid('stash').list, i = L.findIndex(x => x.id === id); return i < 0 ? null : L.splice(i, 1)[0]; };
+
+// Beute unterbringen: erst der Beutel, dann das Lager. Verkauft wird erst, wenn beides voll ist –
+// vorher rutschte ein legendäres Stück still durch, nur weil kein Platz war.
+export function keep(it) {
+  if (addToBag(it)) return 'bag';
+  if (addToStash(it)) { it.stashed = true; return 'stash'; }
+  return null;
+}
+export const stashLeft = () => !!findSpotIn(grid('stash'), 1, 1);
+export function stashPut(id) { const it = S.bag.find(x => x.id === id); if (!it) return false;
+  const g = grid('stash'), p = findSpotIn(g, it.w || 1, it.h || 1); if (!p) return false;
+  removeFromBag(id); Object.assign(it, p); g.list.push(it); return true; }
+export function stashTake(id) { const it = grid('stash').list.find(x => x.id === id); if (!it) return false;
+  const p = findSpot(it.w || 1, it.h || 1); if (!p) return false;
+  removeFromStash(id); delete it.stashed; Object.assign(it, p); S.bag.push(it); return true; }
+export function sellStash(id) { const it = removeFromStash(id); if (it) S.gold += it.value; return !!it; }
 // Neu sortieren: große Items zuerst
 export function sortBag() {
   const before = S.bag.map(it => [it, it.x, it.y]);

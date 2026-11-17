@@ -44,7 +44,7 @@ function check(act) {
     for (const x of b) if (G.potion(x.id).trig && !G.potion(x.id).trig.includes(x.trig)) fail('Auslöser ungültig ' + x.trig, act); }
   for (const [k, v] of Object.entries(S.attrs)) if (!Number.isInteger(v) || v < 1) fail(`Attribut ${k}: ${v}`, act);
   // Items: keine Doppelten, Raster ohne Überlappung, Werte heil
-  const all = [...S.bag, ...Object.values(S.equip).filter(Boolean), ...(S.desc?.sack.items || [])], ids = new Set();
+  const all = [...S.bag, ...(S.stash || []), ...Object.values(S.equip).filter(Boolean), ...(S.desc?.sack.items || [])], ids = new Set();
   for (const t of Object.values(S.traders)) for (const it of t.shop || []) if (ids.has(it.id)) fail(`Ladenitem doppelt`, act); else ids.add(it.id);
   for (const it of all) {
     if (ids.has(it.id)) fail(`Item doppelt (Duplizierung!): ${it.name}`, act); ids.add(it.id);
@@ -58,10 +58,12 @@ function check(act) {
     if (!it.unique) for (const k of Object.keys(it.tiers || {})) { const af = D.AFFIXES.find(x => x.stat === k);
       if (!af) fail(`Unbekannter Bonus ${k}`, act); else if ((af.slots && !af.slots.includes(it.slot)) || (af.kind && af.kind !== it.kind)) fail(`Bonus ${k} auf falschem Teil ${it.slot}`, act); }
   }
-  for (const a of S.bag) {
-    if (a.x < 0 || a.y < 0 || a.x + a.w > D.INV_W || a.y + a.h > D.INV_H) fail(`Item außerhalb des Beutels`, act);
-    for (const b of S.bag) if (a !== b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) fail(`Beutel-Überlappung`, act);
-  }
+  // Beutel UND Lager: beide sind Raster, in beiden darf nichts überlappen oder herausragen.
+  for (const [nm, L, W, H] of [['Beutel', S.bag, D.INV_W, D.INV_H], ['Lager', S.stash || [], D.STASH_W, D.STASH_H]])
+    for (const a of L) {
+      if (a.x < 0 || a.y < 0 || a.x + a.w > W || a.y + a.h > H) fail(`Item außerhalb: ${nm}`, act);
+      for (const b of L) if (a !== b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) fail(`${nm}-Überlappung`, act);
+    }
   for (const [slot, it] of Object.entries(S.equip)) if (it && it.slot !== (slot.startsWith('ring') ? 'ring' : slot)) fail(`Falscher Platz: ${it.slot} in ${slot}`, act);
   const st = G.stats(); for (const k of ['hp', 'armor', 'crit', 'critMult', 'amp']) f(st[k], 'Wert ' + k); if (st.crit > D.CAPS.crit + 1e-9 || st.critMult > D.CAPS.critMult + 1e-9) fail('Obergrenze überschritten', act); f(st.dmg[0], 'Schaden'); if (st.hp <= 0) fail(`Leben ≤ 0`, act);
   f(G.power(), 'Kampfkraft');
@@ -88,6 +90,9 @@ const actions = {
   buy: () => { const t = pick(Object.keys(D.TRADERS)), shop = G.shopFor(t), it = pick(shop); if (!it || G.S.gold < it.price) return;
     const b = { ...it }; delete b.price; if (G.addToBag(b)) { G.S.gold -= it.price; shop.splice(shop.indexOf(it), 1); } },
   sell: () => { const it = pick(G.S.bag); if (it) G.sell(it.id); },
+  stashPut: () => { const it = pick(G.S.bag); if (it) G.stashPut(it.id); },
+  stashTake: () => { const it = pick(G.S.stash || []); if (it) G.stashTake(it.id); },
+  sellStash: () => { const it = pick(G.S.stash || []); if (it) G.sellStash(it.id); },
   equip: () => { const it = pick(G.S.bag); if (it) G.equip(it.id); },
   unequip: () => G.unequip(pick(Object.keys(G.S.equip))),
   sort: () => G.sortBag(),

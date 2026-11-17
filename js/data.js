@@ -47,7 +47,12 @@ export const BASES = [
   { slot: 'weapon', kind: 'staff', name: 'Sternenstab', dmg: [8, 18], w: 1, h: 4, art: 'starstaff', minLvl: 16 },
   { slot: 'weapon', kind: 'wand', name: 'Blutszepter', dmg: [8, 17], w: 1, h: 3, art: 'bloodscepter', minLvl: 16 },
 ];
-export const INV_W = 10, INV_H = 4;
+// Beutel 10x6: unter dem Beutel lagen auf JEDEM geprueften Bildschirm mindestens 111 px
+// ungenutzt (auch auf dem SE) – das war reservierte Flaeche, die nie jemand gebraucht hat.
+// Zwei Reihen mehr passen ueberall und lassen oben wie unten noch Luft.
+export const INV_W = 10, INV_H = 5;
+// Das Lager teilt sich den Platz mit dem Beutel (ein Knopf schaltet um), also dasselbe Raster.
+export const STASH_W = 10, STASH_H = 5;
 
 // Affixe: stat, Wert pro Itemstufe, Präfix/Suffix-Namen
 export const AFFIXES = [
