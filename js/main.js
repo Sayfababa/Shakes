@@ -134,8 +134,10 @@ function rewText(w) {
   const L = [];
   if (w.gold || w.xp) L.push(`+${w.gold} Gold${w.xp ? ` · +${w.xp} EP` : ''}${w.honor ? ` · +${w.honor} Ehre` : ''}`);
   else if (w.honor) L.push(`+${w.honor} Ehre`);
-  for (const [k, n] of w.mats) L.push(`${MATS[k]} ×${n}`);
-  for (const [k, n] of w.herbs || []) L.push(`${HERBS[k].name} ×${n}`);
+  // Material und Zutaten je EINE Zeile: seit ein Herz die Feldzutat mitbringt, sind es zwei
+  // Funde statt einem, und auf dem SE schob jede zusätzliche Zeile „Weiter“ unter den Rand.
+  if (w.mats.length) L.push(w.mats.map(([k, n]) => `${MATS[k]} ×${n}`).join(' · '));
+  if (w.herbs?.length) L.push(w.herbs.map(([k, n]) => `${HERBS[k].name} ×${n}`).join(' · '));
   if (w.actDone) L.push(`<b class="gold">Akt ${w.actDone.n} geschafft.</b> <i class="lore">${w.actDone.outro}</i>`);
   if (w.tier) L.push(`<b class="gold">Krypta-Stufe ${w.tier} bezwungen.</b> Die nächste ist schwerer – und reicher.`);
   if (w.rankUp) L.push(`<b class="gold">Neuer Rang: ${w.rankUp.name}</b> · Titel „${w.rankUp.title}“ + Segen`);

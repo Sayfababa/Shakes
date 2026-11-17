@@ -752,7 +752,12 @@ export const HERB_LOC = { friedhof: 'grabmoos', muehle: 'rotwurz', katakomben: '
 // `heartChance`: Herzen waren garantiert 2 je Krypta-Boss und damit die einzige ortsungebundene
 // Zutat – 26 bis 68 je Woche, während jede Feldzutat bei 0 endete. Der Bossfund war der Überfluss.
 export const ALCH = { herbChance: 0.15, foreign: 0.3, slots: 2, slotsLoyal: 3, loyalNeed: 2, charges: 3, maxCommon: 6, maxRare: 2,
-  bossHearts: 1, heartChance: 0.7, herbBuy: [26, 5], herbStock: 3,
+  bossHearts: 1, heartChance: 0.7,
+  // Ein Herz fällt nie allein: Krypta und Abgrund gaben NUR Herzen, Feldzutaten aber nur die
+  // Akt-Gebiete. Wer die Geschichte durch hat und Krypta/Grube farmt, sammelte deshalb Herzen,
+  // die allein nichts wert sind (jedes seltene Rezept will 1 Herz + 1 Feldzutat) und konnte
+  // gar nichts mehr brauen. Fällt ein Herz, fällt eine Feldzutat dazu.
+  bossHerb: 1, herbBuy: [26, 5], herbStock: 3,
   gold: [8, 2.5], goldRare: [30, 7] };   // Gold = a + Stufe × b, Zutat kaufen = herbBuy[0] + Stufe × herbBuy[1]
 // `herbStock`: Ysolde hat je Tag nur so viele Zutaten. Ohne diese Grenze ersetzt Gold das Farmen
 // vollständig – mit freiem Verkauf kaufte der Bot 400 bis 685 Zutaten je Woche und braute 350 statt

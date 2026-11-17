@@ -18,7 +18,7 @@ function dropItem(lvl, p, minRarity, rew) {
 // Kampfbewertung nach Restleben: wer stärker ist, gewinnt souveräner – und bekommt mehr
 export const gradeOf = r => r.winner === 'a' ? GRADES.find(g => (r.left ?? 0) >= g.min) : null;
 const newRew = () => ({ gold: 0, xp: 0, up: 0, mats: [], item: null, herbs: [] });
-function dropHerb(id, p, n, rew) { if (id && chance(p)) { G.addHerb(id, n); rew.herbs.push([id, n]); } }
+function dropHerb(id, p, n, rew) { if (id && chance(p)) { G.addHerb(id, n); rew.herbs.push([id, n]); return true; } return false; }
 // Welche Zutat ein Fund gibt: meist die des Ortes, zu `ALCH.foreign` eine fremde. Ohne das flutet
 // der Akt, in dem man farmt, seine Zutat und alle anderen verhungern – man scheitert dann nie an
 // der Menge, immer an der Sorte. Expedition und Umherziehen halten es längst so.
@@ -106,7 +106,10 @@ export function cryptFight(id, m0 = null) {
   S.wins++; Q.event({ type: 'kill', mob: m.name }); Q.event({ type: 'boss', crypt: c.id }); G.bountyEvent({ type: 'crypt' }); G.bountyEvent({ type: 'kill', mob: m.name });
   Object.assign(rew, G.cryptWin(c)); rew.grade = gradeOf(r); if (rew.grade.id === 'dom') G.bountyEvent({ type: 'dom' }); const gb = 1 + rew.grade.bonus;
   pay(rew, Math.round((10 + m.lvl * 5) * 4 * gb), Math.round((25 + m.lvl * 14) * 3));
-  dropMat(m, rew); dropHerb('herz', ALCH.heartChance, ALCH.bossHearts, rew);
+  dropMat(m, rew);
+  // Das Herz bringt die Feldzutat mit – sonst farmt man die Krypta und kann die Tränke,
+  // die genau dort wirken, nie brauen.
+  if (dropHerb('herz', ALCH.heartChance, ALCH.bossHearts, rew)) dropHerb(herbRoll(HERB_LOC[G.cryptAct(c)?.loc]), ALCH.bossHerb, 1, rew);
   const k = CRYPT.rarAt.filter(x => t >= x).length - 1;   // höhere Stufe → mehr und bessere Beute
   rew.items = []; for (let i = 0; i < CRYPT.items[k]; i++) { const it = makeItem(m.lvl, { luck: G.stats().lck + t * 15, cls: CLASSES[S.cls], minRarity: Math.min(4, 2 + k + (i === 0 && t >= CRYPT.rarAt[2] ? 1 : 0)) }); rew.items.push(it); if (!G.addToBag(it)) { S.gold += it.value; it.soldFull = true; } }
   const sp = setDrop(c, t); if (sp) { rew.items.push(sp); rew.set = sp; if (!G.addToBag(sp)) { S.gold += sp.value; sp.soldFull = true; } }
@@ -507,7 +510,9 @@ function descLoot(lvl, u, { gold = 1, item = 0, minR = 0, heart = 0, mat = null,
     const it = makeItem(lvl, { luck: G.stats().lck + u * 15, cls: CLASSES[S.cls], minRarity: Math.max(minR, u >= 5 ? 3 : u >= 3 ? 2 : 0) });
     s.items.push(it); got.items.push(it); }
   if (mat && chance(Math.min(1, CFG.matChance * k))) { const n = Math.max(1, rollN(k / 2)); s.mats[mat] = (s.mats[mat] || 0) + n; got.mats.push([mat, n]); }
-  if (heart && chance(Math.min(1, heart * k))) { s.herbs.herz = (s.herbs.herz || 0) + 1; got.herbs.push(['herz', 1]); }
+  if (heart && chance(Math.min(1, heart * k))) { s.herbs.herz = (s.herbs.herz || 0) + 1; got.herbs.push(['herz', 1]);
+    const h = herbRoll(HERB_LOC[G.cryptAct(descCrypt())?.loc]);                 // dieselbe Regel wie in der Krypta
+    if (h && chance(ALCH.bossHerb)) { s.herbs[h] = (s.herbs[h] || 0) + 1; got.herbs.push([h, 1]); } }
   // Kronsplitter: der einzige Weg, ein volles magisches Teil zu erheben. Er liegt tief und
   // zählt erst, wenn der Sack oben ankommt – stirbt man, ist er weg.
   if (kron && chance(Math.min(1, kron * k))) { s.mats.kronsplitter = (s.mats.kronsplitter || 0) + 1; got.mats.push(['kronsplitter', 1]); }
