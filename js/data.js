@@ -156,6 +156,17 @@ export const UNIQUES = [
   { name: 'Ring der Vergeltung', slot: 'ring', mods: { str: 3, con: 3 }, eff: { vengeance: 0.5, thorns: 0.12 }, lore: 'Je tiefer die Wunde, desto schwerer die Hand.' },
   { name: 'Reif der Zuflucht', slot: 'ring', mods: { con: 3, lck: 3 }, eff: { secondWind: 0.25 }, lore: 'Einmal darfst du Luft holen.' },
   { name: 'Gurt des Bollwerks', slot: 'belt', mods: { armor: 2, con: 3 }, eff: { bulwark: 0.05, hpPct: 0.08 }, lore: 'Stehen bleiben ist auch ein Angriff.' },
+  // --- Drei Stücke für das Brett der Zauberin ---
+  // Ihr Brett belohnt Zauberschaden, Schild/Dornen und Nachhall – bisher griff **kein einziges**
+  // Einzigartiges das auf (spellPct 0, ignite 0, echo 1). Die Assassine hatte 14. Diese drei folgen
+  // demselben Muster wie ihre Synergie-Stücke: allein mittelmässig, mit dem Zweig tragend.
+  // **Kein Leben als Preis** – für die Zauberin kostet −10 % hpPct gemessene 12,3 Punkte Siegchance,
+  // mehr als ein ganzer Schlüsselstein gibt. **Und kein Zaubertempo als Preis:** ein Stab würfelt
+  // `haste` als normalen Bonus bis über 50 %, ein Einzigartiges wirft den weg – gemessen kostete
+  // ein −12 %-Aufschlag darauf 7 Punkte Siegchance. Ein Einzigartiges kämpft gegen das, was es ERSETZT.
+  { name: 'Glutzehrer', slot: 'weapon', kind: 'staff', mods: { int: 3, spellp: 3 }, eff: { spellPct: 0.42 }, lore: 'Er nimmt sich Zeit. Was danach brennt, brennt lange.' },
+  { name: 'Der Kalte Spiegel', slot: 'offhand', mods: { int: 2, con: 3 }, eff: { ward: 0.22, thorns: 0.28 }, lore: 'Wer hineinsieht, sieht seinen eigenen Hieb zurückkommen.' },
+  { name: 'Das Zweite Wort', slot: 'amulet', mods: { int: 3, spellp: 3 }, eff: { firstEcho: 1, echo: 0.25, spellPct: 0.15 }, lore: 'Sprich es einmal. Die Gruft spricht es nach.' },
 ];
 // --- Grab-Sets: je Krypta ein Set aus 3 Teilen (Mockup mockups/sets.html) ---
 // Teile fallen nur beim Boss ihrer Krypta, ab Stufe SET.minTier. 2 Teile = ein guter Bonus (etwa Stufe III),
