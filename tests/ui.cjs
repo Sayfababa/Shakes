@@ -237,6 +237,25 @@ let failures = 0;
       return zu.filter(n => txt.includes(n));
     });
     if (leck.length) { failures++; console.log(`FEHLER ${tag}: Verzeichnis verraet ${leck.join(', ')}`); }
+    // Jede Seltenheit muss man im Beutel SEHEN, ohne ein Teil anzutippen. Die Zelle trug `r-set`
+    // laengst, nur gab es dafuer keine CSS-Regel - Set-Teile sahen aus wie gewoehnliche Ware
+    // (vom Besitzer gemeldet). Geprueft wird die gerenderte Farbe, nicht der Klassenname.
+    await tap('[data-v=hero]');
+    const farben = await p.evaluate(async () => {
+      const D = await import('./js/data.js');
+      const wirt = document.querySelector('.inv') || document.querySelector('main');
+      const out = {};
+      for (const r of D.RARITIES) {
+        const e = document.createElement('div'); e.className = 'cellitem r-' + r.id;
+        wirt.appendChild(e); out[r.id] = getComputedStyle(e).backgroundColor; e.remove();
+      }
+      return out;
+    });
+    for (const [k, c] of Object.entries(farben)) {
+      if (k === 'normal') continue;   // gewoehnlich bleibt absichtlich ohne Toenung
+      const durchsichtig = /rgba\(0,\s*0,\s*0,\s*0\)|transparent/.test(c);
+      if (durchsichtig) { failures++; console.log(`FEHLER ${tag}: Seltenheit „${k}" ist im Beutel nicht zu erkennen (${c})`); }
+    }
     await tap('[data-v=crypt]'); if (await tap('[data-action=crypt]')) { await chk('prep'); await tap('[data-action=prepPot]'); await tap('[data-action=bestBelt]'); await chk('prep2'); await tap('[data-action=trig]'); await tap('[data-action=cryptgo]'); await p.waitForTimeout(600); await chk('fightpot');
       if (!(await p.$('.pbelt img'))) { failures++; console.log(`FEHLER ${tag}: Tränke im Kampf nicht sichtbar`); } }
     else { failures++; console.log(`FEHLER ${tag}: Krypta nicht antippbar`); }
