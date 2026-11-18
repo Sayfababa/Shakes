@@ -102,7 +102,11 @@ export function itemTip(it, cmp) {
   }
   return L[0] + L.slice(1).map(x => x.startsWith('<div') ? x : x + '<br>').join('').replace(/<br>$/, '');
 }
-const itemEl = (it, act) => `<div class="item r-${it.rarity}" data-tip="${it.id}" ${act}>${itemArt(it)}${gainTag(it)}</div>`;
+// Einzigartige tragen die Seltenheit „legendär" und sahen im Raster deshalb aus wie jedes andere
+// legendäre Teil (vom Besitzer gemeldet). `uq` kommt **zusätzlich** zur Seltenheitsklasse ans Feld,
+// nie an den Text – dort trägt `.uniq-txt` das Orange schon.
+const rarCls = it => `r-${it.rarity}${it.unique ? ' uq' : ''}`;
+const itemEl = (it, act) => `<div class="item ${rarCls(it)}" data-tip="${it.id}" ${act}>${itemArt(it)}${gainTag(it)}</div>`;
 
 // --- Rahmen ---
 export function hud(tut = '') {
@@ -140,7 +144,7 @@ export function viewCreate(sel) {
 // --- Held: Ausrüstungsfigur + Raster-Inventar ---
 export function viewHero(stash) {
   const rk = rank(), st = stats(), pts = S.points + talentPoints();
-  const slot = s => { const it = S.equip[s]; return `<div class="eslot es-${s} ${it ? 'r-' + it.rarity : ''}" ${it ? `data-tip="${it.id}" data-action="unequip" data-s="${s}"` : ''}>${it ? itemArt(it) : `<span class="ghost">${ghost(s)}</span>`}</div>`; };
+  const slot = s => { const it = S.equip[s]; return `<div class="eslot es-${s} ${it ? rarCls(it) : ''}" ${it ? `data-tip="${it.id}" data-action="unequip" data-s="${s}"` : ''}>${it ? itemArt(it) : `<span class="ghost">${ghost(s)}</span>`}</div>`; };
   const mats = Object.entries(S.mats).filter(([, n]) => n > 0);
   return `<div class="hero">
     <section class="panel doll">
@@ -167,7 +171,7 @@ function invPanel(stash, mats) {
       <button class="tiny ${stash ? 'on' : ''}" data-action="invmode">${stash ? 'Beutel' : 'Lager'}</button>
       ${stash ? '' : '<button class="tiny" data-action="sort">Ordnen</button>'}</div>
       <div class="inv" style="--w:${g.w};--h:${g.h}">
-        ${g.list.map(it => `<div class="cellitem r-${it.rarity}" style="left:${it.x / g.w * 100}%;top:${it.y / g.h * 100}%;width:${it.w / g.w * 100}%;height:${it.h / g.h * 100}%" data-tip="${it.id}" data-action="${act}" data-id="${it.id}">${itemArt(it)}${gainTag(it)}</div>`).join('')}
+        ${g.list.map(it => `<div class="cellitem ${rarCls(it)}" style="left:${it.x / g.w * 100}%;top:${it.y / g.h * 100}%;width:${it.w / g.w * 100}%;height:${it.h / g.h * 100}%" data-tip="${it.id}" data-action="${act}" data-id="${it.id}">${itemArt(it)}${gainTag(it)}</div>`).join('')}
       </div>
       <div class="mats">${mats.length ? mats.map(([k, n]) => `<span title="${MATS[k]}">${matImg(k)}<b>${n}</b></span>`).join('') : '<span class="dim">Keine Materialien. Monster lassen sie fallen.</span>'}</div>
     </section>`;
@@ -457,7 +461,7 @@ export function viewTrader(tid) {
       return `<button class="svc" data-action="service" data-t="${tid}" data-s="${sv.id}" ${st.can ? '' : 'disabled'}>
         <b>${sv.name}${sv.max && st.step ? ` +${st.step}` : ''}</b><small>${st.reason || st.costText}${st.questMat && !st.reason ? ` <i class="hot">– ${MATS[st.questMat]} für Auftrag!</i>` : ''}</small></button>`; }).join('')}</section>
     <section class="panel shop"><div class="invhead"><span>Ware</span><small class="dim">bessere Ware mit höherer Treue</small></div>
-      <div class="shoprow">${shop.map(it => `<div class="sitem r-${it.rarity}${it.lock ? ' lock' : ''}" data-tip="${it.id}" data-action="buy" data-t="${tid}" data-id="${it.id}">${itemArt(it)}${gainTag(it)}<span class="price ${S.gold < it.price ? 'no' : ''}">${it.price}</span></div>`).join('') || '<span class="dim">Ausverkauft.</span>'}</div></section>
+      <div class="shoprow">${shop.map(it => `<div class="sitem ${rarCls(it)}${it.lock ? ' lock' : ''}" data-tip="${it.id}" data-action="buy" data-t="${tid}" data-id="${it.id}">${itemArt(it)}${gainTag(it)}<span class="price ${S.gold < it.price ? 'no' : ''}">${it.price}</span></div>`).join('') || '<span class="dim">Ausverkauft.</span>'}</div></section>
   </div>`;
 }
 
@@ -575,7 +579,7 @@ function viewCraft(sel) {
     return `<button class="cop ${rise ? 'rise' : ''}" data-action="craftop" data-o="${op.id}" ${err ? 'disabled' : ''} title="${tip} (${MATS[need.mat]})">${matImg(need.mat)}<b>${nm}</b><small><i class="${(S.mats[need.mat] || 0) < need.n ? 'down' : ''}">${S.mats[need.mat] || 0}/${need.n}</i><br>Glut ${need.glut}+</small></button>`; }).join('');
   const why = it && CRAFT.ops.map(op => craftCheck(it, op.id, sel.stat)).find(e => e && !/Material|Bonus antippen/.test(e));
   return `<div class="col forge craft">${forgeTabs(sel)}
-    <section class="panel"><div class="cpick">${list.map(x => `<div class="fslot r-${x.rarity} ${x.id === sel.item ? 'on' : ''} ${x.crafted ? 'full' : ''} ${Object.values(S.equip).includes(x) ? 'eq' : ''}" data-action="craftpick" data-id="${x.id}">${itemArt(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`).join('') || '<span class="dim small">Nichts zum Umschmieden. Magische Items fallen bei Monstern und Händlern.</span>'}</div></section>
+    <section class="panel"><div class="cpick">${list.map(x => `<div class="fslot ${rarCls(x)} ${x.id === sel.item ? 'on' : ''} ${x.crafted ? 'full' : ''} ${Object.values(S.equip).includes(x) ? 'eq' : ''}" data-action="craftpick" data-id="${x.id}">${itemArt(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`).join('') || '<span class="dim small">Nichts zum Umschmieden. Magische Items fallen bei Monstern und Händlern.</span>'}</div></section>
     <section class="panel grow">${card}</section>
     <section class="panel"><div class="cops">${ops}</div>
       <p class="small cmsg">${sel.msg || (it ? `Je Eingriff ${craftGold(it)} Gold · ${sel.stat ? `<b>${STAT_NAME(sel.stat)}</b> gewählt` : 'zum Versiegeln einen Bonus antippen'}${why ? ` · <span class="down">${why}</span>` : ''}${craftHint(it)}` : 'Material bestimmt den Eingriff, Schmiedeglut wie oft.')}</p></section></div>`;
@@ -617,7 +621,7 @@ function viewFuse(sel) {
   // und nicht die, die auf diesem Platz nichts zu suchen haben (Blocken gehört nicht auf einen Dolch).
   const blocked = main && food ? new Set(Object.keys(baseMods(food)).filter(k =>
     k in baseMods(main) || !affixPool(main).some(a => a.stat === k))) : null;
-  const cell = (x, on, cls) => `<div class="fslot r-${x.rarity} ${on ? 'on' : ''} ${cls || ''}" data-action="fuse${cls === 'f' ? 'food' : 'pick'}" data-id="${x.id}">${itemArt(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`;
+  const cell = (x, on, cls) => `<div class="fslot ${rarCls(x)} ${on ? 'on' : ''} ${cls || ''}" data-action="fuse${cls === 'f' ? 'food' : 'pick'}" data-id="${x.id}">${itemArt(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`;
   const board = !main ? '<p class="dim small">Wähle oben das Hauptteil – das Teil, das bleibt und den neuen Bonus bekommt.</p>'
     : `<div class="fuse2">
       <div class="fside main"><h5>Hauptteil – bleibt</h5><div class="fname r-${main.rarity}">${main.name}</div>
@@ -736,7 +740,7 @@ export function viewPitShop(back) {
   const shop = pitShop(), Pw = S.pit, left = PIT.weekBuys - Pw.buys;
   const ware = (w, t, k) => { const can = !w.sold && left > 0 && S.honor >= w.price;
     const art = w.t === 'item' ? itemArt(w.item) : w.t === 'herb' ? herbImg(w.id) : matImg(w.id), nm = w.t === 'item' ? '' : `<i class="wn">${w.t === 'herb' ? HERBS[w.id].name : MATS[w.id]} ×${w.n}</i>`;
-    return `<div class="sitem pware ${w.t === 'item' ? 'r-' + w.item.rarity : ''} ${w.sold ? 'sold' : ''}" ${w.t === 'item' ? `data-tip="${w.item.id}"` : ''} data-action="pitbuy" data-t="${t}" data-k="${k}">${art}${nm}<span class="price ${can ? '' : 'no'}">${w.sold ? 'verkauft' : hon(w.price)}</span></div>`; };
+    return `<div class="sitem pware ${w.t === 'item' ? rarCls(w.item) : ''} ${w.sold ? 'sold' : ''}" ${w.t === 'item' ? `data-tip="${w.item.id}"` : ''} data-action="pitbuy" data-t="${t}" data-k="${k}">${art}${nm}<span class="price ${can ? '' : 'no'}">${w.sold ? 'verkauft' : hon(w.price)}</span></div>`; };
   return `<div class="col pitshopv">${back === 'traders' ? '' : cryptTabs('arena')}
     <section class="panel"><h2>Vargos Laden <span class="h2r">${hon(S.honor)} · noch ${left} diese Woche</span></h2>
     ${PIT_SHOP.map(t => { const rk = PIT_RANKS.find(r => r.id === t.rank); return pitTierOpen(t.rank)
@@ -785,7 +789,7 @@ function viewDescStart(st) {
   </div>`;
 }
 function sackRow(s) {
-  const its = s.items.slice(0, 7).map(it => `<span class="dit r-${it.rarity}" data-tip="${it.id}" data-action="noop">${itemArt(it)}</span>`).join('');
+  const its = s.items.slice(0, 7).map(it => `<span class="dit ${rarCls(it)}" data-tip="${it.id}" data-action="noop">${itemArt(it)}</span>`).join('');
   const more = s.items.length > 7 ? `<span class="dmore">+${s.items.length - 7}</span>` : '';
   const chips = [...Object.entries(s.herbs).filter(([, n]) => n > 0).map(([k, n]) => `<span title="${HERBS[k].name}">${herbImg(k)}×${n}</span>`),
     ...Object.entries(s.mats).filter(([, n]) => n > 0).map(([k, n]) => `<span title="${MATS[k]}">${matImg(k)}×${n}</span>`)].join('');

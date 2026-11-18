@@ -249,10 +249,14 @@ let failures = 0;
         const e = document.createElement('div'); e.className = 'cellitem r-' + r.id;
         wirt.appendChild(e); out[r.id] = getComputedStyle(e).backgroundColor; e.remove();
       }
+      // Einzigartige tragen die Seltenheit „legendaer" und muessen sich trotzdem davon abheben
+      const u = document.createElement('div'); u.className = 'cellitem r-legendary uq';
+      wirt.appendChild(u); out.__uq = getComputedStyle(u).backgroundColor; u.remove();
       return out;
     });
+    if (farben.__uq === farben.legendary) { failures++; console.log(`FEHLER ${tag}: Einzigartige sehen aus wie legendaer (${farben.__uq})`); }
     for (const [k, c] of Object.entries(farben)) {
-      if (k === 'normal') continue;   // gewoehnlich bleibt absichtlich ohne Toenung
+      if (k === 'normal' || k === '__uq') continue;   // gewoehnlich bleibt absichtlich ohne Toenung
       const durchsichtig = /rgba\(0,\s*0,\s*0,\s*0\)|transparent/.test(c);
       if (durchsichtig) { failures++; console.log(`FEHLER ${tag}: Seltenheit „${k}" ist im Beutel nicht zu erkennen (${c})`); }
     }
