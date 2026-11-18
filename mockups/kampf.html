@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup – Den Kampf lesbar machen</title>
+<link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+SC:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  html, body { overflow: auto; height: auto; }
+  .wrap { display: flex; gap: 26px; padding: 24px; align-items: flex-start; width: max-content; }
+  .col2 { width: 390px; }
+  .col2.se { width: 375px; }
+  .phone { width: 390px; height: 800px; position: relative; display: flex; flex-direction: column; padding: 10px; gap: 7px;
+    border: 1px solid #2a2118; box-shadow: 0 0 0 6px #0b0907, 0 0 40px #000; background: var(--noise), var(--stonetex), radial-gradient(ellipse at 50% 20%, #241a12, #070504 70%); }
+  .phone.se { width: 375px; height: 667px; }
+  .phone > .panel { flex: none; }
+  .cap { font-family: 'Alegreya SC'; color: var(--gold); text-align: center; margin-bottom: 8px; font-size: 1rem; }
+  .cap b { color: var(--gold-hi); font-weight: 500; }
+  .note2 { color: var(--dim); font-size: .85rem; margin-top: 10px; line-height: 1.35; }
+  .note2 b { color: var(--gold); font-weight: 500; }
+  .hudm { display: flex; align-items: center; justify-content: space-between; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.4rem; }
+  .hudm small { font-family: 'Alegreya SC'; font-size: .78rem; color: var(--text); }
+  .tabsm { margin-top: auto; display: flex; gap: 3px; }
+  .tabsm a { flex: 1; text-align: center; padding: 8px 2px; font-family: 'Alegreya SC'; font-size: .74rem; color: var(--dim); border-image: url('../assets/ui/tab.webp') 16 fill / 8px stretch; }
+  .fightwrap { flex: 1 1 0 !important; display: flex; min-height: 0; }
+  .fight { width: 100%; }
+  .fighter .portrait, .fighter .pwrap { width: 78%; margin: 0 auto; display: block; }
+  .fighter img.portrait { width: 100%; }
+  .bar i { display: block; height: 100%; background: linear-gradient(#b03a2a, #6a140c); }
+  .bar.en i { background: linear-gradient(#8a7a2a, #4a3a0c); }
+
+  /* 2 — der Name des Talents, das gerade ausgeloest hat */
+  .proc { position: absolute; left: 50%; top: 52%; transform: translate(-50%, -50%); white-space: nowrap;
+    font-family: 'Alegreya SC'; font-size: .92rem; color: var(--gold-hi); letter-spacing: .04em;
+    text-shadow: 0 0 10px #000, 0 2px 3px #000; padding: 2px 9px;
+    border-image: url('../assets/ui/tooltip.webp') 24 fill / 10px stretch; }
+  .proc.red { color: #ff8a6a; }
+  .log .src { color: var(--gold); }
+
+  /* 1 — die mitlaufende Bilanz */
+  .tally { display: flex; flex-wrap: wrap; gap: 3px; }
+  .tchip { flex: 1 1 auto; display: flex; align-items: baseline; justify-content: space-between; gap: 5px; padding: 3px 7px;
+    font-size: max(11px, .74rem); color: var(--dim); border-image: url('../assets/ui/panel_s.webp') 18 fill / 8px stretch; }
+  .tchip b { font-family: 'Grenze Gotisch'; color: var(--gold-hi); font-size: max(11px, .95rem); font-weight: 500; }
+  .tchip.on { box-shadow: inset 0 0 0 1px rgba(176,138,62,.6); }
+  .tchip.foe b { color: #d08a72; }
+  .tline { font-size: max(11px, .72rem); color: var(--dim); text-align: center; margin: 1px 0 0; }
+</style></head><body>
+
+<div class="wrap">
+
+<!-- 1 — heute -->
+<div class="col2">
+  <p class="cap">1 · Heute</p>
+  <div class="phone">
+    <div class="hudm"><span>Dino</span><small>Stufe 20</small></div>
+    <div class="panel fightwrap"><div class="fight">
+      <div class="fighter"><div class="pwrap"><img class="portrait" src="../assets/portraits/sorceress.jpg" alt=""></div>
+        <div class="nm">Dino</div><div class="bar"><i style="width:64%"></i></div><div class="hp">141 / 221</div></div>
+      <div><div class="log">
+        <div class="a">Dino trifft für 41.</div>
+        <div class="b">Mutter Gerlinde trifft für 27.</div>
+        <div class="a spell">Feuerball trifft für 88.</div>
+        <div class="a">Gift wirkt: 14.</div>
+        <div class="a crit">Dino trifft KRITISCH für 112.</div>
+        <div class="b">Mutter Gerlinde trifft für 31.</div>
+        <div class="a">Gift wirkt: 14.</div>
+      </div><button>Überspringen</button></div>
+      <div class="fighter"><div class="pwrap"><img class="portrait" src="../assets/monsters/gerlinde.jpg" alt=""></div>
+        <div class="nm">Mutter Gerlinde</div><div class="bar en"><i style="width:38%"></i></div><div class="hp">402 / 1060</div></div>
+    </div></div>
+    <div class="tabsm"><a>Held</a><a>Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></div>
+  </div>
+  <p class="note2"><b>Zahlen ohne Herkunft.</b> „Gift wirkt: 14“ – von welchem Talent? „KRITISCH“ – wie oft war das jetzt? Man sieht Ereignisse, keine Muster. Deshalb tippt man auf Überspringen.</p>
+</div>
+
+<!-- 2 — Namen -->
+<div class="col2">
+  <p class="cap">2 · <b>Namen</b> statt Zahlen</p>
+  <div class="phone">
+    <div class="hudm"><span>Dino</span><small>Stufe 20</small></div>
+    <div class="panel fightwrap"><div class="fight">
+      <div class="fighter"><div class="pwrap"><img class="portrait" src="../assets/portraits/sorceress.jpg" alt="">
+        <span class="proc">Nachhall</span></div>
+        <div class="nm">Dino</div><div class="bar"><i style="width:64%"></i></div><div class="hp">141 / 221</div></div>
+      <div><div class="log">
+        <div class="a">Dino trifft für 41.</div>
+        <div class="b">Mutter Gerlinde trifft für 27.</div>
+        <div class="a spell">Feuerball trifft für 88.</div>
+        <div class="a"><span class="src">Verbrennung:</span> Brand wirkt 14.</div>
+        <div class="a crit">Dino trifft KRITISCH für 112.</div>
+        <div class="b">Mutter Gerlinde trifft für 31.</div>
+        <div class="a spell"><span class="src">Nachhall:</span> Feuerball wirkt nochmal, 71.</div>
+      </div><button>Überspringen</button></div>
+      <div class="fighter"><div class="pwrap"><img class="portrait" src="../assets/monsters/gerlinde.jpg" alt="">
+        <span class="proc red">brennt</span></div>
+        <div class="nm">Mutter Gerlinde</div><div class="bar en"><i style="width:34%"></i></div><div class="hp">360 / 1060</div></div>
+    </div></div>
+    <div class="tabsm"><a>Held</a><a>Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></div>
+  </div>
+  <p class="note2"><b>Jedes Ereignis sagt, woher es kommt.</b> „Nachhall“ ist dein Schlüsselstein. „Verbrennung“ auch. Zum ersten Mal siehst du im Kampf, was du am Brett entschieden hast.<br><br>
+  <b>Kostet keine Höhe</b> – der Name steht über dem Bild, nicht daneben. Im Log steht er als Vorsatz vor der Zeile, die ohnehin da war.</p>
+</div>
+
+<!-- 3 — Namen + Bilanz -->
+<div class="col2">
+  <p class="cap">3 · Namen + <b>mitlaufende Bilanz</b></p>
+  <div class="phone">
+    <div class="hudm"><span>Dino</span><small>Stufe 20</small></div>
+    <div class="panel fightwrap"><div class="fight">
+      <div class="fighter"><div class="pwrap"><img class="portrait" src="../assets/portraits/sorceress.jpg" alt="">
+        <span class="proc">Nachhall</span></div>
+        <div class="nm">Dino</div><div class="bar"><i style="width:64%"></i></div><div class="hp">141 / 221</div></div>
+      <div><div class="log">
+        <div class="a">Dino trifft für 41.</div>
+        <div class="b">Mutter Gerlinde trifft für 27.</div>
+        <div class="a spell">Feuerball trifft für 88.</div>
+        <div class="a"><span class="src">Verbrennung:</span> Brand wirkt 14.</div>
+        <div class="a crit">Dino trifft KRITISCH für 112.</div>
+        <div class="a spell"><span class="src">Nachhall:</span> Feuerball wirkt nochmal, 71.</div>
+      </div>
+      <div class="tally">
+        <span class="tchip on">Krit <b>3</b></span>
+        <span class="tchip on">Brand <b>112</b></span>
+        <span class="tchip on">Nachhall <b>2×</b></span>
+        <span class="tchip">Geblockt <b>4</b></span>
+        <span class="tchip foe">Er heilt <b>59</b></span>
+      </div>
+      <p class="tline">Zauber <b style="color:var(--gold-hi)">61 %</b> deines Schadens</p>
+      <button>Überspringen</button></div>
+      <div class="fighter"><div class="pwrap"><img class="portrait" src="../assets/monsters/gerlinde.jpg" alt="">
+        <span class="proc red">brennt</span></div>
+        <div class="nm">Mutter Gerlinde</div><div class="bar en"><i style="width:34%"></i></div><div class="hp">360 / 1060</div></div>
+    </div></div>
+    <div class="tabsm"><a>Held</a><a>Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></div>
+  </div>
+  <p class="note2"><b>Jede Zahl zählt hoch, während du zusiehst</b>, und zuckt, wenn sie auslöst. Das beantwortet genau deine Fragen: wie oft kritisch, wie oft löst es aus, wie viel macht das Gift.<br><br>
+  <b>Die letzte Zeile ist die wichtigste.</b> „Zauber 61 % deines Schadens“ steht heute erst im Bericht <i>nach</i> dem Kampf. Wer sie während des Kampfes sieht, entscheidet beim nächsten Brett-Punkt anders.<br><br>
+  <b>Das Log wird kürzer</b> – die Bilanz nimmt ihm zwei Zeilen weg. Das ist der Preis, und ich halte ihn für richtig: eine Zeile mehr Log sagt weniger als eine Zahl, die mitwächst.</p>
+</div>
+
+<!-- 4 — SE -->
+<div class="col2 se">
+  <p class="cap">4 · Auf dem SE (375 × 667)</p>
+  <div class="phone se">
+    <div class="hudm"><span>Dino</span><small>Stufe 20</small></div>
+    <div class="panel fightwrap"><div class="fight">
+      <div class="fighter"><div class="pwrap"><img class="portrait" src="../assets/portraits/sorceress.jpg" alt="">
+        <span class="proc">Nachhall</span></div>
+        <div class="nm">Dino</div><div class="bar"><i style="width:64%"></i></div><div class="hp">141 / 221</div></div>
+      <div><div class="log">
+        <div class="a spell">Feuerball trifft für 88.</div>
+        <div class="a"><span class="src">Verbrennung:</span> Brand 14.</div>
+        <div class="a crit">Dino trifft KRITISCH für 112.</div>
+      </div>
+      <div class="tally">
+        <span class="tchip on">Krit <b>3</b></span>
+        <span class="tchip on">Brand <b>112</b></span>
+        <span class="tchip on">Nachhall <b>2×</b></span>
+        <span class="tchip foe">Er heilt <b>59</b></span>
+      </div>
+      <button>Überspringen</button></div>
+      <div class="fighter"><div class="pwrap"><img class="portrait" src="../assets/monsters/gerlinde.jpg" alt="">
+        <span class="proc red">brennt</span></div>
+        <div class="nm">Mutter Gerlinde</div><div class="bar en"><i style="width:34%"></i></div><div class="hp">360 / 1060</div></div>
+    </div></div>
+    <div class="tabsm"><a>Held</a><a>Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></div>
+  </div>
+  <p class="note2"><b>Hier entscheidet es sich.</b> Auf dem kleinen Schirm bleiben vier Kacheln und drei Log-Zeilen. Die Prozent-Zeile fällt weg (wie `.prep.tight` es längst macht).<br><br>
+  <b>Offen:</b> ob drei Zeilen Log noch genug sind, um dem Kampf zu folgen. Das würde ich messen, nicht schätzen.</p>
+</div>
+
+</div>
+</body></html>
