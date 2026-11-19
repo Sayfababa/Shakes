@@ -46,7 +46,6 @@ einmal teuer geworden; die Herkunft steht in `entscheidungen/fallen.md`.
   **Entscheidungen, keine größere Anzeige** – diesen Punkt habe ich einmal verfehlt.
 - **Die vier Abgrund-Materialien** (DESIGN.md) – von ihm bewusst zurückgestellt. **Nicht ohne
   seinen Zuruf anfangen.**
-- **Browser-Höhe 390×664**: er darf sie auch streichen wollen. Dann nur Tests ändern, kein Code.
 - **Arbeitsweise-Abschnitt in CLAUDE.md**: von mir eingetragen, von ihm nicht ausdrücklich
   abgenickt. Falls er ihn anders formuliert haben will, ändern.
 

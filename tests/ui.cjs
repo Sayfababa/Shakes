@@ -1,8 +1,4 @@
-// UI-Test im echten Browser (Playwright): spielt die wichtigsten Wege auf vier Geraeten durch.
-// Der iPhone SE ist draussen (Ansage des Besitzers: "das Spiel ist nicht fuer iPhone SE ausgelegt,
-// erst ab iPhone 13"). "Browser 390x664" ist an seine Stelle getreten und ist KEIN Ersatz aus
-// Bequemlichkeit: das ist ein iPhone 13 im Safari, wo die Leisten ~180 px fressen. Wer den Link
-// antippt statt die App vom Homescreen zu oeffnen, sitzt genau auf dieser Hoehe.
+// UI-Test im echten Browser (Playwright): spielt die wichtigsten Wege auf dem iPhone 13 (App) durch.
 // und prüft: keine JS-Fehler, nichts ragt aus dem Bildschirm (kein Scrollen). Screenshots nach tests/out/.
 // Aufruf: node tests/ui.cjs   (startet selbst einen Server auf Port 8765)
 const { chromium, devices } = require('playwright');
@@ -11,15 +7,14 @@ const fs = require('fs'); const path = require('path');
 const OUT = path.join(__dirname, 'out'); fs.mkdirSync(OUT, { recursive: true });
 const srv = spawn('python3', ['-m', 'http.server', '8765'], { cwd: path.join(__dirname, '..'), stdio: 'ignore' });
 let failures = 0;
-// Eigene Groessen neben den Playwright-Geraeten: "App 430x867" ist das grosse iPhone als
-// Homescreen-App, "Browser 390x664" ein iPhone 13 im Safari, wo die Leisten ~180 px fressen.
-const ctxFor = dev => dev === 'App 430x867' ? { ...devices['iPhone 15 Pro Max'], viewport: { width: 430, height: 867 }, deviceScaleFactor: 1 }
-  : dev === 'Browser 390x664' ? { ...devices['iPhone 13'], viewport: { width: 390, height: 664 }, deviceScaleFactor: 1 }
-  : { ...devices[dev], deviceScaleFactor: 1 };
+// Ein Geraet (Ansage des Besitzers): iPhone 13 als Homescreen-App, 390x844. Das ist das schmalste
+// Geraet im grossen Layout (>= 760 px Hoehe) – dort wird es eng. Der Browser (Safari, <760 px) ist
+// bewusst nicht mehr geprueft.
+const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
 (async () => {
   await new Promise(r => setTimeout(r, 800));
   const b = await chromium.launch();
-  await Promise.all(['Browser 390x664', 'iPhone 13', 'iPhone 15 Pro Max', 'App 430x867'].map(async dev => {   // 4 Handys gleichzeitig
+  await Promise.all(['iPhone 13 App'].map(async dev => {   // ein Gerät: iPhone 13 als App
     const c = await b.newContext(ctxFor(dev)); const p = await c.newPage(); const errs = [];
     p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'error' && errs.push(m.text()));
     const tag = dev.replace(/ /g, '');

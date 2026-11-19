@@ -83,9 +83,9 @@ Systems dort nachlesen, besonders vor Balance-Zahlen.
 
 ## Mobile / PWA
 - Primär am Handy als Homescreen-App: https://sayfababa.github.io/Shakes/ (Pages vom Arbeits-Branch).
-- **Ab iPhone 13, nicht mehr SE** (Ansage des Besitzers). Geräte in den Tests: `Browser 390x664`
-  (iPhone 13 **im Safari**, Leisten fressen ~180 px – **nicht streichen**, wer den Link antippt sitzt
-  dort), `iPhone 13`, `iPhone 15 Pro Max`, `App 430x867`. Eigene Größen in `ctxFor(dev)`.
+- **Maßstab: ein Gerät, iPhone 13 als App, 390×844** (Ansage des Besitzers, 2026-11-19). Schmalstes
+  Gerät im großen Layout (≥ 760 px), dort wird es eng. **Browser/Safari (< 760 px) wird bewusst nicht
+  mehr geprüft** („im Browser ist es eh zu klein"). Größe in `ctxFor()`, Händler/Vorbereitung in `SCR`.
 - **Kein Scrollen**: HUD oben, `<main>` (overflow hidden), Tabs unten. `#app` ist `position: fixed;
   inset: 0` – **nicht** 100dvh/100vh; als App setzt `fitApp()` die Höhe auf `screen.height`.
   Ausnahmen, die scrollen dürfen: Kampflog, Werte-Ansicht (`.vscroll`), `.wlist`.
@@ -108,13 +108,13 @@ Die Blöcke je System (wo der Code liegt, harte Grenzen) stehen in **`SYSTEME.md
 ## Tests
 **Welcher Lauf vor dem Push** (Ansage des Besitzers – nicht mehr „vor jedem Push alles"):
 - **Nur Aussehen** (CSS, Bilder/Sprites, Texte, Anordnung im HTML): `sh tests/run.sh quick` (~1:20,
-  Logik + UI auf 4 Geräten + Händler + Vorbereitung) **plus Screenshot der geänderten Ansicht**.
+  Logik + UI auf dem iPhone 13 + Händler + Vorbereitung) **plus Screenshot der geänderten Ansicht**.
 - **Logik oder Zahlen** (`js/` über reine Texte hinaus, `data.js`): voller `sh tests/run.sh` (~2:45).
 - **Unsicher:** voll.
 - Einzelne Teile während der Arbeit: `sh tests/run.sh <name> …`
   (logic bot fuzz ways potions descent acts sets uniques tree caps ui trader prep uifuzz).
 - Was jeder Test prüft (logic, fuzz, ui, uifuzz, trader, prep, Balance, bot, personas): **`SYSTEME.md`**,
-  Abschnitt „Tests im Einzelnen". Browser-Tests: `deviceScaleFactor: 1`, alle Geräte gleichzeitig.
+  Abschnitt „Tests im Einzelnen". Browser-Tests: `deviceScaleFactor: 1`.
 - Neue Features: Logik in game.js/state.js (DOM-frei), dann Test ergänzen.
 
 ## Navigation

@@ -4,11 +4,11 @@ const OUT = __dirname + '/out/prep'; require('fs').mkdirSync(OUT, { recursive: t
 const srv = spawn('python3', ['-m', 'http.server', '8782'], { cwd: '/home/user/Shakes', stdio: 'ignore' });
 // `cut` schneidet unten von der gezeichneten Flaeche ab – so frisst auf dem iPhone ein Band oben
 // (Karten-Navigation, Telefonat) Hoehe, waehrend `vh` auf der vollen Bildschirmhoehe bleibt.
-// `band` ist genau dieser Fall: nur dort greift der zweite Sparschritt (.prep.tighter).
-const SCR = [['ios932', 430, 932, 75], ['ios932b', 430, 932, 0], ['app', 430, 867, 0], ['real', 430, 800, 0], ['i13', 390, 664, 0], ['i13app', 390, 844, 60], ['band', 402, 874, 180]];
+// `i13band180` ist genau dieser Fall: nur dort greift der zweite Sparschritt (.prep.tighter).
+const SCR = [['i13app', 390, 844, 0], ['i13band', 390, 844, 60], ['i13band180', 390, 844, 180]];
 // [Krypta-Index, Ebene, Stufe, Treue (3 Plätze), Tränke vorrätig]
 const CASES = [[0, 0, 3, 0, 0], [1, 4, 7, 0, 0], [1, 4, 60, 1, 1], [3, 4, 30, 1, 1], [2, 2, 15, 0, 1]];
-(async () => { await new Promise(r => setTimeout(r, 700)); const b = await chromium.launch(); let bad = 0, n = 0;
+(async () => { await new Promise(r => setTimeout(r, 700)); const b = await chromium.launch(); let bad = 0, n = 0, tight = 0;
   await Promise.all(SCR.map(async ([nm, w, h, cut]) => {
     const c = await b.newContext({ ...devices['iPhone 15 Pro Max'], viewport: { width: w, height: h }, deviceScaleFactor: 1 }); const p = await c.newPage();
     await p.goto('http://localhost:8782/'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(300);
@@ -22,7 +22,7 @@ const CASES = [[0, 0, 3, 0, 0], [1, 4, 7, 0, 0], [1, 4, 60, 1, 1], [3, 4, 30, 1,
       if (!(await p.$(`[data-action=crypt][data-id=${id}]`))) { console.log(nm, 'Krypta nicht antippbar', id); continue; }
       await p.tap(`[data-action=crypt][data-id=${id}]`); await p.waitForTimeout(80);
       if (potsOn) { await p.tap('[data-action=bestBelt]').catch(() => {}); await p.waitForTimeout(80); }
-      n++;
+      n++; if (await p.$('.prep.tighter')) tight++;
       const r = await p.evaluate(() => { const m = document.querySelector('main').getBoundingClientRect(), out = [];
         const go = document.querySelector('[data-action=cryptgo]'); if (!go) out.push('KEIN KÄMPFEN'); else if (go.getBoundingClientRect().bottom > m.bottom + 1) out.push('KÄMPFEN ABGESCHNITTEN');
         for (const e of document.querySelectorAll('main *')) { const q = e.getBoundingClientRect(); if (q.height && q.bottom > m.bottom + 1) { out.push('UNTER MAIN ' + (e.className || e.tagName)); break; } }
@@ -53,4 +53,6 @@ const CASES = [[0, 0, 3, 0, 0], [1, 4, 7, 0, 0], [1, 4, 60, 1, 1], [3, 4, 30, 1,
         return out.join(' '); });
       if (z) { bad++; console.log(nm, 'Gebiet', z); await p.screenshot({ path: `${OUT}/${nm}_gebiet.png` }); } }
     await c.close(); }));
-  await b.close(); srv.kill(); console.log(bad ? `${bad} Probleme (Screenshots in tests/out/prep)` : `Vorbereitung ok: ${n} Lagen (Krypta + Akt-Gebiet) auf ${SCR.length} Bildschirmen, Kämpfen immer sichtbar.`); process.exit(bad ? 1 : 0); })();
+  // Der zweite Sparschritt muss mindestens einmal greifen, sonst ist er ungeprüft
+  if (!tight) { bad++; console.log('.prep.tighter griff auf keinem Bildschirm – zweiter Sparschritt ungeprüft'); }
+  await b.close(); srv.kill(); console.log(bad ? `${bad} Probleme (Screenshots in tests/out/prep)` : `Vorbereitung ok: ${n} Lagen (Krypta + Akt-Gebiet) auf ${SCR.length} Bildschirmen, (${tight}× zweiter Sparschritt), Kämpfen immer sichtbar.`); process.exit(bad ? 1 : 0); })();

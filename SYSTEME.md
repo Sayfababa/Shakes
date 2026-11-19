@@ -130,19 +130,20 @@ eines Systems seinen Block hier lesen** (`grep -n '^\*\*' SYSTEME.md` zeigt die 
 - `tests/logic.test.mjs` – node:test, Logik & Daten-Konsistenz (Quest-Ziele, Bilder, Migration, Softlocks).
 - `tests/fuzz.mjs [züge] [läufe]` – zufällige legale Spielzüge; prüft nach JEDEM Zug: kein doppeltes
   Item, Werte gültig, Raster ohne Überlappung, Speichern=Laden. **Kennt Beutel und Lager.**
-- `tests/ui.cjs` – Playwright auf 4 Geräten: alle Ansichten, JS-Fehler, nichts ragt heraus,
+- `tests/ui.cjs` – Playwright auf dem iPhone 13 (App, 390×844): alle Ansichten, JS-Fehler, nichts ragt heraus,
   kleinste Schrift. Screenshots in `tests/out/` (nicht committen).
 - `tests/uifuzz.cjs [taps]` – tippt zufällig auf alles; meldet JS-Fehler, Überstand, „undefined/NaN",
   Sackgassen, **jeden Systemdialog**.
-- `tests/trader.cjs` – Händler-Layout: 3 Händler × alle Aufträge + Vargo + Ilse/Prophet × 8 Bildschirme.
-- `tests/prep.cjs` – Vorbereitung (Krypta **und** Akt-Gebiet) auf 9 Bildschirmen; „Kämpfen" sichtbar.
+- `tests/trader.cjs` – Händler-Layout: 3 Händler × alle Aufträge + Vargo + Ilse/Prophet × 390×844 ohne/mit Band (60 px).
+- `tests/prep.cjs` – Vorbereitung (Krypta **und** Akt-Gebiet) auf 390×844 ohne Band, 60 px und 180 px Band;
+  „Kämpfen" sichtbar, der zweite Sparschritt (`.tighter`) muss mindestens einmal greifen.
 - Balance (alle mit gekoppeltem Zufall, `--check` in run.sh): `caps.mjs` (laufen Boni ins Leere?),
   `calib.mjs` (Eichung), `tree.mjs`, `ways.mjs`, `uniques.mjs`, `sets.mjs`, `potions.mjs`,
   `descent.mjs`, `acts.mjs`.
 - `tests/bot.mjs [klasse] [tage] [läufe] [risiko] [--pots]` – Bot mit simulierter Uhr, für
   Balance-Fragen. **Deckt den Spieler *nach* der Geschichte kaum ab.** → E
 - `tests/personas.mjs [tage]` – Optimist/Realist/Pessimist, Auswertung in BOT-REVIEW.md.
-- Browser-Tests laufen mit `deviceScaleFactor: 1` und allen Geräten gleichzeitig.
+- Browser-Tests laufen mit `deviceScaleFactor: 1`.
 - Neue Features: Logik in game.js/state.js (DOM-frei), dann Test ergänzen.
 
 ## Einzelregeln (aus CLAUDE.md hierher verschoben, gelten weiter)
