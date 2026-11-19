@@ -45,6 +45,10 @@ einmal teuer geworden; die Herkunft steht in `entscheidungen/fallen.md`.
    ehrlich mit Beutestufe steigen lassen; später Wochen-Herausforderung. **Nur besprechen**, er will reden.
    Offene Fragen an ihn: Spiellänge (Wochen/Abende), Timer ja/nein, was macht ihm am meisten Spaß,
    Stufen-Deckel.
+   **Seine Antworten (2026-11-19):** Spiellänge **Wochen** · **spielen, so viel man will** · Schmieden ist okay, aber
+   **zu wenig Material** (lohnt fast nur Fusion) und die **Schmiedeglut des Items muss raus** (deine Glut bleibt) ·
+   Stufen **offen**. Gemessen (Bot, 14 Tage, Zählung in Kopie): Zauberin gesamt gefallen Asche 18, Staub 22, Blutstein 15,
+   Siegel 8, Leinen 28 (je Eingriff 2 nötig) – fast alles in den ersten 3–7 Tagen, danach kaum Neues. Vorschlag liegt ihm vor.
 - Bot (`tests/bot.mjs sorceress 30 1`, spielt ideal): Geschichte fertig Tag 3 (~Stufe 19), Glocke Tag 12
   (Stufe 26), danach kein Ende.
 
