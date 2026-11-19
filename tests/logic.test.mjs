@@ -1071,6 +1071,37 @@ test('Fusionieren: die Regeln halten (Form, Seltenheit, Siegel, Platz, Einzigart
   if (uniq) { G.S.bag.push(uniq); assert.ok(!G.fuseMains().some(i => i.id === uniq.id), 'Einzigartiges steht als Hauptteil zur Wahl'); }
 });
 
+test('Jedes Krypta-Ziel sagt, wo die Krypta ist', async () => {
+  // Der Besitzer stand vor "Bezwinge: Bruder Aldemar" und wusste nicht, wo der Mann steckt - die
+  // Antwort stand in CRYPTS/ACTS, nur nie auf dem Zettel. Gleiche Regel wie bei den Zutaten:
+  // ABLEITEN, nie abtippen. Ein handgeschriebener Ort luegt, sobald eine Krypta den Akt wechselt.
+  const G = await import('../js/state.js'), Q = await import('../js/quests.js'), D = await import('../js/data.js');
+  let geprueft = 0;
+  for (const tid of D.GIVERS) for (let qi = 0; qi < D.QUESTS[tid].length; qi++) {
+    const q = D.QUESTS[tid][qi];
+    const ziele = q.obj.map((o, i) => [o, i]).filter(([o]) => o.boss || o.bossd || o.clear);
+    if (!ziele.length) continue;
+    for (const offen of [false, true]) {
+      G.newChar('ZielTest', 'witch'); G.S.lvl = 30; G.S.tut = 99;
+      G.S.acts.prog = offen ? Object.fromEntries(D.ACTS.map(a => [a.id, 9])) : {};
+      G.S.traders[tid].q = qi; G.S.traders[tid].prog = [0, 0, 0];
+      const labels = Q.objectives(tid).map(o => o.label);
+      for (const [o, i] of ziele) {
+        const c = D.CRYPTS.find(x => x.id === (o.boss || o.bossd || o.clear));
+        const L = labels[i];
+        assert.ok(L.includes(c.name), `${tid}/${q.id}: das Ziel nennt die Krypta nicht ("${L}")`);
+        // Solange die Krypta zu ist, muss dastehen, welcher Akt sie aufschliesst - und zwar der
+        // ECHTE aus den Daten, nicht einer von Hand eingetragenen.
+        const akt = G.cryptAct(c);
+        if (!offen) assert.ok(L.includes(`Akt ${akt.n}`), `${tid}/${q.id}: verschlossene Krypta ohne Akt-Hinweis ("${L}")`);
+        else assert.ok(!/Akt /.test(L), `${tid}/${q.id}: offene Krypta nennt trotzdem einen Akt ("${L}")`);
+        geprueft++;
+      }
+    }
+  }
+  assert.ok(geprueft >= 20, `zu wenige Krypta-Ziele geprueft (${geprueft})`);
+});
+
 test('Die Marke am fusionierten Bonus folgt dem Bonus', async () => {
   const G = await import('../js/state.js'), L = await import('../js/loot.js'), D = await import('../js/data.js');
   const fill = () => { for (const k of Object.keys(D.MATS)) G.S.mats[k] = 99;

@@ -47,5 +47,28 @@ const SCR = [['ios932', 430, 932, 75], ['ios932b', 430, 932, 0], ['app', 430, 86
         return { out: out.join(' ') }; });
       if (r.out) { bad++; console.log(nm, 'vargo', honor, r.out); await p.screenshot({ path: `${OUT}/${nm}_vargo_${honor}.png` }); }
     }
+    // Ilse und der Prophet sind auch Questgeber, standen aber in KEINEM Layout-Test - und genau
+    // ihre Zettel tragen die laengsten Zielzeilen (Prophet p6: 90 Zeichen, seit der Fundort am
+    // Boss-Ziel steht). Geprueft wird mit ZUGESPERRTEN Akten, denn dann ist die Zeile am laengsten
+    // ("... (Gruft der Waescherinnen, Akt I schaffen)"), und ob ein Ziel seinen Text verschluckt -
+    // das ragt nirgends heraus und waere sonst unsichtbar, dieselbe blinde Stelle wie beim Grabsiegel.
+    for (const t of ['ilse', 'prophet']) for (let qi = 0; qi < 9; qi++) {
+      const ok = await p.evaluate(async ([t, qi]) => { const D = await import('./js/data.js'); if (qi >= D.QUESTS[t].length) return false;
+        const G = await import('./js/state.js'); Object.assign(G.S, { lvl: 30, tut: 99 });
+        G.S.acts.prog = {}; G.S.traders[t].q = qi; G.S.traders[t].prog = [0, 0, 0];
+        const a = document.createElement('b'); a.dataset.action = 'npc'; a.dataset.n = t;
+        document.body.appendChild(a); a.click(); a.remove(); return true; }, [t, qi]);
+      if (!ok) continue;
+      await p.waitForTimeout(60);
+      const r = await p.evaluate(() => { const m = document.querySelector('main').getBoundingClientRect(), out = [];
+        const n = document.querySelector('.trader .note'); if (!n) return { out: 'ZETTEL FEHLT' };
+        for (const e of document.querySelectorAll('main *')) { const q = e.getBoundingClientRect(); if (q.height && q.bottom > m.bottom + 1) { out.push('UNTER MAIN ' + e.className); break; } }
+        for (const e of n.querySelectorAll('li')) {
+          if (e.scrollHeight > e.clientHeight + 1) out.push('ZIEL VERSCHLUCKT TEXT');
+          if (parseFloat(getComputedStyle(e).fontSize) < 11) out.push('ZIEL-SCHRIFT ZU KLEIN');
+        }
+        return { out: out.join(' ') }; });
+      if (r.out) { bad++; console.log(nm, t, qi, r.out); await p.screenshot({ path: `${OUT}/${nm}_${t}_${qi}.png` }); }
+    }
     await c.close(); }));
-  await b.close(); srv.kill(); console.log(bad ? `${bad} Probleme (Screenshots in tests/out/trader)` : 'Händler ok: 3 Händler × alle Aufträge + Vargo × offen/fertig × 8 Bildschirme, gleich groß, nichts abgeschnitten.'); process.exit(bad ? 1 : 0); })();
+  await b.close(); srv.kill(); console.log(bad ? `${bad} Probleme (Screenshots in tests/out/trader)` : 'Händler ok: 3 Händler × alle Aufträge + Vargo + Ilse/Prophet × offen/fertig × 8 Bildschirme, gleich groß, nichts abgeschnitten.'); process.exit(bad ? 1 : 0); })();
