@@ -1000,7 +1000,7 @@ test('Fusionieren: der Bonus wandert, das Futter zerfällt, einmal je Teil', asy
   // System und wuerfeln neue Teile, bis ein Paar wirklich zueinander passt.
   const paar = (nA, nB) => { for (let t = 0; t < 40; t++) {
     G.S.bag.length = 0; const x = mk(nA), y = mk(nB); G.S.bag.push(x, y);
-    const kk = Object.keys(G.baseMods(y)).find(z => !G.fuseCheck(x, y, z, null));
+    const kk = Object.keys(G.baseMods(y)).find(z => !(z in G.baseMods(x)) && !G.fuseCheck(x, y, z, null));
     if (kk) return [x, y, kk]; } return []; };
   let [a, b, k] = paar(1, 2);
   assert.ok(k, 'kein übertragbarer Bonus gefunden');
@@ -1038,6 +1038,30 @@ test('Fusionieren: der Bonus wandert, das Futter zerfällt, einmal je Teil', asy
   assert.ok(!r.err, r.err);
   assert.equal(r.it.rarity, 'magic', 'beim Ersetzen darf nichts aufsteigen');
   assert.ok(!(weg in G.baseMods(r.it)), 'der ersetzte Bonus ist noch da');
+
+  // --- Gleicher Bonus in beiden: er ersetzt genau diesen (Wert + Stufe), ohne Aufstieg, ohne Antippen im Hauptteil
+  frisch();
+  [a, b] = paar(2, 2); assert.ok(a, 'kein Paar gefunden');
+  const gl = Object.keys(G.baseMods(b))[0], rest = Object.keys(G.baseMods(a)).find(z => z !== gl);
+  a.mods = { [gl]: 1, [rest]: 7 }; a.tiers = { [gl]: 1, [rest]: 2 }; delete a.sealed; delete a.runes;
+  b.tiers = { ...b.tiers, [gl]: 5 };
+  assert.equal(G.fuseCheck(a, b, gl, null), null, 'gleicher Bonus müsste fusionierbar sein');
+  assert.match(G.fuseCheck(a, b, gl, rest) || '', /ersetzt sich selbst/);
+  const neu = G.baseMods(b)[gl];
+  r = G.fuse(a.id, b.id, gl, null);
+  assert.ok(!r.err, r.err);
+  assert.equal(r.replaced, gl);
+  assert.equal(r.it.rarity, 'magic', 'gleicher Bonus darf nicht aufsteigen');
+  assert.equal(G.baseMods(r.it)[gl], neu, 'der Wert ist nicht ersetzt');
+  assert.equal(r.it.tiers[gl], 5, 'die Stufe ist nicht mitgewandert');
+  assert.equal(G.baseMods(r.it)[rest], 7, 'der andere Bonus ist verlorengegangen');
+  assert.equal(Object.keys(G.baseMods(r.it)).length, 2);
+  // Versiegelt bleibt versiegelt, auch für den gleichen Bonus
+  frisch();
+  [a, b] = paar(2, 2); assert.ok(a, 'kein Paar gefunden');
+  const gl2 = Object.keys(G.baseMods(b))[0], r2 = Object.keys(G.baseMods(a)).find(z => z !== gl2);
+  a.mods = { [gl2]: 1, [r2]: 7 }; a.tiers = { [gl2]: 1, [r2]: 2 }; delete a.runes; a.sealed = gl2;
+  assert.match(G.fuseCheck(a, b, gl2, null) || '', /versiegelt/);
 });
 
 test('Fusionieren: die Regeln halten (Form, Seltenheit, Siegel, Platz, Einzigartige)', async () => {

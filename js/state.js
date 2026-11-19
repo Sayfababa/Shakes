@@ -668,6 +668,10 @@ export const fuseFoods = main => !main ? [] : S.bag.filter(it =>
 // Ist das Hauptteil voll, muss entweder ein Bonus weichen (mainStat) oder das Teil steigt auf.
 export const fuseFull = main => Object.keys(baseMods(main)).length >= CRAFT.maxAff[main.rarity];
 export const fusePromote = (main, mainStat) => fuseFull(main) && !mainStat && !main.risen ? nextRar(main.rarity) : null;
+// Welcher Bonus des Hauptteils weicht? Hat es den Futter-Bonus schon, ersetzt er genau diesen
+// (gleicher Bonus, anderer Wert/Stufe) – sonst der angetippte, aber nur bei vollem Teil.
+export const fuseReplaces = (main, foodStat, mainStat) =>
+  foodStat && foodStat in baseMods(main) ? foodStat : fuseFull(main) && mainStat ? mainStat : null;
 
 // Warum geht die Fusion nicht? null = möglich
 export function fuseCheck(main, food, foodStat, mainStat) {
@@ -683,7 +687,8 @@ export function fuseCheck(main, food, foodStat, mainStat) {
   if (S.gold < craftGold(main)) return 'Zu wenig Gold.';
   const fb = baseMods(food), mb = baseMods(main);
   if (!foodStat || !(foodStat in fb)) return 'Bonus im Futter antippen.';
-  if (foodStat in mb) return 'Diesen Bonus hat das Hauptteil schon.';
+  if (foodStat in mb) return foodStat === main.sealed ? 'Dieser Bonus ist versiegelt.'
+    : mainStat && mainStat !== foodStat ? 'Gleicher Bonus ersetzt sich selbst – im Hauptteil nichts antippen.' : null;
   if (!affixPool(main).some(a => a.stat === foodStat)) return 'Dieser Bonus passt nicht auf diesen Platz.';
   if (!fuseFull(main)) return null;                                  // Platz frei: der Bonus kommt einfach dazu
   if (mainStat) return mainStat === main.sealed ? 'Dieser Bonus ist versiegelt.'
@@ -695,8 +700,8 @@ export function fuse(mainId, foodId, foodStat, mainStat) {
   const main = findAny(mainId), food = S.bag.find(x => x.id === foodId);
   const err = fuseCheck(main, food, foodStat, mainStat); if (err) return { err };
   const mb = baseMods(main), tiers = { ...(main.tiers || {}) };
-  const full = fuseFull(main), replaced = full && mainStat ? mainStat : null;
-  const promote = fusePromote(main, mainStat);
+  const replaced = fuseReplaces(main, foodStat, mainStat);
+  const promote = fusePromote(main, replaced);
   if (replaced) { delete mb[replaced]; delete tiers[replaced]; }
   mb[foodStat] = baseMods(food)[foodStat];
   tiers[foodStat] = food.tiers?.[foodStat] || 3;                     // die Stufe wandert mit
