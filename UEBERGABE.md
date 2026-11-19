@@ -29,11 +29,6 @@ einmal teuer geworden; die Herkunft steht in `entscheidungen/fallen.md`.
 
 ## Offen – wartet auf den Besitzer, nichts tun ohne sein Wort
 
-- **Lager-Verkauf.** Er meldete ihn zweimal; **ich konnte ihn nie nachstellen** – in Chromium
-  verkauft das Lager auf allen Geräten, mit Maus und Finger, per Skript eingelegt und über den
-  echten Weg. Auch „das Fenster springt beim Umschalten auf *Wirklich?*" ist gemessen widerlegt
-  (1–2 px). **Prüfstein: steht „Ordnen" neben „Beutel" im Lager, hat er den neuen Stand.**
-  Offene Frage an ihn: passiert bei „Wirklich?" *gar nichts*, oder kommt die *Frage ein zweites Mal*?
 - **Zauber-Bedingungen.** Vorschlag liegt ihm vor, gemessen, **nichts gebaut**. Kern: Zauber feuern
   stur nach Takt (`every: 3/5/7`), während Tränke längst Auslöser haben (`TRIGGERS`). Gemessen
   (Stufe 20, 1200 Kämpfe, Gegner auf 50 % geeicht): **Meteor feuert in 21 % der Kämpfe nie**, 34 %
@@ -41,10 +36,12 @@ einmal teuer geworden; die Herkunft steht in `entscheidungen/fallen.md`.
   einen einzigen Meteor. Bei Feuerball/Frostnova ist nichts zu holen (13 %/9 %) – **nur der dritte
   Zauber lohnt**. Die eigentliche Tiefe entsteht erst, wenn ein unterdrückter Zauber **seine Ladung
   behält**: dann ist es *halten oder werfen* mit Preis.
-- **Kampf-Historie hinter einem Knopf am Kampfende** – seine eigene Idee, nicht gebaut. Die Daten
+- **Kampf-Historie hinter einem Knopf am Kampfende** – seine Idee, **er will sie eingebaut** (2026-11-19);
+  offen ist, *was* sie zeigen soll. Ihm vorgelegt: **A** Verlauf des Kampfes Zug für Zug mit markierten
+  Wendepunkten + dem einen Hebel; **B** die letzten ~10 Kämpfe als Liste. Seine Wahl abwarten. Die Daten
   gibt es schon (`fightReport()` in game.js → `fightSummary` in ui.js). Wichtig: er will
   **Entscheidungen, keine größere Anzeige** – diesen Punkt habe ich einmal verfehlt.
-- **Die vier Abgrund-Materialien** (DESIGN.md) – von ihm bewusst zurückgestellt. **Nicht ohne
+- **Die vier Abgrund-Materialien** (DESIGN.md) – zurückgestellt, **er sucht noch Ideen** dafür. **Nicht ohne
   seinen Zuruf anfangen.**
 - **Arbeitsweise-Abschnitt in CLAUDE.md**: von mir eingetragen, von ihm nicht ausdrücklich
   abgenickt. Falls er ihn anders formuliert haben will, ändern.

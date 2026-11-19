@@ -2,6 +2,16 @@
 
 Aus UEBERGABE.md hierher verschoben, damit die Übergabe kurz bleibt. Neueste oben.
 
+## 2026-11-19, Nachtrag
+
+- **Lager-Verkauf erledigt**: der Besitzer bestätigt „klappt". Der alte offene Punkt lautete:
+
+  - **Lager-Verkauf.** Er meldete ihn zweimal; **ich konnte ihn nie nachstellen** – in Chromium
+    verkauft das Lager auf allen Geräten, mit Maus und Finger, per Skript eingelegt und über den
+    echten Weg. Auch „das Fenster springt beim Umschalten auf *Wirklich?*" ist gemessen widerlegt
+    (1–2 px). **Prüfstein: steht „Ordnen" neben „Beutel" im Lager, hat er den neuen Stand.**
+    Offene Frage an ihn: passiert bei „Wirklich?" *gar nichts*, oder kommt die *Frage ein zweites Mal*?
+
 ## Sitzung bis 2026-11-19 (Commit 61ed38c)
 
 ### Was passiert ist
