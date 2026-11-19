@@ -69,6 +69,23 @@ test('Siegchance: gekoppelter Zufall – gleiche Würfel, „etwa gleich“ nur 
   Game.bestBelt(m, 20); const b1 = S.belt.map(b => b?.id); Game.bestBelt(m, 20); assert.deepEqual(S.belt.map(b => b?.id), b1);   // gekoppelt → gleiche Wahl
 });
 
+test('Kampf: Serienbremse – nie mehr als 2 Ausweicher in Folge, gilt für Hiebe und Zauber', () => {
+  const S = fresh('sorceress'); S.lvl = 20; const A = { ...G.stats(), hp: 1e6 };
+  assert.ok(A.spells?.length, 'Zauberin braucht Zauber für den Test');
+  // Gegner weicht immer aus (100 %): jeder Treffer kommt nur durch die Bremse
+  const m = { ...G.makeMonster(20, 1), hp: 1e6, evade: 1, evadeCap: 0.5 };
+  let mixed = 0, misses = 0;   // mixed: Zauber trifft, weil davor Hiebe ausgewichen wurden (gemeinsamer Zähler)
+  for (let k = 0; k < 20; k++) {
+    let run = [];
+    for (const l of fight(A, m).log) {
+      if (l.who !== 'a' || !(l.dmg !== undefined || l.miss || l.spell)) continue;
+      if (l.miss === 'Ausgewichen') { run.push(l.spell ? 'z' : 'h'); misses++; assert.ok(run.length <= D.CFG.evadeStreak, `${run.length} Ausweicher in Folge`); }
+      else { if (l.spell && run.includes('h')) mixed++; run = []; }
+    }
+  }
+  assert.ok(misses > 0 && mixed > 0, `Ausweicher ${misses}, Zauber nach Hieb-Ausweichern ${mixed}`);
+});
+
 test('Inventar: Items überlappen nie, voller Beutel lehnt ab', () => {
   const S = fresh(); let added = 0;
   for (let i = 0; i < 60; i++) if (G.addToBag(makeItem(5))) added++;

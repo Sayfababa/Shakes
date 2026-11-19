@@ -96,7 +96,7 @@ export function fight(A, B) {
     const m = s.m || {}, amp = (x.amp || 1) * (s.boost || 1);
     const red = 1 - Math.min(0.6, y.armor / (y.armor + 20 + x.lvl * 8)) * (1 - Math.min(0.9, x.pen || 0)) * (1 - Math.min(1, m.pierce || 0));
     const dmgKind = !['heal', 'shield', 'buff'].includes(s.kind);
-    if (dmgKind && chance(Math.max(0, Math.min(0.5 + (y.evadeCap || 0), y.dex / (y.dex + x.dex * 3 + 40) + (y.evade || 0)) - (x.acc || 0)))) return say(x.side, `${x.name} wirkt ${s.name} – ${y.name} weicht aus.`, { spell: s.name, sid: s.id, miss: 'Ausgewichen' });
+    if (dmgKind && dodged(x, y)) return say(x.side, `${x.name} wirkt ${s.name} – ${y.name} weicht aus.`, { spell: s.name, sid: s.id, miss: 'Ausgewichen' });
     let t = `${x.name} wirkt ${s.name}`, d = 0, anyCrit = false, extra = '';
     // Ein Zauber-Treffer läuft durch dieselben Werte wie ein Hieb (Henker, Krit, Lebensraub, Bluten, Gift, Glocke, Dornen)
     const hits = [];
@@ -191,10 +191,17 @@ export function fight(A, B) {
     return t;
   }
 
-  function strike(x, y) {
-    // Schattenform hebt die Ausweich-Grenze (sonst stapelt der Schatten-Zweig in einen Deckel)
+  // Weicht y dem Angriff von x aus? Schattenform hebt die Ausweich-Grenze (sonst stapelt der Schatten-Zweig in einen Deckel).
+  // Serienbremse: nach CFG.evadeStreak Ausweichern in Folge trifft der nächste Angriff sicher – ein Zähler je Angreifer
+  // für Hiebe und Zauber (sonst Fehlschlag-Serien bis 13 bei Klassen ohne Geschick, → E „Serienbremse beim Ausweichen“)
+  function dodged(x, y) {
+    if ((x.evN || 0) >= CFG.evadeStreak) { x.evN = 0; return false; }
     const evade = Math.max(0, Math.min(0.5 + (y.evadeCap || 0), y.dex / (y.dex + x.dex * 3 + 40) + (y.evade || 0)) - (x.acc || 0));
-    if (chance(evade)) return say(x.side, `${y.name} weicht aus.`, { miss: 'Ausgewichen' });
+    if (chance(evade)) { x.evN = (x.evN || 0) + 1; return true; }
+    x.evN = 0; return false;
+  }
+  function strike(x, y) {
+    if (dodged(x, y)) return say(x.side, `${y.name} weicht aus.`, { miss: 'Ausgewichen' });
     if (y.block && chance(Math.min(0.5, y.block))) {
       if (y.bulwark) { const sh = Math.round(y.hp * y.bulwark); y.shield = (y.shield || 0) + sh; ev.shield = sh; }   // Bollwerk: Blocken baut einen Schild auf
       return say(x.side, `${y.name} blockt.`, { miss: 'Geblockt' }); }

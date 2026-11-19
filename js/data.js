@@ -475,6 +475,7 @@ export const CFG = {
   // --- Kurven (nach Bot-Review: Anfang strecken, Zahlen flach halten) ---
   xpBase: 90, xpExp: 1.75,            // EP für nächste Stufe = xpBase * Stufe^xpExp
   hpBase: 3, hpPerLvl: 0.25,          // Leben = Kon × Klassenfaktor × (hpBase + Stufe × hpPerLvl)  (Spieler und Monster)
+  evadeStreak: 2,                     // höchstens so viele Ausweicher in Folge, dann trifft der nächste Angriff sicher (Hieb und Zauber)
   chanceN: 200,                       // Probe-Kämpfe je Siegchance (gekoppelt, → E „Siegchance gekoppelt“ in kampf.md): schlimmster Fall ~50 ms, 4× gedrosselt ~120 ms
   mainDiv: 20,                        // Schaden × (1 + Hauptattribut / mainDiv)
   affixBase: 1, affixPerLvl: 0.5,     // Affix-Wert = per × (affixBase + iLvl × affixPerLvl)
