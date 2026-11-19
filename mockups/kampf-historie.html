@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup – Kampf-Historie</title>
+<link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+SC:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  html, body { overflow: auto; height: auto; }
+  .wrap { display: flex; gap: 28px; padding: 24px; align-items: flex-start; width: max-content; }
+  .phone { width: 390px; height: 844px; position: relative; display: flex; flex-direction: column; padding: 10px; gap: 8px;
+    border: 1px solid #2a2118; box-shadow: 0 0 0 6px #0b0907, 0 0 40px #000; background: var(--noise), var(--stonetex), radial-gradient(ellipse at 50% 20%, #241a12, #070504 70%); }
+  .phone > * { flex: none; }
+  .cap { font-family: 'Alegreya SC'; color: var(--gold); text-align: center; margin-bottom: 8px; font-size: 1rem; }
+  .note2 { width: 390px; color: var(--dim); font-size: .85rem; margin-top: 10px; line-height: 1.35; } .note2 b { color: var(--gold); font-weight: 500; }
+
+  /* Kampfende (vereinfacht, wie heute) */
+  .endp { text-align: center; padding: 10px; }
+  .endp .result { font-family: 'Grenze Gotisch'; font-size: 2rem; }
+  .endp .btns2 { display: flex; gap: 6px; margin-top: 10px; } .endp .btns2 button { flex: 1; }
+  .newmark { outline: 1px dashed var(--gold); outline-offset: 3px; }
+
+  /* Verlauf */
+  .kh { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; padding: 8px 8px 10px; }
+  .kh h2 { margin: 0 0 2px; }
+  .kh .sub { font-size: max(11px, .8rem); color: var(--dim); margin-bottom: 6px; }
+  .kh .sub b { color: var(--blood-hi); font-weight: 700; }
+  .khl { flex: 1 1 auto; min-height: 0; overflow-y: auto; border-top: 1px solid #2a2118; border-bottom: 1px solid #2a2118; }
+  .kr { display: grid; grid-template-columns: 20px 24px 1fr 72px 36px; align-items: center; gap: 4px; padding: 2px 2px;
+    font-size: max(11px, .8rem); line-height: 1.25; border-bottom: 1px solid rgba(60,45,30,.35); }
+  .kr .n { color: var(--dim); text-align: right; }
+  .kr .w { font-family: 'Alegreya SC'; font-size: max(11px, .72rem); }
+  .kr.a .w { color: var(--text); } .kr.b .w { color: #b08070; }
+  .kr .d { text-align: right; font-variant-numeric: tabular-nums; }
+  .kr.b .d { color: #c88a7a; } .kr .d.miss { color: var(--dim); font-style: italic; }
+  .kr .hp { text-align: right; font-variant-numeric: tabular-nums; color: var(--dim); }
+  .kr .hp.low { color: var(--blood-hi); }
+  .kr .sp { color: var(--r-magic); } .kr .pt { color: #6fb07a; } .kr .cr { color: var(--blood-hi); font-weight: 700; }
+  .kw { margin: 3px 0; padding: 3px 6px 3px 8px; font-family: 'Alegreya SC'; font-size: max(11px, .78rem);
+    border-left: 3px solid var(--gold); background: rgba(176,138,62,.08); color: var(--gold-hi); }
+  .kw.bad { border-left-color: var(--blood-hi); background: rgba(140,28,19,.12); color: #e08a70; }
+  .kw small { display: block; font-family: 'Alegreya'; color: var(--dim); font-size: max(11px, .76rem); }
+  .lever { margin-top: 8px; padding: 8px 10px; box-shadow: inset 0 0 0 1px #5a4520, inset 0 0 18px rgba(0,0,0,.6); background: rgba(20,14,8,.7); }
+  .lever .lh { font-family: 'Alegreya SC'; color: var(--gold); font-size: max(11px, .8rem); }
+  .lever .lb { font-size: .95rem; margin: 2px 0; } .lever .lb b { color: var(--gold-hi); }
+  .lever .lwhy { font-size: max(11px, .8rem); color: var(--dim); }
+  .lever .btns2 { display: flex; gap: 6px; margin-top: 8px; } .lever .btns2 button { flex: 1; }
+</style></head><body>
+<div class="wrap">
+
+<div>
+  <div class="cap">1 · Kampfende – ein Knopf mehr</div>
+  <div class="phone">
+    <div class="panel endp">
+      <div class="result lose">Gefallen</div>
+      <div class="fsum">0 % Leben übrig<br><span class="dim">Dein Schaden: Hiebe 48 % · Zauber 52 %</span>
+        <br><span class="tipline">Tipp: Er wich oft aus. Jägerblick oder mehr Geschick helfen.</span></div>
+      <div class="btns2"><button class="newmark">Verlauf</button><button class="red">Weiter</button></div>
+    </div>
+  </div>
+  <div class="note2"><b>Neu ist nur der Knopf „Verlauf"</b> neben „Weiter". Die Zusammenfassung darüber bleibt, wie sie ist.
+    Der Knopf erscheint bei Sieg und Niederlage.</div>
+</div>
+
+<div>
+  <div class="cap">2 · Verlauf dieses Kampfes</div>
+  <div class="phone">
+    <section class="panel kh">
+      <h2>Verlauf</h2>
+      <div class="sub">Zauberin gegen Kultist der Glocke · 15 Züge · <b>Gefallen</b> – ihm blieben 771 Leben</div>
+      <div class="khl">
+        <div class="kr b"><span class="n">1</span><span class="w">Er</span><span class="cr">Hieb, kritisch</span><span class="d">313</span><span class="hp">76 %</span></div>
+        <div class="kr a"><span class="n">2</span><span class="w">Du</span><span>Hieb</span><span class="d">278</span><span class="hp">76 %</span></div>
+        <div class="kr b"><span class="n">3</span><span class="w">Er</span><span>Hieb</span><span class="d">186</span><span class="hp">62 %</span></div>
+        <div class="kr a"><span class="n">4</span><span class="w">Du</span><span>Hieb</span><span class="d miss">ausgewichen</span><span class="hp">62 %</span></div>
+        <div class="kr b"><span class="n">5</span><span class="w">Er</span><span>Hieb</span><span class="d">132</span><span class="hp">52 %</span></div>
+        <div class="kr a"><span class="n">6</span><span class="w">Du</span><span class="sp">Feuerball</span><span class="d miss">ausgewichen</span><span class="hp">52 %</span></div>
+        <div class="kr b"><span class="n">7</span><span class="w">Er</span><span>Hieb</span><span class="d">132</span><span class="hp">42 %</span></div>
+        <div class="kr a"><span class="n">8</span><span class="w">Du</span><span>Hieb</span><span class="d">345</span><span class="hp">42 %</span></div>
+        <div class="kr b"><span class="n">9</span><span class="w">Er</span><span>Hieb</span><span class="d">167</span><span class="hp low">30 %</span></div>
+        <div class="kw bad">Dein Leben unter 30 %<small>Kein Heiltrank im Gürtel.</small></div>
+        <div class="kr a"><span class="n">10</span><span class="w">Du</span><span class="sp">Frostnova</span><span class="d miss">ausgewichen</span><span class="hp low">30 %</span></div>
+        <div class="kr b"><span class="n">11</span><span class="w">Er</span><span>Hieb</span><span class="d">135</span><span class="hp low">20 %</span></div>
+        <div class="kr a"><span class="n">12</span><span class="w">Du</span><span class="sp">Feuerball</span><span class="d">665</span><span class="hp low">20 %</span></div>
+        <div class="kr b"><span class="n">13</span><span class="w">Er</span><span>Hieb</span><span class="d">167</span><span class="hp low">7 %</span></div>
+        <div class="kr a"><span class="n">14</span><span class="w">Du</span><span class="sp">Meteor</span><span class="d miss">ausgewichen</span><span class="hp low">7 %</span></div>
+        <div class="kw bad">Meteor verpufft<small>Hätte er getroffen (~1 400), wäre er auf 0 gegangen.</small></div>
+        <div class="kr b"><span class="n">15</span><span class="w">Er</span><span>Hieb</span><span class="d">137</span><span class="hp low">0 %</span></div>
+      </div>
+      <div class="lever">
+        <div class="lh">Was am meisten geholfen hätte</div>
+        <div class="lb"><b>Jägerblick</b> im Gürtel: Siegchance <b>58 % → 71 %</b></div>
+        <div class="lwhy">Er wich 4 von 7 Angriffen aus, darunter dein Meteor. Nachgerechnet: 400 Kämpfe gegen genau diesen Gegner.</div>
+        <div class="btns2"><button>In den Gürtel</button><button class="red">Zurück</button></div>
+      </div>
+    </section>
+  </div>
+  <div class="note2"><b>Eine Zeile je Zug</b>: wer, was, Schaden, dein Leben danach. <b>Wendepunkte</b> stehen als Balken
+    dazwischen. Unten <b>ein</b> Hebel – nicht geschätzt, sondern mit deinen Werten gegen diesen Gegner nachgerechnet.
+    Lange Kämpfe: die Liste scrollt (wie heute das Kampflog). Zahlen: echter Kampf, Zauberin Stufe 20.</div>
+</div>
+
+</div>
+</body></html>
