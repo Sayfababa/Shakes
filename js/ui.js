@@ -4,7 +4,7 @@ import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES,
 import { affixPool } from './loot.js';
 import { potion, beltSlots, brewCost, canBrew, potMax, unreadable, herbPrice, canBuyHerb, herbLeft, herbSource } from './state.js';
 import { WIKI_CATS, wikiList, wikiEntry, upgradePaths, matBottleneck } from './wiki.js';
-import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, craftRaises, craftMat, baseMods, fusedMods, fuseMains, fuseFoods, fuseCheck, fuseFull, fusePromote, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
+import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, craftRaises, craftMat, baseMods, fusedMods, filterHits, filterOf, filterOn, setFilterMod, fuseMains, fuseFoods, fuseCheck, fuseFull, fusePromote, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 // Name eines Item-Bonus: Attribute, Rüstung/Schaden, Prozent-Boni ("% Krit-Chance", "% Feuerball")
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
@@ -21,6 +21,10 @@ export const fmtN = n => n.toLocaleString('de-DE');
 // Kampfkraft-Änderung durch ein Item (in %), null wenn nicht vergleichbar
 export const itemGain = it => { if (!it?.slot || Object.values(S.equip).includes(it)) return null; const p = powerWith(it); return (p.then - p.now) / Math.max(1, p.now); };
 const gainTag = it => { const g = itemGain(it); return g > 0.01 ? `<i class="better" title="besser">▲</i>` : ''; };
+// Beute-Filter: je getroffenem Bonus ein Punkt, oben LINKS (oben rechts sitzt schon das ▲).
+// EIN Helfer fuer alle Felder - die Set-Farbe und das Orange der Einzigartigen haben gelehrt,
+// dass acht einzelne Fundstellen bedeuten, dass die neunte Ansicht es wieder vergisst.
+const hitDots = it => { const n = filterHits(it); return n ? `<i class="fdots" title="${n} gesuchte Boni">${'<b></b>'.repeat(Math.min(n, 5))}</i>` : ''; };
 const pct = (a, b) => Math.max(0, Math.min(100, (a / b) * 100));
 const FLAGS = new Set(['first', 'toll', 'lastStand', 'tollback', 'firstEcho', 'venom', 'lastBreath', 'nohealSelf', 'hemorrhage']);   // an/aus – keine Prozentzahl
 const effLine = e => Object.entries(e).map(([k, v]) => `${EFFECT_NAMES[k]}${FLAGS.has(k) ? '' : (v < 0 ? ' −' : ' +') + Math.abs(Math.round(v * 100)) + '%'}`).join(', ');
@@ -108,7 +112,7 @@ export function itemTip(it, cmp) {
 // legendäre Teil (vom Besitzer gemeldet). `uq` kommt **zusätzlich** zur Seltenheitsklasse ans Feld,
 // nie an den Text – dort trägt `.uniq-txt` das Orange schon.
 const rarCls = it => `r-${it.rarity}${it.unique ? ' uq' : ''}`;
-const itemEl = (it, act) => `<div class="item ${rarCls(it)}" data-tip="${it.id}" ${act}>${itemArt(it)}${gainTag(it)}</div>`;
+const itemEl = (it, act) => `<div class="item ${rarCls(it)}" data-tip="${it.id}" ${act}>${itemArt(it)}${gainTag(it)}${hitDots(it)}</div>`;
 
 // --- Rahmen ---
 export function hud(tut = '') {
@@ -173,7 +177,7 @@ function invPanel(stash, mats) {
       <button class="tiny ${stash ? 'on' : ''}" data-action="invmode">${stash ? 'Beutel' : 'Lager'}</button>
       <button class="tiny" data-action="sort" data-g="${stash ? 'stash' : 'bag'}">Ordnen</button></div>
       <div class="inv" style="--w:${g.w};--h:${g.h}">
-        ${g.list.map(it => `<div class="cellitem ${rarCls(it)}" style="left:${it.x / g.w * 100}%;top:${it.y / g.h * 100}%;width:${it.w / g.w * 100}%;height:${it.h / g.h * 100}%" data-tip="${it.id}" data-action="${act}" data-id="${it.id}">${itemArt(it)}${gainTag(it)}</div>`).join('')}
+        ${g.list.map(it => `<div class="cellitem ${rarCls(it)}" style="left:${it.x / g.w * 100}%;top:${it.y / g.h * 100}%;width:${it.w / g.w * 100}%;height:${it.h / g.h * 100}%" data-tip="${it.id}" data-action="${act}" data-id="${it.id}">${itemArt(it)}${gainTag(it)}${hitDots(it)}</div>`).join('')}
       </div>
       <div class="mats">${mats.length ? mats.map(([k, n]) => `<span title="${MATS[k]}">${matImg(k)}<b>${n}</b></span>`).join('') : '<span class="dim">Keine Materialien. Monster lassen sie fallen.</span>'}</div>
     </section>`;
@@ -463,7 +467,7 @@ export function viewTrader(tid) {
       return `<button class="svc" data-action="service" data-t="${tid}" data-s="${sv.id}" ${st.can ? '' : 'disabled'}>
         <b>${sv.name}${sv.max && st.step ? ` +${st.step}` : ''}</b><small>${st.reason || st.costText}${st.questMat && !st.reason ? ` <i class="hot">– ${MATS[st.questMat]} für Auftrag!</i>` : ''}</small></button>`; }).join('')}</section>
     <section class="panel shop"><div class="invhead"><span>Ware</span><small class="dim">bessere Ware mit höherer Treue</small></div>
-      <div class="shoprow">${shop.map(it => `<div class="sitem ${rarCls(it)}${it.lock ? ' lock' : ''}" data-tip="${it.id}" data-action="buy" data-t="${tid}" data-id="${it.id}">${itemArt(it)}${gainTag(it)}<span class="price ${S.gold < it.price ? 'no' : ''}">${it.price}</span></div>`).join('') || '<span class="dim">Ausverkauft.</span>'}</div></section>
+      <div class="shoprow">${shop.map(it => `<div class="sitem ${rarCls(it)}${it.lock ? ' lock' : ''}" data-tip="${it.id}" data-action="buy" data-t="${tid}" data-id="${it.id}">${itemArt(it)}${gainTag(it)}${hitDots(it)}<span class="price ${S.gold < it.price ? 'no' : ''}">${it.price}</span></div>`).join('') || '<span class="dim">Ausverkauft.</span>'}</div></section>
   </div>`;
 }
 
@@ -486,7 +490,7 @@ export function lootCards(items = []) {
   if (!items.length) return '';
   return `<div class="drops${items.length > 3 ? ' many' : ''}">${items.map((it, i) => { const g = it.soldFull ? 0 : itemGain(it), beam = it.unique || ['rare', 'legendary', 'set'].includes(it.rarity);
     return `<div class="drop d-${dropTier(it)} ${beam ? 'beam' : ''}" style="--i:${i}" ${it.soldFull ? '' : `data-tip="${it.id}" data-action="equip" data-id="${it.id}"`}>
-      <span class="dimg">${itemArt(it)}</span><span class="dtxt"><b class="r-${it.rarity} ${it.unique ? 'uniq-txt' : ''}">${it.name}</b>
+      <span class="dimg">${itemArt(it)}${hitDots(it)}</span><span class="dtxt"><b class="r-${it.rarity} ${it.unique ? 'uniq-txt' : ''}">${it.name}</b>
       <small>${it.set ? `${SETS.find(x => x.id === it.set)?.name} ${setCount(it.set) + (Object.values(S.equip).includes(it) ? 0 : 1)}/${SET.parts}` : rarName(it.rarity, it)}${it.special ? ' · Sonderbonus' : ''}${it.soldFull ? ' · Beutel voll, verkauft' : g > 0.01 ? ` · <i class="better-txt">▲ +${Math.round(g * 100)} %</i>` : ''}</small></span></div>`; }).join('')}</div>`;
 }
 function fightSummary(F) {
@@ -582,7 +586,7 @@ function viewCraft(sel) {
     return `<button class="cop ${rise ? 'rise' : ''}" data-action="craftop" data-o="${op.id}" ${err ? 'disabled' : ''} title="${tip} (${MATS[need.mat]})">${matImg(need.mat)}<b>${nm}</b><small><i class="${(S.mats[need.mat] || 0) < need.n ? 'down' : ''}">${S.mats[need.mat] || 0}/${need.n}</i><br>Glut ${need.glut}+</small></button>`; }).join('');
   const why = it && CRAFT.ops.map(op => craftCheck(it, op.id, sel.stat)).find(e => e && !/Material|Bonus antippen/.test(e));
   return `<div class="col forge craft">${forgeTabs(sel)}
-    <section class="panel"><div class="cpick">${list.map(x => `<div class="fslot ${rarCls(x)} ${x.id === sel.item ? 'on' : ''} ${x.crafted ? 'full' : ''} ${Object.values(S.equip).includes(x) ? 'eq' : ''}" data-action="craftpick" data-id="${x.id}">${itemArt(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`).join('') || '<span class="dim small">Nichts zum Umschmieden. Magische Items fallen bei Monstern und Händlern.</span>'}</div></section>
+    <section class="panel"><div class="cpick">${list.map(x => `<div class="fslot ${rarCls(x)} ${x.id === sel.item ? 'on' : ''} ${x.crafted ? 'full' : ''} ${Object.values(S.equip).includes(x) ? 'eq' : ''}" data-action="craftpick" data-id="${x.id}">${itemArt(x)}${hitDots(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`).join('') || '<span class="dim small">Nichts zum Umschmieden. Magische Items fallen bei Monstern und Händlern.</span>'}</div></section>
     <section class="panel grow">${card}</section>
     <section class="panel"><div class="cops">${ops}</div>
       <p class="small cmsg">${sel.msg || (it ? `Je Eingriff ${craftGold(it)} Gold · ${sel.stat ? `<b>${STAT_NAME(sel.stat)}</b> gewählt` : 'zum Versiegeln einen Bonus antippen'}${why ? ` · <span class="down">${why}</span>` : ''}${craftHint(it)}` : 'Material bestimmt den Eingriff, Schmiedeglut wie oft.')}</p></section></div>`;
@@ -625,7 +629,7 @@ function viewFuse(sel) {
   // und nicht die, die auf diesem Platz nichts zu suchen haben (Blocken gehört nicht auf einen Dolch).
   const blocked = main && food ? new Set(Object.keys(baseMods(food)).filter(k =>
     k in baseMods(main) || !affixPool(main).some(a => a.stat === k))) : null;
-  const cell = (x, on, cls) => `<div class="fslot ${rarCls(x)} ${on ? 'on' : ''} ${cls || ''}" data-action="fuse${cls === 'f' ? 'food' : 'pick'}" data-id="${x.id}">${itemArt(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`;
+  const cell = (x, on, cls) => `<div class="fslot ${rarCls(x)} ${on ? 'on' : ''} ${cls || ''}" data-action="fuse${cls === 'f' ? 'food' : 'pick'}" data-id="${x.id}">${itemArt(x)}${hitDots(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`;
   const board = !main ? '<p class="dim small">Wähle oben das Hauptteil – das Teil, das bleibt und den neuen Bonus bekommt.</p>'
     : `<div class="fuse2">
       <div class="fside main"><h5>Hauptteil – bleibt</h5><div class="fname r-${main.rarity}">${main.name}</div>
@@ -744,7 +748,7 @@ export function viewPitShop(back) {
   const shop = pitShop(), Pw = S.pit, left = PIT.weekBuys - Pw.buys;
   const ware = (w, t, k) => { const can = !w.sold && left > 0 && S.honor >= w.price;
     const art = w.t === 'item' ? itemArt(w.item) : w.t === 'herb' ? herbImg(w.id) : matImg(w.id), nm = w.t === 'item' ? '' : `<i class="wn">${w.t === 'herb' ? HERBS[w.id].name : MATS[w.id]} ×${w.n}</i>`;
-    return `<div class="sitem pware ${w.t === 'item' ? rarCls(w.item) : ''} ${w.sold ? 'sold' : ''}" ${w.t === 'item' ? `data-tip="${w.item.id}"` : ''} data-action="pitbuy" data-t="${t}" data-k="${k}">${art}${nm}<span class="price ${can ? '' : 'no'}">${w.sold ? 'verkauft' : hon(w.price)}</span></div>`; };
+    return `<div class="sitem pware ${w.t === 'item' ? rarCls(w.item) : ''} ${w.sold ? 'sold' : ''}" ${w.t === 'item' ? `data-tip="${w.item.id}"` : ''} data-action="pitbuy" data-t="${t}" data-k="${k}">${art}${nm}${w.t === 'item' ? hitDots(w.item) : ''}<span class="price ${can ? '' : 'no'}">${w.sold ? 'verkauft' : hon(w.price)}</span></div>`; };
   return `<div class="col pitshopv">${back === 'traders' ? '' : cryptTabs('arena')}
     <section class="panel"><h2>Vargos Laden <span class="h2r">${hon(S.honor)} · noch ${left} diese Woche</span></h2>
     ${PIT_SHOP.map(t => { const rk = PIT_RANKS.find(r => r.id === t.rank); return pitTierOpen(t.rank)
@@ -793,7 +797,7 @@ function viewDescStart(st) {
   </div>`;
 }
 function sackRow(s) {
-  const its = s.items.slice(0, 7).map(it => `<span class="dit ${rarCls(it)}" data-tip="${it.id}" data-action="noop">${itemArt(it)}</span>`).join('');
+  const its = s.items.slice(0, 7).map(it => `<span class="dit ${rarCls(it)}" data-tip="${it.id}" data-action="noop">${itemArt(it)}${hitDots(it)}</span>`).join('');
   const more = s.items.length > 7 ? `<span class="dmore">+${s.items.length - 7}</span>` : '';
   const chips = [...Object.entries(s.herbs).filter(([, n]) => n > 0).map(([k, n]) => `<span title="${HERBS[k].name}">${herbImg(k)}×${n}</span>`),
     ...Object.entries(s.mats).filter(([, n]) => n > 0).map(([k, n]) => `<span title="${MATS[k]}">${matImg(k)}×${n}</span>`)].join('');
@@ -870,8 +874,10 @@ export function viewOpts(opt, levels) {
   return `<div class="col opts"><section class="panel"><h2>Einstellungen</h2>
     ${row('sfx', 'Kampfgeräusche')}${row('music', 'Musik', 'kommt später')}
     <p class="small dim">Am iPhone: Stummschalter aus, sonst bleibt es still.</p></section>
-    <section class="panel"><h2>Das Verzeichnis</h2><p class="small dim">Wo was fällt, was es tut, und jeder Weg, ein Teil besser zu machen.</p>
-      <div class="btns"><button data-action="wikicat" data-c="">Verzeichnis öffnen</button></div></section>
+    <section class="panel"><h2>Nachschlagen</h2>
+      <p class="small dim">Wo was fällt, was es tut – und ein Filter, der gesuchte Boni im Beutel mit einem Punkt je Treffer markiert.</p>
+      <div class="btns"><button data-action="wikicat" data-c="">Verzeichnis</button>
+        <button data-action="go" data-v="filter">Beute-Filter${filterOn() ? ` · ${filterOf().mods.length}` : ''}</button></div></section>
     <section class="panel"><h2>Held</h2><p class="small dim">Vernichten löscht ${S.name} für immer – Stufe, Beute, alles.</p>
       <div class="btns"><button data-action="dbg">Anzeige-Maße</button><button class="red" data-action="wipe">Held vernichten</button></div></section>
     <div class="btns"><button data-action="go" data-v="hero">Zurück</button></div></div>`;
@@ -951,6 +957,22 @@ export function viewWanderPlan(path, info = null) {
         <span class="node goal ${full ? 'on' : ''}" style="left:50%;top:${Y(R + 1)}%">${nodeArt('camp')}<label>Heimweg</label></span></div></section>
     <section class="panel xsum"><h2>Dein Weg <span class="h2r">${R} Stationen · ${Math.round(WANDER.maxSec / 3600)} Std.</span></h2>${hint}</section>
     <div class="btns"><button data-action="go" data-v="trips">Zurück</button><button class="red" data-action="wstart" ${full ? '' : 'disabled'}>Losziehen</button></div></div>`;
+}
+
+// --- Beute-Filter (Einstellungen -> eigene Seite) ---
+// Eigene Ansicht wie Verzeichnis/Titel/Grab-Sets: 36 Bonus-Knoepfe machen in den Einstellungen ein
+// 550 px hohes Panel, das unten herauslief (gemessen auf drei Bildschirmen).
+export function viewFilter() {
+  // Zauber-Boni (`sk_<id>`) tragen ihre Klasse: fremde gehoeren nicht in die Liste - "% Kriegsschrei"
+  // kann eine Zauberin nie gebrauchen, und 15 tote Knoepfe drueckten die Liste aus dem Panel.
+  const f = filterOf(), stats = [...new Map(AFFIXES.filter(a => !a.cls || a.cls === S.cls).map(a => [a.stat, a])).values()];
+  return `<div class="col filterv"><section class="panel"><h2>Beute-Filter <span class="h2r">${f.mods.length ? `${f.mods.length} gewählt` : 'aus'}</span></h2>
+    <p class="small dim">Jedes Teil zeigt oben links je getroffenem Bonus einen Punkt – im Beutel, im Lager, beim Händler, in der Schmiede und in der Beute.</p>
+    <div class="optrow"><span>Mindestens Stufe</span><div class="optbtns">${TIERS.map(t =>
+      `<button class="tiny ${f.tier === t.t ? 'on' : ''}" data-action="filtier" data-t="${t.t}">${t.name}</button>`).join('')}</div></div></section>
+    <section class="panel fcol"><div class="fpick">${stats.map(a =>
+      `<button class="tiny ${f.mods.includes(a.stat) ? 'on' : ''}" data-action="filmod" data-k="${a.stat}">${STAT_NAME(a.stat)}</button>`).join('')}</div></section>
+    <div class="btns">${f.mods.length ? '<button class="tiny" data-action="filclear">Leeren</button>' : ''}<button data-action="go" data-v="opts">Zurück</button></div></div>`;
 }
 
 // --- Das Verzeichnis (Einstellungen -> Verzeichnis) ---

@@ -30,6 +30,7 @@ function render() {
     bounties: UI.viewBounties,
     forge: () => UI.viewForge(forgeSel, forgeRes),
     npc: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewNpc(npc),
+    filter: UI.viewFilter,
     arena: () => S.wander && !S.desc ? UI.viewWanderAway('vargo') : S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : UI.viewArena(), hero: () => UI.viewHero(stashOn),
     pitprep: () => S.wander && !S.desc ? UI.viewWanderAway('vargo') : S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : pitSel && prepM ? UI.viewPitPrep(pitSel, prepM) : UI.viewArena(),
     pitshop: () => UI.viewPitShop(pitBack),
@@ -262,6 +263,10 @@ const actions = {
     if (precious(it) && d.sure !== '1') return showTouchTip({ dataset: { tip: it.id, action: 'equip', id: it.id } }, true);
     G.sell(d.id); hideTip(); render(); },
   sort: d => { G.sortGrid(d.g || 'bag'); render(); },
+  // Beute-Filter (Einstellungen): Wahl steht im Spielstand, die Punkte leitet ui.js daraus ab
+  filmod: d => { G.setFilterMod(d.k); G.save(); render(); },
+  filtier: d => { G.setFilterTier(+d.t); G.save(); render(); },
+  filclear: () => { G.filterOf().mods = []; G.save(); render(); },
   invmode: () => { stashOn = !stashOn; render(); },
   stashput: d => { if (!G.stashPut(d.id)) return note('Im Lager ist kein Platz.'); hideTip(); render(); },
   stashtip: d => { if (!G.stashTake(d.id)) return note('Im Beutel ist kein Platz.'); hideTip(); render(); },

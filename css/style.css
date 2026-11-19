@@ -338,6 +338,15 @@ img.portrait.monster { object-fit: cover; }
 .note.bounty { flex: 0 1 auto; padding: 8px 14px; } .note.bounty h4 { font-size: 1.05rem; } .note.bounty ul { margin: 2px 0; }
 
 /* --- Kampfkraft, Vergleich, Zauber --- */
+/* Beute-Filter: je getroffenem Bonus ein Punkt, oben links. Gedaempftes Gold aus der Palette,
+   harte Kante, kein Leuchten - ein Hinweis, kein Schmuck. Der Rahmen sitzt am Feld, nicht am Bild,
+   damit er auf jeder Feldgroesse (Ring 34 px bis Brust 78 px) an derselben Ecke klebt. */
+/* Umbrechen statt die Zelle sprengen: fuenf Punkte sind 33 px, ein Ring im Browser ist 34 px breit -
+   mit dem linken Rand ragte der letzte Punkt 1 px heraus (gemessen). Bricht jetzt in die zweite
+   Reihe und haelt damit auch, wenn ein Teil spaeter mehr Boni tragen darf. */
+.fdots { position: absolute; top: 2px; left: 2px; display: flex; flex-wrap: wrap; gap: 2px; max-width: calc(100% - 4px); pointer-events: none; z-index: 2; }
+.fdots b { width: 5px; height: 5px; background: var(--gold); box-shadow: 0 0 0 1px #000, 0 0 3px rgba(0,0,0,.9); }
+.drop .fdots { top: 3px; left: 3px; } .drop .dimg { position: relative; }
 .better { position: absolute; top: 1px; right: 2px; font-style: normal; font-size: max(11px, .7rem); line-height: 1; color: #6fd15a; text-shadow: 0 0 3px #000, 0 1px 0 #000; pointer-events: none; }
 .item, .sitem, .cellitem { position: relative; }
 .cellitem { position: absolute; }
@@ -1255,3 +1264,9 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
    ihr Orange stand nur im Namen, also erst nach dem Antippen (vom Besitzer gemeldet). */
 .item.uq, .eslot.uq, .cellitem.uq, .sitem.uq, .fslot.uq, .dit.uq { background-color: rgba(175,80,15,.3);
   box-shadow: inset 0 0 0 1px rgba(255,154,58,.5), inset 0 0 10px rgba(180,80,20,.4); }
+
+/* Beute-Filter: die Bonus-Liste fuellt den Rest der Hoehe, die Knoepfe teilen sich die Breite.
+   Keine feste Spaltenzahl - "Zauberschaden" braucht mehr Platz als "Glueck". */
+.filterv .fcol { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.fpick { display: flex; flex-wrap: wrap; gap: 4px; align-content: flex-start; }
+.fpick button { flex: 1 1 auto; min-width: 23%; padding: 4px 2px; }

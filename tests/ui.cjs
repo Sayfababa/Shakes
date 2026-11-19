@@ -1,4 +1,8 @@
-// UI-Test im echten Browser (Playwright): spielt die wichtigsten Wege auf iPhone SE und iPhone 13 durch
+// UI-Test im echten Browser (Playwright): spielt die wichtigsten Wege auf vier Geraeten durch.
+// Der iPhone SE ist draussen (Ansage des Besitzers: "das Spiel ist nicht fuer iPhone SE ausgelegt,
+// erst ab iPhone 13"). "Browser 390x664" ist an seine Stelle getreten und ist KEIN Ersatz aus
+// Bequemlichkeit: das ist ein iPhone 13 im Safari, wo die Leisten ~180 px fressen. Wer den Link
+// antippt statt die App vom Homescreen zu oeffnen, sitzt genau auf dieser Hoehe.
 // und prüft: keine JS-Fehler, nichts ragt aus dem Bildschirm (kein Scrollen). Screenshots nach tests/out/.
 // Aufruf: node tests/ui.cjs   (startet selbst einen Server auf Port 8765)
 const { chromium, devices } = require('playwright');
@@ -7,11 +11,16 @@ const fs = require('fs'); const path = require('path');
 const OUT = path.join(__dirname, 'out'); fs.mkdirSync(OUT, { recursive: true });
 const srv = spawn('python3', ['-m', 'http.server', '8765'], { cwd: path.join(__dirname, '..'), stdio: 'ignore' });
 let failures = 0;
+// Eigene Groessen neben den Playwright-Geraeten: "App 430x867" ist das grosse iPhone als
+// Homescreen-App, "Browser 390x664" ein iPhone 13 im Safari, wo die Leisten ~180 px fressen.
+const ctxFor = dev => dev === 'App 430x867' ? { ...devices['iPhone 15 Pro Max'], viewport: { width: 430, height: 867 }, deviceScaleFactor: 1 }
+  : dev === 'Browser 390x664' ? { ...devices['iPhone 13'], viewport: { width: 390, height: 664 }, deviceScaleFactor: 1 }
+  : { ...devices[dev], deviceScaleFactor: 1 };
 (async () => {
   await new Promise(r => setTimeout(r, 800));
   const b = await chromium.launch();
-  await Promise.all(['iPhone SE', 'iPhone 13', 'iPhone 15 Pro Max', 'App 430x867'].map(async dev => {   // 4 Handys gleichzeitig
-    const c = await b.newContext(dev === 'App 430x867' ? { ...devices['iPhone 15 Pro Max'], viewport: { width: 430, height: 867 }, deviceScaleFactor: 1 } : { ...devices[dev], deviceScaleFactor: 1 }); const p = await c.newPage(); const errs = [];
+  await Promise.all(['Browser 390x664', 'iPhone 13', 'iPhone 15 Pro Max', 'App 430x867'].map(async dev => {   // 4 Handys gleichzeitig
+    const c = await b.newContext(ctxFor(dev)); const p = await c.newPage(); const errs = [];
     p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'error' && errs.push(m.text()));
     const tag = dev.replace(/ /g, '');
     const chk = async n => {
@@ -300,6 +309,44 @@ let failures = 0;
       if (farbe.some(c => c === 'rgb(205, 189, 156)')) { failures++; console.log(`FEHLER ${tag}: Marke ist nicht eingefaerbt (${farbe.join(', ')})`); }
     }
     await tap('[data-action=noop]');
+
+    // Beute-Filter (vom Besitzer gewuenscht): je getroffenem Bonus ein Punkt. Geprueft wird die
+    // ZAHL der Punkte, ihre FARBE (eine Marke ohne CSS-Regel waere unsichtbar - so war die
+    // Set-Farbe monatelang kaputt) und dass sie NICHT aus der Zelle ragen: fuenf Punkte sind
+    // 33 px, ein Ring im Browser 34 px breit, das ging beim ersten Bau um 1 px daneben.
+    await p.evaluate(async () => { const G = await import('./js/state.js'); const L = await import('./js/loot.js');
+      const mk = (mods, tiers, x) => { const it = L.makeItem(20, { slot: 'ring' });
+        it.mods = { ...mods }; it.tiers = { ...tiers }; it.runes = []; it.x = x; it.y = 0; return it; };
+      G.S.bag = [mk({ str: 5 }, { str: 1 }, 0), mk({ critc: 5 }, { critc: 2 }, 1),
+                 mk({ critc: 5, critd: 9, lifep: 7 }, { critc: 1, critd: 2, lifep: 2 }, 2),
+                 mk({ critc: 5, critd: 9, lifep: 7, dmgp: 6, penp: 4 }, { critc: 1, critd: 1, lifep: 1, dmgp: 1, penp: 1 }, 3)];
+      G.S.stash = [mk({ critc: 4, critd: 8 }, { critc: 2, critd: 3 }, 0)];
+      G.S.filter = { mods: ['critc', 'critd', 'lifep', 'dmgp', 'penp'], tier: 2 }; G.save(); });
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=hero]');
+    const fr = await p.$$eval('.cellitem', es => es.map(e => { const d = e.querySelector('.fdots'), z = e.getBoundingClientRect();
+      const b = d && d.getBoundingClientRect();
+      return { n: e.querySelectorAll('.fdots b').length,
+               raus: b ? Math.round(Math.max(0, b.right - z.right, b.bottom - z.bottom)) : 0,
+               farbe: d ? getComputedStyle(d.querySelector('b')).backgroundColor : '' }; }));
+    [0, 1, 3, 5].forEach((soll, i) => { if (fr[i]?.n !== soll) { failures++; console.log(`FEHLER ${tag}: Filter zeigt ${fr[i]?.n} statt ${soll} Punkte`); } });
+    if (fr.some(x => x.raus > 0)) { failures++; console.log(`FEHLER ${tag}: Filter-Punkte ragen aus der Zelle (${Math.max(...fr.map(x => x.raus))}px)`); }
+    const ffarbe = fr.find(x => x.farbe)?.farbe;
+    if (!ffarbe || /rgba\(0, 0, 0, 0\)|rgb\(205, 189, 156\)/.test(ffarbe)) { failures++; console.log(`FEHLER ${tag}: Filter-Punkt ist nicht eingefaerbt (${ffarbe})`); }
+    await tap('[data-action=invmode]'); await p.waitForTimeout(150);
+    const fl = await p.$$eval('.cellitem .fdots b', es => es.length);
+    if (fl !== 1) { failures++; console.log(`FEHLER ${tag}: Lager zeigt ${fl} statt 1 Punkt (Stufe III darf bei "ab II" nicht zaehlen)`); }
+    // Die Filter-Seite: 36 Boni passten in kein Panel, die fremden Klassen-Zauber sind deshalb
+    // draussen. Geprueft wird, ob das Panel seine Knoepfe VERSCHLUCKT - das ragt nirgends heraus.
+    await tap('.optbtn'); await tap('[data-v=filter]'); await p.waitForTimeout(150);
+    const fo = await p.evaluate(() => { const col = document.querySelector('.fcol'), pick = document.querySelector('.fpick');
+      if (!col || !pick) return 'FILTER-SEITE FEHLT';
+      const out = [];
+      if (pick.getBoundingClientRect().bottom > col.getBoundingClientRect().bottom + 1) out.push('PANEL VERSCHLUCKT KNOEPFE');
+      if (col.scrollHeight > col.clientHeight + 1) out.push('INHALT ABGESCHNITTEN');
+      if (![...document.querySelectorAll('.fpick button')].length) out.push('KEINE BONUS-KNOEPFE');
+      return out.join(' '); });
+    if (fo) { failures++; console.log(`FEHLER ${tag}: Filter-Seite ${fo}`); }
+    await tap('[data-v=hero]');
 
     // Das LAGER ordnen (vom Besitzer gemeldet: ging nicht - `sortBag` hatte S.bag fest verdrahtet
     // und den Knopf gab es im Lager gar nicht). Gemessen werden die Luecken und der Bestand, nicht

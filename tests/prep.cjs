@@ -5,7 +5,7 @@ const srv = spawn('python3', ['-m', 'http.server', '8782'], { cwd: '/home/user/S
 // `cut` schneidet unten von der gezeichneten Flaeche ab – so frisst auf dem iPhone ein Band oben
 // (Karten-Navigation, Telefonat) Hoehe, waehrend `vh` auf der vollen Bildschirmhoehe bleibt.
 // `band` ist genau dieser Fall: nur dort greift der zweite Sparschritt (.prep.tighter).
-const SCR = [['ios932', 430, 932, 75], ['ios932b', 430, 932, 0], ['app', 430, 867, 0], ['real', 430, 800, 0], ['i13', 390, 664, 0], ['i13app', 390, 844, 60], ['se', 375, 667, 0], ['tiny', 320, 568, 0], ['band', 402, 874, 180]];
+const SCR = [['ios932', 430, 932, 75], ['ios932b', 430, 932, 0], ['app', 430, 867, 0], ['real', 430, 800, 0], ['i13', 390, 664, 0], ['i13app', 390, 844, 60], ['band', 402, 874, 180]];
 // [Krypta-Index, Ebene, Stufe, Treue (3 Plätze), Tränke vorrätig]
 const CASES = [[0, 0, 3, 0, 0], [1, 4, 7, 0, 0], [1, 4, 60, 1, 1], [3, 4, 30, 1, 1], [2, 2, 15, 0, 1]];
 (async () => { await new Promise(r => setTimeout(r, 700)); const b = await chromium.launch(); let bad = 0, n = 0;

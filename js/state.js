@@ -557,6 +557,26 @@ function setBase(it, base) {
   const mods = { ...base }; for (const r of it.runes || []) mods[r.stat] = (mods[r.stat] || 0) + r.v;
   it.mods = mods; it.tiers = Object.fromEntries(Object.keys(base).map(k => [k, it.tiers?.[k] || 3]));
 }
+// --- Beute-Filter (Einstellungen) ---
+// Vom Besitzer gewuenscht: einstellen, welche Boni und welche Stufe man sucht; jedes Teil zeigt
+// dann je Treffer einen Punkt. Reine Ableitung, kein eigener Zustand ausser der Wahl selbst.
+// `S.filter` fehlt bei alten Staenden - dann ist der Filter einfach aus, keine Save-Version noetig.
+export const filterOf = () => (S.filter ||= { mods: [], tier: 3 });
+export const filterOn = () => filterOf().mods.length > 0;
+// Treffer = der Bonus ist da UND seine Stufe ist mindestens die gesuchte (1 = I ist die beste).
+// Gezaehlt wird ueber `baseMods`, nicht `it.mods`: eine Rune ist kein erwuerfelter Bonus, sonst
+// zeigte jedes Runen-Teil Treffer an, die beim naechsten Teil nicht wieder herauskommen.
+export function filterHits(it) {
+  const f = filterOf(); if (!f.mods.length || !it?.mods) return 0;
+  const base = baseMods(it);
+  return f.mods.filter(k => k in base && (it.tiers?.[k] || 3) <= f.tier).length;
+}
+export function setFilterMod(k) {
+  const f = filterOf(), i = f.mods.indexOf(k);
+  if (i >= 0) f.mods.splice(i, 1); else f.mods.push(k);
+}
+export const setFilterTier = t => { filterOf().tier = t; };
+
 export const craftItems = () => [...Object.values(S.equip).filter(Boolean), ...S.bag].filter(it => CRAFT.glut[it.rarity] && !it.unique && !it.set);
 const findAny = id => Object.values(S.equip).find(x => x?.id === id) || S.bag.find(x => x.id === id);
 // Glut alter Items (vor dem Crafting-System) einmalig festlegen – aus der ID, damit Neuladen nichts ändert

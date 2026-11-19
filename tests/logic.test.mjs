@@ -1071,6 +1071,35 @@ test('Fusionieren: die Regeln halten (Form, Seltenheit, Siegel, Platz, Einzigart
   if (uniq) { G.S.bag.push(uniq); assert.ok(!G.fuseMains().some(i => i.id === uniq.id), 'Einzigartiges steht als Hauptteil zur Wahl'); }
 });
 
+test('Der Beute-Filter zaehlt nur echte Treffer', async () => {
+  // Vom Besitzer gewuenscht: gesuchte Boni einstellen, jedes Teil zeigt je Treffer einen Punkt.
+  const G = await import('../js/state.js'), L = await import('../js/loot.js');
+  G.newChar('Filter', 'sorceress'); G.S.lvl = 20; G.S.tut = 99;
+  const mk = (mods, tiers, runes = []) => { const it = L.makeItem(20, { slot: 'ring' });
+    it.mods = { ...mods }; it.tiers = { ...tiers }; it.runes = runes; return it; };
+
+  G.S.filter = { mods: [], tier: 3 };
+  assert.equal(G.filterHits(mk({ critc: 5 }, { critc: 1 })), 0, 'leerer Filter darf nie Punkte zeigen');
+  assert.equal(G.filterOn(), false);
+
+  G.S.filter = { mods: ['critc', 'critd', 'lifep'], tier: 2 };
+  assert.equal(G.filterHits(mk({ str: 5 }, { str: 1 })), 0, 'fremder Bonus zaehlt');
+  assert.equal(G.filterHits(mk({ critc: 5 }, { critc: 2 })), 1);
+  assert.equal(G.filterHits(mk({ critc: 5, critd: 9, lifep: 7 }, { critc: 1, critd: 2, lifep: 2 })), 3);
+  // Die STUFE muss mindestens die gesuchte sein (1 = I ist die beste) - sonst ist der Filter wertlos
+  assert.equal(G.filterHits(mk({ critc: 5, critd: 9 }, { critc: 2, critd: 3 })), 1, 'Stufe III darf bei "ab II" nicht zaehlen');
+  // Eine Rune ist kein erwuerfelter Bonus: sonst zeigte jedes Runen-Teil Treffer, die beim
+  // naechsten Teil nicht wieder herauskommen.
+  const mitRune = mk({ critc: 5 }, { critc: 1 }, [{ stat: 'critc', v: 5, name: 'R' }]);
+  assert.equal(G.filterHits(mitRune), 0, 'ein reiner Runen-Bonus darf nicht als Treffer zaehlen');
+  // Auswaehlen und wieder abwaehlen
+  G.setFilterMod('penp'); assert.ok(G.filterOf().mods.includes('penp'));
+  G.setFilterMod('penp'); assert.ok(!G.filterOf().mods.includes('penp'));
+  // Alte Staende haben kein `filter` - der Filter ist dann aus, ohne Migration
+  delete G.S.filter;
+  assert.equal(G.filterHits(mk({ critc: 5 }, { critc: 1 })), 0, 'ohne gespeicherten Filter darf nichts leuchten');
+});
+
 test('Jedes Krypta-Ziel sagt, wo die Krypta ist', async () => {
   // Der Besitzer stand vor "Bezwinge: Bruder Aldemar" und wusste nicht, wo der Mann steckt - die
   // Antwort stand in CRYPTS/ACTS, nur nie auf dem Zettel. Gleiche Regel wie bei den Zutaten:

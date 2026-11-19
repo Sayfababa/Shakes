@@ -5,11 +5,16 @@ const { spawn } = require('child_process'); const path = require('path');
 const TAPS = +process.argv[2] || 300;
 const srv = spawn('python3', ['-m', 'http.server', '8771'], { cwd: path.join(__dirname, '..'), stdio: 'ignore' });
 const issues = new Map(); const note = (k, v) => { if (!issues.has(k)) issues.set(k, v); };
+// Eigene Groessen neben den Playwright-Geraeten: "App 430x867" ist das grosse iPhone als
+// Homescreen-App, "Browser 390x664" ein iPhone 13 im Safari, wo die Leisten ~180 px fressen.
+const ctxFor = dev => dev === 'App 430x867' ? { ...devices['iPhone 15 Pro Max'], viewport: { width: 430, height: 867 }, deviceScaleFactor: 1 }
+  : dev === 'Browser 390x664' ? { ...devices['iPhone 13'], viewport: { width: 390, height: 664 }, deviceScaleFactor: 1 }
+  : { ...devices[dev], deviceScaleFactor: 1 };
 (async () => {
   await new Promise(r => setTimeout(r, 800));
   const b = await chromium.launch();
-  await Promise.all(['iPhone SE', 'iPhone 13', 'iPhone 15 Pro Max', 'App 430x867'].map(async dev => { for (const stage of ['früh', 'spät']) {   // 4 Handys gleichzeitig
-    const c = await b.newContext(dev === 'App 430x867' ? { ...devices['iPhone 15 Pro Max'], viewport: { width: 430, height: 867 }, deviceScaleFactor: 1 } : { ...devices[dev], deviceScaleFactor: 1 }); const p = await c.newPage(); const tag = `${dev}/${stage}`;
+  await Promise.all(['Browser 390x664', 'iPhone 13', 'iPhone 15 Pro Max', 'App 430x867'].map(async dev => { for (const stage of ['früh', 'spät']) {   // 4 Handys gleichzeitig
+    const c = await b.newContext(ctxFor(dev)); const p = await c.newPage(); const tag = `${dev}/${stage}`;
     let last = '';
     p.on('pageerror', e => note(`JS-Fehler: ${e.message}`, `${tag} nach ${last}`));
     p.on('console', m => m.type() === 'error' && !/favicon|404/.test(m.text()) && note(`Konsole: ${m.text()}`, `${tag} nach ${last}`));

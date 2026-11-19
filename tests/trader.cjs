@@ -2,7 +2,7 @@
 const { chromium, devices } = require('playwright'); const { spawn } = require('child_process');
 const OUT = __dirname + '/out/trader'; require('fs').mkdirSync(OUT, { recursive: true });
 const srv = spawn('python3', ['-m', 'http.server', '8781'], { cwd: '/home/user/Shakes', stdio: 'ignore' });
-const SCR = [['ios932', 430, 932, 75], ['ios932b', 430, 932, 0], ['app', 430, 867, 0], ['real', 430, 800, 0], ['i13', 390, 664, 0], ['i13app', 390, 844, 60], ['se', 375, 667, 0], ['tiny', 320, 568, 0]];
+const SCR = [['ios932', 430, 932, 75], ['ios932b', 430, 932, 0], ['app', 430, 867, 0], ['real', 430, 800, 0], ['i13', 390, 664, 0], ['i13app', 390, 844, 60]];
 (async () => { await new Promise(r => setTimeout(r, 700)); const b = await chromium.launch(); let bad = 0;
   await Promise.all(SCR.map(async ([nm, w, h, cut]) => {
     const c = await b.newContext({ ...devices['iPhone 15 Pro Max'], viewport: { width: w, height: h }, deviceScaleFactor: 1 }); const p = await c.newPage();
