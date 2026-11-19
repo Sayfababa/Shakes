@@ -1,0 +1,146 @@
+# ASCHENKRONE – Systeme
+
+Je System: wo der Code liegt und die harten Grenzen. Teil der Regel wie CLAUDE.md – **vor dem Anfassen
+eines Systems seinen Block hier lesen** (`grep -n '^\*\*' SYSTEME.md` zeigt die Bereiche).
+
+
+**Kampf & Werte**
+- **Kampfkraft** `power()`/`powerWith()`/`powerAttr()` in state.js – eine Zahl, deterministisch.
+  Grundlage für Item-Vergleich und „+N" an Attributen. Neue Effekte dort einrechnen. → E
+- **Kampf-Boni auf Items** `AFFIXES` (`pct`/`slots`/`kind`), Obergrenzen `CAPS` (critMult 3,5).
+  `affixPool(it)` entscheidet, was ein Teil tragen kann. **Neuer Prozent-Bonus → in die Liste des
+  Eich-Tests.** Flache Werte bewusst ohne Wache. → E
+- **Treffer-Wirkungen** combat.js: `finish()` (Henker, Krit), `onHit()` (Leech, Bluten, Gift, Dornen).
+  Zauber sind nur nicht blockbar. → E
+- **Klassenwaffe**: fremde Art → ×`offWeapon`, Zauberkraft ×`offWeaponSpell`. → E
+- **Attribute** haben je Klasse einen Zweck (`ATTR_INFO`): Stärke → Rüstung, Int → Zauber. → E
+- **Kampfbewertung** `GRADES`/`gradeOf()` in game.js – Restleben → Bonus auf Gold/Beute, **nicht EP**. → E
+- **Kampf-Einblendungen** `combatFx()` in main.js; Log-Felder aus combat.js. Neuer Effekt: Feld im
+  Log setzen, dann dort anzeigen. → E
+- **Kurven** in `CFG`. Änderungen mit `tests/personas.mjs` prüfen. → E
+
+**Zauber**
+- **Zauber** `SPELLS` in data.js, `spell()` in combat.js – 3 je Klasse (Stufe 1/8/18), wirken jeden
+  n-ten eigenen Zug. Symbole `assets/spells/<id>.webp`. **Monster wirken keine Zauber.** → E
+- **Zauber im Kampf**: laden pro Zug (`ch` + `haste`), Log trägt `cA`/`cB`, `spellFx()` in main.js. → E
+- **Zauber-Wege** `SPELL_TREE`/`TREE_LVL`, `chooseWay`/`wayOpen`/`wayCost`, `S.sp`, Save v7.
+  Je Zauber 3 Stufen (ab 6/14/22), je 1 von 2 Wegen; erste Wahl gratis.
+  Balance: `node tests/ways.mjs [klasse] [stufe] [kämpfe] --check`. → E
+
+**Talente**
+- **Das Brett** `TREE` in data.js; `treeOf`/`nodeState`/`bridgeState`/`learnNode`/`learnBridge`,
+  Save v18. Bisher **Assassine** und **Zauberin**; Klassen ohne Eintrag nutzen `TALENTS`.
+  3×6, zwei Notable, ein Schlüsselstein, 2 Brücken, 41 Ränge gegen ~24 Punkte.
+  Balance: `node tests/tree.mjs [klasse] [stufe] [kämpfe] --check` – **kein Knoten darf bei 0 stehen**.
+  Rahmen: klein +1…+24, Notable +1…+28, Schlüsselstein +2…+52, Brücke +1…+22. → E
+- **Das Brett der Zauberin** `TREE.sorceress`, Save **v21**; `spellPct`, `haste`, `echo`, `ignite`
+  (`CFG.igniteTurns` 3, stapelt nicht). **Kein Leben als Preis** – Überleben ist bei ihr doppelt so
+  viel wert wie Schaden. → E
+- **Wer eine Klasse aufs Brett holt**, muss die Brett-Schnittstelle in `tests/bot.mjs` mitziehen. → E
+
+**Beute & Aufwerten**
+- **Beute-Tiefe** `TIERS` (I beste), `SPECIALS` (`it.fx`), 30 `UNIQUES`. Kampf-Schlüssel: echo, ward,
+  vengeance, zeal, siphon, bulwark, shred, lastBreath, secondWind, nohealSelf.
+  Balance: `node tests/uniques.mjs … --check` (≥ +6 für die beste Klasse, nie > +55). → E
+- **Umschmieden** `CRAFT` in data.js; `craft(id, op, stat)`, `craftCheck`, `baseMods`. Ops: seal,
+  chaos, values, add, remove. Kostet Schmiedeglut (`it.glut/glutMax`), dann `it.crafted`.
+  Runen, Sonderbonus, Einzigartige bleiben unberührt. **Craften+Verkaufen bringt nie Gold** (Test). → E
+- **Fusionieren** `CRAFT.fuse`; `fuseForm`/`fuseMains`/`fuseFoods`/`fuseFull`/`fusePromote`/`fuseCheck`/
+  `fuse`. Gleiche Grundform **und** Seltenheit; ein Bonus wandert **mit seiner Stufe**, Futter zerfällt.
+  **`CRAFT.fuse.max` = 1 – eine Fusion je Teil, für immer.** Futter nur aus dem Beutel.
+  Voll ⇒ eigener Bonus weicht **oder** Aufstieg (nur magisch→selten, `it.risen`); Grundwerte bleiben. → E
+- **Fusionierte Boni sind markiert** (`it.fmods`, `fusedMods`) – gedämpftes Gold am Bonus, wie
+  Blutrot für versiegelt. `values`/`chaos` löschen die Marke (Stufe neu gewürfelt). **Neue Operation
+  in `CRAFT.ops` → entscheiden, ob sie die Marke mitnimmt.** → E
+- **Erheben** `CRAFT.raise` – Kronsplitter macht ein volles **magisches** Teil selten (gewürfelter
+  Bonus). Splitter nur aus dem Abgrund. **Eine Aufwertung je Teil über alle Wege** (`it.risen`). → E
+- **Dienste** `SERVICES`: Schärfen (Halvar), Verstärken (Kaspar), Bestellen, Glücksgriff (Ysolde).
+  Gehören dem **Platz**, nicht dem Teil (`S.temper`, Save v17). **Dienste feuern beim ersten Antippen –
+  wer einen zerstörerischen Dienst hinzufügt, muss die Rückfrage dort nachrüsten.** → E
+- **Schmiede** `RUNES`/`FORGE`, `forge(slot, mat, score)` – Rune → `it.runes`, max `FORGE.maxRunes`.
+  Minispiel in main.js. Kostet Material, keine Glut. → E
+- **Grab-Sets** `SETS`/`SET`; `setCount`/`setOwned`/`setsWorn`, `makeSetItem`, `setDrop`. Je Krypta
+  3 Teile, Seltenheit `set` (grün), fallen **nur beim Boss ihrer Krypta**. 2 Teile = Bonus, 3 = Regel.
+  Boni müssen Schlüssel aus `EFFECT_NAMES` sein. `node tests/sets.mjs … --check`. → E
+- **Beute-Moment** `lootCards()` in ui.js – Kärtchen je Fundstück, ab 4 verdichtet (`.many`). → E
+- **Beute-Filter** `S.filter`, `filterOf`/`filterOn`/`filterHits`/`setFilterMod`/`setFilterTier`;
+  `hitDots(it)` + `viewFilter()` in ui.js. Punkte oben links je Treffer, an **allen** Feldern außer
+  dem Körper. Zählt über `baseMods` (Runen zählen nicht). Keine Save-Version nötig. → E
+- **Verkaufsschutz**: Seltenes, Legendäres, Einzigartiges, Sonderbonus- und Runen-Teile brauchen den
+  zweiten Tipp (`precious()` in main.js). Kein Rückkauf. → E
+- **Lager** `STASH_W`/`STASH_H` 10×6; `grid()`/`addToGrid`/`keep`/`stashPut`/`stashTake`/`sellStash`/
+  `sortGrid`, Save **v20**. Beutel und Lager am selben Platz, ein Knopf schaltet um.
+  **`keep(it)` statt `addToBag(it)` an allen Beute-Stellen.** Gelagertes zählt **nicht** fürs
+  Schmieden und nicht als Fusions-Futter. **Die Rasterlogik nimmt das Behältnis als Argument.** → E
+
+**Inhalte**
+- **Die Akte** (Tab Streifzug) `ACT`/`ACTS`; `actProg`/`actDone`/`actOpen`, `actEnemy`/`actFight`,
+  Save v13. 6 Akte × 8 Gebiete + Boss. Neue Gebiete kosten keine Glut, Niederlage kostet nichts;
+  Wiederholen kostet `loc.glut`. Boss öffnet nächsten Akt + Krypta.
+  `node tests/acts.mjs [klasse] [läufe] --check`. → E
+- **Krypten** nur der Boss (`cryptEnemy` = `makeBoss`), frei nach dem Boss ihres Akts; Stufen
+  `S.crypt.prog`. Jeder Versuch kostet Glut. → E
+- **Die Grube** `PIT`/`PIT_RIVALS`/`PIT_RANKS`/`PIT_SHOP`/`PIT_RULES`; `pitFoes`/`pitFight`/`pitShop`,
+  Save v12. Keine Glut, nur Pause. Rivale hängt am **Platz**, nicht an der Heldenstufe.
+  **Vargo steht bei den Händlern** (vierter Reiter); zwei Türen → `pitBack`, `titleBack`. → E
+- **Der Abstieg / Der Abgrund** `DESCENT`/`DESC_ROOMS`/`ELITE`; `descStart`/`descNext`/`descEnter`/
+  `descStair`, Save v11. Leben und Trank-Ladungen laufen mit, Unruhe +1 je Raum, Beute zählt erst am
+  Ausgang, Tod = Sack weg. Kostet ein **Grabsiegel** (`S.seals`, Save v19; 2/Tag, max 6).
+  `node tests/descent.mjs … --check`. **Die vier Abgrund-Materialien stehen in DESIGN.md und sind
+  vom Besitzer zurückgestellt – nicht ohne seinen Zuruf anfangen.** → E
+- **Expedition** `EXPED`/`EXP_NODES`/`EXP_EVENTS`; `expedMap`/`startExped`/`expAdvance`/`claimExped`,
+  Save v10. Kostet keine Glut, 1/2/4/8 Std., Weg mit Gabelungen. Ø EP < 50 % der Glut derselben Zeit. → E
+- **Umherziehen** `WANDER`; `wanderStart`/`wanderTick`/`wanderClaim`, Save v14. Idle nur bei offener
+  App; **Uhrzeit statt Takt**, Lücke > `gap` wird verschoben, nicht nachgeholt. → E
+- **Alchemie & Tränke** `POTIONS`/`HERBS`/`HERB_LOC`/`ALCH`/`TRIGGERS`; `brew`/`setBelt`/`setTrig`/
+  `usePotions`, Save v8. Wirken **nur in der Krypta**. Gürtel 2 Plätze (3 ab Treue III).
+  **Höchstens ein seltener Trank im Gürtel** – und das muss dastehen. Je Akt genau eine Feldzutat;
+  **ein Herz fällt nie allein**. `node tests/potions.mjs … --check`. → E
+- **Steckbriefe** `BOUNTIES`; `bounties()`/`bountyEvent()`/`claimBounty()` – täglich 3, deterministisch.
+  Neue Art = Zeile in `BOUNTIES` + Ereignis im Kampf. → E
+- **Omen** `OMENS`/`omen()` – täglich ein Ort + Effekt, deterministisch aus dem Datum, ab Stufe 3. → E
+- **Glockensplitter / Finale**: erster Bosssieg in Krypta 1–4 → `S.shards`; 4 öffnen Krypta 5.
+  Prophet-Quest p5 hat `choice` → Titel + Segen. → E
+- **Glut** `CFG.maxGlut` 150, `CFG.glutRegenMin` 3. Takt = Warten zwischen Sitzungen, `maxGlut` =
+  Kämpfe je Sitzung. → E
+- **Material / Gold-Senken**: erster Sieg in einem Akt-Gebiet gibt sicher Material; Glücksgriff und
+  `rushCost()` ziehen Gold. → E
+- **Spuren & Tiefe** `TRACKS`/`DELVE` – nur noch für fuzz/personas/Logik-Tests, Oberfläche entfernt. → E
+
+**Auskunft & Oberfläche**
+- **Das Verzeichnis** `js/wiki.js` (DOM-frei, reine Ableitung), `viewWiki(cat, sel)`; Einstellungen →
+  „Nachschlagen". Sechs Kategorien. **Alles abgeleitet, nichts abgetippt.** `.wlist` darf scrollen.
+  **Noch nicht drin:** Gegenstände, Grab-Sets, Boni (bewusst). → E
+- **„Wo kriege ich das her?"** `herbSource(k)` – fehlende Zutat nennt ihren Ort. → E
+- **Jedes Krypta-Ziel sagt, wo die Krypta ist** `wo(c)` in `objectives()` in quests.js. `cryptOpen`
+  prüft **zwei** Dinge: Akt **und** Glockensplitter. → E
+- **Rat bei schlechter Siegchance** `weakAdvice(p)` in game.js – unter 35 % die naheliegendste Abhilfe. → E
+- **Die Vorbereitung** `viewPrep`/`viewZonePrep` (`prepCore`), Gegnerwerte aus `enemyInfo()`,
+  `fightReport()` → `fightSummary`. **Zwei Sparschritte** in `fitPrep()` (`.prep.tight` → `.tighter`).
+  Absicht des Gegners (`iB`) steht über dem Porträt. → E
+- **Akt-Texte**: `intro`, `say`, `outro` je Akt; Händler-`lines`. Kurz halten (< 110 Zeichen, Test). → E
+- **Ortsbilder** `assets/places/<ortId>.webp` hinter dem Kopf der Akt-Ansicht; nur das mittlere
+  Drittel ist sichtbar. **`url()` in einer Custom Property wird gegen das Stylesheet aufgelöst.** → E
+- **Tutorial** `TUTORIAL`/`tutCheck()` – ersetzt im HUD die Balken, nie Overlay über Buttons. → E
+- **Einstellungen** (Zahnrad): Ton, „Nachschlagen" (Verzeichnis + Beute-Filter), Anzeige-Maße,
+  „Held vernichten". → E
+- **Siegel gegen Bearbeiten**: `save()` schreibt eine Prüfsumme; passt sie nicht → `S.tampered`. → E
+
+## Tests im Einzelnen
+- `tests/logic.test.mjs` – node:test, Logik & Daten-Konsistenz (Quest-Ziele, Bilder, Migration, Softlocks).
+- `tests/fuzz.mjs [züge] [läufe]` – zufällige legale Spielzüge; prüft nach JEDEM Zug: kein doppeltes
+  Item, Werte gültig, Raster ohne Überlappung, Speichern=Laden. **Kennt Beutel und Lager.**
+- `tests/ui.cjs` – Playwright auf 4 Geräten: alle Ansichten, JS-Fehler, nichts ragt heraus,
+  kleinste Schrift. Screenshots in `tests/out/` (nicht committen).
+- `tests/uifuzz.cjs [taps]` – tippt zufällig auf alles; meldet JS-Fehler, Überstand, „undefined/NaN",
+  Sackgassen, **jeden Systemdialog**.
+- `tests/trader.cjs` – Händler-Layout: 3 Händler × alle Aufträge + Vargo + Ilse/Prophet × 8 Bildschirme.
+- `tests/prep.cjs` – Vorbereitung (Krypta **und** Akt-Gebiet) auf 9 Bildschirmen; „Kämpfen" sichtbar.
+- Balance (alle mit gekoppeltem Zufall, `--check` in run.sh): `caps.mjs` (laufen Boni ins Leere?),
+  `calib.mjs` (Eichung), `tree.mjs`, `ways.mjs`, `uniques.mjs`, `sets.mjs`, `potions.mjs`,
+  `descent.mjs`, `acts.mjs`.
+- `tests/bot.mjs [klasse] [tage] [läufe] [risiko] [--pots]` – Bot mit simulierter Uhr, für
+  Balance-Fragen. **Deckt den Spieler *nach* der Geschichte kaum ab.** → E
+- `tests/personas.mjs [tage]` – Optimist/Realist/Pessimist, Auswertung in BOT-REVIEW.md.
+- Browser-Tests laufen mit `deviceScaleFactor: 1` und allen Geräten gleichzeitig.
+- Neue Features: Logik in game.js/state.js (DOM-frei), dann Test ergänzen.

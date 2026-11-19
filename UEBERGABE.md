@@ -26,14 +26,16 @@ kein force-push, kein anderer Branch.
 
 | Datei | Inhalt |
 |---|---|
-| `CLAUDE.md` | **Die Regel.** Stil, Architektur, Konventionen, Testbefehle, je System ein Kurzblock. ~21 kB. |
-| `ENTSCHEIDUNGEN.md` | **Das Warum.** Alle Messungen, verworfenen Entwürfe, Fehlergeschichten. Nachschlagen, bevor du ein System anfasst oder eine Balance-Zahl änderst. |
+| `CLAUDE.md` | **Die Regel.** Stil, Architektur, Konventionen, Testbefehle, **Sparsam arbeiten**. ~12 kB. |
+| `SYSTEME.md` | Teil der Regel: je System ein Kurzblock + was jeder Test prüft. Nur den betroffenen Block lesen. |
+| `ENTSCHEIDUNGEN.md` | Wegweiser zum **Warum** in `entscheidungen/*.md` (eine Datei je Bereich). Per `grep -n '^### '` den einen Abschnitt finden, nicht alles lesen. |
+| `tests/karte.sh` | Inhaltsverzeichnis des Codes (Funktionen mit Zeile, Fundstellen gekürzt) – statt ganzer Dateien. |
 | `DESIGN.md` | Entwürfe, u. a. „Die vier Abgrund-Materialien" (geparkt). |
 | `STAND.md` | Beschreibung des Spiels. **Veraltet an einer Stelle:** nennt iPhone SE als Maßstab – das gilt seit dieser Sitzung nicht mehr. |
 | `mockups/*.html` | Vorschläge, die dem Besitzer gezeigt wurden. |
 
 **Der Abschnitt „Fallen" in CLAUDE.md ist der wertvollste Teil.** Jede Zeile dort ist mindestens
-einmal teuer geworden; die Langfassung steht in ENTSCHEIDUNGEN.md unter „Fallen – woher sie kommen".
+einmal teuer geworden; die Herkunft steht in `entscheidungen/fallen.md`.
 
 ## Was in dieser Sitzung passiert ist
 
@@ -49,6 +51,9 @@ einmal teuer geworden; die Langfassung steht in ENTSCHEIDUNGEN.md unter „Falle
    trat `Browser 390x664` – iPhone 13 im Safari. **Die Höhe nicht auch noch streichen**, sonst
    läuft die Browser-Ansicht über, ohne dass ein Test piept.
 7. **CLAUDE.md aufgeteilt** (93 kB → 21 kB) nach ENTSCHEIDUNGEN.md.
+8. **Kontingent sparen** (Ansage: Sitzungen kosteten bis 5 % der Woche): CLAUDE.md 22 → 12 kB
+   (Systeme nach `SYSTEME.md`), ENTSCHEIDUNGEN.md in `entscheidungen/` aufgeteilt (wortgleich,
+   per Zeilenvergleich geprüft), `tests/karte.sh`, `sh tests/run.sh <teil>` für Einzeltests.
 
 ## Offen – wartet auf den Besitzer, nichts tun ohne sein Wort
 
@@ -80,7 +85,7 @@ einmal teuer geworden; die Langfassung steht in ENTSCHEIDUNGEN.md unter „Falle
   (Prompt vorschlagen, nicht erzeugen).
 - **Echte Synergie-Items für die Zauberin**: die drei gebauten sind **Verstärker, keine Ersteller** –
   gemessen *weniger* wert mit passendem Zweig. Für Frost ginge `bulwark` heute; Feuer und Arkan
-  bräuchten je einen neuen Kampf-Schlüssel. Details in ENTSCHEIDUNGEN.md.
+  bräuchten je einen neuen Kampf-Schlüssel. Details in `entscheidungen/talente.md`.
 - **„Zurück" von der Schmiede-Auswertung** führt immer zu Halvar.
 - **Beutesack-Raster + sicheres Fach** im Abgrund.
 
