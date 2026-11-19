@@ -20,7 +20,7 @@ Abschnitt, um den es geht:
 
 | Datei | Bereich |
 |---|---|
-| `kampf.md` | Kampfkraft, Kurven, Boni auf Items, Treffer-Wirkungen, Klassenwaffe, Attribute, Bewertung, Einblendungen |
+| `kampf.md` | Kampfkraft, Kurven, Boni auf Items, Treffer-Wirkungen, Klassenwaffe, Attribute, Bewertung, Einblendungen, Siegchance gekoppelt, Serienbremse |
 | `zauber.md` | Zauber, Zauber im Kampf, Zauber-Wege |
 | `talente.md` | Das Brett, das Brett der Zauberin, ihre drei Einzigartigen |
 | `beute.md` | Beute-Tiefe, Umschmieden, Fusionieren, Erheben, Dienste, Schmiede, Sets, Filter, Lager, Gold |

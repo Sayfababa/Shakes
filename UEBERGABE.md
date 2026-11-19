@@ -30,17 +30,13 @@ einmal teuer geworden; die Herkunft steht in `entscheidungen/fallen.md`.
 ## Offen – wartet auf den Besitzer, nichts tun ohne sein Wort
 
 **Befunde 2026-11-19 (gemessen, nichts davon gebaut – Reihenfolge wählt er):**
-1. **Siegchance „mit Tränken“ < „ohne“** (sein Screenshot 75 % vs 83 %): kein Trank-Fehler, **Rauschen**.
-   `winChance()` (game.js) würfelt je Zahl nur 24 Kämpfe ohne Keim (±8 Punkte) und cacht das Ergebnis.
-   Vorschlag: gekoppelter Zufall (gleiche Würfel mit/ohne, wie `tests/potions.mjs`), mehr Kämpfe (Tempo am
-   Handy messen), innerhalb des Rauschens „etwa gleich“ zeigen; `bestBelt()` (n=50) gleich mit.
-2. **Ausweichen bestraft Nicht-Geschick-Klassen.** Formel nutzt nur Angreifer-Geschick → Barbar/Paladin/
-   Zauberin/Hexe sitzen am 50-%-Deckel; ≥3 Fehlschläge in Folge in 34–58 % der Kämpfe, Serien bis 13.
-   Gemessen (Stufe 24, 600 Kämpfe, Gegner auf ~50 % geeicht, Siegchance heute → Variante):
-   Zauber treffen immer: Zauberin 47→97 (viel zu stark) · Zauber halb so oft: 52→83 · Bremse nur Hiebe:
-   hilft Magiern nicht · **Serienbremse Hiebe+Zauber (max. 2 in Folge, dann sicherer Treffer): Zauberin
-   52→64, Hexe 50→61, Paladin 57→68, Barbar 43→56, Assassine/Jägerin unverändert.** Empfohlen; danach
-   `tests/calib.mjs` prüfen. Er: „etwas machen, aber nicht ganz weg“.
+1. ~~Siegchance mit < ohne Tränke~~ **erledigt 2026-11-19**: gekoppelter Zufall, 200 Probekämpfe, „etwa gleich“
+   im Rauschen, `bestBelt()` gekoppelt (→ E „Siegchance gekoppelt“ in kampf.md). Am echten iPhone nicht gemessen.
+2. **Serienbremse beim Ausweichen – gebaut, gemessen, NICHT gepusht** (Freigabe war da). Wirkt wie gemessen
+   (Zauberin 52→66, Hexe 53→65, Paladin 50→59, Barbar 48→63, Assassine/Jägerin gleich, nie >2 in Folge), calib
+   unverändert. **Aber der volle Lauf kippt** `sets.mjs`: Kutte des Verseuchten (Hexe St. 14, 3 Teile) +21,9…23,3
+   über Grenze 22 (vorher +19,6). **Er muss wählen:** Kutte-Bonus senken / Schranke neu messen / Bremse auf 3.
+   Code + Test stehen in → E „Serienbremse beim Ausweichen“ (kampf.md), zum Wiedereinsetzen.
 3. **Tiers nach PoE-Art – er will das** („V muss auf jedem Teil gleich sein“). Heute ist das Tier relativ
    zur Gegenstandsstufe (`affixValue` in loot.js: per × (1+iLvl×0,5) × Tier × Legendär 1,5), darum schlägt
    V auf Stufe 49 ein I auf Stufe 22. **Weg 1 (empfohlen, ~1–2 Std.):** Tier aus dem fertigen Wert ablesen

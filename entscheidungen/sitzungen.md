@@ -2,6 +2,12 @@
 
 Aus UEBERGABE.md hierher verschoben, damit die Übergabe kurz bleibt. Neueste oben.
 
+## 2026-11-19, Punkt 1 und 2 der Befunde
+
+- **Siegchance gekoppelt** gebaut und gepusht (voller Lauf grün). Messung, Tempo: → E „Siegchance gekoppelt“.
+- **Serienbremse** gebaut, wirkt wie erwartet, aber `sets.mjs` kippt (Kutte des Verseuchten) → nicht gepusht,
+  nicht still nachgezogen; Befund und Code in → E „Serienbremse beim Ausweichen“.
+
 ## 2026-11-19, Nachtrag
 
 - **Lager-Verkauf erledigt**: der Besitzer bestätigt „klappt". Der alte offene Punkt lautete:

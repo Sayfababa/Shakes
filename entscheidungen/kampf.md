@@ -35,3 +35,43 @@
 ### Kampf-Einblendungen
 
 **Kampf-Einblendungen** (`combatFx()` in main.js): Log-Einträge tragen Anzeige-Felder aus combat.js (`dmg`, `crit`, `hits` bei Mehrfachtreffern, `heal` = Lebensraub/Regeneration/Heilzauber, `shield`, `buff`, `tick`+`tk` Gift/Bluten, `dot`, `thorns`, `miss`, `stun`, `rage`). Schwebende Zahlen `.fnum` (Zauber in Zauberfarbe, erst beim Einschlag; Krit groß + `.quake`), Heilung grün links am eigenen Bild, beim Sieg Gold-Münze `.goldpop` über dem besiegten Gegner (grau). Neue Kampfeffekte: Feld im Log setzen, dann in `combatFx` anzeigen.
+
+### Siegchance gekoppelt
+Gebaut 2026-11-19 (Befund: Screenshot „mit Tränken 75 %, ohne 83 %" – kein Trank-Fehler, Rauschen aus je 24
+ungekoppelten Kämpfen, ±8 Punkte). Jetzt: `seeded()` in rng.js gibt jedem Probekampf einen festen Würfel (Keim
+aus der Kampfnummer), „mit" und „ohne" treffen auf dieselben Gegner mit denselben Würfeln; `bestBelt()` ebenso
+(jede Kombination dieselben Würfel). `CFG.chanceN` = 200 Kämpfe. **Tempo gemessen** (Chromium, schlimmster Fall:
+Spiegelkampf über volle 50 Runden mit vollem Gürtel): 0,13 ms/Kampf → 51 ms je Paar; bei 4-facher CPU-Drossel
+0,30 ms → 120 ms. Typischer Bosskampf in Node: 16 ms je Paar, schlimmster 31 ms. Am echten iPhone nicht gemessen.
+**„etwa gleich"**: `chancePair()` zählt b = nur mit Tränken gewonnen, c = nur ohne; liegt |b−c| ≤ 2·√(b+c), zeigt die
+Vorbereitung „ohne Tränke etwa gleich" statt einer Zahl, die eine falsche Rangfolge behaupten könnte.
+Gegenprobe (6 Klassen × 4 Gürtel, Stufe 24, Boss auf ~50 %): Rangfolge mit/ohne in 24 von 24 Fällen richtig
+(Wahrheit aus je 3000 ungekoppelten Kämpfen); die absolute Zahl schwankt weiter um ±3–6 Punkte.
+
+### Serienbremse beim Ausweichen
+**Gebaut und gemessen, nicht gepusht (2026-11-19) – wartet auf den Besitzer.** Regel: in `combat.js` eine Hilfe
+`dodged(x, y)` statt der zwei Ausweich-Würfe in `strike()` und `spell()`; Zähler `x.evN` je Angreifer, gemeinsam für
+Hiebe und Zauber; nach `CFG.evadeStreak` (2) Ausweichern trifft der nächste Angriff sicher (Blocken bleibt möglich),
+jeder Nicht-Ausweicher setzt den Zähler auf 0. Gegenprobe (Stufe 24, 600 Kämpfe, gleiche Würfel, Gegner ohne Bremse
+auf ~50 % geeicht): Barbar 48→63, Paladin 50→59, Zauberin 52→66, Hexe 53→65, Assassine 51→50, Jägerin 53→52;
+Serien ≥3 vorher in 30–44 % der Kämpfe (Nicht-Geschick-Klassen), nachher nie. `tests/calib.mjs` unverändert
+(misst `power()` analytisch, nicht Kämpfe) – aber `power()` kennt die Bremse nicht (überschätzt Ausweichen am
+50-%-Deckel um bis zu ~14 %: effektiv (p+p²)/(1+p+p²) = 43 % statt 50 %).
+**Warum nicht gepusht:** der volle Lauf kippt `tests/sets.mjs`: Kutte des Verseuchten, Hexe Stufe 14, 3 Teile
++23,3 Punkte (Grenze −2…22). Gegenprobe mit 1600 Kämpfen: vorher +19,6, mit Bremse +21,9 – echt, nicht Rauschen
+(mehr Treffer = mehr Gift-Auslösungen), lag aber schon vorher knapp unter der Grenze. Der zweite Ausreißer im Lauf
+(Fokus, Zauberin Stufe 14, 0,4 < 1) war Rauschen: bei 1200 Kämpfen alt wie neu +2,1.
+Wege (Besitzer entscheidet): Kutte-3-Teile-Bonus (`venom` 0,35) etwas senken; oder die Schranke nach gemessener
+Verteilung neu setzen; oder die Bremse auf 3 in Folge lockern. Der Code (in `fight()`, `strike()`/`spell()` rufen
+`if (dodged(x, y)) return say(…)` bzw. `if (dmgKind && dodged(x, y))`, dazu `evadeStreak: 2` in `CFG`):
+```js
+function dodged(x, y) {
+  if ((x.evN || 0) >= CFG.evadeStreak) { x.evN = 0; return false; }
+  const evade = Math.max(0, Math.min(0.5 + (y.evadeCap || 0), y.dex / (y.dex + x.dex * 3 + 40) + (y.evade || 0)) - (x.acc || 0));
+  if (chance(evade)) { x.evN = (x.evN || 0) + 1; return true; }
+  x.evN = 0; return false;
+}
+```
+Logik-Test dazu: Zauberin Stufe 20 gegen Gegner mit `evade: 1, evadeCap: 0.5` (weicht immer aus), Leben 1e6, 20 Kämpfe;
+im Log nie mehr als `evadeStreak` Ausweicher in Folge, und es gibt Zauber-Treffer direkt nach Hieb-Ausweichern
+(beweist den gemeinsamen Zähler).
