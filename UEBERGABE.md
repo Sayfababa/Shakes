@@ -34,12 +34,8 @@ einmal teuer geworden; die Herkunft steht in `entscheidungen/fallen.md`.
    im Rauschen, `bestBelt()` gekoppelt (→ E „Siegchance gekoppelt“ in kampf.md). Am echten iPhone nicht gemessen.
 2. ~~Serienbremse~~ **erledigt 2026-11-19**: max. 2 Ausweicher in Folge; dafür Kutte-3-Teile `venom` 0,35 → 0,30,
    Baum-Test 600 statt 300 Kämpfe (→ E „Serienbremse beim Ausweichen“). `power()` kennt die Bremse nicht (offen, klein).
-3. **Tiers nach PoE-Art – er will das** („V muss auf jedem Teil gleich sein“). Heute ist das Tier relativ
-   zur Gegenstandsstufe (`affixValue` in loot.js: per × (1+iLvl×0,5) × Tier × Legendär 1,5), darum schlägt
-   V auf Stufe 49 ein I auf Stufe 22. **Weg 1 (empfohlen, ~1–2 Std.):** Tier aus dem fertigen Wert ablesen
-   (feste Schwellen je Bonus), Würfeln/Balance bleiben; Filter, Fusion („Stufe wandert mit“), Einzigartige
-   mitziehen. Weg 2: echtes Würfeln in festen Tier-Bereichen, Balance neu. **Er hat noch nicht gesagt,
-   Weg 1 oder 2.** Schwellen müssen auf Gegenstandsstufe 59+ zielen (fällt heute schon).
+3. ~~Tiers nach PoE-Art~~ **erledigt 2026-11-19** (Weg 1, Bezug Gegenstandsstufe 60): Stufe aus dem Wert, `tierOf()`;
+   bis ~GS 35 zeigt fast alles V (gewollt, ehrlich). Preis zählt weiter den Wurf. → E „Tiers aus dem Wert“ (beute.md).
 4. **Endgame zu kurz** (er: ~3–4 Std. bis Stufe 21, danach 1–2 Std. bis alles durch; Abgrund „viel zu
    schwach“ und endet). Ursache gefunden: `cryptLvl` = Akt-top + 2 + Krypta-Stufe × 3 → Glocke Stufe 10 =
    Gegnerstufe 59 bei Heldenstufe 22, Siegchance 83 %, Beute Stufe 59 (z. B. +88 % Zaubertempo). Beute

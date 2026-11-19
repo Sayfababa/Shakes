@@ -1140,33 +1140,47 @@ test('Fusionieren: die Regeln halten (Form, Seltenheit, Siegel, Platz, Einzigart
   if (uniq) { G.S.bag.push(uniq); assert.ok(!G.fuseMains().some(i => i.id === uniq.id), 'Einzigartiges steht als Hauptteil zur Wahl'); }
 });
 
+test('Bonus-Stufe aus dem Wert: auf Gegenstandsstufe 60 = gewürfelte Stufe, höherer Wert nie schlechtere Stufe', () => {
+  fresh();
+  for (let i = 0; i < 1500; i++) { const it = makeItem(D.CFG.tierRefLvl, { minRarity: 2 });
+    if (it.unique || it.set || it.rarity === 'legendary' || it.lvl !== D.CFG.tierRefLvl) continue;
+    for (const [k, t] of Object.entries(it.tiers)) { const v = it.mods[k], s = L.tierOf(k, v); if (s === t) continue;
+      // nur erlaubt, wo sich zwei Stufen nach dem Runden überlappen (kleine Werte): dann liegt v auch im Bereich der gezeigten
+      const r = L.tierRange(k, D.CFG.tierRefLvl, s); assert.ok(Math.abs(s - t) === 1 && v >= r[0] && v <= r[1], `${k} ${v}: gewürfelt ${t}, gezeigt ${s}`); } }
+  for (const a of D.AFFIXES) { let last = 5; for (let v = 1; v < 2000; v++) { const t = L.tierOf(a.stat, v); assert.ok(t <= last, a.stat); last = t; } assert.equal(last, 1, a.stat + ' erreicht nie I'); }
+});
+
 test('Der Beute-Filter zaehlt nur echte Treffer', async () => {
   // Vom Besitzer gewuenscht: gesuchte Boni einstellen, jedes Teil zeigt je Treffer einen Punkt.
   const G = await import('../js/state.js'), L = await import('../js/loot.js');
   G.newChar('Filter', 'sorceress'); G.S.lvl = 20; G.S.tut = 99;
-  const mk = (mods, tiers, runes = []) => { const it = L.makeItem(20, { slot: 'ring' });
-    it.mods = { ...mods }; it.tiers = { ...tiers }; it.runes = runes; return it; };
+  // Die Stufe steht im Wert (tierOf), nicht im gespeicherten Wurf: mk(stat→Stufe) baut den kleinsten Wert dieser Stufe.
+  // Der gespeicherte Wurf ist absichtlich falsch (immer I) – er darf für den Filter nicht zählen.
+  const val = (k, t) => { for (let v = 1; v < 1e5; v++) if (L.tierOf(k, v) === t) return v; throw new Error(k + t); };
+  const mk = (tiers, runes = []) => { const it = L.makeItem(20, { slot: 'ring' });
+    it.mods = Object.fromEntries(Object.entries(tiers).map(([k, t]) => [k, val(k, t)])); it.tiers = Object.fromEntries(Object.keys(tiers).map(k => [k, 1]));
+    for (const r of runes) it.mods[r.stat] = r.v; it.runes = runes; return it; };
 
   G.S.filter = { mods: [], tier: 3 };
-  assert.equal(G.filterHits(mk({ critc: 5 }, { critc: 1 })), 0, 'leerer Filter darf nie Punkte zeigen');
+  assert.equal(G.filterHits(mk({ critc: 1 })), 0, 'leerer Filter darf nie Punkte zeigen');
   assert.equal(G.filterOn(), false);
 
   G.S.filter = { mods: ['critc', 'critd', 'lifep'], tier: 2 };
-  assert.equal(G.filterHits(mk({ str: 5 }, { str: 1 })), 0, 'fremder Bonus zaehlt');
-  assert.equal(G.filterHits(mk({ critc: 5 }, { critc: 2 })), 1);
-  assert.equal(G.filterHits(mk({ critc: 5, critd: 9, lifep: 7 }, { critc: 1, critd: 2, lifep: 2 })), 3);
+  assert.equal(G.filterHits(mk({ str: 1 })), 0, 'fremder Bonus zaehlt');
+  assert.equal(G.filterHits(mk({ critc: 2 })), 1);
+  assert.equal(G.filterHits(mk({ critc: 1, critd: 2, lifep: 2 })), 3);
   // Die STUFE muss mindestens die gesuchte sein (1 = I ist die beste) - sonst ist der Filter wertlos
-  assert.equal(G.filterHits(mk({ critc: 5, critd: 9 }, { critc: 2, critd: 3 })), 1, 'Stufe III darf bei "ab II" nicht zaehlen');
+  assert.equal(G.filterHits(mk({ critc: 2, critd: 3 })), 1, 'Stufe III darf bei "ab II" nicht zaehlen');
   // Eine Rune ist kein erwuerfelter Bonus: sonst zeigte jedes Runen-Teil Treffer, die beim
   // naechsten Teil nicht wieder herauskommen.
-  const mitRune = mk({ critc: 5 }, { critc: 1 }, [{ stat: 'critc', v: 5, name: 'R' }]);
+  const mitRune = mk({}, [{ stat: 'critc', v: 50, name: 'R' }]);
   assert.equal(G.filterHits(mitRune), 0, 'ein reiner Runen-Bonus darf nicht als Treffer zaehlen');
   // Auswaehlen und wieder abwaehlen
   G.setFilterMod('penp'); assert.ok(G.filterOf().mods.includes('penp'));
   G.setFilterMod('penp'); assert.ok(!G.filterOf().mods.includes('penp'));
   // Alte Staende haben kein `filter` - der Filter ist dann aus, ohne Migration
   delete G.S.filter;
-  assert.equal(G.filterHits(mk({ critc: 5 }, { critc: 1 })), 0, 'ohne gespeicherten Filter darf nichts leuchten');
+  assert.equal(G.filterHits(mk({ critc: 1 })), 0, 'ohne gespeicherten Filter darf nichts leuchten');
 });
 
 test('Jedes Krypta-Ziel sagt, wo die Krypta ist', async () => {

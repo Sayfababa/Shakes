@@ -480,6 +480,7 @@ export const CFG = {
   mainDiv: 20,                        // Schaden × (1 + Hauptattribut / mainDiv)
   affixBase: 1, affixPerLvl: 0.5,     // Affix-Wert = per × (affixBase + iLvl × affixPerLvl)
   pctBase: 10, pctPerLvl: 0.25,       // Prozent-Boni (pct): per × (pctBase + iLvl × pctPerLvl) – wachsen flacher, sonst kippen sie spät
+  tierRefLvl: 60,                     // angezeigte Bonus-Stufe (I–V) aus dem Wert, feste Schwellen: dort stimmt sie mit der gewürfelten überein (→ E „Tiers aus dem Wert“)
   rareMinLvl: 4, legendaryMinLvl: 10, // darunter keine/kaum seltene bzw. legendäre Beute
   bossHp: 2.2, bossDiff: 1.35,
   rushPerLvl: 3,                      // Eilen: 1 Gold je 20 s Restzeit × (1 + Stufe / rushPerLvl)

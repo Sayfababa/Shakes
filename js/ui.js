@@ -1,7 +1,7 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
 import { TREE, AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, STASH_W, STASH_H, SERVICES, SHARD_CRYPTS, TUTORIAL, BOUNTIES, SETS, SET } from './data.js';
 import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
-import { affixPool } from './loot.js';
+import { affixPool, tierOf } from './loot.js';
 import { potion, beltSlots, brewCost, canBrew, potMax, unreadable, herbPrice, canBuyHerb, herbLeft, herbSource } from './state.js';
 import { WIKI_CATS, wikiList, wikiEntry, upgradePaths, matBottleneck } from './wiki.js';
 import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, craftRaises, craftMat, baseMods, fusedMods, filterHits, filterOf, filterOn, setFilterMod, fuseMains, fuseFoods, fuseCheck, fuseFull, fusePromote, fuseReplaces, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
@@ -88,7 +88,7 @@ export function itemTip(it, cmp) {
   // Boni ohne Runen-Anteil, mit Stufe (I = beste)
   const runeOf = k => (it.runes || []).filter(r => r.stat === k).reduce((a, r) => a + r.v, 0);
   const fus = fusedMods(it);
-  for (const [k, v] of Object.entries(it.mods)) { const b = v - runeOf(k); if (b <= 0) continue; const t = it.tiers?.[k];
+  for (const [k, v] of Object.entries(it.mods)) { const b = v - runeOf(k); if (b <= 0) continue; const t = tierOf(k, b);
     const mark = it.sealed === k ? '<i class="seal">versiegelt</i>' : fus.includes(k) ? '<i class="fus">fusioniert</i>' : '';
     L.push(`<span class="m ${t && t <= 2 ? 'hi' : ''}">+${b} ${STAT_NAME(k)}${t ? ` <i class="tier t${t}">${TIERS[t - 1].name}</i>` : ''}${mark}</span>`); }
   if (it.fx) L.push(`<span class="special">${it.unique ? '' : '✦ '}${effLine(it.fx)}</span>`);
@@ -570,7 +570,7 @@ function viewCraft(sel) {
   const list = craftItems(), it = list.find(x => x.id === sel.item) || null;
   if (it) craftCheck(it, 'values');   // legt bei alten Items die Glut fest
   const card = !it ? '<p class="dim small">Wähle ein magisches, seltenes oder legendäres Item. Einzigartiges lässt sich nicht umschmieden.</p>' : (() => {
-    const base = baseMods(it), rows = Object.entries(base).map(([k, v]) => { const t = it.tiers?.[k] || 3, sealed = it.sealed === k, picked = sel.stat === k;
+    const base = baseMods(it), rows = Object.entries(base).map(([k, v]) => { const t = tierOf(k, v) || 5, sealed = it.sealed === k, picked = sel.stat === k;
       const fu = !sealed && fusedMods(it).includes(k);
       return `<div class="caff ${sealed ? 'sealed' : ''} ${fu ? 'fus' : ''} ${picked ? 'on' : ''} ${sel.changed?.includes(k) ? 'new' : ''}" data-action="craftstat" data-k="${k}"><span>+${v} ${STAT_NAME(k)}</span><i class="tier t${t}">${TIERS[t - 1].name}</i>${sealed ? '<b class="seal">versiegelt</b>' : fu ? '<b class="fus">fusioniert</b>' : ''}</div>`; }).join('');
     return `<div class="ccard"><div class="cname r-${it.rarity}">${it.name}</div>
@@ -609,7 +609,7 @@ function craftHint(it) {
 }
 function fuseRows(it, picked, side, dropped, blocked) {
   const base = baseMods(it);
-  return Object.entries(base).map(([k, v]) => { const t = it.tiers?.[k] || 3, sealed = it.sealed === k;
+  return Object.entries(base).map(([k, v]) => { const t = tierOf(k, v) || 5, sealed = it.sealed === k;
     // Gesperrt: versiegelt (im Hauptteil) oder nicht übertragbar (im Futter) – gar nicht erst antippbar,
     // sonst tippt man drei Mal, bevor unten steht, warum es nicht geht.
     const no = side === 'main' ? sealed : blocked?.has(k);

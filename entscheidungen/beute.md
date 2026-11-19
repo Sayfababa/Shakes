@@ -90,3 +90,17 @@
 ### Grab-Sets
 
 **Grab-Sets** (`SETS`, `SET` in data.js; `setCount`/`setOwned`/`setsWorn` + Boni in `effects()` in state.js; `makeSetItem` in loot.js; `setDrop` in game.js; `setBox`/`viewSets` in ui.js): je Krypta ein Set aus 3 Teilen, Seltenheit `set` (grün, `--r-set`, fällt nie zufällig). Teile fallen **nur beim Boss ihrer Krypta**, ab Stufe `SET.minTier`, Chance `SET.chance` + `perTier` je Stufe (max `SET.max`) – bevorzugt ein Teil, das noch fehlt. 2 Teile = ein guter Bonus, 3 Teile = eine **Regeländerung**; `t2`/`t3` sind die Kurztexte für die Anzeige (< 60 Zeichen, Test prüft). Boni müssen Effekt-Schlüssel aus `EFFECT_NAMES` sein (ein Affix-Name wie `critc` wirkt **nicht**), Teil-Boni Affix-Namen mit Stufe wie bei `UNIQUES`. Set-Teile sind vom Umschmieden und Neu weihen ausgenommen und brauchen zum Verkaufen zwei Tipps. Übersicht: Krypta-Tab → Ilse → „Grab-Sets“ (`viewSets`), Details im Item-Fenster (`setBox`). **Balance:** `node tests/sets.mjs [klasse] [stufe] [kämpfe] [--check]` (gekoppelter Zufall, in run.sh): 2 Teile −1…+10, 3 Teile −2…+22 Punkte Siegchance; die Spalte „statt 3 seltenen“ ist nur ein grobes Geländer. Neue Kampf-Schlüssel: `lastStand` (unter halbem Leben heilt alles doppelt), `venom` (Gift heilt dich), `execHp` (Henker-Schwelle), `tollback` (Betäubung prallt zurück), `firstEcho` (erster Zauber wirkt zweimal).
+
+### Tiers aus dem Wert
+Gebaut 2026-11-19 (Besitzer: „V muss auf jedem Teil gleich sein“, Weg 1, Bezugsstufe 60). Vorher hing die Stufe am Wurf
+und damit an der Gegenstandsstufe – ein V auf Stufe 49 schlug ein I auf Stufe 22. Jetzt: `tierOf(stat, wert)` in loot.js liest
+die Stufe aus dem Wert, feste Schwellen je Bonus, geeicht auf `CFG.tierRefLvl` = 60 (dort zeigt jeder Wert die gewürfelte
+Stufe; Schwelle = Mitte der Lücke zwischen schwächstem Wurf der besseren und stärkstem der schlechteren Stufe). Würfeln,
+Werte, Balance unverändert. `it.tiers` (gewürfelt) bleibt gespeichert – kein neues Save-Format – und zählt nur noch für den
+Preis (`itemValue`, absichtlich, sonst verschiebt sich die Gold-Wirtschaft). Anzeige (Tooltip, Schmiede, Fusion) und Beute-Filter
+nutzen `tierOf`; Fusion „Stufe wandert mit“ ergibt sich von selbst, Einzigartige/Sets zeigen ihre echte Stärke.
+Gemessen (20 000 Teile je Gegenstandsstufe, Anteil I/II/III/IV/V): GS 22 heute 5/12/23/30/30 → neu 0/0/2/5/92;
+GS 40 → 0/3/10/17/70; GS 60 → 7/13/23/28/30; GS 70 → 14/18/28/18/22. I möglich ab GS 42 (Prozent) bzw. 49 (flach),
+legendär (×1,5) ab 15 bzw. 32. Verworfen: Bezug 40 (GS 22 zeigt 79 % V, aber auf GS 60 schon 31 % I, 3 % V – oben sagt die
+Anzeige nichts mehr). Bekannt: bei kleinen Werten überlappen zwei Stufen nach dem Runden (Lebensraub 18 % auf GS 60 kann
+II oder III gewürfelt sein) – gleicher Wert zeigt dann gleiche Stufe, gewollt.

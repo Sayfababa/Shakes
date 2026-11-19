@@ -23,7 +23,7 @@ Abschnitt, um den es geht:
 | `kampf.md` | Kampfkraft, Kurven, Boni auf Items, Treffer-Wirkungen, Klassenwaffe, Attribute, Bewertung, Einblendungen, Siegchance gekoppelt, Serienbremse |
 | `zauber.md` | Zauber, Zauber im Kampf, Zauber-Wege |
 | `talente.md` | Das Brett, das Brett der Zauberin, ihre drei Einzigartigen |
-| `beute.md` | Beute-Tiefe, Umschmieden, Fusionieren, Erheben, Dienste, Schmiede, Sets, Filter, Lager, Gold |
+| `beute.md` | Beute-Tiefe, Umschmieden, Fusionieren, Erheben, Dienste, Schmiede, Sets, Filter, Lager, Gold, Tiers aus dem Wert |
 | `inhalte.md` | Akte, Krypten, Grube, Abstieg, Expedition, Umherziehen, Tränke, Steckbriefe, Omen, Glut |
 | `oberflaeche.md` | Fenster, Verzeichnis, Hinweise, Vorbereitung, Texte, Bilder, Tutorial, Einstellungen, Raster |
 | `tests.md` | Was die Messwerkzeuge messen und wo sie getäuscht haben |

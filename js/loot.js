@@ -13,6 +13,17 @@ export const affixValue = (a, ilvl, tier, legendary = false) =>
 export const tierRange = (stat, ilvl, t) => { const a = AFFIXES.find(x => x.stat === stat), T = TIERS.find(x => x.t === t); if (!a || !T) return null;
   const b = a.per * affixScale(a, ilvl) * T.mult; return [Math.max(1, Math.round(b * 0.9)), Math.max(1, Math.round(b * 1.1))]; };
 
+// Angezeigte Bonus-Stufe aus dem Wert (Besitzer: „V muss auf jedem Teil gleich sein“). Feste Schwellen je Bonus, geeicht auf
+// Gegenstandsstufe CFG.tierRefLvl: dort zeigt jeder Wert genau die gewürfelte Stufe; tiefer rutscht sie ab, höher steigt sie.
+// Schwelle zwischen zwei Stufen = Mitte der Lücke (schwächster Wurf der besseren, ±10 % Streuung, gegen stärksten der schlechteren).
+// Gespeichert bleibt die gewürfelte Stufe (it.tiers) – sie zählt nur noch für den Preis, nie für die Anzeige.
+export function tierOf(stat, v) {
+  const a = AFFIXES.find(x => x.stat === stat); if (!a || !(v > 0)) return null;
+  const b = a.per * affixScale(a, CFG.tierRefLvl);
+  for (let i = 0; i < TIERS.length - 1; i++) if (v >= b * (TIERS[i].mult * 0.9 + TIERS[i + 1].mult * 1.1) / 2) return TIERS[i].t;
+  return TIERS[TIERS.length - 1].t;
+}
+
 // Erzeugt ein Item für Stufe `lvl`. luck verschiebt Seltenheiten nach oben.
 export function makeItem(lvl, { luck = 0, slot, slots, cls, kind, minRarity = 0 } = {}) {
   const okLvl = b => !b.minLvl || lvl >= b.minLvl;   // höhere Grundgegenstände erst ab ihrer Stufe

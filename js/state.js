@@ -1,5 +1,5 @@
 import { RARITIES, TREE, SETS, SET, ACTS, ACT, CRYPT, DESCENT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, STASH_W, STASH_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, HERB_LOC, ALCH } from './data.js';
-import { affixPool, makeItem, itemValue, rollTier, affixValue, renameMagic, adj, fixName } from './loot.js';
+import { affixPool, makeItem, itemValue, rollTier, tierOf, affixValue, renameMagic, adj, fixName } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 
 const KEY = 'aschenkrone_v1';
@@ -569,7 +569,7 @@ export const filterOn = () => filterOf().mods.length > 0;
 export function filterHits(it) {
   const f = filterOf(); if (!f.mods.length || !it?.mods) return 0;
   const base = baseMods(it);
-  return f.mods.filter(k => k in base && (it.tiers?.[k] || 3) <= f.tier).length;
+  return f.mods.filter(k => k in base && tierOf(k, base[k]) <= f.tier).length;
 }
 export function setFilterMod(k) {
   const f = filterOf(), i = f.mods.indexOf(k);

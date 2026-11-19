@@ -310,8 +310,10 @@ const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height:
     // Set-Farbe monatelang kaputt) und dass sie NICHT aus der Zelle ragen: fuenf Punkte sind
     // 33 px, ein Ring im Browser 34 px breit, das ging beim ersten Bau um 1 px daneben.
     await p.evaluate(async () => { const G = await import('./js/state.js'); const L = await import('./js/loot.js');
+      // Stufe steht im Wert (tierOf): mk baut den kleinsten Wert der verlangten Stufe; der gespeicherte Wurf zählt nicht
+      const val = (k, t) => { for (let v = 1; v < 1e5; v++) if (L.tierOf(k, v) === t) return v; };
       const mk = (mods, tiers, x) => { const it = L.makeItem(20, { slot: 'ring' });
-        it.mods = { ...mods }; it.tiers = { ...tiers }; it.runes = []; it.x = x; it.y = 0; return it; };
+        it.mods = Object.fromEntries(Object.keys(mods).map(k => [k, val(k, tiers[k])])); it.tiers = { ...tiers }; it.runes = []; it.x = x; it.y = 0; return it; };
       G.S.bag = [mk({ str: 5 }, { str: 1 }, 0), mk({ critc: 5 }, { critc: 2 }, 1),
                  mk({ critc: 5, critd: 9, lifep: 7 }, { critc: 1, critd: 2, lifep: 2 }, 2),
                  mk({ critc: 5, critd: 9, lifep: 7, dmgp: 6, penp: 4 }, { critc: 1, critd: 1, lifep: 1, dmgp: 1, penp: 1 }, 3)];
