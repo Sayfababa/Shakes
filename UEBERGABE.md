@@ -36,11 +36,16 @@ einmal teuer geworden; die Herkunft steht in `entscheidungen/fallen.md`.
   einen einzigen Meteor. Bei Feuerball/Frostnova ist nichts zu holen (13 %/9 %) – **nur der dritte
   Zauber lohnt**. Die eigentliche Tiefe entsteht erst, wenn ein unterdrückter Zauber **seine Ladung
   behält**: dann ist es *halten oder werfen* mit Preis.
-- **Kampf-Historie hinter einem Knopf am Kampfende** – seine Idee, **er will sie eingebaut** (2026-11-19);
-  offen ist, *was* sie zeigen soll. Ihm vorgelegt: **A** Verlauf des Kampfes Zug für Zug mit markierten
-  Wendepunkten + dem einen Hebel; **B** die letzten ~10 Kämpfe als Liste. Seine Wahl abwarten. Die Daten
-  gibt es schon (`fightReport()` in game.js → `fightSummary` in ui.js). Wichtig: er will
-  **Entscheidungen, keine größere Anzeige** – diesen Punkt habe ich einmal verfehlt.
+  **Seine Richtung (2026-11-19): Zauber-Ketten**, z. B. Nova → Betäubung → Meteor → Krit → Feuerball;
+  Zauber bekommen Ketten-Wirkungen (Meteor-Krit löst einen zweiten Meteor aus). Er will das
+  **gemeinsam durchgehen**, nicht vorgelegt bekommen. Knackpunkte: Zaubertempo, Abklingzeit, keine
+  endlose Kette. Präzedenz: Bum-bo – Ketten sollen gewollt sein, nicht Glück
+  (https://gamegene.app/library/records/claims/cec56128-4df5-4212-8c24-0360fbb440f6).
+- **Kampf-Historie hinter einem Knopf am Kampfende** – **gewählt: Variante A** (2026-11-19): dieser
+  Kampf Zug für Zug (wer, was, Schaden, Zauber, Trank), Wendepunkte markiert („Leben unter 30 %",
+  „Meteor verpufft"), unten der eine Hebel, der am meisten geholfen hätte. Daten: `fightReport()` in
+  game.js → `fightSummary` in ui.js. Er will **Entscheidungen, keine größere Anzeige**. Erst Plan +
+  Mockup vorlegen, dann bauen.
 - **Die vier Abgrund-Materialien** (DESIGN.md) – zurückgestellt, **er sucht noch Ideen** dafür. **Nicht ohne
   seinen Zuruf anfangen.**
 - **Arbeitsweise-Abschnitt in CLAUDE.md**: von mir eingetragen, von ihm nicht ausdrücklich
