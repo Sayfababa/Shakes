@@ -29,6 +29,35 @@ einmal teuer geworden; die Herkunft steht in `entscheidungen/fallen.md`.
 
 ## Offen – wartet auf den Besitzer, nichts tun ohne sein Wort
 
+**Befunde 2026-11-19 (gemessen, nichts davon gebaut – Reihenfolge wählt er):**
+1. **Siegchance „mit Tränken“ < „ohne“** (sein Screenshot 75 % vs 83 %): kein Trank-Fehler, **Rauschen**.
+   `winChance()` (game.js) würfelt je Zahl nur 24 Kämpfe ohne Keim (±8 Punkte) und cacht das Ergebnis.
+   Vorschlag: gekoppelter Zufall (gleiche Würfel mit/ohne, wie `tests/potions.mjs`), mehr Kämpfe (Tempo am
+   Handy messen), innerhalb des Rauschens „etwa gleich“ zeigen; `bestBelt()` (n=50) gleich mit.
+2. **Ausweichen bestraft Nicht-Geschick-Klassen.** Formel nutzt nur Angreifer-Geschick → Barbar/Paladin/
+   Zauberin/Hexe sitzen am 50-%-Deckel; ≥3 Fehlschläge in Folge in 34–58 % der Kämpfe, Serien bis 13.
+   Gemessen (Stufe 24, 600 Kämpfe, Gegner auf ~50 % geeicht, Siegchance heute → Variante):
+   Zauber treffen immer: Zauberin 47→97 (viel zu stark) · Zauber halb so oft: 52→83 · Bremse nur Hiebe:
+   hilft Magiern nicht · **Serienbremse Hiebe+Zauber (max. 2 in Folge, dann sicherer Treffer): Zauberin
+   52→64, Hexe 50→61, Paladin 57→68, Barbar 43→56, Assassine/Jägerin unverändert.** Empfohlen; danach
+   `tests/calib.mjs` prüfen. Er: „etwas machen, aber nicht ganz weg“.
+3. **Tiers nach PoE-Art – er will das** („V muss auf jedem Teil gleich sein“). Heute ist das Tier relativ
+   zur Gegenstandsstufe (`affixValue` in loot.js: per × (1+iLvl×0,5) × Tier × Legendär 1,5), darum schlägt
+   V auf Stufe 49 ein I auf Stufe 22. **Weg 1 (empfohlen, ~1–2 Std.):** Tier aus dem fertigen Wert ablesen
+   (feste Schwellen je Bonus), Würfeln/Balance bleiben; Filter, Fusion („Stufe wandert mit“), Einzigartige
+   mitziehen. Weg 2: echtes Würfeln in festen Tier-Bereichen, Balance neu. **Er hat noch nicht gesagt,
+   Weg 1 oder 2.** Schwellen müssen auf Gegenstandsstufe 59+ zielen (fällt heute schon).
+4. **Endgame zu kurz** (er: ~3–4 Std. bis Stufe 21, danach 1–2 Std. bis alles durch; Abgrund „viel zu
+   schwach“ und endet). Ursache gefunden: `cryptLvl` = Akt-top + 2 + Krypta-Stufe × 3 → Glocke Stufe 10 =
+   Gegnerstufe 59 bei Heldenstufe 22, Siegchance 83 %, Beute Stufe 59 (z. B. +88 % Zaubertempo). Beute
+   steigt, Gefahr kaum. Abgrund wächst mit Heldenstufe (+1) → mit Krypta-Beute zwangsläufig leicht.
+   Vorschlag: **endlose Leiter** (Abgrund-Tiefe ohne Ende, Gegner nach Tiefe statt Heldenstufe), Gefahr
+   ehrlich mit Beutestufe steigen lassen; später Wochen-Herausforderung. **Nur besprechen**, er will reden.
+   Offene Fragen an ihn: Spiellänge (Wochen/Abende), Timer ja/nein, was macht ihm am meisten Spaß,
+   Stufen-Deckel.
+- Bot (`tests/bot.mjs sorceress 30 1`, spielt ideal): Geschichte fertig Tag 3 (~Stufe 19), Glocke Tag 12
+  (Stufe 26), danach kein Ende.
+
 - **Zauber-Bedingungen.** Vorschlag liegt ihm vor, gemessen, **nichts gebaut**. Kern: Zauber feuern
   stur nach Takt (`every: 3/5/7`), während Tränke längst Auslöser haben (`TRIGGERS`). Gemessen
   (Stufe 20, 1200 Kämpfe, Gegner auf 50 % geeicht): **Meteor feuert in 21 % der Kämpfe nie**, 34 %
