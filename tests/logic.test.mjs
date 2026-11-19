@@ -1011,6 +1011,8 @@ test('Fusionieren: der Bonus wandert, das Futter zerfällt, einmal je Teil', asy
   assert.equal(r.it.tiers[k], stufeVorher, 'die Stufe des Bonus ist beim Umzug verlorengegangen');
   assert.equal(G.S.bag.length, bagVorher - 1, 'das Futter ist nicht zerfallen');
   assert.equal(r.it.fused, 1);
+  // Welcher Bonus eingewandert ist, muss am Teil stehen - sonst sieht man nur DASS fusioniert wurde.
+  assert.deepEqual(G.fusedMods(r.it), [k], 'der fusionierte Bonus ist nicht markiert');
 
   // --- Nur eine Fusion je Teil, für immer: sonst baut jeder dasselbe perfekte Teil
   const c = mk(2); G.S.bag.push(c);
@@ -1067,6 +1069,44 @@ test('Fusionieren: die Regeln halten (Form, Seltenheit, Siegel, Platz, Einzigart
   // Einzigartige und Set-Teile tauchen gar nicht erst als Hauptteil auf
   const uniq = (() => { for (let i = 0; i < 9000; i++) { const it = L.makeItem(30, { slot: 'weapon', kind: 'dagger' }); if (it.unique) return it; } })();
   if (uniq) { G.S.bag.push(uniq); assert.ok(!G.fuseMains().some(i => i.id === uniq.id), 'Einzigartiges steht als Hauptteil zur Wahl'); }
+});
+
+test('Die Marke am fusionierten Bonus folgt dem Bonus', async () => {
+  const G = await import('../js/state.js'), L = await import('../js/loot.js'), D = await import('../js/data.js');
+  const fill = () => { for (const k of Object.keys(D.MATS)) G.S.mats[k] = 99;
+    for (const o of D.CRAFT.ops) if (o.mat) G.S.mats[o.mat] = 99; G.S.gold = 999999; };
+  // Ein Paar bauen, das `fuseCheck` wirklich durchlaesst - die Regel aufrufen, nicht nachbauen
+  // (dieselbe Falle wie beim flockigen Umzug-Test).
+  const paar = () => { for (let i = 0; i < 900; i++) {
+      G.newChar('FM', 'assassin'); G.S.lvl = 22; fill();
+      const a = Object.assign(L.makeItem(22, { slot: 'helm' }), { id: 'A' + i, x: 0, y: 0 });
+      const b = Object.assign(L.makeItem(22, { slot: 'helm' }), { id: 'B' + i, x: 4, y: 0 });
+      G.S.bag = [a, b];
+      for (const k of Object.keys(G.baseMods(b))) if (!G.fuseCheck(a, b, k, null)) return [a, b, k];
+    } return []; };
+
+  // Werte neu wuerfeln wuerfelt auch die STUFE neu - und die Stufe ist das, was bei der Fusion
+  // mitwandert. Die Marke muss danach fallen, sonst behauptet sie etwas, das nicht mehr stimmt.
+  let [a, b, k] = paar(); assert.ok(k, 'kein uebertragbares Paar gefunden');
+  let r = G.fuse(a.id, b.id, k, null); assert.ok(!r.err, r.err);
+  assert.deepEqual(G.fusedMods(r.it), [k]);
+  r.it.glut = 30; delete r.it.crafted; fill();
+  assert.ok(!G.craftCheck(r.it, 'values'), G.craftCheck(r.it, 'values'));
+  G.craft(r.it.id, 'values');
+  assert.deepEqual(G.fusedMods(r.it), [], 'nach neu gewuerfelten Werten ist die Marke noch da');
+
+  // Ein Bonus, der entfernt wird, nimmt seine Marke mit; die der anderen bleiben.
+  [a, b, k] = paar(); assert.ok(k);
+  r = G.fuse(a.id, b.id, k, null); assert.ok(!r.err, r.err);
+  r.it.glut = 30; delete r.it.crafted; fill();
+  r.it.sealed = k;                                    // versiegelt: `remove` trifft einen anderen
+  G.craft(r.it.id, 'remove');
+  assert.deepEqual(G.fusedMods(r.it), [k], 'die Marke des gebliebenen Bonus ist verschwunden');
+  r.it.glut = 30; delete r.it.crafted; fill(); delete r.it.sealed;
+  while (Object.keys(G.baseMods(r.it)).length > 1 && !G.craftCheck(r.it, 'remove')) {
+    G.craft(r.it.id, 'remove'); r.it.glut = 30; delete r.it.crafted; fill();
+  }
+  if (!(k in G.baseMods(r.it))) assert.deepEqual(G.fusedMods(r.it), [], 'die Marke haengt an einem Bonus, den es nicht mehr gibt');
 });
 
 test('Fusionieren bringt nie Gold', async () => {

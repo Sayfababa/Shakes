@@ -280,6 +280,27 @@ let failures = 0;
       if (nach.n !== vor.n - 1) { failures++; console.log(`FEHLER ${tag}: Teil liegt nach dem Verkauf noch im Lager (${nach.n})`); }
       if (nach.gold !== vor.gold + vor.wert) { failures++; console.log(`FEHLER ${tag}: Lager-Verkauf zahlt nicht (${vor.gold} -> ${nach.gold}, Wert ${vor.wert})`); }
     }
+    // Fusionierte Boni muessen am Teil markiert sein wie versiegelte (vom Besitzer gewuenscht:
+    // "damit man weiss welche items fusionierte bonis haben"). Geprueft wird der TEXT im Fenster,
+    // nicht die Klasse - eine Marke, die das CSS nicht faerbt, waere im Beutel wieder unsichtbar,
+    // genau wie die Set-Farbe es war.
+    await p.evaluate(async () => { const G = await import('./js/state.js'); const L = await import('./js/loot.js');
+      // Zwei Boni erzwingen: ein magisches Teil kann nur einen haben, dann gibt es nichts zu
+      // versiegeln und der Test prueft ins Leere (genau das ist er beim ersten Lauf getan).
+      let it; for (let i = 0; i < 400; i++) { it = L.makeItem(20, { slot: 'helm', minRarity: 2 }); if (Object.keys(it.mods).length >= 2) break; }
+      const ks = Object.keys(it.mods); it.fmods = [ks[0]]; it.sealed = ks[1];
+      G.S.stash = []; G.S.bag = [Object.assign(it, { x: 0, y: 0 })]; G.save(); });
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=hero]');
+    if (!(await tap('.cellitem'))) { failures++; console.log(`FEHLER ${tag}: Teil mit Marke nicht antippbar`); }
+    else {
+      const txt = await p.$eval('#tip', e => e.textContent);
+      if (!/fusioniert/.test(txt)) { failures++; console.log(`FEHLER ${tag}: fusionierter Bonus ist nicht markiert`); }
+      if (!/versiegelt/.test(txt)) { failures++; console.log(`FEHLER ${tag}: versiegelter Bonus ist nicht markiert`); }
+      const farbe = await p.$$eval('#tip .m .fus, #tip .m .seal', es => es.map(e => getComputedStyle(e).color));
+      if (farbe.some(c => c === 'rgb(205, 189, 156)')) { failures++; console.log(`FEHLER ${tag}: Marke ist nicht eingefaerbt (${farbe.join(', ')})`); }
+    }
+    await tap('[data-action=noop]');
+
     // Das LAGER ordnen (vom Besitzer gemeldet: ging nicht - `sortBag` hatte S.bag fest verdrahtet
     // und den Knopf gab es im Lager gar nicht). Gemessen werden die Luecken und der Bestand, nicht
     // der Knopf: ein Ordnen, das ein Teil verliert, waere schlimmer als keines.

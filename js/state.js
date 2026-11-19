@@ -614,6 +614,11 @@ export function craft(id, opId, stat) {
   else if (opId === 'add') { const pool = affixPool(it).filter(a => !(a.stat in base)); roll1(pool[Math.floor(rand() * pool.length)].stat); }
   else if (opId === 'remove') { const k = free[Math.floor(rand() * free.length)]; delete base[k]; delete tiers[k]; }
   it.tiers = tiers; setBase(it, base);
+  // Neu gewuerfelt heisst: nicht mehr fusioniert. Bei `values`/`chaos` wuerfelt roll1() auch die
+  // STUFE neu - und die Stufe ist genau das, was bei der Fusion mitwandert; die Markierung waere
+  // danach eine Luege. Deshalb fallen alle angefassten (`free`) Boni aus der Liste.
+  if (opId === 'values' || opId === 'chaos') it.fmods = fusedMods(it).filter(k => !free.includes(k));
+  if (opId !== 'seal') keepFused(it);
   // Der Aufstieg ändert nur die Zahl der Boni und die Farbe – dmg/armor des Grundgegenstands bleiben,
   // sonst bekäme man einen seltenen Grundwert geschenkt (gleiche Regel wie beim Fusionieren).
   if (rise) { it.rarity = rise; it.risen = true; }
@@ -631,6 +636,10 @@ export function craft(id, opId, stat) {
 // Versehen, was man anhat).
 export const fuseForm = (a, b) => a.slot === b.slot && a.kind === b.kind;   // Dolch zu Dolch, Gürtel zu Gürtel
 export const fuseCount = it => it?.fused || 0;
+// Fusionierte Boni. Alte Teile haben das Feld nicht - dann ist die Liste leer (keine Save-Version
+// noetig). `keep` filtert auf Boni, die es noch gibt: ein weggewuerfelter Bonus ist nicht mehr fusioniert.
+export const fusedMods = it => it?.fmods || [];
+const keepFused = it => { const f = fusedMods(it).filter(k => k in baseMods(it)); if (f.length) it.fmods = f; else delete it.fmods; };
 const fusable = it => CRAFT.glut[it.rarity] && !it.unique && !it.set;
 const nextRar = r => { const n = RARITIES[RARITIES.findIndex(x => x.id === r) + 1]; return n && CRAFT.maxAff[n.id] ? n.id : null; };
 export const fuseMains = () => craftItems().filter(it => fuseCount(it) < CRAFT.fuse.max);
@@ -676,6 +685,9 @@ export function fuse(mainId, foodId, foodStat, mainStat) {
   // bleiben, sonst bekäme man durch zwei magische Teile heimlich einen seltenen Grundwert geschenkt.
   if (promote) { main.rarity = promote; main.risen = true; }
   main.fused = fuseCount(main) + 1;
+  // Welcher Bonus eingewandert ist, stand bisher nirgends - `fused` zaehlt nur. Ohne das sieht man
+  // am Teil nicht, was man sich erarbeitet hat, und beim Umschmieden nicht, was man wegwuerfeln wuerde.
+  main.fmods = [...fusedMods(main).filter(k => k !== replaced), foodStat];
   const gold = craftGold(main); S.gold -= gold;
   const cost = spendGlut(main, CRAFT.fuse.glut);
   removeFromBag(food.id);
