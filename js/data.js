@@ -182,7 +182,7 @@ export const SETS = [
       { name: 'Ertränkter Ring', slot: 'ring', mods: { lck: 3, leechp: 3 } },
     ] },
   { id: 's2', crypt: 'c2', name: 'Kutte des Verseuchten',
-    b2: { poison: 0.015 }, b3: { venom: 0.35 },
+    b2: { poison: 0.015 }, b3: { venom: 0.3 },
     t2: 'Deine Treffer vergiften', t3: 'Dein Gift heilt dich',
     parts: [
       { name: 'Aldemars Maske', slot: 'amulet', mods: { int: 3, spellp: 3 } },

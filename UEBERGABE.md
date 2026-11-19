@@ -32,11 +32,8 @@ einmal teuer geworden; die Herkunft steht in `entscheidungen/fallen.md`.
 **Befunde 2026-11-19 (gemessen, nichts davon gebaut – Reihenfolge wählt er):**
 1. ~~Siegchance mit < ohne Tränke~~ **erledigt 2026-11-19**: gekoppelter Zufall, 200 Probekämpfe, „etwa gleich“
    im Rauschen, `bestBelt()` gekoppelt (→ E „Siegchance gekoppelt“ in kampf.md). Am echten iPhone nicht gemessen.
-2. **Serienbremse beim Ausweichen – gebaut, gemessen, NICHT gepusht** (Freigabe war da). Wirkt wie gemessen
-   (Zauberin 52→66, Hexe 53→65, Paladin 50→59, Barbar 48→63, Assassine/Jägerin gleich, nie >2 in Folge), calib
-   unverändert. **Aber der volle Lauf kippt** `sets.mjs`: Kutte des Verseuchten (Hexe St. 14, 3 Teile) +21,9…23,3
-   über Grenze 22 (vorher +19,6). **Er muss wählen:** Kutte-Bonus senken / Schranke neu messen / Bremse auf 3.
-   Code + Test stehen in → E „Serienbremse beim Ausweichen“ (kampf.md), zum Wiedereinsetzen.
+2. ~~Serienbremse~~ **erledigt 2026-11-19**: max. 2 Ausweicher in Folge; dafür Kutte-3-Teile `venom` 0,35 → 0,30,
+   Baum-Test 600 statt 300 Kämpfe (→ E „Serienbremse beim Ausweichen“). `power()` kennt die Bremse nicht (offen, klein).
 3. **Tiers nach PoE-Art – er will das** („V muss auf jedem Teil gleich sein“). Heute ist das Tier relativ
    zur Gegenstandsstufe (`affixValue` in loot.js: per × (1+iLvl×0,5) × Tier × Legendär 1,5), darum schlägt
    V auf Stufe 49 ein I auf Stufe 22. **Weg 1 (empfohlen, ~1–2 Std.):** Tier aus dem fertigen Wert ablesen

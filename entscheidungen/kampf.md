@@ -49,7 +49,7 @@ Gegenprobe (6 Klassen × 4 Gürtel, Stufe 24, Boss auf ~50 %): Rangfolge mit/ohn
 (Wahrheit aus je 3000 ungekoppelten Kämpfen); die absolute Zahl schwankt weiter um ±3–6 Punkte.
 
 ### Serienbremse beim Ausweichen
-**Gebaut und gemessen, nicht gepusht (2026-11-19) – wartet auf den Besitzer.** Regel: in `combat.js` eine Hilfe
+**Gebaut 2026-11-19** (zuerst zurückgehalten, dann nach seiner Wahl „1a“ eingebaut, siehe unten). Regel: in `combat.js` eine Hilfe
 `dodged(x, y)` statt der zwei Ausweich-Würfe in `strike()` und `spell()`; Zähler `x.evN` je Angreifer, gemeinsam für
 Hiebe und Zauber; nach `CFG.evadeStreak` (2) Ausweichern trifft der nächste Angriff sicher (Blocken bleibt möglich),
 jeder Nicht-Ausweicher setzt den Zähler auf 0. Gegenprobe (Stufe 24, 600 Kämpfe, gleiche Würfel, Gegner ohne Bremse
@@ -75,3 +75,7 @@ function dodged(x, y) {
 Logik-Test dazu: Zauberin Stufe 20 gegen Gegner mit `evade: 1, evadeCap: 0.5` (weicht immer aus), Leben 1e6, 20 Kämpfe;
 im Log nie mehr als `evadeStreak` Ausweicher in Folge, und es gibt Zauber-Treffer direkt nach Hieb-Ausweichern
 (beweist den gemeinsamen Zähler).
+**Lösung (Besitzer wählte 1a):** Kutte-3-Teile `venom` 0,35 → 0,30. Hexe St. 14, 1600 Kämpfe, mit Bremse:
+0,35 → +21,9 · 0,30 → +18,6 · 0,25 → +16,2 · 0,20 → +12,8 (ohne Bremse vorher +19,6) – 0,30 ist der alte Bereich.
+Der Baum-Test (`tree.mjs`) läuft im vollen Lauf jetzt mit 600 statt 300 Kämpfen: „Fokus" (Zauberin St. 14) fiel bei 300
+auf 0,4 (< 1) – Stichprobe, bei 1200 Kämpfen mit und ohne Bremse +2,1; 600 kostet ~2 s mehr. Grenzen unverändert.
