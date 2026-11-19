@@ -2,6 +2,7 @@
 # Tests. Aufruf:
 #   sh tests/run.sh         – alles, parallel (Logik, Bot, Fuzz, Browser-UI, UI-Fuzz) – vor größeren Änderungen
 #   sh tests/run.sh quick   – nur Logik + Browser-UI (~1 min) – für Texte, Farben, Abstände
+#   sh tests/run.sh logic ui – nur diese Teile (Namen siehe case unten) – während der Arbeit
 cd "$(dirname "$0")/.."
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 
@@ -18,6 +19,8 @@ bot() { for c in barbarian paladin assassin huntress sorceress witch; do node te
 
 if [ "$1" = "quick" ]; then
   set -- logic ui trader prep
+elif [ -n "$1" ]; then
+  :  # einzelne Teile, z. B. sh tests/run.sh logic ui
 else
   set -- logic bot fuzz ways potions descent acts sets uniques tree caps ui trader prep uifuzz
 fi
@@ -38,6 +41,7 @@ for t in "$@"; do
     tree) tree ;;
     caps) caps ;;
     uifuzz) node tests/uifuzz.cjs 120 ;;
+    *) echo "unbekannter Teil: $t"; false ;;
   esac > "$T/$t.out" 2>&1 &
   echo $! > "$T/$t.pid"
 done
