@@ -41,6 +41,24 @@ test('Kampf: endet immer, Log hat Lebenswerte', () => {
   }
 });
 
+test('Siegchance: gekoppelter Zufall – gleiche Würfel, „etwa gleich“ nur im Rauschen', async () => {
+  const { seeded, rand } = await import('../js/rng.js');
+  assert.equal(seeded(5, rand), seeded(5, rand)); assert.notEqual(seeded(5, rand), seeded(6, rand));
+  const S = fresh('paladin'); S.lvl = 10; const mk = () => G.makeMonster(10, 1);
+  assert.equal(Game.winChance('kop-1', mk, 200, []), Game.winChance('kop-2', mk, 200, []));   // anderer Schlüssel, gleiche Würfel
+  const u = n => new Uint8Array(200).map((_, i) => i < n ? 1 : 0);
+  assert.equal(Game.chancePair(u(100), u(100)).same, true);
+  assert.equal(Game.chancePair(u(104), u(100)).same, true);    // 4 mehr, nur mit Tränken gewonnen: ≤ 2·√4
+  assert.equal(Game.chancePair(u(110), u(100)).same, false);   // 10 mehr, alle nur mit Tränken: > 2·√10
+  assert.equal(Game.chancePair(u(130), u(100)).same, false);   // 30 mehr: echter Unterschied
+  const W = u(100), O = u(100); for (let i = 0; i < 20; i++) O[100 + i] = 1, O[i] = 0;   // 20 nur ohne, 20 nur mit: gleich
+  assert.equal(Game.chancePair(W, O).same, true);
+  S.crypt.prog.c1 = 4; const c = D.CRYPTS[0], o = Game.cryptOdds(c);   // leerer Gürtel → identisch
+  assert.equal(o.pW, o.p0); assert.equal(o.same, true);
+  S.pots = { rotwurz: 3, steinhaut: 3, gegengift: 3 }; const m = G.cryptEnemy(c);
+  Game.bestBelt(m, 20); const b1 = S.belt.map(b => b?.id); Game.bestBelt(m, 20); assert.deepEqual(S.belt.map(b => b?.id), b1);   // gekoppelt → gleiche Wahl
+});
+
 test('Inventar: Items überlappen nie, voller Beutel lehnt ab', () => {
   const S = fresh(); let added = 0;
   for (let i = 0; i < 60; i++) if (G.addToBag(makeItem(5))) added++;

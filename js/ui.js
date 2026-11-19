@@ -10,7 +10,7 @@ import { current, available, objectives, canComplete } from './quests.js';
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
-import { weakAdvice, wanderMap, wanderAct, wanderBusy, wanderDone, actEnemy, actChance, actCan, actZoneGlut, actZoneMob, pitWeek, pitPlace, pitRank, pitFoes, pitChance, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, cryptChance, threatLabel, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
+import { weakAdvice, wanderMap, wanderAct, wanderBusy, wanderDone, actEnemy, actChance, actOdds, actCan, actZoneGlut, actZoneMob, pitWeek, pitPlace, pitRank, pitFoes, pitChance, pitOdds, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, cryptChance, cryptOdds, threatLabel, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
   descCrypts, descLeft, descCanStart, descBusy, descLvl, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
@@ -699,9 +699,9 @@ export function viewAlch(sel, back) {
 }
 // Vor dem Krypta-Kampf: Gegner, seine Werte, dein Gürtel, Siegchance mit/ohne Tränke
 export function viewPrep(c, m) {
-  const f = cryptFloor(c), pW = cryptChance(c), p0 = cryptChance(c, []);
+  const f = cryptFloor(c), { pW, p0, same } = cryptOdds(c);
   const head = `${monsterArt(m.glyph)}<div><h2>${m.name.split(',')[0]}</h2><p class="dim small">${c.name} · Stufe ${cryptTier(c) + 1} · Gegner-Stufe ${m.lvl}</p>${threat(pW)}</div>`;
-  return prepCore(m, head, pW, p0, `<button class="red" data-action="cryptgo" ${S.crypt.cd > Date.now() ? 'disabled' : ''}>Kämpfen</button>`, S.bless);
+  return prepCore(m, head, pW, same ? null : p0, `<button class="red" data-action="cryptgo" ${S.crypt.cd > Date.now() ? 'disabled' : ''}>Kämpfen</button>`, S.bless);
 }
 // Vorbereitung: Kopf + Werte mit Trank-Hinweisen + Gürtel + Siegchance (Krypta und Grube)
 function prepCore(m, head, pW, p0, go, bless = 0, rule = null) {
@@ -715,20 +715,20 @@ function prepCore(m, head, pW, p0, go, bless = 0, rule = null) {
         return `<span class="etag ${o.kind}" ${o.kind === 'pack' || o.kind === 'brew' ? `data-action="prepPot" data-id="${id}"` : ''}><b>${t}</b>${act}</span>`; }).join('')}</div>` : ''}</section>
     ${rule?.id === 'nopots' ? `<section class="panel"><h2>${rule.name}</h2><p class="small dim">${rule.text}</p></section>`
       : `<section class="panel"><h2>Dein Gürtel <span class="gbtns"><button class="tiny" data-action="bestBelt">Bester Gürtel</button><button class="tiny" data-action="alch" data-b="prep">Alle Tränke</button></span></h2><div class="beltrow">${[0, 1, 2].slice(0, beltSlots()).map(beltCell).join('')}</div></section>`}
-    <section class="panel chance"><span class="cl">Siegchance${weakAdvice(pW) ? `<small class="hot">${weakAdvice(pW)}</small>` : `<small class="dim">${rule?.id === 'nopots' ? 'ohne Tränke' : `ohne Tränke ${pc(p0)}`}</small>`}${bless ? `<small class="${bless > 0 ? 'up' : 'down'}">${bless > 0 ? 'Segen' : 'Fluch'} ${bless > 0 ? '+' : ''}${Math.round(bless * 100)} % Leben</small>` : ''}</span><b>${pc(pW)}</b>${go}</section>
+    <section class="panel chance"><span class="cl">Siegchance${weakAdvice(pW) ? `<small class="hot">${weakAdvice(pW)}</small>` : `<small class="dim">${rule?.id === 'nopots' ? 'ohne Tränke' : `ohne Tränke ${p0 === null ? 'etwa gleich' : pc(p0)}`}</small>`}${bless ? `<small class="${bless > 0 ? 'up' : 'down'}">${bless > 0 ? 'Segen' : 'Fluch'} ${bless > 0 ? '+' : ''}${Math.round(bless * 100)} % Leben</small>` : ''}</span><b>${pc(pW)}</b>${go}</section>
   </div>`;
 }
 // --- Die Grube ---
 const hon = n => `<i class="ico hon"></i>${n}`;
 export function viewPitPrep(sel, B) {
   const ch = sel.ch ? pitChallenge() : null, rule = ch ? PIT_RULES.find(r => r.id === ch.rule) : null, st = PIT_STYLES[B.style];
-  const pW = pitChance(B, rule?.id), p0 = pitChance(B, rule?.id, []), busy = pitBusy();
+  const { pW, p0, same } = pitOdds(B, rule?.id), busy = pitBusy();
   const win = ch ? `${hon(PIT.chHonor)} · Platz bleibt` : `Platz ${B.place} · ${hon(pitWinHonor(B.rid))}`;
   const head = `<img class="portrait" src="${P(B.cls)}" alt=""><div><h2>${B.name}</h2><p class="dim small">${CLASSES[B.cls].name} · Stufe ${B.lvl} · ${st.name}${ch ? ` · <b class="hot">${rule.name}</b>` : ''}</p>
     <p class="small pitwin">Sieg: ${win} · Niederlage: ${Math.round(PIT.cdLose / 60)} Min. Pause</p></div>`;
   const go = busy === 'Pause' ? `<button class="red" disabled><span data-until="${S.pit.ts}">${fmtT(Math.ceil((S.pit.ts - Date.now()) / 1000))}</span></button>`
     : `<button class="red" data-action="pitgo" ${busy ? 'disabled' : ''}>Kämpfen</button>`;
-  return prepCore(B, head, pW, p0, go, 0, rule).replace('class="col prep"', 'class="col prep pitprep"').replace('<section class="panel prephead">', '<section class="panel prephead"><button class="tiny pback" data-action="go" data-v="arena">Zurück</button>');
+  return prepCore(B, head, pW, same ? null : p0, go, 0, rule).replace('class="col prep"', 'class="col prep pitprep"').replace('<section class="panel prephead">', '<section class="panel prephead"><button class="tiny pback" data-action="go" data-v="arena">Zurück</button>');
 }
 export function viewArena() {
   const Pw = pitWeek(), place = pitPlace(), rk = pitRank(), ri = PIT_RANKS.indexOf(rk), nx = PIT_RANKS[ri + 1], foes = pitFoes(), ch = Pw.ch, busy = pitBusy();
@@ -899,10 +899,10 @@ export function viewAct(a) {
     <div class="btns two"><button data-action="go" data-v="trips">Zurück</button>${actDone(a) ? `<button disabled>Akt geschafft</button>` : `<button class="red" data-action="zone" data-a="${a.id}" data-z="${nz}">Weiter · ${nz >= ACT.zones ? 'Boss' : a.zones[nz]}</button>`}</div></div>`;
 }
 export function viewZonePrep(a, z, m) {
-  const boss = z >= ACT.zones, p = actProg(a), replay = z < p, why = actCan(a, z), pW = actChance(a, z), p0 = actChance(a, z, []);
+  const boss = z >= ACT.zones, p = actProg(a), replay = z < p, why = actCan(a, z), { pW, p0, same } = actOdds(a, z);
   const head = `${monsterArt(boss ? a.boss.glyph : m.glyph)}<div><h2>${boss ? a.boss.name : a.zones[z]}</h2><p class="dim small">Akt ${a.n} · ${boss ? 'Boss' : `Gebiet ${z + 1}`} / ${ACT.zones + 1} · ${boss ? '' : m.name.split(',')[0] + ' · '}Stufe ${m.lvl}</p>
     <p class="small">${boss ? `<i>${a.boss.mechText}</i>` : m.elite ? `<b class="hot">Elite:</b> ${m.elite.join(', ')}` : ''}${replay ? ` <span class="dim">Wiederholen · </span><i class="ico glut"></i>${actZoneGlut(a)}` : ' <span class="up">Neu · kostet nichts</span>'}</p></div>`;
-  return prepCore(m, head, pW, p0, `<button class="red" data-action="actgo" ${why ? 'disabled' : ''}>${why && why.startsWith('Wiederholen') ? 'Glut fehlt' : 'Kämpfen'}</button>`)
+  return prepCore(m, head, pW, same ? null : p0, `<button class="red" data-action="actgo" ${why ? 'disabled' : ''}>${why && why.startsWith('Wiederholen') ? 'Glut fehlt' : 'Kämpfen'}</button>`)
     .replace('<section class="panel prephead">', `<section class="panel prephead"><button class="tiny pback" data-action="act" data-id="${a.id}">Zurück</button>`);
 }
 

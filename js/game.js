@@ -5,7 +5,7 @@ import * as G from './state.js';
 import * as Q from './quests.js';
 import { fight } from './combat.js';
 import { makeItem, makeSetItem } from './loot.js';
-import { pick, roll, chance, rand } from './rng.js';
+import { pick, roll, chance, rand, seeded } from './rng.js';
 
 const now = () => Date.now();
 
@@ -147,7 +147,9 @@ export function actCan(a, z) {
   if (z < p && S.glut < actZoneGlut(a)) return `Wiederholen kostet ${actZoneGlut(a)} Glut.`;
   return '';
 }
-export const actChance = (a, z, belt = G.beltCombat()) => winChance('act:' + a.id + ':' + z, () => actEnemy(a, z), 24, belt);
+const actRuns = (a, z, belt) => winRuns('act:' + a.id + ':' + z, () => actEnemy(a, z), CFG.chanceN, belt, false);
+export const actChance = (a, z, belt = G.beltCombat()) => share(actRuns(a, z, belt));
+export const actOdds = (a, z) => chancePair(actRuns(a, z, G.beltCombat()), actRuns(a, z, []));
 export function actFight(id, z, m0 = null) {
   const S = G.S, a = ACTS.find(x => x.id === id); if (!a || actCan(a, z)) return null;
   const p = G.actProg(a), replay = z < p, boss = z >= ACT.zones, l = LOCATIONS.find(x => x.id === a.loc);
@@ -196,18 +198,31 @@ export function champFight(tid) {
 const threatCache = new Map();
 // Segen/Fluch aus der Expedition: nächster Krypta-Kampf mit ±Leben
 export const blessed = A => G.S.bless ? { ...A, hp: Math.max(1, Math.round(A.hp * (1 + G.S.bless))) } : A;
-export function winChance(key, makeEnemy, n = 24, belt = null, bl = false) {
-  const A0 = belt ? { ...G.stats(), belt } : G.stats(), A = bl ? blessed(A0) : A0, sig = key + '|' + JSON.stringify([A.hp, A.dmg, A.armor, A[A.main], A.dex, A.lvl, S_omen(), belt?.map(b => b.id + b.trig)]);
+// Probe-Kämpfe mit festem Würfel je Kampf (Keim aus der Nummer): „mit“ und „ohne Tränke“ treffen auf dieselben Gegner
+// mit denselben Würfeln – der Unterschied ist dann der Gürtel, nicht das Glück. Ergebnis je Kampf: 1 = Sieg.
+const probe = (n, one) => { const r = new Uint8Array(n); for (let i = 0; i < n; i++) r[i] = seeded(7919 * (i + 1), one) ? 1 : 0; return r; };
+const share = r => r.reduce((s, x) => s + x, 0) / r.length;
+function winRuns(key, makeEnemy, n, belt, bl) {
+  const A0 = belt ? { ...G.stats(), belt } : G.stats(), A = bl ? blessed(A0) : A0, sig = key + '|' + n + '|' + JSON.stringify([A.hp, A.dmg, A.armor, A[A.main], A.dex, A.lvl, S_omen(), belt?.map(b => b.id + b.trig)]);
   if (threatCache.has(sig)) return threatCache.get(sig);
-  let w = 0; for (let i = 0; i < n; i++) if (fight(A, makeEnemy()).winner === 'a') w++;
-  const p = w / n; if (threatCache.size > 200) threatCache.clear(); threatCache.set(sig, p); return p;
+  const r = probe(n, () => fight(A, makeEnemy()).winner === 'a');
+  if (threatCache.size > 200) threatCache.clear(); threatCache.set(sig, r); return r;
+}
+export const winChance = (key, makeEnemy, n = CFG.chanceN, belt = null, bl = false) => share(winRuns(key, makeEnemy, n, belt, bl));
+// Mit gegen ohne Tränke aus denselben Würfeln. same: der Unterschied liegt im Rauschen (Vorzeichentest:
+// b/c = Kämpfe, die nur mit bzw. nur ohne Tränke gewonnen wurden; |b−c| ≤ 2·√(b+c)) → Anzeige „etwa gleich“
+export function chancePair(W, O) {
+  let b = 0, c = 0; for (let i = 0; i < W.length; i++) { if (W[i] > O[i]) b++; else if (O[i] > W[i]) c++; }
+  return { pW: share(W), p0: share(O), same: Math.abs(b - c) <= 2 * Math.sqrt(b + c) };
 }
 const S_omen = () => G.S.omen?.day;
 export const tripChance = (l, track = 'norm') => winChance('trip:' + l.id + track, () => {
   const om = G.omenFor(l.id), od = om && !om.done ? om.def : null;
   return G.makeMonster(trackLvl(l, trackOf(track)), trackOf(track).diff * [0.92, 1, 1, 1.08][roll(0, 3)] * (od?.diff || 1), MONSTERS.find(m => m.name === pick(l.mobs)));
 });
-export const cryptChance = (c, belt = G.beltCombat()) => winChance('crypt:' + c.id + ':' + G.cryptTier(c), () => G.cryptEnemy(c), 24, belt, true);
+const cryptRuns = (c, belt) => winRuns('crypt:' + c.id + ':' + G.cryptTier(c), () => G.cryptEnemy(c), CFG.chanceN, belt, true);
+export const cryptChance = (c, belt = G.beltCombat()) => share(cryptRuns(c, belt));
+export const cryptOdds = c => chancePair(cryptRuns(c, G.beltCombat()), cryptRuns(c, []));
 // Rat bei schlechter Siegchance (Vorbereitung): die naheliegendste Abhilfe zuerst. null = kein Rat nötig
 export function weakAdvice(p) {
   const S = G.S; if (p >= 0.35) return null;
@@ -262,7 +277,7 @@ export function bestBelt(m, n = 50) {
   let best = null, bw = -1;
   for (const c of combos) { if (c.length < Math.min(k, have.length) && combos.some(x => x.length > c.length)) continue;
     const belt = c.map(p => ({ id: p.id, name: p.name, fx: p.fx, rare: p.rare, trig: p.trig?.[0] || null }));
-    let w = 0; for (let i = 0; i < n; i++) if (fight({ ...A0, belt }, m).winner === 'a') w++;
+    const A = { ...A0, belt }, w = share(probe(n, () => fight(A, m).winner === 'a'));   // gleiche Würfel für jede Kombination
     if (w > bw) { bw = w; best = c; } }
   if (!best) return false;
   for (let i = 0; i < 3; i++) S.belt[i] = null;
@@ -626,12 +641,14 @@ function pitSides(B0, rule, belt = G.beltCombat()) {
   return [A, B];
 }
 const pitCache = new Map();
-export function pitChance(B0, rule = null, belt = G.beltCombat(), n = 24) {
-  const [A, B] = pitSides(B0, rule, belt), sig = [B0.rid, B0.place, rule, A.hp, A.dmg, A.armor, A[A.main], A.dex, A.lvl, A.belt.map(b => b.id + b.trig)].join('|');
+function pitRuns(B0, rule, belt, n) {
+  const [A, B] = pitSides(B0, rule, belt), sig = [B0.rid, B0.place, rule, n, A.hp, A.dmg, A.armor, A[A.main], A.dex, A.lvl, A.belt.map(b => b.id + b.trig)].join('|');
   if (pitCache.has(sig)) return pitCache.get(sig);
-  let w = 0; for (let i = 0; i < n; i++) if (fight(A, B).winner === 'a') w++;
-  if (pitCache.size > 200) pitCache.clear(); pitCache.set(sig, w / n); return w / n;
+  const r = probe(n, () => fight(A, B).winner === 'a');
+  if (pitCache.size > 200) pitCache.clear(); pitCache.set(sig, r); return r;
 }
+export const pitChance = (B0, rule = null, belt = G.beltCombat(), n = CFG.chanceN) => share(pitRuns(B0, rule, belt, n));
+export const pitOdds = (B0, rule = null) => chancePair(pitRuns(B0, rule, G.beltCombat(), CFG.chanceN), pitRuns(B0, rule, [], CFG.chanceN));
 // Gegner für die Vorbereitung (gleiche Instanz wie im Kampf)
 export function pitTarget(id, ch = false) {
   const P = pitWeek();
