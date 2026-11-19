@@ -41,7 +41,8 @@ einmal teuer geworden; die Herkunft steht in `entscheidungen/fallen.md`.
   **gemeinsam durchgehen**, nicht vorgelegt bekommen. Knackpunkte: Zaubertempo, Abklingzeit, keine
   endlose Kette. Präzedenz: Bum-bo – Ketten sollen gewollt sein, nicht Glück
   (https://gamegene.app/library/records/claims/cec56128-4df5-4212-8c24-0360fbb440f6).
-- **Kampf-Historie hinter einem Knopf am Kampfende** – **gewählt: Variante A** (2026-11-19): dieser
+- **Kampf-Historie** – **vorerst nicht gebraucht** (2026-11-19, „erst am Spiel selber arbeiten“). Mockup liegt in
+  `mockups/kampf-historie.html`. Früherer Stand: Variante A gewählt: dieser
   Kampf Zug für Zug (wer, was, Schaden, Zauber, Trank), Wendepunkte markiert („Leben unter 30 %",
   „Meteor verpufft"), unten der eine Hebel, der am meisten geholfen hätte. Daten: `fightReport()` in
   game.js → `fightSummary` in ui.js. Er will **Entscheidungen, keine größere Anzeige**. Erst Plan +
