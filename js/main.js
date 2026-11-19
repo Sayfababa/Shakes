@@ -234,7 +234,7 @@ function combatFx(l) {
   if (l.status) pop(l.status === 'Gereinigt' ? me : foe, l.status, 'miss status', delay + 200);
 }
 
-let waySel = null, sellSure = null;
+let waySel = null;
 let talSel = null;   // angetippter Knoten im Talentbaum
 const precious = it => ['rare', 'legendary', 'set'].includes(it.rarity) || !!it.special || !!it.unique || !!it.set || !!it.runes?.length;
 const actions = {
@@ -259,15 +259,15 @@ const actions = {
   unequip: d => { const p = G.power(); G.unequip(d.s); render(); toast(p); },
   // Wertvolles (selten und besser, Sonderbonus) erst beim zweiten Tipp verkaufen – es gibt keinen Rückkauf
   sell: d => { const it = findItem(d.id); if (!it) return;
-    if (precious(it) && d.sure !== '1') { sellSure = it.id; return showTouchTip({ dataset: { tip: it.id, action: 'equip', id: it.id } }); }
-    sellSure = null; G.sell(d.id); render(); },
-  sort: () => { G.sortBag(); render(); },
+    if (precious(it) && d.sure !== '1') return showTouchTip({ dataset: { tip: it.id, action: 'equip', id: it.id } }, true);
+    G.sell(d.id); hideTip(); render(); },
+  sort: d => { G.sortGrid(d.g || 'bag'); render(); },
   invmode: () => { stashOn = !stashOn; render(); },
   stashput: d => { if (!G.stashPut(d.id)) return note('Im Lager ist kein Platz.'); hideTip(); render(); },
   stashtip: d => { if (!G.stashTake(d.id)) return note('Im Beutel ist kein Platz.'); hideTip(); render(); },
   sellstash: d => { const it = (G.S.stash || []).find(x => x.id === d.id); if (!it) return;
-    if (precious(it) && d.sure !== '1') { sellSure = it.id; return showTouchTip({ dataset: { tip: it.id, action: 'stashtip', id: it.id } }); }
-    sellSure = null; G.sellStash(d.id); hideTip(); render(); },
+    if (precious(it) && d.sure !== '1') return showTouchTip({ dataset: { tip: it.id, action: 'stashtip', id: it.id } }, true);
+    G.sellStash(d.id); hideTip(); render(); },
   trader: d => { trader = d.t; turnin = null; view = 'traders'; render(); },
   // Vargos Laden hat zwei Türen (Grube und Händler) – „Zurück“ muss dorthin, wo man herkam
   pitshop: d => { pitBack = d.b || 'arena'; view = 'pitshop'; render(); },
@@ -419,16 +419,16 @@ document.addEventListener('click', e => {
   hideTip();
   actions[el.dataset.action]?.(el.dataset);
 });
-function showTouchTip(el) {
+function showTouchTip(el, sure) {
   const it = findItem(el.dataset.tip); if (!it) return;
   const d = el.dataset, a = d.action, attrs = Object.entries(d).filter(([k]) => k !== 'tip').map(([k, v]) => `data-${k}="${v}"`).join(' ');
   let btns = `<button ${attrs}>${ACT_LABEL[a] || 'OK'}</button>`;
   if (a === 'buy') btns += `<button data-action="shoplock" data-t="${d.t}" data-id="${it.id}">${it.lock ? 'Entsperren' : 'Sperren'}</button>`;
-  if (a === 'equip') btns += sellSure === it.id ? `<button class="red" data-action="sell" data-id="${it.id}" data-sure="1">Wirklich? · ${it.value}</button>` : `<button class="red" data-action="sell" data-id="${it.id}">Verkaufen · ${it.value}</button>`;
+  if (a === 'equip') btns += sure ? `<button class="red" data-action="sell" data-id="${it.id}" data-sure="1">Wirklich? · ${it.value}</button>` : `<button class="red" data-action="sell" data-id="${it.id}">Verkaufen · ${it.value}</button>`;
   // Aus dem Beutel ins Lager und zurück. Im Lager heißt der erste Knopf „In den Beutel“ (ACT_LABEL),
   // deshalb steht hier nur noch das Verkaufen.
   if (a === 'equip') btns += `<button data-action="stashput" data-id="${it.id}" ${G.stashLeft() ? '' : 'disabled'}>Lagern</button>`;
-  if (a === 'stashtip') btns += sellSure === it.id ? `<button class="red" data-action="sellstash" data-id="${it.id}" data-sure="1">Wirklich? · ${it.value}</button>` : `<button class="red" data-action="sellstash" data-id="${it.id}">Verkaufen · ${it.value}</button>`;
+  if (a === 'stashtip') btns += sure ? `<button class="red" data-action="sellstash" data-id="${it.id}" data-sure="1">Wirklich? · ${it.value}</button>` : `<button class="red" data-action="sellstash" data-id="${it.id}">Verkaufen · ${it.value}</button>`;
   const slot = Object.entries(G.S.equip).find(([, x]) => x === it)?.[0];   // Schmieden: Umschmieden (magisch+), sonst Runen (nur angelegt)
   if ((a === 'equip' || a === 'unequip') && (G.craftItems().includes(it) || slot)) btns += `<button data-action="forgeitem" data-id="${it.id}">Schmieden</button>`;
   tip.innerHTML = UI.itemTip(it, compareTo(it)) + `<div class="act">${btns}<button data-action="noop">Zurück</button></div>`;
@@ -451,7 +451,7 @@ function findItem(id) {
   const shops = Object.values(S.traders).flatMap(t => t.shop);
   return [...S.bag, ...(S.stash || []), ...shops, ...Object.values(S.equip).filter(Boolean), ...Object.values(G.S.pit?.shop || {}).flat().filter(w => w.item).map(w => w.item), ...(S.desc?.sack.items || [])].find(x => x.id === id);
 }
-function hideTip() { tip.hidden = true; tip.className = ''; sellSure = null; }
+function hideTip() { tip.hidden = true; tip.className = ''; }
 app.addEventListener('mousemove', e => {
   if (TOUCH || tip.className === 'touch') return;   // offenes Touch-Fenster nie durch Mausbewegung schließen
   const el = e.target.closest('[data-tip]'); if (!el) return hideTip();

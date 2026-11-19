@@ -280,6 +280,22 @@ let failures = 0;
       if (nach.n !== vor.n - 1) { failures++; console.log(`FEHLER ${tag}: Teil liegt nach dem Verkauf noch im Lager (${nach.n})`); }
       if (nach.gold !== vor.gold + vor.wert) { failures++; console.log(`FEHLER ${tag}: Lager-Verkauf zahlt nicht (${vor.gold} -> ${nach.gold}, Wert ${vor.wert})`); }
     }
+    // Das LAGER ordnen (vom Besitzer gemeldet: ging nicht - `sortBag` hatte S.bag fest verdrahtet
+    // und den Knopf gab es im Lager gar nicht). Gemessen werden die Luecken und der Bestand, nicht
+    // der Knopf: ein Ordnen, das ein Teil verliert, waere schlimmer als keines.
+    await p.evaluate(async () => { const G = await import('./js/state.js'); const L = await import('./js/loot.js');
+      G.S.stash = [[3, 4], [7, 1], [0, 5], [5, 2]].map(([x, y]) =>
+        Object.assign(L.makeItem(20, { slot: 'helm' }), { x, y, stashed: true }));
+      G.S.bag = []; G.save(); });
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=hero]'); await tap('[data-action=invmode]');
+    if (!(await p.$('.invhead [data-action=sort][data-g=stash]'))) { failures++; console.log(`FEHLER ${tag}: kein Ordnen-Knopf im Lager`); }
+    const sVor = await p.evaluate(async () => { const G = await import('./js/state.js'); return G.S.stash.length; });
+    await tap('.invhead [data-action=sort]'); await p.waitForTimeout(200);
+    const sNach = await p.evaluate(async () => { const G = await import('./js/state.js');
+      return { n: G.S.stash.length, weit: Math.max(...G.S.stash.map(i => i.x + i.y)) }; });
+    if (sNach.n !== sVor) { failures++; console.log(`FEHLER ${tag}: Ordnen verliert Teile im Lager (${sVor} -> ${sNach.n})`); }
+    if (sNach.weit > 4) { failures++; console.log(`FEHLER ${tag}: Lager nicht geordnet, Teile liegen weiter verstreut (${sNach.weit})`); }
+
     await tap('[data-v=crypt]'); if (await tap('[data-action=crypt]')) { await chk('prep'); await tap('[data-action=prepPot]'); await tap('[data-action=bestBelt]'); await chk('prep2'); await tap('[data-action=trig]'); await tap('[data-action=cryptgo]'); await p.waitForTimeout(600); await chk('fightpot');
       if (!(await p.$('.pbelt img'))) { failures++; console.log(`FEHLER ${tag}: Tränke im Kampf nicht sichtbar`); } }
     else { failures++; console.log(`FEHLER ${tag}: Krypta nicht antippbar`); }

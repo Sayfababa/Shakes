@@ -169,7 +169,7 @@ function invPanel(stash, mats) {
   const act = stash ? 'stashtip' : 'equip';
   return `<section class="panel invp"><div class="invhead"><span>${stash ? 'Lager' : 'Beutel'}</span>
       <button class="tiny ${stash ? 'on' : ''}" data-action="invmode">${stash ? 'Beutel' : 'Lager'}</button>
-      ${stash ? '' : '<button class="tiny" data-action="sort">Ordnen</button>'}</div>
+      <button class="tiny" data-action="sort" data-g="${stash ? 'stash' : 'bag'}">Ordnen</button></div>
       <div class="inv" style="--w:${g.w};--h:${g.h}">
         ${g.list.map(it => `<div class="cellitem ${rarCls(it)}" style="left:${it.x / g.w * 100}%;top:${it.y / g.h * 100}%;width:${it.w / g.w * 100}%;height:${it.h / g.h * 100}%" data-tip="${it.id}" data-action="${act}" data-id="${it.id}">${itemArt(it)}${gainTag(it)}</div>`).join('')}
       </div>

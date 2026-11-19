@@ -444,14 +444,19 @@ export function stashTake(id) { const it = grid('stash').list.find(x => x.id ===
   const p = findSpot(it.w || 1, it.h || 1); if (!p) return false;
   removeFromStash(id); delete it.stashed; Object.assign(it, p); S.bag.push(it); return true; }
 export function sellStash(id) { const it = removeFromStash(id); if (it) S.gold += it.value; return !!it; }
-// Neu sortieren: große Items zuerst
-export function sortBag() {
-  const before = S.bag.map(it => [it, it.x, it.y]);
-  const items = S.bag.splice(0).sort((a, b) => b.w * b.h - a.w * a.h || b.h - a.h);
-  const rest = []; for (const it of items) if (!addToBag(it)) rest.push(it);
-  if (rest.length) { S.bag = before.map(([it, x, y]) => Object.assign(it, { x, y })); return false; }   // passt neu sortiert nicht: alte Ordnung behalten, nichts verlieren
+// Neu sortieren: große Items zuerst. Nimmt das Behältnis als Argument wie `grid()` – das Lager
+// konnte man lange nicht ordnen, weil diese Funktion S.bag fest verdrahtet hatte.
+export function sortGrid(which = 'bag') {
+  const g = grid(which), before = g.list.map(it => [it, it.x, it.y]);
+  const items = g.list.splice(0).sort((a, b) => b.w * b.h - a.w * a.h || b.h - a.h);
+  for (const it of items) if (!addToGrid(g, it)) {   // passt neu sortiert nicht: alte Ordnung behalten, nichts verlieren
+    g.list.splice(0, g.list.length, ...before.map(([x]) => x));
+    for (const [it2, x, y] of before) Object.assign(it2, { x, y });
+    return false;
+  }
   return true;
 }
+export const sortBag = () => sortGrid('bag');
 
 export function equip(id) {
   const it = S.bag.find(x => x.id === id); if (!it) return false;
