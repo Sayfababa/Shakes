@@ -962,12 +962,25 @@ export function viewWanderPlan(path, info = null) {
 // --- Beute-Filter (Einstellungen -> eigene Seite) ---
 // Eigene Ansicht wie Verzeichnis/Titel/Grab-Sets: 36 Bonus-Knoepfe machen in den Einstellungen ein
 // 550 px hohes Panel, das unten herauslief (gemessen auf drei Bildschirmen).
+// Was gerade gefiltert wird, gegliedert statt als Fließtext. Reihenfolge wie in der Knopf-Liste;
+// Zauber erkennt man am Schlüssel (`sk_`), alles, was weder Grundwert noch Abwehr ist, zählt als Angriff.
+const FGROUPS = [['Grundwerte', k => ['str', 'dex', 'int', 'con', 'lck'].includes(k)],
+  ['Abwehr', k => ['armor', 'lifep', 'blockp', 'evadep', 'thornsp'].includes(k)],
+  ['Zauber', k => k.startsWith('sk_')], ['Angriff', () => true]];
+function filterSum(f, stats) {
+  if (!f.mods.length) return '<p class="small dim">Nichts gewählt – Boni unten antippen.</p>';
+  const left = stats.map(a => a.stat).filter(k => f.mods.includes(k)), rows = [];
+  for (const [name, test] of FGROUPS) { const ks = left.filter(test); ks.forEach(k => left.splice(left.indexOf(k), 1)); if (ks.length) rows.push([name, ks]); }
+  const order = ['Grundwerte', 'Angriff', 'Abwehr', 'Zauber'];
+  rows.sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
+  return `<div class="fsumm">${rows.map(([n, ks]) => `<div><b>${n}</b><span>${ks.map(k => `<i>${STAT_NAME(k)}</i>`).join(' · ')}</span></div>`).join('')}</div>`;
+}
 export function viewFilter() {
   // Zauber-Boni (`sk_<id>`) tragen ihre Klasse: fremde gehoeren nicht in die Liste - "% Kriegsschrei"
   // kann eine Zauberin nie gebrauchen, und 15 tote Knoepfe drueckten die Liste aus dem Panel.
   const f = filterOf(), stats = [...new Map(AFFIXES.filter(a => !a.cls || a.cls === S.cls).map(a => [a.stat, a])).values()];
   return `<div class="col filterv"><section class="panel"><h2>Beute-Filter <span class="h2r">${f.mods.length ? `${f.mods.length} gewählt` : 'aus'}</span></h2>
-    <p class="small dim">Jedes Teil zeigt oben links je getroffenem Bonus einen Punkt – im Beutel, im Lager, beim Händler, in der Schmiede und in der Beute.</p>
+    ${filterSum(f, stats)}
     <div class="optrow"><span>Mindestens Stufe</span><div class="optbtns">${TIERS.map(t =>
       `<button class="tiny ${f.tier === t.t ? 'on' : ''}" data-action="filtier" data-t="${t.t}">${t.name}</button>`).join('')}</div></div></section>
     <section class="panel fcol"><div class="fpick">${stats.map(a =>
