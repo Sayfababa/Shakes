@@ -1,7 +1,7 @@
 #!/bin/sh
 # Tests. Aufruf:
-#   sh tests/run.sh         – alles, parallel (Logik, Bot, Fuzz, Browser-UI, UI-Fuzz) – vor größeren Änderungen
-#   sh tests/run.sh quick   – nur Logik + Browser-UI (~1 min) – für Texte, Farben, Abstände
+#   sh tests/run.sh         – alles, parallel (Logik, Bot, Fuzz, Browser-UI, UI-Fuzz) – bei Logik/Zahlen
+#   sh tests/run.sh quick   – nur Logik + Browser-UI (~1:20) – reicht, wenn nur Aussehen geändert wurde
 #   sh tests/run.sh logic ui – nur diese Teile (Namen siehe case unten) – während der Arbeit
 cd "$(dirname "$0")/.."
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT

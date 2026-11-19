@@ -17,7 +17,7 @@ Systems dort nachlesen, besonders vor Balance-Zahlen.
   dann gezielt `sed -n 'a,bp'`. Dasselbe für `entscheidungen/` und `SYSTEME.md`.
 - **Befehlsausgaben klein halten**: `| head`, `| cut -c1-160`, nie ein ganzes `diff` großer Dateien.
 - **Während der Arbeit nur den betroffenen Test**: `sh tests/run.sh logic` (auch mehrere:
-  `sh tests/run.sh logic ui`). Der volle `sh tests/run.sh` **einmal** vor dem Push.
+  `sh tests/run.sh logic ui`). Vor dem Push **einmal** der passende Lauf (siehe Tests).
 - **Screenshots nur von der geänderten Ansicht, ein Gerät**, außer es geht ums Layout auf allen.
 - Keine Unteragenten für Suchen, die ein `grep` erledigt.
 
@@ -34,7 +34,7 @@ Systems dort nachlesen, besonders vor Balance-Zahlen.
   vorschlagen**, nicht selbst erzeugen.
 - Kleine, thematische Commits mit deutscher Beschreibung, häufig pushen auf **genau den Arbeits-Branch**.
   Keine Pull Requests, kein force-push, kein anderer Branch.
-- **Vor jedem Push `sh tests/run.sh` – alles grün.** Neue Features bekommen Tests.
+- **Vor dem Push grün – mit dem passenden Lauf** (Abschnitt Tests). Neue Features bekommen Tests.
 
 ## Fallen (jede ist schon mindestens einmal zugeschlagen) → E
 - **Ein einzelner Ausrüstungswurf entscheidet alles.** Knoten, Einzigartige, Boni nie über *einen*
@@ -106,8 +106,12 @@ Die Blöcke je System (wo der Code liegt, harte Grenzen) stehen in **`SYSTEME.md
 **Vor dem Anfassen eines Systems dessen Block dort lesen**, nicht die ganze Datei.
 
 ## Tests
-- `sh tests/run.sh quick` (~30 s: Logik + Browser-UI) bei kleinen Änderungen (Texte, Farben, Abstände).
-- `sh tests/run.sh` (~2:45, parallel) **vor jedem Push**. Einzelne Teile: `sh tests/run.sh <name> …`
+**Welcher Lauf vor dem Push** (Ansage des Besitzers – nicht mehr „vor jedem Push alles"):
+- **Nur Aussehen** (CSS, Bilder/Sprites, Texte, Anordnung im HTML): `sh tests/run.sh quick` (~1:20,
+  Logik + UI auf 4 Geräten + Händler + Vorbereitung) **plus Screenshot der geänderten Ansicht**.
+- **Logik oder Zahlen** (`js/` über reine Texte hinaus, `data.js`): voller `sh tests/run.sh` (~2:45).
+- **Unsicher:** voll.
+- Einzelne Teile während der Arbeit: `sh tests/run.sh <name> …`
   (logic bot fuzz ways potions descent acts sets uniques tree caps ui trader prep uifuzz).
 - Was jeder Test prüft (logic, fuzz, ui, uifuzz, trader, prep, Balance, bot, personas): **`SYSTEME.md`**,
   Abschnitt „Tests im Einzelnen". Browser-Tests: `deviceScaleFactor: 1`, alle Geräte gleichzeitig.
