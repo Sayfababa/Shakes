@@ -59,12 +59,12 @@ export function upgradePaths() {
   L.push({ grp: 'In der Schmiede', name: 'Rune schmieden', where: 'Schmiede',
     cost: `${FORGE.cost} Material · das Material bestimmt den Bonus`, limit: `höchstens ${FORGE.maxRunes} Runen je Teil` });
   L.push({ grp: 'In der Schmiede', name: 'Fusionieren', where: 'Schmiede',
-    cost: `${CRAFT.fuse.glut} Schmiedeglut + Gold · ein Bonus wandert mit seiner Stufe herüber`,
+    cost: `Gold · ein Bonus wandert mit seiner Stufe herüber`,
     limit: `${CRAFT.fuse.max === 1 ? 'einmal' : CRAFT.fuse.max + '-mal'} je Teil, für immer · das Futter zerfällt` });
-  for (const o of CRAFT.ops) L.push({ grp: 'Umschmieden', name: o.name, where: `${matList({ [o.mat]: o.n })} · ${o.glut} Glut`,
+  for (const o of CRAFT.ops) L.push({ grp: 'Umschmieden', name: o.name, where: `${matList({ [o.mat]: o.n })} + Gold`,
     cost: o.text.replace(/\s*\(einer je Item\)\./, '.'), limit: o.id === 'seal' ? 'einer je Teil' : '' });
   const r = CRAFT.raise, von = Object.keys(r.from)[0];
-  L.push({ grp: 'Umschmieden', name: 'Erheben', where: `${matList({ [r.mat]: r.n })} · ${r.glut} Glut`,
+  L.push({ grp: 'Umschmieden', name: 'Erheben', where: `${matList({ [r.mat]: r.n })} + Gold`,
     cost: `Ein gewürfelter Bonus, und das Teil steigt ${von === 'magic' ? 'magisch → selten' : von} auf.`,
     limit: 'einmal je Teil · der Splitter kommt nur aus dem Abgrund' });
   return L;

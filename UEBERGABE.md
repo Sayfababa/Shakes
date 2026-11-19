@@ -48,7 +48,11 @@ einmal teuer geworden; die Herkunft steht in `entscheidungen/fallen.md`.
    **Seine Antworten (2026-11-19):** Spiellänge **Wochen** · **spielen, so viel man will** · Schmieden ist okay, aber
    **zu wenig Material** (lohnt fast nur Fusion) und die **Schmiedeglut des Items muss raus** (deine Glut bleibt) ·
    Stufen **offen**. Gemessen (Bot, 14 Tage, Zählung in Kopie): Zauberin gesamt gefallen Asche 18, Staub 22, Blutstein 15,
-   Siegel 8, Leinen 28 (je Eingriff 2 nötig) – fast alles in den ersten 3–7 Tagen, danach kaum Neues. Vorschlag liegt ihm vor.
+   Siegel 8, Leinen 28 (je Eingriff 2 nötig) – fast alles in den ersten 3–7 Tagen.
+   **Erledigt 2026-11-19:** Schmiedeglut raus, Verkauf = halber Wert + legendär 1 Material (→ 9–10 Eingriffe/Tag, → E
+   „Schmiedeglut raus, Verkauf gibt Material“). **Offen:** endloser Abgrund (Gegner nach Tiefe, keine letzte Tiefe, beste
+   Tiefe als Ziel) – Vorschlag + Mockup, dann sein Wort. **Klein offen:** sets.mjs/uniques.mjs über mehrere Ausrüstungswürfe
+   mitteln, dann Platzhalter-Wurf in loot.js entfernen.
 - Bot (`tests/bot.mjs sorceress 30 1`, spielt ideal): Geschichte fertig Tag 3 (~Stufe 19), Glocke Tag 12
   (Stufe 26), danach kein Ende.
 

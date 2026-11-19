@@ -272,7 +272,7 @@ const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height:
       const it = L.makeItem(20, { slot: 'helm', minRarity: 3 });
       G.S.stash = [Object.assign(it, { x: 0, y: 0, stashed: true })]; G.save(); });
     await p.reload(); await p.waitForTimeout(300); await tap('[data-v=hero]');
-    const vor = await p.evaluate(async () => { const G = await import('./js/state.js'); return { gold: G.S.gold, n: G.S.stash.length, wert: G.S.stash[0].value }; });
+    const vor = await p.evaluate(async () => { const G = await import('./js/state.js'); return { gold: G.S.gold, n: G.S.stash.length, wert: G.sellPrice(G.S.stash[0]) }; });   // halber Wert (SELL) – derselbe Helfer wie im Spiel
     await tap('[data-action=invmode]');
     if (!(await tap('.cellitem'))) { failures++; console.log(`FEHLER ${tag}: Lager-Teil nicht antippbar`); }
     else {

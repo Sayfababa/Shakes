@@ -43,7 +43,9 @@ eines Systems seinen Block hier lesen** (`grep -n '^\*\*' SYSTEME.md` zeigt die 
   vengeance, zeal, siphon, bulwark, shred, lastBreath, secondWind, nohealSelf.
   Balance: `node tests/uniques.mjs … --check` (≥ +6 für die beste Klasse, nie > +55). → E
 - **Umschmieden** `CRAFT` in data.js; `craft(id, op, stat)`, `craftCheck`, `baseMods`. Ops: seal,
-  chaos, values, add, remove. Kostet Schmiedeglut (`it.glut/glutMax`), dann `it.crafted`.
+  chaos, values, add, remove. Kostet Material + Gold, **beliebig oft** (Schmiedeglut seit 2026-11-19 raus; alte Felder `glut`/`crafted` ungenutzt).
+  **Verkaufen:** ein Weg für alles – `sellOff()`/`sellPrice()`/`sellMat()` in state.js (`SELL` in data.js): halber Wert,
+  legendär + 1 Material je Platz. Nie `S.gold += it.value` schreiben. → E
   Runen, Sonderbonus, Einzigartige bleiben unberührt. **Craften+Verkaufen bringt nie Gold** (Test). → E
 - **Fusionieren** `CRAFT.fuse`; `fuseForm`/`fuseMains`/`fuseFoods`/`fuseFull`/`fusePromote`/`fuseCheck`/
   `fuse`. Gleiche Grundform **und** Seltenheit; ein Bonus wandert **mit seiner Stufe**, Futter zerfällt.

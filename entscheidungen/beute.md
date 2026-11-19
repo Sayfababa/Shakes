@@ -104,3 +104,20 @@ GS 40 → 0/3/10/17/70; GS 60 → 7/13/23/28/30; GS 70 → 14/18/28/18/22. I mö
 legendär (×1,5) ab 15 bzw. 32. Verworfen: Bezug 40 (GS 22 zeigt 79 % V, aber auf GS 60 schon 31 % I, 3 % V – oben sagt die
 Anzeige nichts mehr). Bekannt: bei kleinen Werten überlappen zwei Stufen nach dem Runden (Lebensraub 18 % auf GS 60 kann
 II oder III gewürfelt sein) – gleicher Wert zeigt dann gleiche Stufe, gewollt.
+
+### Schmiedeglut raus, Verkauf gibt Material
+Gebaut 2026-11-19. Besitzer: Schmieden ist okay, aber „es droppt so wenig“ (lohnt fast nur Fusion), die Schmiedeglut je Teil
+„nervt“ – raus; Verkauf soll weiter etwas Gold geben, „nicht so viel wie momentan“. Gemessen vorher (Bot, 14 Tage, Zählung in
+Kopie): Zauberin gesamt ~93 Schmiede-Material (Asche 18, Staub 22, Blutstein 15, Siegel 8, Leinen 28) ≈ 3–4 Eingriffe/Tag,
+fast alles in Tag 1–7. Der Bot verkaufte dabei ~3400 Teile (Magisch 1980, Selten 1196, Legendär 236) für 2,1 Mio. Gold.
+**Gewählt (Variante A):** Verkauf = halber Wert (`SELL.share`), legendär + 1 Material fest nach Platz (`SELL.mat`, kein
+Zufall – der Knopf sagt es vorher: „Verkaufen · 1520 · 1 Blutstein“). Verworfen B: Chance auf jedes Teil (gleichmäßiger
+über Klassen, aber der Knopf könnte nur „vielleicht“ sagen). Nachher (14 Tage): Zauberin 258, Paladin 274 Material ≈
+9–10 Eingriffe/Tag; beide erreichen Stufe 27 wie vorher – halbes Verkaufsgold bremst den Fortschritt nicht.
+Ein Helfer `sellOff()` für alle Verkäufe (Knopf, Lager, Beute-Schutz, volle Taschen) – vorher 8 Stellen mit `S.gold += it.value`.
+Die Bremse gegen „jeder hat das perfekte Teil“ ist jetzt nur Material + Gold (`craftGold` wächst mit dem Wert) und
+`CRAFT.fuse.max` = 1.
+**Befund:** `sets.mjs` und `uniques.mjs` kippten allein dadurch, dass `makeItem` einen Würfelwurf weniger macht (Startglut):
+Tracht der Wäscherinnen 3 Teile +60,5 statt ~+20, fünf Einzigartige unter ihrer Grenze. Mit dem Wurf als leerem Platzhalter
+wieder im Rahmen → beide Tests würfeln die Ausrüstung nur **einmal** (Falle „Ein einzelner Ausrüstungswurf entscheidet alles“).
+Der Platzhalter steht in loot.js; richtig wäre, beide Tests über mehrere Ausrüstungswürfe mitteln zu lassen (wie tree.mjs).

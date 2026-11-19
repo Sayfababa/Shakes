@@ -2,7 +2,7 @@
 import { TREE, AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, STASH_W, STASH_H, SERVICES, SHARD_CRYPTS, TUTORIAL, BOUNTIES, SETS, SET } from './data.js';
 import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
 import { affixPool, tierOf } from './loot.js';
-import { potion, beltSlots, brewCost, canBrew, potMax, unreadable, herbPrice, canBuyHerb, herbLeft, herbSource } from './state.js';
+import { sellPrice, sellMat, potion, beltSlots, brewCost, canBrew, potMax, unreadable, herbPrice, canBuyHerb, herbLeft, herbSource } from './state.js';
 import { WIKI_CATS, wikiList, wikiEntry, upgradePaths, matBottleneck } from './wiki.js';
 import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, craftRaises, craftMat, baseMods, fusedMods, filterHits, filterOf, filterOn, setFilterMod, fuseMains, fuseFoods, fuseCheck, fuseFull, fusePromote, fuseReplaces, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
@@ -94,11 +94,11 @@ export function itemTip(it, cmp) {
   if (it.fx) L.push(`<span class="special">${it.unique ? '' : '✦ '}${effLine(it.fx)}</span>`);
   if (it.set) L.push(setBox(it.set, it));
   if (it.lore) L.push(`<span class="lore small">„${it.lore}“</span>`);
-  if (it.crafted) L.push(`<span class="gold small">Geschmiedet von ${it.crafted}</span>`); else if (it.glutMax) L.push(`<span class="sub2">Schmiedeglut ${it.glut}/${it.glutMax}</span>`);
+  if (it.crafted) L.push(`<span class="gold small">Geschmiedet von ${it.crafted}</span>`);   // alte Teile aus der Zeit der Schmiedeglut
   if (it.runes?.length || it.slot) { const rn = it.runes || []; if (rn.length) L.push(`<span class="rune">Runen ${rn.length}/${FORGE.maxRunes}: ${rn.map(r => `${r.mat ? `<img class="tiprune" src="assets/forge/r_${r.mat}.webp" alt="">` : ''}${r.name} +${r.v}`).join(', ')}</span>`); }
   if (it.slot === 'weapon') { const ck = CLASSES[S.cls].weapon; L.push(it.kind === ck ? `<span class="gold">Waffe deiner Klasse</span>`
     : `<span class="down">Fremde Waffe: Schaden −${Math.round((1 - CFG.offWeapon) * 100)} %, Zauber −${Math.round((1 - CFG.offWeaponSpell) * 100)} %</span>`); }
-  L.push(`<span class="sub2">${it.price ? 'Preis' : 'Wert'}: ${it.price ?? it.value} Gold</span>`);
+  L.push(`<span class="sub2">${it.price ? `Preis: ${it.price} Gold` : `Verkauf: ${sellPrice(it)} Gold${sellMat(it) ? ` · 1 ${MATS[sellMat(it)]}` : ''}`}</span>`);
   if (it.slot && !Object.values(S.equip).includes(it)) {
     const p = powerWith(it), a = stats(), b = p.st, g = (p.then - p.now) / Math.max(1, p.now);
     const row = (n, x, y, f = v => fmtN(Math.round(v))) => { const d = y - x; return Math.abs(d) < 0.5 ? '' : `<span class="${d > 0 ? 'up' : 'down'}">${n} ${d > 0 ? '+' : '−'}${f(Math.abs(d))}</span>`; };
@@ -568,13 +568,11 @@ const forgeTabs = sel => `<nav class="subtabs"><a class="${!sel.mode || sel.mode
 // --- Umschmieden (Crafting) ---
 function viewCraft(sel) {
   const list = craftItems(), it = list.find(x => x.id === sel.item) || null;
-  if (it) craftCheck(it, 'values');   // legt bei alten Items die Glut fest
   const card = !it ? '<p class="dim small">Wähle ein magisches, seltenes oder legendäres Item. Einzigartiges lässt sich nicht umschmieden.</p>' : (() => {
     const base = baseMods(it), rows = Object.entries(base).map(([k, v]) => { const t = tierOf(k, v) || 5, sealed = it.sealed === k, picked = sel.stat === k;
       const fu = !sealed && fusedMods(it).includes(k);
       return `<div class="caff ${sealed ? 'sealed' : ''} ${fu ? 'fus' : ''} ${picked ? 'on' : ''} ${sel.changed?.includes(k) ? 'new' : ''}" data-action="craftstat" data-k="${k}"><span>+${v} ${STAT_NAME(k)}</span><i class="tier t${t}">${TIERS[t - 1].name}</i>${sealed ? '<b class="seal">versiegelt</b>' : fu ? '<b class="fus">fusioniert</b>' : ''}</div>`; }).join('');
     return `<div class="ccard"><div class="cname r-${it.rarity}">${it.name}</div>
-      <div class="cglut"><span>Schmiedeglut</span><div class="bar glutbar"><i style="width:${it.glutMax ? it.glut / it.glutMax * 100 : 0}%"></i></div><b>${it.glut}/${it.glutMax}</b></div>
       <div class="caffs">${rows || '<span class="dim small">Keine eigenen Boni.</span>'}</div>
       ${it.fx ? `<div class="small special-l">✦ ${effLine(it.fx)} <i class="dim">(bleibt)</i></div>` : ''}${it.runes?.length ? `<div class="small rune">${it.runes.map(r => r.name + ' +' + r.v).join(', ')} <i class="dim">(bleibt)</i></div>` : ''}
       ${it.crafted ? `<div class="small gold">Vollendet von ${it.crafted}</div>` : ''}</div>`; })();
@@ -583,7 +581,7 @@ function viewCraft(sel) {
   const ops = CRAFT.ops.map(op => { const err = it ? craftCheck(it, op.id, sel.stat) : 'Kein Item';
     const rise = it ? craftRaises(it, op.id) : null, need = it ? craftMat(it, op.id) : op;
     const nm = rise ? 'Erheben' : op.name, tip = rise ? `Ein gewürfelter Bonus – und das Teil steigt zu ${RARITIES.find(r => r.id === rise).name.toLowerCase()} auf.` : op.text;
-    return `<button class="cop ${rise ? 'rise' : ''}" data-action="craftop" data-o="${op.id}" ${err ? 'disabled' : ''} title="${tip} (${MATS[need.mat]})">${matImg(need.mat)}<b>${nm}</b><small><i class="${(S.mats[need.mat] || 0) < need.n ? 'down' : ''}">${S.mats[need.mat] || 0}/${need.n}</i><br>Glut ${need.glut}+</small></button>`; }).join('');
+    return `<button class="cop ${rise ? 'rise' : ''}" data-action="craftop" data-o="${op.id}" ${err ? 'disabled' : ''} title="${tip} (${MATS[need.mat]})">${matImg(need.mat)}<b>${nm}</b><small><i class="${(S.mats[need.mat] || 0) < need.n ? 'down' : ''}">${S.mats[need.mat] || 0}/${need.n}</i></small></button>`; }).join('');
   const why = it && CRAFT.ops.map(op => craftCheck(it, op.id, sel.stat)).find(e => e && !/Material|Bonus antippen/.test(e));
   return `<div class="col forge craft">${forgeTabs(sel)}
     <section class="panel"><div class="cpick">${list.map(x => `<div class="fslot ${rarCls(x)} ${x.id === sel.item ? 'on' : ''} ${x.crafted ? 'full' : ''} ${Object.values(S.equip).includes(x) ? 'eq' : ''}" data-action="craftpick" data-id="${x.id}">${itemArt(x)}${hitDots(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`).join('') || '<span class="dim small">Nichts zum Umschmieden. Magische Items fallen bei Monstern und Händlern.</span>'}</div></section>
@@ -620,7 +618,6 @@ function fuseRows(it, picked, side, dropped, blocked) {
 }
 function viewFuse(sel) {
   const mains = fuseMains(), main = mains.find(x => x.id === sel.item) || null;
-  if (main) craftCheck(main, 'values');   // legt bei alten Teilen die Glut fest
   const foods = main ? fuseFoods(main) : [], food = foods.find(x => x.id === sel.food) || null;
   const err = main && food ? fuseCheck(main, food, sel.stat, sel.mstat) : null;
   const drop = main && food && !err ? fuseReplaces(main, sel.stat, sel.mstat) : null;
@@ -633,8 +630,7 @@ function viewFuse(sel) {
   const board = !main ? '<p class="dim small">Wähle oben das Hauptteil – das Teil, das bleibt und den neuen Bonus bekommt.</p>'
     : `<div class="fuse2">
       <div class="fside main"><h5>Hauptteil – bleibt</h5><div class="fname r-${main.rarity}">${main.name}</div>
-        <div class="caffs">${fuseRows(main, sel.mstat, 'main', drop)}</div>
-        <div class="cglut"><span>Glut</span><div class="bar glutbar"><i style="width:${main.glutMax ? main.glut / main.glutMax * 100 : 0}%"></i></div><b>${main.glut}/${main.glutMax}</b></div></div>
+        <div class="caffs">${fuseRows(main, sel.mstat, 'main', drop)}</div></div>
       <div class="fgut">${food ? '<span class="far">&larr;</span>' : ''}</div>
       <div class="fside food"><h5>Futter – zerfällt</h5>${food
         ? `<div class="fname r-${food.rarity}">${food.name}</div><div class="caffs">${fuseRows(food, sel.stat, 'food', null, blocked)}</div>
@@ -652,7 +648,7 @@ function viewFuse(sel) {
     : !food ? 'Futter unten antippen. Nur gleiche Grundform, gleiche Seltenheit, nur aus dem Beutel.'
     : blocked && blocked.size >= Object.keys(baseMods(food)).length ? '<span class="down">Von diesem Futter kann nichts herüber</span> – die Boni gehören nicht auf diesen Platz oder sind im Hauptteil versiegelt.'
     : err ? `<span class="down">${err}</span>`
-    : `${drop && drop === sel.stat ? `<b>${STAT_NAME(sel.stat)}</b> wird ersetzt: <span class="down">+${baseMods(main)[drop]}</span> &rarr; <b>+${baseMods(food)[drop]}</b>` : `Es wandert <b>${STAT_NAME(sel.stat)}</b>`}${drop && drop !== sel.stat ? `, dafür weicht <span class="down">${STAT_NAME(drop)}</span>` : promote ? ` – das Teil steigt zu <b class="r-${promote}">${RARITIES.find(r => r.id === promote).name.toLowerCase()}</b> auf` : ''} · ${craftGold(main)} Gold, Glut ${CRAFT.fuse.glut}+`;
+    : `${drop && drop === sel.stat ? `<b>${STAT_NAME(sel.stat)}</b> wird ersetzt: <span class="down">+${baseMods(main)[drop]}</span> &rarr; <b>+${baseMods(food)[drop]}</b>` : `Es wandert <b>${STAT_NAME(sel.stat)}</b>`}${drop && drop !== sel.stat ? `, dafür weicht <span class="down">${STAT_NAME(drop)}</span>` : promote ? ` – das Teil steigt zu <b class="r-${promote}">${RARITIES.find(r => r.id === promote).name.toLowerCase()}</b> auf` : ''} · ${craftGold(main)} Gold`;
   return `<div class="col forge craft fusev">${forgeTabs(sel)}
     <section class="panel"><div class="cpick">${mains.map(x => cell(x, x.id === sel.item)).join('')
       || '<span class="dim small">Nichts zum Fusionieren. Es braucht magische, seltene oder legendäre Teile.</span>'}</div></section>

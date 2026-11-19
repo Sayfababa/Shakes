@@ -335,7 +335,7 @@ const actions = {
     if (r.err) { forgeSel.msg = `<span class="down">${r.err}</span>`; return render(); }
     forgeSel.food = forgeSel.stat = forgeSel.mstat = null; forgeSel.changed = [r.stat];
     forgeSel.msg = `${r.food.name} zerfiel · der Bonus sitzt jetzt in <b class="gold">${r.it.name}</b>`
-      + (r.replaced ? ' · ein alter Bonus wich' : '') + (r.promote ? ' · <b class="gold">aufgestiegen</b>' : '') + ` · −${r.cost} Glut`;
+      + (r.replaced ? ' · ein alter Bonus wich' : '') + (r.promote ? ' · <b class="gold">aufgestiegen</b>' : '');
     render(); toast(pw); },
   craftpick: d => { forgeSel.item = d.id; forgeSel.stat = null; forgeSel.msg = ''; forgeSel.changed = null; render(); },
   craftstat: d => { forgeSel.stat = forgeSel.stat === d.k ? null : d.k; forgeSel.msg = ''; render(); },
@@ -344,7 +344,7 @@ const actions = {
     if (r.err) { forgeSel.msg = `<span class="down">${r.err}</span>`; return render(); }
     const after = G.baseMods(r.it); forgeSel.changed = Object.keys(after).filter(k => after[k] !== before[k]);
     const lost = Object.keys(before).filter(k => !(k in after));
-    forgeSel.msg = `${r.op.name}: −${r.cost} Glut${lost.length ? ` · getilgt: ${lost.map(k => k === 'dmg' ? 'Schaden' : k).join(', ')}` : ''}${r.it.crafted ? ' · <b class="gold">vollendet</b>' : ''}`;
+    forgeSel.msg = `${r.op.name}${lost.length ? ` · getilgt: ${lost.map(k => k === 'dmg' ? 'Schaden' : k).join(', ')}` : ''}`;
     if (d.o === 'seal') forgeSel.stat = null; render(); toast(pw); },
   forgeitem: d => { const S = G.S, it = findItem(d.id); if (!it) return; hideTip(); stopForge(); forgeRes = null;
     const slot = Object.entries(S.equip).find(([, x]) => x === it)?.[0];
@@ -427,14 +427,16 @@ document.addEventListener('click', e => {
 });
 function showTouchTip(el, sure) {
   const it = findItem(el.dataset.tip); if (!it) return;
+  // Was der Verkauf bringt – steht auf dem Knopf, damit das Material keine Überraschung ist (SELL)
+  const sellLbl = it => G.sellPrice(it) + (G.sellMat(it) ? ` · 1 ${MATS[G.sellMat(it)]}` : '');
   const d = el.dataset, a = d.action, attrs = Object.entries(d).filter(([k]) => k !== 'tip').map(([k, v]) => `data-${k}="${v}"`).join(' ');
   let btns = `<button ${attrs}>${ACT_LABEL[a] || 'OK'}</button>`;
   if (a === 'buy') btns += `<button data-action="shoplock" data-t="${d.t}" data-id="${it.id}">${it.lock ? 'Entsperren' : 'Sperren'}</button>`;
-  if (a === 'equip') btns += sure ? `<button class="red" data-action="sell" data-id="${it.id}" data-sure="1">Wirklich? · ${it.value}</button>` : `<button class="red" data-action="sell" data-id="${it.id}">Verkaufen · ${it.value}</button>`;
+  if (a === 'equip') btns += sure ? `<button class="red" data-action="sell" data-id="${it.id}" data-sure="1">Wirklich? · ${sellLbl(it)}</button>` : `<button class="red" data-action="sell" data-id="${it.id}">Verkaufen · ${sellLbl(it)}</button>`;
   // Aus dem Beutel ins Lager und zurück. Im Lager heißt der erste Knopf „In den Beutel“ (ACT_LABEL),
   // deshalb steht hier nur noch das Verkaufen.
   if (a === 'equip') btns += `<button data-action="stashput" data-id="${it.id}" ${G.stashLeft() ? '' : 'disabled'}>Lagern</button>`;
-  if (a === 'stashtip') btns += sure ? `<button class="red" data-action="sellstash" data-id="${it.id}" data-sure="1">Wirklich? · ${it.value}</button>` : `<button class="red" data-action="sellstash" data-id="${it.id}">Verkaufen · ${it.value}</button>`;
+  if (a === 'stashtip') btns += sure ? `<button class="red" data-action="sellstash" data-id="${it.id}" data-sure="1">Wirklich? · ${sellLbl(it)}</button>` : `<button class="red" data-action="sellstash" data-id="${it.id}">Verkaufen · ${sellLbl(it)}</button>`;
   const slot = Object.entries(G.S.equip).find(([, x]) => x === it)?.[0];   // Schmieden: Umschmieden (magisch+), sonst Runen (nur angelegt)
   if ((a === 'equip' || a === 'unequip') && (G.craftItems().includes(it) || slot)) btns += `<button data-action="forgeitem" data-id="${it.id}">Schmieden</button>`;
   tip.innerHTML = UI.itemTip(it, compareTo(it)) + `<div class="act">${btns}<button data-action="noop">Zurück</button></div>`;

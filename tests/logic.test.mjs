@@ -373,6 +373,22 @@ test('Wert: Einzigartige und Sonderboni sind mehr wert', () => {
   assert.ok(avg(i => i.special && i.rarity === 'rare') > avg(i => !i.special && i.rarity === 'rare'));
 });
 
+test('Verkaufen: halber Wert, legendär + 1 Material je Platz – derselbe Weg für Knopf, Lager und volle Taschen', () => {
+  const S = fresh(); S.lvl = 30; S.bag = []; S.stash = [];
+  for (const slot of ['weapon', 'helm', 'chest', 'gloves', 'boots', 'belt', 'ring', 'amulet', 'offhand']) for (const rar of [2, 4]) {
+    let it; do it = makeItem(30, { slot, minRarity: rar }); while (it.unique || it.set || (rar === 4) !== (it.rarity === 'legendary'));
+    const mat = rar === 4 ? D.SELL.mat[it.slot] : null;
+    assert.equal(G.sellMat(it), mat, slot); assert.equal(G.sellPrice(it), Math.max(1, Math.round(it.value * D.SELL.share)));
+    const g = S.gold, m = mat ? S.mats[mat] || 0 : 0;
+    assert.ok(G.addToBag(it)); G.sell(it.id);
+    assert.equal(S.gold, g + G.sellPrice(it)); if (mat) assert.equal(S.mats[mat], m + D.SELL.legendMat, 'Material fehlt: ' + slot);
+  }
+  let it; do it = makeItem(30, { slot: 'ring', minRarity: 4 }); while (it.unique || it.set || it.rarity !== 'legendary');
+  S.stash = [{ ...it, x: 0, y: 0 }]; const g = S.gold, m = S.mats.blutstein || 0;
+  assert.ok(G.sellStash(it.id)); assert.equal(S.gold, g + G.sellPrice(it)); assert.equal(S.mats.blutstein, m + 1);
+  const r = G.sellOff(it); assert.deepEqual(r, { gold: G.sellPrice(it), mat: 'blutstein' });   // der Helfer, den auch die Beute-Automatik nutzt
+});
+
 test('Keine Gold-Schleifen: Glücksgriff und Ladenware kosten mehr, als ihr Verkauf bringt', () => {
   for (const L of [5, 20, 40]) {
     const S = fresh(); S.lvl = L; S.attrs.lck = L * 3; let cost = 0, val = 0;
@@ -401,21 +417,21 @@ test('Umschmieden: Versiegelter Bonus bleibt bei allem unverändert, Runen und S
   }
 });
 
-test('Umschmieden: kostet genau Material, Gold und Glut; Glut leer = vollendet mit Schmiedezeichen', () => {
-  const S = richCraft(), it = craftable(2, 20); S.bag = [it]; S.bag[0].x = 0; S.bag[0].y = 0; it.glut = it.glutMax = 7;
-  const m = S.mats.staub, g = S.gold, gl = it.glut, cg = G.craftGold(it);
-  const r = G.craft(it.id, 'values'); assert.ok(!r.err);
-  assert.equal(S.mats.staub, m - 2); assert.equal(S.gold, g - cg); assert.equal(it.glut, gl - r.cost); assert.ok(r.cost >= 2 && r.cost <= 4);
-  for (let i = 0; i < 20 && !it.crafted; i++) G.craft(it.id, 'values');
-  assert.equal(it.crafted, 'Test'); assert.ok(G.craft(it.id, 'values').err, 'vollendetes Item lässt sich weiter craften');
+test('Umschmieden: kostet genau Material und Gold, beliebig oft – keine Schmiedeglut mehr, auch alte vollendete Teile', () => {
+  const S = richCraft(), it = craftable(2, 20); S.bag = [it]; S.bag[0].x = 0; S.bag[0].y = 0;
+  for (let i = 0; i < 60; i++) { const m = S.mats.staub, g = S.gold, cg = G.craftGold(it);
+    const r = G.craft(it.id, 'values'); assert.ok(!r.err, `Eingriff ${i + 1}: ${r.err}`);
+    assert.equal(S.mats.staub, m - 2); assert.equal(S.gold, g - cg); }
+  assert.ok(!it.crafted, 'kein Teil wird mehr vollendet');
+  it.crafted = 'Alt'; it.glut = 0; it.glutMax = 24;   // Spielstand von vor der Änderung
+  assert.ok(!G.craft(it.id, 'values').err, 'altes vollendetes Teil bleibt gesperrt');
 });
 
-test('Umschmieden: Grenzen – Einzigartige, gewöhnliche, zu wenig Material/Gold/Glut, voll', () => {
+test('Umschmieden: Grenzen – Einzigartige, gewöhnliche, zu wenig Material/Gold, voll', () => {
   const S = richCraft(); let u; do u = makeItem(25, { slot: 'helm', minRarity: 4 }); while (!u.unique);
   S.bag = [u]; assert.ok(G.craft(u.id, 'add').err);
   const n = makeItem(5, { slot: 'helm' }); n.rarity = 'normal'; S.bag = [n]; assert.ok(G.craft(n.id, 'add').err);
-  const it = craftable(2, 20); S.bag = [it]; it.glut = 1; assert.ok(G.craft(it.id, 'values').err);
-  it.glut = 50; S.mats.staub = 1; assert.ok(G.craft(it.id, 'values').err); S.mats.staub = 99; S.gold = 0; assert.ok(G.craft(it.id, 'values').err);
+  const it = craftable(2, 20); S.bag = [it]; S.mats.staub = 1; assert.ok(G.craft(it.id, 'values').err); S.mats.staub = 99; S.gold = 0; assert.ok(G.craft(it.id, 'values').err);
   S.gold = 1e6; while (Object.keys(G.baseMods(it)).length < 2) G.craft(it.id, 'add');
   S.mats.kronsplitter = 0; assert.ok(G.craft(it.id, 'add').err, 'magisch über 2 Boni ohne Kronsplitter');
   assert.ok(G.craft('gibtsnicht', 'add').err);

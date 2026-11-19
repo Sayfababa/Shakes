@@ -237,30 +237,34 @@ export const FORGE = {
   grades: [{ min: 15, name: 'Makellos', adj: 'Makellose', q: 2.2 }, { min: 12, name: 'Meisterhaft', adj: 'Meisterhafte', q: 1.6 }, { min: 7, name: 'Solide', adj: 'Solide', q: 1 }, { min: 0, name: 'Grob', adj: 'Grobe', q: 0.5 }],
 };
 
-// --- Umschmieden (Crafting, Schritt 2): Material = Werkzeug. Jeder Eingriff kostet Schmiedeglut des Items. ---
-// Ist die Glut aufgebraucht, ist das Item vollendet und trägt den Namen seines Schmieds.
+// --- Umschmieden (Crafting, Schritt 2): Material = Werkzeug, dazu Gold. Beliebig oft – die Schmiedeglut je Teil ist
+// raus (Besitzer 2026-11-19: „nervt“); die Bremse ist das Material (→ E „Schmiedeglut raus, Verkauf gibt Material“).
+// Schmiedbar sind die Seltenheiten mit Eintrag in maxAff.
 export const CRAFT = {
-  glut: { magic: 16, rare: 24, legendary: 30 }, glutRand: 6,      // Startglut je Seltenheit (+0..glutRand)
   maxAff: { magic: 2, rare: 4, legendary: 5 },
   gold: [10, 4], goldValue: 0.6,                                   // Gold = a + Gegenstandsstufe × b + Wert × goldValue
   ops: [
-    { id: 'seal', name: 'Versiegeln', mat: 'siegel', n: 2, glut: 4, text: 'Ein Bonus bleibt bei allem Folgenden unverändert (einer je Item).' },
-    { id: 'chaos', name: 'Neu würfeln', mat: 'asche', n: 2, glut: 3, text: 'Alle unversiegelten Boni werden neu gewürfelt.' },
-    { id: 'values', name: 'Werte würfeln', mat: 'staub', n: 2, glut: 2, text: 'Gleiche Boni, neue Werte und Stufen.' },
-    { id: 'add', name: 'Hinzufügen', mat: 'blutstein', n: 2, glut: 5, text: 'Ein neuer Bonus, wenn Platz ist.' },
-    { id: 'remove', name: 'Tilgen', mat: 'leinen', n: 2, glut: 2, text: 'Ein zufälliger unversiegelter Bonus verschwindet.' },
+    { id: 'seal', name: 'Versiegeln', mat: 'siegel', n: 2, text: 'Ein Bonus bleibt bei allem Folgenden unverändert (einer je Item).' },
+    { id: 'chaos', name: 'Neu würfeln', mat: 'asche', n: 2, text: 'Alle unversiegelten Boni werden neu gewürfelt.' },
+    { id: 'values', name: 'Werte würfeln', mat: 'staub', n: 2, text: 'Gleiche Boni, neue Werte und Stufen.' },
+    { id: 'add', name: 'Hinzufügen', mat: 'blutstein', n: 2, text: 'Ein neuer Bonus, wenn Platz ist.' },
+    { id: 'remove', name: 'Tilgen', mat: 'leinen', n: 2, text: 'Ein zufälliger unversiegelter Bonus verschwindet.' },
   ],
   // Erheben: „Hinzufügen" ist bei einem vollen Teil sonst tot. Mit einem Kronsplitter geht es doch –
   // das Teil bekommt einen gewürfelten Bonus und steigt eine Seltenheit auf. Der Preis ist bewusst
   // NICHT Gold (davon hat jeder genug), sondern ein Material, das nur der Abgrund hergibt.
   // Nur magisch → selten: selten → legendär bliebe sonst der kürzeste Weg zu einem Spitzenteil.
-  raise: { mat: 'kronsplitter', n: 1, glut: 6, from: { magic: 'rare' } },
-  glutJitter: 2,                                                   // jeder Eingriff kostet zusätzlich 0..2 Glut (Unsicherheit wie Last Epoch)
+  raise: { mat: 'kronsplitter', n: 1, from: { magic: 'rare' } },
   // Fusionieren: ein Bonus wandert von einem gleichartigen Teil herüber, der Spender zerfällt.
   // `max` ist die Bremse – drei von vier Boni müssen weiter aus dem Würfel kommen, sonst baut
   // jeder binnen Tagen dasselbe perfekte Teil und Beute wird bedeutungslos.
-  fuse: { glut: 4, max: 1 },
+  fuse: { max: 1 },
 };
+// Verkaufen (Besitzer 2026-11-19, Variante A): halber Wert in Gold; legendäre Teile geben zusätzlich 1 Schmiede-Material,
+// welches hängt fest am Platz (kein Zufall – der Knopf sagt es vorher). Gemessen (Bot, 14 Tage): 7–17 Material/Tag.
+export const SELL = { share: 0.5, legendMat: 1,
+  mat: { weapon: 'asche', offhand: 'asche', helm: 'staub', belt: 'staub', chest: 'blutstein', ring: 'blutstein', gloves: 'leinen', boots: 'leinen', amulet: 'siegel' } };
+
 
 export const MONSTERS = [
   { name: 'Verfaulter Ghul', glyph: 'ghul', mat: 'zahn' }, { name: 'Gefallener', glyph: 'fallen', mat: 'asche' },

@@ -1,4 +1,4 @@
-import { RARITIES, TREE, SETS, SET, ACTS, ACT, CRYPT, DESCENT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, STASH_W, STASH_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, HERB_LOC, ALCH } from './data.js';
+import { RARITIES, TREE, SETS, SET, ACTS, ACT, CRYPT, DESCENT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, SELL, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, STASH_W, STASH_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, HERB_LOC, ALCH } from './data.js';
 import { affixPool, makeItem, itemValue, rollTier, tierOf, affixValue, renameMagic, adj, fixName } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 import { evadeShare } from './combat.js';
@@ -367,7 +367,7 @@ export function bankHaul() {
   const h = S.haul; if (!h) return null; S.haul = null;
   S.gold += h.gold; for (const [k, n] of Object.entries(h.mats)) addMat(k, n);
   const up = gainXp(h.xp || 0);
-  const sold = []; for (const it of h.items) if (!addToBag(it)) { S.gold += it.value; sold.push(it); }
+  const sold = []; for (const it of h.items) if (!addToBag(it)) { sellOff(it); sold.push(it); }
   return { ...h, sold, up };
 }
 export function tripReward(l, diff, sec) {
@@ -445,7 +445,7 @@ export function stashPut(id) { const it = S.bag.find(x => x.id === id); if (!it)
 export function stashTake(id) { const it = grid('stash').list.find(x => x.id === id); if (!it) return false;
   const p = findSpot(it.w || 1, it.h || 1); if (!p) return false;
   removeFromStash(id); delete it.stashed; Object.assign(it, p); S.bag.push(it); return true; }
-export function sellStash(id) { const it = removeFromStash(id); if (it) S.gold += it.value; return !!it; }
+export function sellStash(id) { const it = removeFromStash(id); if (it) sellOff(it); return !!it; }
 // Neu sortieren: große Items zuerst. Nimmt das Behältnis als Argument wie `grid()` – das Lager
 // konnte man lange nicht ordnen, weil diese Funktion S.bag fest verdrahtet hatte.
 export function sortGrid(which = 'bag') {
@@ -470,7 +470,11 @@ export function equip(id) {
   return true;
 }
 export function unequip(slot) { const it = S.equip[slot]; if (it && addToBag(it)) S.equip[slot] = null; }
-export function sell(id) { const it = removeFromBag(id); if (it) S.gold += it.value; }
+// Verkaufen – EIN Weg für alles (Knopf, Lager, volle Taschen, Beute-Schutz): halber Wert, legendär + 1 Material (SELL)
+export const sellPrice = it => Math.max(1, Math.round(it.value * SELL.share));
+export const sellMat = it => it.rarity === 'legendary' && SELL.mat[it.slot] ? SELL.mat[it.slot] : null;
+export function sellOff(it) { const g = sellPrice(it), m = sellMat(it); S.gold += g; if (m) addMat(m, SELL.legendMat); return { gold: g, mat: m }; }
+export function sell(id) { const it = removeFromBag(id); if (it) sellOff(it); }
 export function journal(t) { S.journal.unshift({ t, ts: now() }); S.journal.length = Math.min(S.journal.length, 30); }
 
 // --- Krypten ---
@@ -579,14 +583,8 @@ export function setFilterMod(k) {
 }
 export const setFilterTier = t => { filterOf().tier = t; };
 
-export const craftItems = () => [...Object.values(S.equip).filter(Boolean), ...S.bag].filter(it => CRAFT.glut[it.rarity] && !it.unique && !it.set);
+export const craftItems = () => [...Object.values(S.equip).filter(Boolean), ...S.bag].filter(it => CRAFT.maxAff[it.rarity] && !it.unique && !it.set);
 const findAny = id => Object.values(S.equip).find(x => x?.id === id) || S.bag.find(x => x.id === id);
-// Glut alter Items (vor dem Crafting-System) einmalig festlegen – aus der ID, damit Neuladen nichts ändert
-function ensureGlut(it) {
-  if (it.glut != null || !CRAFT.glut[it.rarity] || it.unique || it.set) return;
-  let h = 0; for (const c of it.id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  it.glut = it.glutMax = CRAFT.glut[it.rarity] + h % (CRAFT.glutRand + 1);
-}
 export const craftGold = it => Math.round(CRAFT.gold[0] + it.lvl * CRAFT.gold[1] + it.value * CRAFT.goldValue);   // mit Wert: Craften+Verkaufen darf nie Gold bringen
 // Warum geht ein Eingriff nicht? null = möglich
 // „Hinzufügen" an einem vollen Teil: mit einem Kronsplitter geht es doch, und das Teil steigt auf.
@@ -600,11 +598,8 @@ export function craftCheck(it, opId, stat) {
   const op = CRAFT.ops.find(o => o.id === opId);
   if (!it || !op) return 'Nichts gewählt.';
   if (it.unique) return 'Einzigartiges lässt sich nicht umschmieden.';
-  if (!CRAFT.glut[it.rarity]) return 'Nur magische, seltene und legendäre Items.';
-  ensureGlut(it);
-  if (it.crafted) return `Vollendet von ${it.crafted}.`;
+  if (!CRAFT.maxAff[it.rarity]) return 'Nur magische, seltene und legendäre Items.';
   const need = craftMat(it, opId), rise = craftRaises(it, opId);
-  if (it.glut < need.glut) return 'Zu wenig Schmiedeglut.';
   if ((S.mats[need.mat] || 0) < need.n) return rise ? `Es braucht ${MATS[CRAFT.raise.mat]} aus dem Abgrund.` : 'Zu wenig Material.';
   if (S.gold < craftGold(it)) return 'Zu wenig Gold.';
   const base = baseMods(it), keys = Object.keys(base), free = keys.filter(k => k !== it.sealed);
@@ -616,12 +611,6 @@ export function craftCheck(it, opId, stat) {
   return null;
 }
 // Alle unversiegelten Boni neu (gleiche Anzahl), versiegelter bleibt – auch für Ysoldes „Neu weihen“
-// Schmiedeglut abziehen; reicht der Rest für nichts mehr → vollendet
-function spendGlut(it, n) {
-  ensureGlut(it); const cost = Math.min(it.glut, n + Math.floor(rand() * (CRAFT.glutJitter + 1))); it.glut -= cost;
-  if (it.glut < Math.min(...CRAFT.ops.map(o => o.glut))) { it.glut = 0; it.crafted = S.name; journal(`${it.name} ist vollendet. Mein Zeichen steht darauf.`); }
-  return cost;
-}
 export function craft(id, opId, stat) {
   const it = findAny(id), err = craftCheck(it, opId, stat); if (err) return { err };
   const op = CRAFT.ops.find(o => o.id === opId), legend = it.rarity === 'legendary';
@@ -645,9 +634,8 @@ export function craft(id, opId, stat) {
   // sonst bekäme man einen seltenen Grundwert geschenkt (gleiche Regel wie beim Fusionieren).
   if (rise) { it.rarity = rise; it.risen = true; }
   S.mats[need.mat] -= need.n; S.gold -= gold;
-  const cost = spendGlut(it, need.glut);
   renameMagic(it); it.value = itemValue(it);
-  return { it, op, cost, rise };
+  return { it, op, rise };
 }
 
 // --- Fusionieren: ein Bonus wandert von einem gleichartigen Teil herüber, der Spender zerfällt ---
@@ -662,7 +650,7 @@ export const fuseCount = it => it?.fused || 0;
 // noetig). `keep` filtert auf Boni, die es noch gibt: ein weggewuerfelter Bonus ist nicht mehr fusioniert.
 export const fusedMods = it => it?.fmods || [];
 const keepFused = it => { const f = fusedMods(it).filter(k => k in baseMods(it)); if (f.length) it.fmods = f; else delete it.fmods; };
-const fusable = it => CRAFT.glut[it.rarity] && !it.unique && !it.set;
+const fusable = it => CRAFT.maxAff[it.rarity] && !it.unique && !it.set;
 const nextRar = r => { const n = RARITIES[RARITIES.findIndex(x => x.id === r) + 1]; return n && CRAFT.maxAff[n.id] ? n.id : null; };
 export const fuseMains = () => craftItems().filter(it => fuseCount(it) < CRAFT.fuse.max);
 export const fuseFoods = main => !main ? [] : S.bag.filter(it =>
@@ -683,9 +671,6 @@ export function fuseCheck(main, food, foodStat, mainStat) {
   if (!fuseForm(main, food)) return 'Nur die gleiche Grundform.';
   if (main.rarity !== food.rarity) return 'Nur die gleiche Seltenheit.';
   if (fuseCount(main) >= CRAFT.fuse.max) return 'Dieses Teil ist schon fusioniert.';
-  ensureGlut(main);
-  if (main.crafted) return `Vollendet von ${main.crafted}.`;
-  if (main.glut < CRAFT.fuse.glut) return 'Zu wenig Schmiedeglut.';
   if (S.gold < craftGold(main)) return 'Zu wenig Gold.';
   const fb = baseMods(food), mb = baseMods(main);
   if (!foodStat || !(foodStat in fb)) return 'Bonus im Futter antippen.';
@@ -716,11 +701,10 @@ export function fuse(mainId, foodId, foodStat, mainStat) {
   // am Teil nicht, was man sich erarbeitet hat, und beim Umschmieden nicht, was man wegwuerfeln wuerde.
   main.fmods = [...fusedMods(main).filter(k => k !== replaced), foodStat];
   const gold = craftGold(main); S.gold -= gold;
-  const cost = spendGlut(main, CRAFT.fuse.glut);
   removeFromBag(food.id);
   renameMagic(main); main.value = itemValue(main);
   journal(`${food.name} zerfiel. Was gut an ihm war, trägt jetzt ${main.name}.`);
-  return { it: main, food, stat: foodStat, replaced, promote, cost, gold };
+  return { it: main, food, stat: foodStat, replaced, promote, gold };
 }
 
 // --- Eilen: kostet mit Restzeit und Stufe ---

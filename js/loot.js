@@ -58,7 +58,11 @@ export function makeItem(lvl, { luck = 0, slot, slots, cls, kind, minRarity = 0 
     if (sc && ilvl >= SPECIAL_MIN_LVL && rand() < sc) { const sp = pick(SPECIALS); it.fx = { ...sp.eff }; it.special = sp.id; }
     it.name = nameOf(it, base, chosen);
   }
-  if (CRAFT.glut[rar.id] && !it.unique) it.glut = it.glutMax = CRAFT.glut[rar.id] + roll(0, CRAFT.glutRand);
+  // Platzhalter-Wurf: hier wurde früher die Schmiedeglut gewürfelt. Er wirkt auf nichts, hält aber die feste Würfelfolge der
+  // Balance-Tests (sets.mjs, uniques.mjs) gleich – die würfeln ihre Ausrüstung nur EINMAL; ohne ihn kippen sie allein durch eine
+  // andere Ausrüstung (Tracht +60 statt +20). Befund → E „Schmiedeglut raus, Verkauf gibt Material“. Erst entfernen, wenn
+  // diese Tests über mehrere Ausrüstungswürfe mitteln.
+  if (['magic', 'rare', 'legendary'].includes(rar.id) && !it.unique) roll(0, 6);
   it.value = itemValue(it, rar);
   return it;
 }
