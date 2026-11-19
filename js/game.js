@@ -259,16 +259,24 @@ export function potOffer(id) {
   if (miss) { const loc = LOCATIONS.find(l => HERB_LOC[l.id] === miss[0]); return { kind: 'miss', text: `Fehlt: ${HERBS[miss[0]].name} (${miss[0] === 'herz' ? 'Krypta-Bosse' : loc?.name || '?'})`, short: `fehlt ${HERBS[miss[0]].name}${miss[0] === 'herz' ? ' (Bosse)' : loc ? ` (${placeShort(loc.name)})` : ''}` }; }
   return { kind: 'miss', text: cb.reason };
 }
-// Trank in den Gürtel legen: freier Platz, sonst ersetzt er einen Trank, der gegen diesen Gegner nicht gebraucht wird (keep)
-export function packPotion(id, keep = []) {
+// Welchen Platz ein Trank in der Vorbereitung bekommt: ein seltener ersetzt den seltenen (höchstens einer im Gürtel),
+// sonst ein freier Platz, sonst einer, der gegen diesen Gegner nicht gebraucht wird (keep). weg = wen er verdrängt –
+// das muss vor und nach dem Tippen dastehen, sonst sieht es aus, als überschriebe er grundlos den ersten Platz.
+export function packSlot(id, keep = []) {
   const S = G.S, n = G.beltSlots(), p = G.potion(id), slots = S.belt.slice(0, n);
-  if (!(S.pots[id] > 0) && !G.brew(id)) return false;
-  if (slots.some(b => b?.id === id)) return true;
   let i = p.rare ? slots.findIndex(b => b && G.potion(b.id).rare) : -1;
   if (i < 0) i = slots.findIndex(b => !b);
   if (i < 0) i = slots.findIndex(b => !keep.includes(b.id));
   if (i < 0) i = n - 1;
-  return G.setBelt(i, id);
+  const b = slots[i]; return { i, weg: b && b.id !== id ? G.potion(b.id).name : null };
+}
+// Trank in den Gürtel legen (vorher brauen, wenn nötig). Ergebnis: false, oder { weg } wie bei packSlot
+export function packPotion(id, keep = []) {
+  const S = G.S, slots = S.belt.slice(0, G.beltSlots());
+  if (!(S.pots[id] > 0) && !G.brew(id)) return false;
+  if (slots.some(b => b?.id === id)) return { weg: null };
+  const { i, weg } = packSlot(id, keep);
+  return G.setBelt(i, id) ? { weg } : false;
 }
 // Bester Gürtel gegen genau diesen Gegner: alle Kombinationen vorrätiger Tränke (höchstens ein seltener) in Kämpfen ausprobieren
 export function bestBelt(m, n = 50) {

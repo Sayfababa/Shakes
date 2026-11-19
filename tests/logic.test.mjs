@@ -41,6 +41,16 @@ test('Kampf: endet immer, Log hat Lebenswerte', () => {
   }
 });
 
+test('Vorbereitung: zweiter seltener Trank ersetzt den ersten – und sagt wen; gewöhnlicher geht in den freien Platz', () => {
+  const S = fresh('paladin'); S.lvl = 20; S.pots = { jaegerblick: 1, knochenmark: 1, rotwurz: 2 }; S.belt = [null, null, null];
+  assert.deepEqual(Game.packPotion('jaegerblick'), { weg: null });
+  assert.equal(Game.packSlot('knochenmark').weg, 'Jägerblick');           // steht vorher im Kästchen
+  assert.deepEqual(Game.packPotion('knochenmark'), { weg: 'Jägerblick' });  // und nach dem Tippen in der Meldung
+  assert.deepEqual(S.belt.filter(Boolean).map(b => b.id), ['knochenmark']);
+  assert.equal(Game.packSlot('rotwurz').weg, null); Game.packPotion('rotwurz');
+  assert.deepEqual(S.belt.filter(Boolean).map(b => b.id).sort(), ['knochenmark', 'rotwurz']);
+});
+
 test('Siegchance: gekoppelter Zufall – gleiche Würfel, „etwa gleich“ nur im Rauschen', async () => {
   const { seeded, rand } = await import('../js/rng.js');
   assert.equal(seeded(5, rand), seeded(5, rand)); assert.notEqual(seeded(5, rand), seeded(6, rand));

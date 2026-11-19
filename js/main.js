@@ -291,7 +291,8 @@ const actions = {
   champ: d => showFight(Game.champFight(d.t), 'npc'),
   claim: d => { const r = G.claimBounty(+d.i); if (r) G.journal(`Steckbrief erfüllt: ${r.gold} Gold, ${r.xp} EP.`); render(); },
   crypt: d => { const c = CRYPTS.find(x => x.id === d.id); if (!c) return; prepC = c.id; prepM = G.cryptEnemy(c); view = 'prep'; render(); },
-  prepPot: d => { if (!prepM) return; const keep = Game.enemyInfo(prepM).tags.map(t => t[1]); if (!Game.packPotion(d.id, keep)) return note('Geht gerade nicht.'); render(); },
+  prepPot: d => { if (!prepM) return; const keep = Game.enemyInfo(prepM).tags.map(t => t[1]); const r = Game.packPotion(d.id, keep); if (!r) return note('Geht gerade nicht.');
+    if (r.weg) note(`${G.potion(d.id).rare ? 'Nur ein seltener Trank passt in den Gürtel – ' : 'Gürtel voll – '}${G.potion(d.id).name} ersetzt ${r.weg}.`); render(); },
   bestBelt: () => { if (!prepM) return; if (!Game.bestBelt(prepM)) note('Noch keine Tränke. Brau welche bei Mutter Ysolde.'); render(); },
   cryptgo: () => { const m = prepM; prepM = null; showFight(Game.cryptFight(prepC, m), 'crypt'); },
   alch: d => { alchBack = d.b === 'prep' ? (['pitprep', 'zoneprep'].includes(view) ? view : 'prep') : d.b === 'desc' ? d.b : 'traders'; view = 'alch'; render(); },
