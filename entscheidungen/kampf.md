@@ -79,3 +79,8 @@ im Log nie mehr als `evadeStreak` Ausweicher in Folge, und es gibt Zauber-Treffe
 0,35 → +21,9 · 0,30 → +18,6 · 0,25 → +16,2 · 0,20 → +12,8 (ohne Bremse vorher +19,6) – 0,30 ist der alte Bereich.
 Der Baum-Test (`tree.mjs`) läuft im vollen Lauf jetzt mit 600 statt 300 Kämpfen: „Fokus" (Zauberin St. 14) fiel bei 300
 auf 0,4 (< 1) – Stichprobe, bei 1200 Kämpfen mit und ohne Bremse +2,1; 600 kostet ~2 s mehr. Grenzen unverändert.
+**`power()` nachgezogen (2026-11-19):** `evadeShare(p)` in combat.js = (p+…+p^k)/(1+p+…+p^k), k = `evadeStreak`; power()
+nutzt es für eigenes und gegnerisches Ausweichen. Logik-Test vergleicht die Formel mit echten Kämpfen (p = 0,2/0,35/0,5,
+nur Hiebe, ±0,03). **Befund calib** (St. 5/10/20/30/40, je 2–3 Läufe): evadep 0,95/0,89/0,97/1,10/1,25 → 0,86/0,81/0,88/1,00/1,12
+– auf St. 10 unter dem Ziel 0,85; dex 0,86/1,14/1,46/1,10/0,76 → 0,83/1,00/1,19/0,92/0,72 (näher an 1). Nicht nachgezogen –
+der Besitzer entscheidet (Vorschlag: `evadep` per 1,5 → ~1,65 hebt St. 10 auf ~0,9, St. 40 auf ~1,23).

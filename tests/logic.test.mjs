@@ -51,6 +51,19 @@ test('Vorbereitung: zweiter seltener Trank ersetzt den ersten – und sagt wen; 
   assert.deepEqual(S.belt.filter(Boolean).map(b => b.id).sort(), ['knochenmark', 'rotwurz']);
 });
 
+test('power() kennt die Serienbremse: evadeShare trifft den Anteil der Ausweicher im echten Kampf', async () => {
+  const { evadeShare } = await import('../js/combat.js');
+  const S = fresh('barbarian'); S.lvl = 20; const A = { ...G.stats(), hp: 1e6, acc: 0, spells: [] };   // nur Hiebe: Stärkungszauber würfeln kein Ausweichen
+  for (const p of [0.2, 0.35, 0.5]) {
+    const m = { ...G.makeMonster(20, 1), hp: 1e6, dex: 0, evade: p, evadeCap: 0 };
+    let ev = 0, all = 0;
+    for (let k = 0; k < 120; k++) for (const l of fight(A, m).log) {
+      if (l.who !== 'a' || !(l.dmg !== undefined || l.miss || l.spell)) continue;
+      all++; if (l.miss === 'Ausgewichen') ev++; }
+    assert.ok(Math.abs(ev / all - evadeShare(p)) < 0.03, `p=${p}: Kampf ${(ev / all).toFixed(3)}, Formel ${evadeShare(p).toFixed(3)} (${all} Angriffe)`);
+  }
+});
+
 test('Siegchance: gekoppelter Zufall – gleiche Würfel, „etwa gleich“ nur im Rauschen', async () => {
   const { seeded, rand } = await import('../js/rng.js');
   assert.equal(seeded(5, rand), seeded(5, rand)); assert.notEqual(seeded(5, rand), seeded(6, rand));

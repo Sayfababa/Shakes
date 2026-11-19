@@ -4,7 +4,7 @@ Düsteres Browser-RPG im Stil eines Questing-/Auto-Battler-Spiels: Aufträge, au
 Kampf, Beute, Händler. Optik Diablo 1/2 — dunkel, ernst, handgemalt. Spielsprache Deutsch.
 Vanilla JS, ES-Module, kein Build-Step; Spielstand in localStorage. Wird vor allem am Handy
 als Homescreen-App gespielt, deshalb gilt überall: **kein Scrollen**, jede Ansicht muss auf
-iPhone SE (375×667) passen.
+dem iPhone 13 als App (390×844) passen (Maßstab seit 2026-11-19; Browser/Safari wird nicht mehr geprüft).
 
 ## Klassen und Zauber
 

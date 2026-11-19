@@ -1,6 +1,7 @@
 import { RARITIES, TREE, SETS, SET, ACTS, ACT, CRYPT, DESCENT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, STASH_W, STASH_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, HERB_LOC, ALCH } from './data.js';
 import { affixPool, makeItem, itemValue, rollTier, tierOf, affixValue, renameMagic, adj, fixName } from './loot.js';
 import { roll, pick, rand } from './rng.js';
+import { evadeShare } from './combat.js';
 
 const KEY = 'aschenkrone_v1';
 export const SAVE_VERSION = 21;
@@ -267,8 +268,9 @@ export function power(A = stats()) {
   // so gut aus wie im Kampf, weil der eine Vertreter über die Kante sprang. Über die Streuung
   // gemittelt verschwindet die Kante – im Spiel wäscht die Monstervielfalt sie ebenso aus.
   const spread = f => (f(en * 0.72) + f(en) + f(en * 1.28)) / 3;
-  const hit = 1 - spread(e => Math.min(0.5, e / (e + A.dex * 3 + 40)));
-  const myEvade = spread(e => Math.min(0.5 + (A.evadeCap || 0), A.dex / (A.dex + e * 3 + 40) + (A.evade || 0)));   // eigenes Ausweichen inkl. angehobener Grenze
+  // Ausweichen mit Serienbremse (höchstens CFG.evadeStreak in Folge, combat.js): evadeShare statt der rohen Chance
+  const hit = 1 - spread(e => evadeShare(Math.min(0.5, e / (e + A.dex * 3 + 40))));
+  const myEvade = spread(e => evadeShare(Math.min(0.5 + (A.evadeCap || 0), A.dex / (A.dex + e * 3 + 40) + (A.evade || 0))));   // eigenes Ausweichen inkl. angehobener Grenze
   // Ausbluten: keine Krits mehr, dafür blutet jeder Treffer (unten in onHit eingerechnet)
   const crit = A.hemorrhage ? 0 : Math.min(0.6, CFG.critBase + A.lck / (A.lck + 100 + L * 5) + (A.crit || 0));
   const strike = (A.dmg[0] + A.dmg[1]) / 2 * (1 + A[A.main] / CFG.mainDiv);

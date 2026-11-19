@@ -21,7 +21,7 @@ kein force-push, kein anderer Branch.
 | `ENTSCHEIDUNGEN.md` | Wegweiser zum **Warum** in `entscheidungen/*.md` (eine Datei je Bereich). Per `grep -n '^### '` den einen Abschnitt finden, nicht alles lesen. |
 | `tests/karte.sh` | Inhaltsverzeichnis des Codes (Funktionen mit Zeile, Fundstellen gekürzt) – statt ganzer Dateien. |
 | `DESIGN.md` | Entwürfe, u. a. „Die vier Abgrund-Materialien" (geparkt). |
-| `STAND.md` | Beschreibung des Spiels. **Veraltet an einer Stelle:** nennt iPhone SE als Maßstab – das gilt seit dieser Sitzung nicht mehr. |
+| `STAND.md` | Beschreibung des Spiels. |
 | `mockups/*.html` | Vorschläge, die dem Besitzer gezeigt wurden. |
 
 **Der Abschnitt „Fallen" in CLAUDE.md ist der wertvollste Teil.** Jede Zeile dort ist mindestens
@@ -33,7 +33,8 @@ einmal teuer geworden; die Herkunft steht in `entscheidungen/fallen.md`.
 1. ~~Siegchance mit < ohne Tränke~~ **erledigt 2026-11-19**: gekoppelter Zufall, 200 Probekämpfe, „etwa gleich“
    im Rauschen, `bestBelt()` gekoppelt (→ E „Siegchance gekoppelt“ in kampf.md). Am echten iPhone nicht gemessen.
 2. ~~Serienbremse~~ **erledigt 2026-11-19**: max. 2 Ausweicher in Folge; dafür Kutte-3-Teile `venom` 0,35 → 0,30,
-   Baum-Test 600 statt 300 Kämpfe (→ E „Serienbremse beim Ausweichen“). `power()` kennt die Bremse nicht (offen, klein).
+   Baum-Test 600 statt 300 Kämpfe (→ E „Serienbremse beim Ausweichen“). `power()` kennt die Bremse jetzt; **offen:** Bonus
+   „Ausweichen“ (evadep) liegt danach in calib auf St. 10 bei 0,81 (< 0,85) – Vorschlag per 1,5 → ~1,65, wartet auf ihn.
 3. ~~Tiers nach PoE-Art~~ **erledigt 2026-11-19** (Weg 1, Bezug Gegenstandsstufe 60): Stufe aus dem Wert, `tierOf()`;
    bis ~GS 35 zeigt fast alles V (gewollt, ehrlich). Preis zählt weiter den Wurf. → E „Tiers aus dem Wert“ (beute.md).
 4. **Endgame zu kurz** (er: ~3–4 Std. bis Stufe 21, danach 1–2 Std. bis alles durch; Abgrund „viel zu

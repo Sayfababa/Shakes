@@ -6,6 +6,9 @@ import { CFG } from './data.js';
 import { roll, chance, rand } from './rng.js';
 
 const MAX_ROUNDS = 50;
+// Anteil ausgewichener Angriffe auf Dauer bei Ausweichchance p mit Serienbremse (höchstens k in Folge):
+// Kette über die Serienlänge 0..k → (p + p² + … + p^k) / (1 + p + … + p^k). Für power(), damit die Schätzung die Regel kennt.
+export function evadeShare(p, k = CFG.evadeStreak) { let num = 0, t = 1; for (let i = 1; i <= k; i++) { t *= p; num += t; } return num / (1 + num); }
 
 export function fight(A, B) {
   const a = { ...A, cur: Math.min(A.hp, A.cur0 ?? A.hp), side: 'a', turn: 0, buff: 1, shield: 0, ch: [] }, b = { ...B, cur: B.hp, side: 'b', turn: 0, buff: 1, shield: 0, ch: [] };
