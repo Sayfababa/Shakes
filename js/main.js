@@ -265,8 +265,8 @@ const actions = {
   invmode: () => { stashOn = !stashOn; render(); },
   stashput: d => { if (!G.stashPut(d.id)) return note('Im Lager ist kein Platz.'); hideTip(); render(); },
   stashtip: d => { if (!G.stashTake(d.id)) return note('Im Beutel ist kein Platz.'); hideTip(); render(); },
-  sellstash: d => { const it = G.S.stash.find(x => x.id === d.id); if (!it) return;
-    if (precious(it) && sellSure !== it.id) { sellSure = it.id; return showTouchTip(document.querySelector(`[data-id="${d.id}"]`)) ?? render(); }
+  sellstash: d => { const it = (G.S.stash || []).find(x => x.id === d.id); if (!it) return;
+    if (precious(it) && d.sure !== '1') { sellSure = it.id; return showTouchTip({ dataset: { tip: it.id, action: 'stashtip', id: it.id } }); }
     sellSure = null; G.sellStash(d.id); hideTip(); render(); },
   trader: d => { trader = d.t; turnin = null; view = 'traders'; render(); },
   // Vargos Laden hat zwei Türen (Grube und Händler) – „Zurück“ muss dorthin, wo man herkam
@@ -440,7 +440,10 @@ function compareTo(it) {
   const S = G.S; if (Object.values(S.equip).includes(it)) return null;
   return it.slot === 'ring' ? (S.equip.ring1 || S.equip.ring2) : S.equip[it.slot];
 }
-app.addEventListener('contextmenu', e => { const el = e.target.closest('[data-action="equip"]'); if (el) { e.preventDefault(); actions.sell(el.dataset); } });
+app.addEventListener('contextmenu', e => {
+  const el = e.target.closest('[data-action="equip"], [data-action="stashtip"]'); if (!el) return;
+  e.preventDefault(); (el.dataset.action === 'stashtip' ? actions.sellstash : actions.sell)(el.dataset);
+});
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && document.getElementById('nm') && pickCls) actions.create(); });
 
 function findItem(id) {

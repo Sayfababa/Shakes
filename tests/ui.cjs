@@ -260,6 +260,26 @@ let failures = 0;
       const durchsichtig = /rgba\(0,\s*0,\s*0,\s*0\)|transparent/.test(c);
       if (durchsichtig) { failures++; console.log(`FEHLER ${tag}: Seltenheit „${k}" ist im Beutel nicht zu erkennen (${c})`); }
     }
+    // Verkaufen aus dem LAGER heraus (vom Besitzer gemeldet: ging nicht). Geprueft wird der
+    // wertvolle Fall mit zwei Tipps - der gewoehnliche ging schon immer, weil er die Rueckfrage
+    // ueberspringt. `hideTip()` laeuft vor der Aktion und loeschte `sellSure`, deshalb fragte der
+    // zweite Tipp wieder und das Teil blieb liegen. Gemessen wird Gold und Bestand, nicht der Knopf.
+    await p.evaluate(async () => { const G = await import('./js/state.js'); const L = await import('./js/loot.js');
+      const it = L.makeItem(20, { slot: 'helm', minRarity: 3 });
+      G.S.stash = [Object.assign(it, { x: 0, y: 0, stashed: true })]; G.save(); });
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=hero]');
+    const vor = await p.evaluate(async () => { const G = await import('./js/state.js'); return { gold: G.S.gold, n: G.S.stash.length, wert: G.S.stash[0].value }; });
+    await tap('[data-action=invmode]');
+    if (!(await tap('.cellitem'))) { failures++; console.log(`FEHLER ${tag}: Lager-Teil nicht antippbar`); }
+    else {
+      await tap('#tip [data-action=sellstash]');          // erster Tipp: Rueckfrage
+      if (!(await p.$('#tip [data-action=sellstash][data-sure="1"]'))) { failures++; console.log(`FEHLER ${tag}: Lager-Verkauf fragt nicht nach`); }
+      await tap('#tip [data-action=sellstash][data-sure="1"]');   // zweiter Tipp: verkaufen
+      await p.waitForTimeout(200);
+      const nach = await p.evaluate(async () => { const G = await import('./js/state.js'); return { gold: G.S.gold, n: G.S.stash.length }; });
+      if (nach.n !== vor.n - 1) { failures++; console.log(`FEHLER ${tag}: Teil liegt nach dem Verkauf noch im Lager (${nach.n})`); }
+      if (nach.gold !== vor.gold + vor.wert) { failures++; console.log(`FEHLER ${tag}: Lager-Verkauf zahlt nicht (${vor.gold} -> ${nach.gold}, Wert ${vor.wert})`); }
+    }
     await tap('[data-v=crypt]'); if (await tap('[data-action=crypt]')) { await chk('prep'); await tap('[data-action=prepPot]'); await tap('[data-action=bestBelt]'); await chk('prep2'); await tap('[data-action=trig]'); await tap('[data-action=cryptgo]'); await p.waitForTimeout(600); await chk('fightpot');
       if (!(await p.$('.pbelt img'))) { failures++; console.log(`FEHLER ${tag}: Tränke im Kampf nicht sichtbar`); } }
     else { failures++; console.log(`FEHLER ${tag}: Krypta nicht antippbar`); }
