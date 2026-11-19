@@ -25,7 +25,9 @@ Systems dort nachlesen, besonders vor Balance-Zahlen.
 - **Nichts bauen ohne seine Erlaubnis.** Vorher sagen: was genau gebaut wird, was nicht angefasst
   wird, **wie und wie oft getestet** wird (welcher Test, welche Geräte, wie viele Läufe/Kämpfe, ob
   gegengetestet), und was sich nicht beweisen lässt. Dann auf sein „ja" warten.
-- Lesen und Messen ist immer erlaubt – daraus Befund und Vorschlag vorlegen.
+- Lesen und Messen ist immer erlaubt – daraus Befund und Vorschlag vorlegen. Bei einem Fehlerbericht:
+  Ursache suchen, nicht sofort reparieren. Was er knapp meldet, ist fast immer ein echter Fehler,
+  auch wenn er sich nicht gleich nachstellen lässt.
 - Bei großen Änderungen am Spielgefühl erst Vorschlag + Mockup (`mockups/*.html`, Screenshot).
 - Nach jedem größeren Schritt eine kurze Zusammenfassung. Antworten an den Besitzer auf **Deutsch**.
 - Keine neuen KI-Bilder/Sounds, keine bezahlten Dienste ohne Rückfrage. Fehlt ein Bild: **Prompt
@@ -44,16 +46,13 @@ Systems dort nachlesen, besonders vor Balance-Zahlen.
 - **Ein Panel kann Inhalt verschlucken, ohne herauszuragen** (`scrollHeight > clientHeight`) – und
   `nth-of-type`-Regeln blenden still aus. Screenshot ansehen, nicht nur Tests lesen.
 - **Eine Marke ohne CSS-Regel ist unsichtbar** – gerenderte Farbe prüfen, nicht die Klasse.
-- **Ein Prozent-Bonus auf eine kleine Grundzahl ist ein toter Knoten** (Rüstung bei der Zauberin: 3).
 - **Ein Hinweis, der lügt, ist schlimmer als keiner.**
 - **Eine Beschränkung, die stillschweigend überschreibt, ist ein Fehlerbericht in Wartestellung.**
 - **Über zwei Tipps hinweg darf Zustand nur im DOM stehen**, nie in einer Variablen, die `hideTip()`
   löscht – das gilt für die Aktion **und** für das, was gezeichnet wird.
 - **Alles Nachschlagbare ableiten, nie abtippen** – ein handgeschriebener Ort lügt beim ersten Umzug.
-- **Ein neuer Prozent-Bonus muss in die Liste des Eich-Tests**, sonst ist er unbewacht.
-- **Neue Belohnung an eine bestehende Zeile hängen, nicht `L.push()`** (Überstand im Beute-Fenster).
-- **Der Rückweg eines Fensters mit mehreren Türen ist die Ansicht, aus der man kam** – nie gegen
-  eine Namensliste prüfen.
+- **Ein neuer Effekt muss in `power()` und in die Liste des Eich-Tests** (`tests/calib.mjs`, Ziel
+  ~0,85–1,2), sonst ist er unbewacht.
 
 ## Stil-Regeln (verbindlich)
 - **Kein „AI-Look"**: keine Neon-Gradients, kein Glassmorphism, keine runden Pill-Buttons, keine Emojis.
@@ -61,32 +60,18 @@ Systems dort nachlesen, besonders vor Balance-Zahlen.
 - Schrift: `Grenze Gotisch` (Titel), `Alegreya` (Text), `Alegreya SC` (Labels/Buttons). Kein Cinzel.
 - Texturen statt Flächen (`--noise`, `--stonetex`, `--rivets`), Quest-Zettel als Pergament (`.note`).
 - Rahmen: harte Kanten, doppelte Eisen-/Steinrahmen, Innenschatten, Vignette. Max. 2 px Border-Radius.
-- **UI-Kit** `assets/ui/` (SpriteCook „Aschenkrone UI", Kit-ID 5b87162c-1f82-47da-86ed-5ea0f12edab0):
-  panel, panel_s, parchment, btn_iron/btn_red, tab/tab_on, slot, tooltip, track/fill_gold/fill_red,
-  orb_ring/orb_fill, coin, marker, divider – per `border-image` (9-Slice) am Ende von style.css.
-  **Neue Rahmen nur aus diesem Kit, keine neuen CSS-Verläufe.**
+- **Neue Rahmen nur aus dem UI-Kit** `assets/ui/` (9-Slice am Ende von style.css), keine neuen CSS-Verläufe.
 - Loot-Farben (D2): grau=zerbrochen, weiß=gewöhnlich, #6969ff=magisch, #ffff64=selten,
   #c7b377=legendär, #00c400=Set (`--r-*`); Einzigartiges zusätzlich orange (`.uniq-txt`, Zelle `.uq`).
-- Bilder: Items `assets/items/<art>.webp` (Basis `art` + `vars`, höhere Basen mit `minLvl`), Fallback
-  SVG (`js/art.js`), Raster w×h wie Diablo. Monster `assets/monsters/<glyph>.jpg` (`MON_IMG` in ui.js),
-  NPCs `assets/npcs/`, Portraits `assets/portraits/`. Prompts in `assets/reference/`.
-  **Keine generierten Ersatzbilder ohne Absprache.**
-- **Item-Namen** richten sich nach dem Geschlecht des Grundgegenstands (`GENUS` in data.js, `adj()`
-  in loot.js). Neuer Grundgegenstand, der nicht männlich ist → in `GENUS` eintragen (Test prüft). Nie „/r".
+- **Keine generierten Ersatzbilder ohne Absprache.** Pfade und Item-Namen (`GENUS`): `SYSTEME.md`.
 
 ## Architektur
 - Vanilla JS, **ES-Module**, kein Build-Step. Start: `python3 -m http.server` → http://localhost:8000
-- `js/data.js` – reine Daten (Klassen, Monster, Item-Basen, Affixe). Keine Logik.
-- `js/rng.js` – Zufall (seedbar), `pick`, `roll`, `chance`.
-- `js/state.js` – Spielstand, Save/Load (localStorage `aschenkrone_v1`, **Version 21**; unlesbarer
-  Stand wird nach `aschenkrone_v1_bak` gesichert und nie überschrieben), Raster-Inventar, Treue,
-  abgeleitete Werte (`stats()`).
-- `js/loot.js` – Item-Erzeugung (Seltenheit, Affixe, Wert).
-- `js/quests.js` – Questketten aller Questgeber (`GIVERS`), Ziele, Fortschritt, Abgabe.
-- `js/art.js` – SVG-Grafiken. `js/wiki.js` – Verzeichnis (reine Ableitung, DOM-frei).
-- `js/game.js` – Spielzüge ohne DOM + Gefahr-Schätzung. main.js zeigt nur an.
-- `js/combat.js` – reine Kampfsimulation `fight(a, b) -> {winner, log}`. Kein DOM.
-- `js/ui.js` – Rendering (Templates als Strings), Tooltips. `js/main.js` – Navigation, `data-action`.
+- Logik DOM-frei: `data.js` (nur Daten), `rng.js`, `state.js` (Spielstand, `stats()`, `power()`),
+  `loot.js`, `quests.js`, `game.js` (Spielzüge), `combat.js` (`fight(a,b)`), `wiki.js`.
+  Anzeige: `ui.js` (Templates, Tooltips), `main.js` (Navigation, `data-action`), `art.js` (SVG).
+- Save: localStorage `aschenkrone_v1`, **Version 21**; Unlesbares → `aschenkrone_v1_bak`, nie überschrieben.
+- Wo was steht: `sh tests/karte.sh <datei>`.
 
 ## Konventionen
 - Logik-Module sind DOM-frei und rein → mit `node` testbar.
@@ -94,7 +79,6 @@ Systems dort nachlesen, besonders vor Balance-Zahlen.
 - Neue Features: erst Daten, dann Logik, dann UI. Kleine Commits.
 - Save-Format ändern ⇒ `SAVE_VERSION` erhöhen + Migration.
 - Neue Boni als Effekt-Schlüssel (`EFFECT_NAMES`) → `effects()` summiert Klasse+Talente+Trophäen.
-- Neue Effekte in `power()` einrechnen und eichen (`tests/calib.mjs`, Ziel ~0,85–1,2).
 - Neue Treffer-Wirkungen in `finish()`/`onHit()` in combat.js → wirken auf Hieb **und** Zauber.
 
 ## Mobile / PWA
@@ -105,26 +89,17 @@ Systems dort nachlesen, besonders vor Balance-Zahlen.
 - **Kein Scrollen**: HUD oben, `<main>` (overflow hidden), Tabs unten. `#app` ist `position: fixed;
   inset: 0` – **nicht** 100dvh/100vh; als App setzt `fitApp()` die Höhe auf `screen.height`.
   Ausnahmen, die scrollen dürfen: Kampflog, Werte-Ansicht (`.vscroll`), `.wlist`.
-- **Große Bildschirme** (≥ 760 px Höhe): eigener `@media (min-height: 760px)`-Block – größere Schrift
-  (`html` 2,1vh), Knöpfe ≥ 42 px, Ware 3×2, große Zauber-/Crafting-Knöpfe. **Dort wird es eng, nicht auf dem kleinen Gerät** – beim Hinzufügen dort nachmessen.
+- **Große Bildschirme** (≥ 760 px Höhe): eigener Block – **dort wird es eng**, beim Hinzufügen nachmessen.
 - Schrift nie unter 11 px: kleine Größen als `max(11px, …rem)`. Passt ein Wort nicht, kürzen
   (`short5()`), nicht verkleinern.
 - `manifest.json` + `sw.js` (network-first). **Alle Pfade relativ** (Pages-Unterordner).
-- Touch: Item-Tap öffnet Detail-Popup (`showTouchTip` in main.js), kein Hover/Rechtsklick voraussetzen.
-  Dort auch **„Schmieden"** (`forgeitem`): öffnet die Schmiede direkt mit dem Item (Umschmieden,
-  sonst Runen für angelegte Teile). In der Umschmieden-Liste sind angelegte Teile grün umrandet
-  (`.fslot.eq`).
+- Touch: kein Hover/Rechtsklick voraussetzen (Item-Tap → `showTouchTip`).
 - **Eigene Fenster statt Systemdialoge**: `ask(text, knopf, fn, rot)`, `note(text)`. Nie `alert`/`confirm`.
 
 ## Rendering-Regel (gegen Flackern)
 - Kein Voll-Render im Sekundentakt: Countdowns als `data-until="<ts>"` → Ticker ändert nur den Text.
 - Kampf-Animation über `fightStep()` (DOM-Patch), Voll-Render nur am Ende.
 - Service Worker: Bilder stale-while-revalidate, Code network-first.
-
-## Progression (siehe DESIGN.md)
-- Attribute nur über Punkte (5/Stufe), Talente 1/Stufe (`TREE` mit Brett, sonst `TALENTS`),
-  Läuterung kostet Gold.
-- Balance-Änderungen mit Simulation prüfen: viele Builds × viele Kämpfe, **nie ein Wurf**.
 
 ## Systeme
 Die Blöcke je System (wo der Code liegt, harte Grenzen) stehen in **`SYSTEME.md`** – sie sind Regel.
@@ -145,18 +120,14 @@ Die Blöcke je System (wo der Code liegt, harte Grenzen) stehen in **`SYSTEME.md
 - **Fenster mit mehreren Türen merken sich die Tür**: `pitBack`, `titleBack`, `alchBack`.
 
 ## UI-Regeln
-- Held: Name (und Titel) oben in der Kopfzeile. **Beutel und Lager sind 10×6.** `.invp` braucht
-  `!important` beim Padding, sonst gewinnt die spätere `.panel`-Regel. → E
 - **Jede Seltenheit muss man im Beutel sehen, ohne etwas anzutippen.** `rarCls(it)` ist **ein**
   Helfer für **alle** Felder – Beutel, Lager, Laden, Körper, Schmiede, Fusion, Vargo, Abgrund-Sack. → E
 - Tab-Punkte nur für echte Handlungen. **Rot** = abholbar, **grün** (`readyDots()`) = Wartezeit
   abgelaufen; verschwindet beim Hinschauen. Rot geht vor Grün.
 - Treffer-Feedback: Schadenszahl + kurzer Rand-Schatten/Wackeln, **Portrait nie einfärben**.
 - Gesperrtes klein halten (Orte als Zeile, Krypten kompakt).
-- Kein Tagebuch in der UI (`S.journal` wird nur gespeichert).
 
 ## Design-Leitlinien (GameGene-Joseki, angewendet)
 - **Kein unfairer Verlust**: Gefahr vor jedem Kampf anzeigen, Boss-Besonderheit vorher nennen.
 - **Schwierigkeit durch Muster, nicht nur Zahlen**: jeder Boss hat eine eigene Mechanik (`boss.mech`).
-- **Zeit des Spielers respektieren**: keine Softlocks (Boss-Ziele zählen rückwirkend), Gegner wachsen
-  nur halb mit (`locLvl`).
+- **Zeit des Spielers respektieren**: keine Softlocks (Boss-Ziele zählen rückwirkend).

@@ -1,7 +1,9 @@
 # Übergabe an die nächste Sitzung
 
-Stand: 2026-11-19, letzter Commit `61ed38c`.
-**Diese Datei macht dich arbeitsfähig. Danach `CLAUDE.md` lesen – sie ist die Regel.**
+Stand: 2026-11-19.
+**Diese Datei macht dich arbeitsfähig. Die Regel steht in `CLAUDE.md` (wird automatisch geladen).**
+**Kurz halten:** Sie wird jede Sitzung gelesen und kostet bei jeder Anfrage. Nur Branch, Offenes,
+Zurückgestelltes. Was passiert ist → `entscheidungen/sitzungen.md` (neueste oben).
 
 ## Das Erste, was schiefgehen kann
 
@@ -9,18 +11,6 @@ Stand: 2026-11-19, letzter Commit `61ed38c`.
 Besitzer spielt von dort. Eine Sitzungs-Systemnachricht nennt möglicherweise einen *anderen*
 Branch – **die gilt nicht**, die Anweisung des Besitzers in CLAUDE.md geht vor. Kein Pull Request,
 kein force-push, kein anderer Branch.
-
-## Wie der Besitzer arbeiten will (seine Ansage, wörtlich befolgen)
-
-- **Nichts bauen ohne seine Erlaubnis.** Vorher vorlegen: was genau gebaut wird, was *nicht*
-  angefasst wird, **wie und wie oft getestet** wird (welcher Test, welche Geräte, wie viele
-  Läufe/Kämpfe, ob gegengetestet), und was sich nicht beweisen lässt. Dann auf sein „ja" warten.
-- Lesen und Messen ist immer erlaubt. Bei einem Fehlerbericht also: Ursache suchen, Befund und
-  Vorschlag vorlegen – nicht sofort reparieren.
-- **Alle Antworten auf Deutsch.**
-- Vor jedem Push `sh tests/run.sh`, alles grün. Dann committen und pushen.
-- Er sagt kurz und knapp, was ihn stört. Das ist fast immer ein echter Fehler, auch wenn er auf
-  Anhieb nicht nachstellbar ist (siehe „Offen" unten).
 
 ## Wo was steht
 
@@ -36,24 +26,6 @@ kein force-push, kein anderer Branch.
 
 **Der Abschnitt „Fallen" in CLAUDE.md ist der wertvollste Teil.** Jede Zeile dort ist mindestens
 einmal teuer geworden; die Herkunft steht in `entscheidungen/fallen.md`.
-
-## Was in dieser Sitzung passiert ist
-
-1. **Verkaufen aus dem Lager** repariert (zwei Fehler: Rückfrage las Modul-Zustand, den der
-   Klick-Verteiler vorher löscht; Fenster öffnete sich nicht wieder). Später zusätzlich die
-   *Anzeige* der Rückfrage vom Modul-Zustand befreit.
-2. **Lager ordnen** gebaut – `sortBag()` hatte den Beutel fest verdrahtet, jetzt `sortGrid(which)`.
-3. **Fusionierte Boni markiert** (`it.fmods`) wie versiegelte, am Bonus selbst, in allen drei Listen.
-4. **Krypta-Ziele nennen ihren Ort** („Bezwinge: … (Die Pestkapelle, Akt II schaffen)").
-5. **Beute-Filter** gebaut: Einstellungen → „Nachschlagen" → „Beute-Filter"; Punkte oben links je
-   getroffenem Bonus, an allen Feldern außer dem Körper.
-6. **iPhone SE aus allen Browser-Tests entfernt** (Ansage: „erst ab iPhone 13"). An seine Stelle
-   trat `Browser 390x664` – iPhone 13 im Safari. **Die Höhe nicht auch noch streichen**, sonst
-   läuft die Browser-Ansicht über, ohne dass ein Test piept.
-7. **CLAUDE.md aufgeteilt** (93 kB → 21 kB) nach ENTSCHEIDUNGEN.md.
-8. **Kontingent sparen** (Ansage: Sitzungen kosteten bis 5 % der Woche): CLAUDE.md 22 → 12 kB
-   (Systeme nach `SYSTEME.md`), ENTSCHEIDUNGEN.md in `entscheidungen/` aufgeteilt (wortgleich,
-   per Zeilenvergleich geprüft), `tests/karte.sh`, `sh tests/run.sh <teil>` für Einzeltests.
 
 ## Offen – wartet auf den Besitzer, nichts tun ohne sein Wort
 
@@ -88,15 +60,3 @@ einmal teuer geworden; die Herkunft steht in `entscheidungen/fallen.md`.
   bräuchten je einen neuen Kampf-Schlüssel. Details in `entscheidungen/talente.md`.
 - **„Zurück" von der Schmiede-Auswertung** führt immer zu Halvar.
 - **Beutesack-Raster + sicheres Fach** im Abgrund.
-
-## Drei Dinge, die ich in dieser Sitzung falsch gemacht habe
-
-Damit sie sich nicht wiederholen:
-
-1. **Zweimal „grün" gemeldet, was nicht grün war** – einmal, weil zwei `run.sh` gleichzeitig liefen
-   und einer dem anderen den Testserver abräumte; einmal, weil mein eigener neuer Test bei einem
-   magischen Teil mit nur einem Bonus auf ein Siegel prüfte, das es nicht gab. **Immer nur einen
-   Testlauf gleichzeitig, und das Ergebnis lesen, nicht den Exit-Code raten.**
-2. **Dreimal gebaut, ohne vorher zu sagen, was kommt** – daraufhin kam seine Regel oben.
-3. **Zweimal hat erst ein Screenshot gefunden, was der Test übersah** (ein Panel verschluckte seine
-   Knöpfe, ohne herauszuragen). **Bei UI-Arbeit hinsehen, nicht nur messen.**

@@ -144,3 +144,55 @@ eines Systems seinen Block hier lesen** (`grep -n '^\*\*' SYSTEME.md` zeigt die 
 - `tests/personas.mjs [tage]` – Optimist/Realist/Pessimist, Auswertung in BOT-REVIEW.md.
 - Browser-Tests laufen mit `deviceScaleFactor: 1` und allen Geräten gleichzeitig.
 - Neue Features: Logik in game.js/state.js (DOM-frei), dann Test ergänzen.
+
+## Einzelregeln (aus CLAUDE.md hierher verschoben, gelten weiter)
+
+**Fallen, die an einem System hängen**
+- **Ein Prozent-Bonus auf eine kleine Grundzahl ist ein toter Knoten** (Rüstung bei der Zauberin: 3).
+- **Neue Belohnung an eine bestehende Zeile hängen, nicht `L.push()`** (Überstand im Beute-Fenster).
+- **Der Rückweg eines Fensters mit mehreren Türen ist die Ansicht, aus der man kam** – nie gegen
+  eine Namensliste prüfen.
+
+**Stil im Einzelnen**
+- **UI-Kit** `assets/ui/` (SpriteCook „Aschenkrone UI", Kit-ID 5b87162c-1f82-47da-86ed-5ea0f12edab0):
+  panel, panel_s, parchment, btn_iron/btn_red, tab/tab_on, slot, tooltip, track/fill_gold/fill_red,
+  orb_ring/orb_fill, coin, marker, divider – per `border-image` (9-Slice) am Ende von style.css.
+  **Neue Rahmen nur aus diesem Kit, keine neuen CSS-Verläufe.**
+- Bilder: Items `assets/items/<art>.webp` (Basis `art` + `vars`, höhere Basen mit `minLvl`), Fallback
+  SVG (`js/art.js`), Raster w×h wie Diablo. Monster `assets/monsters/<glyph>.jpg` (`MON_IMG` in ui.js),
+  NPCs `assets/npcs/`, Portraits `assets/portraits/`. Prompts in `assets/reference/`.
+  **Keine generierten Ersatzbilder ohne Absprache.**
+- **Item-Namen** richten sich nach dem Geschlecht des Grundgegenstands (`GENUS` in data.js, `adj()`
+  in loot.js). Neuer Grundgegenstand, der nicht männlich ist → in `GENUS` eintragen (Test prüft). Nie „/r".
+
+**Architektur im Einzelnen**
+- Vanilla JS, **ES-Module**, kein Build-Step. Start: `python3 -m http.server` → http://localhost:8000
+- `js/data.js` – reine Daten (Klassen, Monster, Item-Basen, Affixe). Keine Logik.
+- `js/rng.js` – Zufall (seedbar), `pick`, `roll`, `chance`.
+- `js/state.js` – Spielstand, Save/Load (localStorage `aschenkrone_v1`, **Version 21**; unlesbarer
+  Stand wird nach `aschenkrone_v1_bak` gesichert und nie überschrieben), Raster-Inventar, Treue,
+  abgeleitete Werte (`stats()`).
+- `js/loot.js` – Item-Erzeugung (Seltenheit, Affixe, Wert).
+- `js/quests.js` – Questketten aller Questgeber (`GIVERS`), Ziele, Fortschritt, Abgabe.
+- `js/art.js` – SVG-Grafiken. `js/wiki.js` – Verzeichnis (reine Ableitung, DOM-frei).
+- `js/game.js` – Spielzüge ohne DOM + Gefahr-Schätzung. main.js zeigt nur an.
+- `js/combat.js` – reine Kampfsimulation `fight(a, b) -> {winner, log}`. Kein DOM.
+- `js/ui.js` – Rendering (Templates als Strings), Tooltips. `js/main.js` – Navigation, `data-action`.
+
+**Handy im Einzelnen**
+- **Große Bildschirme** (≥ 760 px Höhe): eigener `@media (min-height: 760px)`-Block – größere Schrift
+  (`html` 2,1vh), Knöpfe ≥ 42 px, Ware 3×2, große Zauber-/Crafting-Knöpfe. **Dort wird es eng, nicht auf dem kleinen Gerät** – beim Hinzufügen dort nachmessen.
+- Touch: Item-Tap öffnet Detail-Popup (`showTouchTip` in main.js), kein Hover/Rechtsklick voraussetzen.
+  Dort auch **„Schmieden"** (`forgeitem`): öffnet die Schmiede direkt mit dem Item (Umschmieden,
+  sonst Runen für angelegte Teile). In der Umschmieden-Liste sind angelegte Teile grün umrandet
+  (`.fslot.eq`).
+
+**Progression**
+- Attribute nur über Punkte (5/Stufe), Talente 1/Stufe (`TREE` mit Brett, sonst `TALENTS`),
+  Läuterung kostet Gold.
+- Gegner wachsen nur halb mit (`locLvl`).
+
+**Oberfläche im Einzelnen**
+- Held: Name (und Titel) oben in der Kopfzeile. **Beutel und Lager sind 10×6.** `.invp` braucht
+  `!important` beim Padding, sonst gewinnt die spätere `.panel`-Regel. → E
+- Kein Tagebuch in der UI (`S.journal` wird nur gespeichert).

@@ -27,6 +27,7 @@ Abschnitt, um den es geht:
 | `inhalte.md` | Akte, Krypten, Grube, Abstieg, Expedition, Umherziehen, Tränke, Steckbriefe, Omen, Glut |
 | `oberflaeche.md` | Fenster, Verzeichnis, Hinweise, Vorbereitung, Texte, Bilder, Tutorial, Einstellungen, Raster |
 | `tests.md` | Was die Messwerkzeuge messen und wo sie getäuscht haben |
+| `sitzungen.md` | Was in früheren Sitzungen passiert ist und schiefging (aus der Übergabe) |
 | `fallen.md` | Welche Falle aus welcher Fehlergeschichte stammt |
 | `archiv.md` | Die alte CLAUDE.md im Wortlaut – Archiv, keine Regel |
 
