@@ -3,6 +3,8 @@
 Düsteres Browser-RPG (Aufträge, Auto-Kampf, Loot, Händler), Optik Diablo 1/2 – dunkel, ernst,
 handgemalt. Sprache im Spiel: **Deutsch**.
 
+**Neue Sitzung? Zuerst `UEBERGABE.md` lesen** – Branch, offene Fragen, Stand.
+
 **Diese Datei sagt, was gilt. Das *Warum* steht in `ENTSCHEIDUNGEN.md`** – Messergebnisse,
 verworfene Entwürfe, Fehlergeschichten. **`→ E`** heißt: dort steht ein Abschnitt gleichen Namens.
 Vor dem Anfassen eines Systems dort nachlesen, besonders vor Balance-Zahlen.
