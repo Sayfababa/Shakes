@@ -140,3 +140,37 @@ Die Bilder sind so gemalt – ein Gesicht im Stein *ist* eine gefangene Seele, e
 
 **Vorgeschlagene Reihenfolge, wenn es drankommt:** Runenfassung (klein, messbar, baut das Geruest Abgrund-Material → Schmiede-Eingriff) → Glutstein (eine Zeile Logik, aber die Zahl muss gemessen werden) → Seelenstein (meiste Arbeit: Verknuepfung Boss → Seele) → Verderbtes Blut (zuletzt, verdient eine Mockup-Runde).
 
+
+## Boni-Umbau & endloser Abgrund (Vorschlag 2026-11-21, nichts gebaut, wartet auf Entscheidungen)
+
+**Befund (gemessen am Code, Spiel des Besitzers: Zauberin Stufe 22 schlägt alles mit einem Treffer):**
+- Jeder Bonus wächst linear mit der Gegenstandsstufe, auch die %-Boni (`pctBase + iLvl × pctPerLvl`). Krypta Glocke
+  Stufe 10 gibt Beute der Stufe 59: ein legendäres Teil mit Krit-Chance I hat ~57 %, Zaubertempo ~90 %. Die Deckel
+  erreicht man schon mit Ausrüstung, danach lohnen nur noch Konstitution + Schaden.
+- Hauptattribute und Schaden passen auf fast jeden Platz; Abwehr ist nur Leben/Rüstung. Ohne Schadensarten gibt
+  es keine Resistenzen und damit keinen Grund, Platz auf Abwehr zu „verschwenden“.
+- Beutestufe läuft der Gefahr davon (`cryptLvl` = Akt-top + 2 + Stufe × 3), Abgrund wächst nur mit Heldenstufe.
+
+**Vorbilder:** D2 (feste Affix-Bereiche, iLvl schaltet nur frei; Hölle −100 % Resis zwingt Affixe auf Resis),
+PoE (3 Präfix + 3 Suffix, eine Mod je Gruppe, feste Tiers je iLvl, Resi-Deckel 75 % mit Akt-Malus; Karten +
+Skarabäen als endloses, selbst eingestelltes Risiko), PoE2 (weniger Affixe, Einzigartige nur über seltene
+Währung veränderbar), D4 Season 4 „Loot Reborn“ (Affixe auf 3 gekürzt, Unsinn gestrichen; Aspekte aus Legendären
+auf andere Teile übertragen; die Grube als endlose Stufenleiter; Resi-Malus je Qual-Stufe).
+
+**Vorschlag in vier Stufen:**
+1. **Feste Tiers (Weg 2 aus UEBERGABE):** jeder Bonus hat je Tier einen festen Wertebereich, die Gegenstandsstufe
+   schaltet nur höhere Tiers frei. %-Boni klein und flach (Richtwert Krit-Chance I = 5–6 % je Teil).
+   **Präfix/Suffix:** Angriff = Präfix, Abwehr/Nutzen = Suffix; magisch 1+1, selten 2+2, legendär 3+2.
+   **Strengere Platz-Pools:** Schaden nur auf Waffe/Handschuhe/Schmuck, Hauptattribut nicht überall.
+2. **Drei Schadensarten + Resistenzen:** Körper, Feuer, Gift (Frost optional als vierte). Zauber und Gegner
+   bekommen eine Art; Resi-Deckel 75 %. Früher abgelehnt wegen „6 Elemente = zu viel Text“ → darum nur 3.
+3. **Abgrund endlos** (Tiefe ohne Deckel, Gegner nach Tiefe statt Heldenstufe, Resi-Malus je 10 Tiefen) mit
+   **Siegeln wie Skarabäen:** vor dem Abstieg bis zu 3 Siegel einlegen (mehr Gefahr ↔ mehr/gezieltere Beute).
+   Die vier Abgrund-Materialien könnten genau diese Siegel sein.
+4. **Sehr seltenes Abgrund-Teil „Aschenkern“ (Arbeitsname):** zieht **einen** Bonus aus einem Einzigartigen
+   (das zerfällt) und fusioniert ihn auf ein nicht-einzigartiges Teil (wie D4-Aspekte); höchstens einer je Teil.
+
+**Reihenfolge:** 1 zuerst (beendet das One-Shotten), dann 2, dann 3+4 zusammen. Jede Stufe: Kalibrierung
+(`tests/calib.mjs`, `tree.mjs`, `uniques.mjs`), Bots vorher/nachher.
+**Offen beim Besitzer:** alte Teile umrechnen (werden schwächer) oder Neustart? 3 oder 4 Schadensarten?
+Was heißt „mehr Würfel“ (mehr Zufall beim Fund, oder mehr Würfel-Werkzeuge in der Schmiede)?
