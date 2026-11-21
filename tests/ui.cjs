@@ -43,7 +43,9 @@ const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height:
     const tap = async s => { const el = await p.$(s); if (!el) return false;
       try { await el.tap({ timeout: 3000 }); return true; } catch { console.log(`Hinweis ${tag}: nicht tippbar: ${s}`); return false; } };
     await p.goto('http://localhost:8765/'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(500);
-    await tap('[data-c="witch"]'); await chk('create'); await p.fill('#nm', 'Test'); await tap('[data-action=create]'); await chk('tut1');
+    // Welle 1a: nur drei Klassen wählbar (PLAYABLE) – Paladin, Jägerin, Hexe stehen nicht zur Wahl
+    { const cls = await p.$$eval('.classes .cls', l => l.map(e => e.dataset.c)); if (cls.join() !== 'sorceress,assassin,barbarian') { failures++; console.log('FEHLER Klassenwahl: ' + cls.join()); } }
+    await tap('[data-c="sorceress"]'); await chk('create'); await p.fill('#nm', 'Test'); await tap('[data-action=create]'); await chk('tut1');
     await tap('[data-t=kaspar]'); await chk('kaspar');
     for (let i = 0; i < 6; i++) { await tap('[data-v=trips]'); if (!i) await chk('acts');
       if (!(await tap('.act[data-action=act]'))) { failures++; console.log(`FEHLER ${tag}: Akt nicht antippbar`); break; } if (!i) await chk('act');

@@ -4,7 +4,7 @@
 globalThis.localStorage = { _d: {}, getItem(k) { return this._d[k] ?? null; }, setItem(k, v) { this._d[k] = String(v); }, removeItem(k) { delete this._d[k]; } };
 let seed = 0xac75; Math.random = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 const D = await import('../js/data.js'), G = await import('../js/state.js'), Game = await import('../js/game.js'), { makeItem } = await import('../js/loot.js');
-const only = process.argv[2] && process.argv[2] !== 'all' ? [process.argv[2]] : Object.keys(D.CLASSES), N = +process.argv[3] || 6, CHECK = process.argv.includes('--check');
+const only = process.argv[2] && process.argv[2] !== 'all' ? [process.argv[2]] : D.PLAYABLE, N = +process.argv[3] || 6, CHECK = process.argv.includes('--check');
 function spend() { const S = G.S, main = D.CLASSES[S.cls].main; while (S.points > 0) { const A = S.attrs, k = A.con < A[main] * 0.55 ? 'con' : A.lck < A[main] * 0.15 ? 'lck' : main; S.attrs[k]++; S.points--; } }
 // Händler: alle 3 Stufen magische Ausrüstung der eigenen Stufe (wie ein Spieler, der Gold ausgibt)
 let shopAt = 0;

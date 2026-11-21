@@ -7,16 +7,20 @@ export const CLASSES = {
   sorceress: { name: 'Zauberin', main: 'int', portrait: 'sorceress', hp: 4.6, desc: 'Arkanes Feuer. Ignoriert Rüstung zur Hälfte.', weapon: 'staff', passive: { pen: 0.5 } },
   witch:     { name: 'Grabhexe', main: 'int', portrait: 'witch', hp: 4.6, desc: 'Totenmagie. Entzieht 20% des Schadens als Leben.', weapon: 'wand', passive: { leech: 0.2 } },
 };
+// Welle 1a (Besitzer 2026-11-21): nur diese drei sind wählbar. Paladin, Jägerin, Hexe bleiben im Code und kommen später wieder.
+export const PLAYABLE = ['sorceress', 'assassin', 'barbarian'];
 
 export const ATTRS = { str: 'Stärke', dex: 'Geschick', int: 'Intelligenz', con: 'Konstitution', lck: 'Glück' };
 
+// sides = [Präfixe, Suffixe] (Welle 1a „Boni-Umbau“): Angriff = Präfix, Abwehr/Nutzen = Suffix. Fehlt auf einem Platz
+// eine Seite (Stiefel haben keine Angriffs-Boni), rücken die Plätze auf die andere Seite – das Teil bleibt gleich voll.
 export const RARITIES = [
-  { id: 'broken',    name: 'Zerbrochen', w: 14, affixes: 0, mult: 0.6 },
-  { id: 'normal',    name: 'Gewöhnlich', w: 46, affixes: 0, mult: 1 },
-  { id: 'magic',     name: 'Magisch',    w: 28, affixes: [1, 2], mult: 1.15 },
-  { id: 'rare',      name: 'Selten',     w: 10, affixes: [3, 4], mult: 1.3 },
-  { id: 'legendary', name: 'Legendär',   w: 2,  affixes: [4, 5], mult: 1.6 },
-  { id: 'set',       name: 'Set',        w: 0,  affixes: 0, mult: 1.45 },   // fällt nie zufällig – nur bei Krypta-Bossen (SETS)
+  { id: 'broken',    name: 'Zerbrochen', w: 14, mult: 0.6 },
+  { id: 'normal',    name: 'Gewöhnlich', w: 46, mult: 1 },
+  { id: 'magic',     name: 'Magisch',    w: 28, sides: [1, 1], mult: 1.15 },
+  { id: 'rare',      name: 'Selten',     w: 10, sides: [2, 2], mult: 1.3 },
+  { id: 'legendary', name: 'Legendär',   w: 2,  sides: [3, 2], mult: 1.6 },
+  { id: 'set',       name: 'Set',        w: 0,  mult: 1.45 },   // fällt nie zufällig – nur bei Krypta-Bossen (SETS)
 ];
 
 export const SLOTS = { helm: 'Helm', chest: 'Brust', gloves: 'Handschuhe', boots: 'Stiefel', belt: 'Gürtel',
@@ -54,32 +58,38 @@ export const INV_W = 10, INV_H = 6;
 // Das Lager teilt sich den Platz mit dem Beutel (ein Knopf schaltet um), also dasselbe Raster.
 export const STASH_W = 10, STASH_H = 6;
 
-// Affixe: stat, Wert pro Itemstufe, Präfix/Suffix-Namen
+// Affixe (Welle 1a „Boni-Umbau“): feste Wertebereiche je Stufe (TIERS.flat/pct × per), die Gegenstandsstufe schaltet nur
+// höhere Stufen frei. side: 'pre' = Angriff, 'suf' = Abwehr/Nutzen. group: höchstens ein Bonus je Gruppe und Teil (wie PoE).
+// w: Würfelgewicht (Standard 1). slots: wo der Bonus vorkommt – Schaden nur auf Waffe/Handschuhen/Schmuck, Hauptattribut nicht überall, Rüstungsteile
+// tragen Leben/Rüstung. Platz für Resistenzen (spätere Welle) ist in den Suffix-Listen der Rüstungsteile vorgesehen.
+// Prozent-Boni: Stufe I höchstens 15–20 % je Teil (Krit-Chance unten). Ausnahmen mit eigener Einheit (Krit-Schaden,
+// Dornen, Zauber-Boni wirken nur auf einen Teil des Schadens) sind gegen das Hauptattribut geeicht (tests/calib.mjs).
+const ATTR_SLOTS = ['weapon', 'helm', 'chest', 'belt', 'offhand', 'amulet', 'ring'];   // nicht Handschuhe, Stiefel
+const HIT_SLOTS = ['weapon', 'gloves', 'ring', 'amulet'];                               // Schaden: Waffe, Handschuhe, Schmuck
+const ARMOR_SLOTS = ['helm', 'chest', 'gloves', 'boots', 'belt', 'offhand'];
 export const AFFIXES = [
-  { stat: 'str', per: 1, pre: 'Starker', suf: 'des Bären' },
-  { stat: 'dex', per: 1, pre: 'Flinker', suf: 'des Fuchses' },
-  { stat: 'int', per: 1, pre: 'Kundiger', suf: 'des Gelehrten' },
-  { stat: 'con', per: 1, pre: 'Zäher', suf: 'des Ochsen' },
-  { stat: 'lck', per: 1.5, pre: 'Glücklicher', suf: 'der Fortuna' },
-  { stat: 'armor', per: 8, pre: 'Gehärteter', suf: 'der Wacht' },
-  { stat: 'dmg', per: 0.6, pre: 'Grausamer', suf: 'des Schlachters' },
-  { stat: 'haste', per: 2, pre: 'Rascher', suf: 'der Beschwörung', pct: 1, label: 'Zaubertempo' },   // Zaubertempo in %: Zauber laden schneller
-  // Kampf-Boni in % (nur auf passenden Teilen, `slots`). Werte sind gegen das Hauptattribut geeicht (tests/calib.mjs):
-  // ein Bonus der Stufe III bringt etwa so viel Kampfkraft wie ein Hauptattribut-Bonus der Stufe III.
-  { stat: 'critc', per: 1.0, pre: 'Scharfer', suf: 'der Schärfe', pct: 1, label: 'Krit-Chance', slots: ['weapon', 'gloves', 'ring', 'amulet'] },
-  { stat: 'critd', per: 8.0, pre: 'Brutaler', suf: 'des Gemetzels', pct: 1, label: 'Krit-Schaden', slots: ['weapon', 'gloves', 'amulet'] },
-  { stat: 'dmgp', per: 0.95, pre: 'Wütender', suf: 'des Zorns', pct: 1, label: 'Schaden', slots: ['weapon', 'gloves', 'ring'] },
-  { stat: 'spellp', per: 1.2, pre: 'Arkaner', suf: 'der Zauberei', pct: 1, label: 'Zauberkraft', slots: ['weapon', 'offhand', 'helm', 'amulet'] },
-  { stat: 'penp', per: 1.8, pre: 'Bohrender', suf: 'des Durchbohrens', pct: 1, label: 'Rüstung ignorieren', slots: ['weapon'] },
-  { stat: 'leechp', per: 0.65, pre: 'Saugender', suf: 'des Egels', pct: 1, label: 'Lebensraub', slots: ['weapon', 'ring'] },
-  { stat: 'lifep', per: 1.9, pre: 'Lebendiger', suf: 'des Lebens', pct: 1, label: 'Leben', slots: ['chest', 'helm', 'belt'] },
-  { stat: 'blockp', per: 1.6, pre: 'Wehrhafter', suf: 'des Walls', pct: 1, label: 'Blocken', slots: ['offhand'] },
-  { stat: 'evadep', per: 1.5, pre: 'Schemenhafter', suf: 'des Nebels', pct: 1, label: 'Ausweichen', slots: ['boots', 'gloves'] },
-  { stat: 'thornsp', per: 4.3, pre: 'Dorniger', suf: 'der Dornen', pct: 1, label: 'Dornen', slots: ['chest', 'offhand'] },
+  { stat: 'str', per: 1, pre: 'Starker', suf: 'des Bären', side: 'pre', group: 'attr', slots: ATTR_SLOTS },
+  { stat: 'dex', per: 1, pre: 'Flinker', suf: 'des Fuchses', side: 'pre', group: 'attr', slots: ATTR_SLOTS },
+  { stat: 'int', per: 1, pre: 'Kundiger', suf: 'des Gelehrten', side: 'pre', group: 'attr', slots: ATTR_SLOTS },
+  { stat: 'dmg', per: 0.6, pre: 'Grausamer', suf: 'des Schlachters', side: 'pre', slots: HIT_SLOTS },
+  { stat: 'haste', per: 1.33, pre: 'Rascher', suf: 'der Beschwörung', pct: 1, label: 'Zaubertempo', side: 'pre', slots: ['weapon', 'gloves', 'offhand', 'amulet'] },
+  { stat: 'critc', per: 0.8, pre: 'Scharfer', suf: 'der Schärfe', pct: 1, label: 'Krit-Chance', side: 'pre', slots: HIT_SLOTS },
+  { stat: 'critd', per: 6, pre: 'Brutaler', suf: 'des Gemetzels', pct: 1, label: 'Krit-Schaden', side: 'pre', slots: ['weapon', 'gloves', 'amulet'] },
+  { stat: 'dmgp', per: 0.9, pre: 'Wütender', suf: 'des Zorns', pct: 1, label: 'Schaden', side: 'pre', slots: HIT_SLOTS },
+  { stat: 'spellp', per: 0.95, pre: 'Arkaner', suf: 'der Zauberei', pct: 1, label: 'Zauberkraft', side: 'pre', slots: HIT_SLOTS },
+  { stat: 'penp', per: 1.33, pre: 'Bohrender', suf: 'des Durchbohrens', pct: 1, label: 'Rüstung ignorieren', side: 'pre', slots: ['weapon'] },
+  { stat: 'con', per: 1, pre: 'Zäher', suf: 'des Ochsen', side: 'suf', w: 0.6, slots: ['helm', 'chest', 'boots', 'belt', 'amulet', 'ring'] },   // w: seltener gewürfelt – die Suffix-Listen sind klein, sonst trüge fast jedes Teil Konstitution
+  { stat: 'lck', per: 1.5, pre: 'Glücklicher', suf: 'der Fortuna', side: 'suf' },
+  { stat: 'armor', per: 8, pre: 'Gehärteter', suf: 'der Wacht', side: 'suf', slots: ARMOR_SLOTS },
+  { stat: 'lifep', per: 1.33, pre: 'Lebendiger', suf: 'des Lebens', pct: 1, label: 'Leben', side: 'suf', slots: ['helm', 'chest', 'boots', 'belt'] },
+  { stat: 'leechp', per: 0.25, pre: 'Saugender', suf: 'des Egels', pct: 1, label: 'Lebensraub', side: 'suf', slots: ['weapon', 'ring'] },
+  { stat: 'blockp', per: 1.33, pre: 'Wehrhafter', suf: 'des Walls', pct: 1, label: 'Blocken', side: 'suf', slots: ['offhand'] },
+  { stat: 'evadep', per: 1.33, pre: 'Schemenhafter', suf: 'des Nebels', pct: 1, label: 'Ausweichen', side: 'suf', slots: ['boots', 'gloves'] },
+  { stat: 'thornsp', per: 5, pre: 'Dorniger', suf: 'der Dornen', pct: 1, label: 'Dornen', side: 'suf', slots: ['chest', 'offhand'] },
 ];
 // Zauber-Boni (nur auf Waffen der Klasse, die den Zauber hat): "+N % Feuerball" stärkt Schaden/Heilung/Schild/Wirkung des Zaubers.
 // Werden am Dateiende aus SPELLS erzeugt (stat 'sk_<id>', cls).
-export const SKILL_PER = 3.5;
+export const SKILL_PER = 2.7;
 // Obergrenzen für Prozent-Boni (Summe aus allem)
 export const CAPS = { crit: 0.6, critMult: 3.5, leech: 0.4, thorns: 0.6, evade: 0.5, block: 0.5, pen: 0.9 };
 // Grammatisches Geschlecht der Grundgegenstände für Namen („Starke Kappe“, „Rostiges Beil“). Nicht Genanntes ist männlich. p = Mehrzahl.
@@ -90,13 +100,15 @@ export const GENUS = {
 };
 export const LEGEND_NAMES = ['Grabesruh', 'Aschenkuss', 'Der Letzte Psalm', 'Witwenmacher', 'Knochenkrone', 'Sünde von Vhal', 'Rabenschwur', 'Blutglocke'];
 
-// --- Bonus-Stufen (wie Affix-Tiers): I ist die beste, gibt es erst auf hoher Gegenstandsstufe ---
+// --- Bonus-Stufen (PoE-Art, Welle 1a): I ist die beste. Jede Stufe hat einen FESTEN Wertebereich (flat: Attribute, Rüstung,
+// Schaden; pct: Prozent-Boni), jeweils × per des Bonus. Die Gegenstandsstufe schaltet höhere Stufen nur frei (minLvl),
+// der Wert hängt nicht mehr an ihr – Beute weit über der Heldenstufe sprengt nichts mehr. w = Würfelgewicht.
 export const TIERS = [
-  { t: 1, name: 'I', mult: 1.55, w: 5, minLvl: 20 },
-  { t: 2, name: 'II', mult: 1.25, w: 12, minLvl: 12 },
-  { t: 3, name: 'III', mult: 1.0, w: 23, minLvl: 6 },
-  { t: 4, name: 'IV', mult: 0.8, w: 30, minLvl: 1 },
-  { t: 5, name: 'V', mult: 0.6, w: 30, minLvl: 1 },
+  { t: 1, name: 'I', w: 15, minLvl: 35, flat: [22, 28], pct: [13, 15] },
+  { t: 2, name: 'II', w: 25, minLvl: 22, flat: [14, 18], pct: [11, 12] },
+  { t: 3, name: 'III', w: 25, minLvl: 12, flat: [8, 10], pct: [8, 10] },
+  { t: 4, name: 'IV', w: 20, minLvl: 5, flat: [4, 5], pct: [6, 7] },
+  { t: 5, name: 'V', w: 15, minLvl: 1, flat: [1, 2], pct: [4, 5] },
 ];
 
 // --- Sonderboni: selten, verändern den Kampf (Effekt-Schlüssel wie Talente). Höchstens einer je Item. ---
@@ -128,10 +140,10 @@ export const UNIQUES = [
   { name: 'Grabesruh', slot: 'weapon', kind: 'wand', mods: { int: 2, con: 2 }, eff: { leech: 0.12 }, lore: 'Die Toten schlafen nicht. Sie warten.' },
   { name: 'Rabenschwur', slot: 'weapon', kind: 'bow', mods: { dex: 2, lck: 2 }, eff: { first: 1, crit: 0.08 }, lore: 'Der Rabe sieht zuerst.' },
   { name: 'Knochenkrone', slot: 'helm', mods: { con: 2, int: 3 }, eff: { ward: 0.2 }, lore: 'Gewachsen aus dem Schädel ihres Trägers.' },
-  { name: 'Sünde von Vhal', slot: 'chest', mods: { armor: 1, con: 2 }, eff: { thorns: 0.25 }, lore: 'Getragen vom Metzger, bis er fiel.' },
-  { name: 'Blutglocke', slot: 'amulet', mods: { str: 2, haste: 2 }, eff: { rage: 0.25 }, lore: 'Sie schlägt mit deinem Herzen.' },
+  { name: 'Sünde von Vhal', slot: 'chest', mods: { armor: 1, con: 2, lifep: 2 }, eff: { thorns: 0.25 }, lore: 'Getragen vom Metzger, bis er fiel.' },
+  { name: 'Blutglocke', slot: 'amulet', mods: { str: 1, dmgp: 2, con: 2 }, eff: { rage: 0.3 }, lore: 'Sie schlägt mit deinem Herzen.' },
   { name: 'Totengräbers Griff', slot: 'gloves', mods: { str: 2, dmg: 2, critd: 3 }, eff: { execute: 1.1, execHp: 0.14, dmgPct: 0.16 }, lore: 'Er hat nie jemanden lebendig begraben. Fast nie.' },
-  { name: 'Pfad der Asche', slot: 'boots', mods: { dex: 2, haste: 2 }, eff: { evade: 0.08 }, lore: 'Keine Spur bleibt zurück.' },
+  { name: 'Pfad der Asche', slot: 'boots', mods: { dex: 1, evadep: 2 }, eff: { evade: 0.08 }, lore: 'Keine Spur bleibt zurück.' },
   { name: 'Ring der Ertrunkenen', slot: 'ring', mods: { lck: 2, int: 3 }, eff: { poison: 0.1 }, lore: 'Aus Gerlindes Brunnen gefischt.' },
   { name: 'Siegel des Kronenlosen', slot: 'ring', mods: { str: 3, dex: 3 }, eff: { pen: 0.3, crit: 0.05 }, lore: 'Die Krone fehlt. Die Macht nicht.' },
   { name: 'Gürtel der Büßer', slot: 'belt', mods: { con: 1, armor: 3 }, eff: { hpPct: 0.15 }, lore: 'Jeder Knoten eine Sünde.' },
@@ -147,8 +159,8 @@ export const UNIQUES = [
   { name: 'Aderlass', slot: 'weapon', kind: 'wand', mods: { int: 3, lck: 3 }, eff: { siphon: 0.1, crit: 0.12, critDmg: 0.3 }, lore: 'Was sie nimmt, gibt sie dir.' },
   { name: 'Die Lange Stille', slot: 'weapon', kind: 'bow', mods: { dex: 2, dmg: 3 }, eff: { pen: 0.35, nohealSelf: 1 }, lore: 'Kein Pfeil kehrt zurück. Kein Atem auch.' },
   { name: 'Haube des Pakts', slot: 'helm', mods: { int: 2, con: 3 }, eff: { dmgPct: 0.3, nohealSelf: 1 }, lore: 'Ein Handel: deine Heilung gegen seinen Zorn.' },
-  { name: 'Der Letzte Atem', slot: 'chest', mods: { con: 2, armor: 3 }, eff: { lastBreath: 1 }, lore: 'Einmal noch. Nur einmal noch.' },
-  { name: 'Eisernes Gelübde', slot: 'chest', mods: { armor: 2, con: 3 }, eff: { bulwark: 0.06, block: 0.1 }, lore: 'Jeder abgewehrte Schlag macht den Schild dicker.' },
+  { name: 'Der Letzte Atem', slot: 'chest', mods: { con: 1, armor: 2, lifep: 2 }, eff: { lastBreath: 1 }, lore: 'Einmal noch. Nur einmal noch.' },
+  { name: 'Eisernes Gelübde', slot: 'chest', mods: { armor: 2, con: 2, lifep: 3 }, eff: { bulwark: 0.08, block: 0.1 }, lore: 'Jeder abgewehrte Schlag macht den Schild dicker.' },
   { name: 'Gerlindes Schwur', slot: 'amulet', mods: { con: 2, int: 3 }, eff: { siphon: 0.035, regen: 0.012 }, lore: 'Sie ertrank und kam doch zurück.' },
   { name: 'Herz der Glocke', slot: 'amulet', mods: { str: 3, haste: 3 }, eff: { toll: 1, rage: 0.12 }, lore: 'Jeder dritte Schlag ist ein Läuten.' },
   { name: 'Fäuste des Eifers', slot: 'gloves', mods: { dex: 1, dmg: 2, critc: 3 }, eff: { zeal: 0.9 }, lore: 'Sie hören nie beim ersten Mal auf.' },
@@ -174,8 +186,8 @@ export const UNIQUES = [
 export const SET = { minTier: 1, chance: 0.2, perTier: 0.05, max: 0.55, parts: 3 };
 export const SETS = [
   { id: 's1', crypt: 'c1', name: 'Tracht der Wäscherinnen',
-    b2: { hpPct: 0.08 }, b3: { lastStand: 1 },
-    t2: '+8 % Leben', t3: 'Unter halbem Leben heilt dich alles doppelt',
+    b2: { hpPct: 0.06 }, b3: { lastStand: 1 },
+    t2: '+6 % Leben', t3: 'Unter halbem Leben heilt dich alles um 40 % stärker',
     parts: [
       { name: 'Gerlindes Schleier', slot: 'helm', mods: { con: 3, lifep: 3 } },
       { name: 'Nasses Leinen', slot: 'chest', mods: { con: 3, armor: 3 } },
@@ -201,7 +213,7 @@ export const SETS = [
     b2: { armorPct: 0.1, block: 0.05 }, b3: { tollback: 1, ward: 0.12 },
     t2: '+10 % Rüstung, +5 % Blocken', t3: 'Knochenschild; wer dich betäubt, wird selbst betäubt',
     parts: [
-      { name: 'Haube des Glöckners', slot: 'helm', mods: { armor: 3, spellp: 3 } },
+      { name: 'Haube des Glöckners', slot: 'helm', mods: { armor: 3, con: 3 } },
       { name: 'Geborstene Glocke', slot: 'offhand', mods: { blockp: 3, armor: 3 } },
       { name: 'Seilertritt', slot: 'boots', mods: { dex: 3, evadep: 3 } },
     ] },
@@ -241,8 +253,8 @@ export const FORGE = {
 // raus (Besitzer 2026-11-19: „nervt“); die Bremse ist das Material (→ E „Schmiedeglut raus, Verkauf gibt Material“).
 // Schmiedbar sind die Seltenheiten mit Eintrag in maxAff.
 export const CRAFT = {
-  maxAff: { magic: 2, rare: 4, legendary: 5 },
-  gold: [10, 4], goldValue: 0.6,                                   // Gold = a + Gegenstandsstufe × b + Wert × goldValue
+  maxAff: Object.fromEntries(RARITIES.filter(r => r.sides).map(r => [r.id, r.sides[0] + r.sides[1]])),   // aus den Präfix/Suffix-Plätzen
+  gold: [10, 5], goldValue: 0.6,                                   // Gold = a + Gegenstandsstufe × b + Wert × goldValue
   ops: [
     { id: 'seal', name: 'Versiegeln', mat: 'siegel', n: 2, text: 'Ein Bonus bleibt bei allem Folgenden unverändert (einer je Item).' },
     { id: 'chaos', name: 'Neu würfeln', mat: 'asche', n: 2, text: 'Alle unversiegelten Boni werden neu gewürfelt.' },
@@ -482,13 +494,15 @@ export const CFG = {
   evadeStreak: 2,                     // höchstens so viele Ausweicher in Folge, dann trifft der nächste Angriff sicher (Hieb und Zauber)
   chanceN: 200,                       // Probe-Kämpfe je Siegchance (gekoppelt, → E „Siegchance gekoppelt“ in kampf.md): schlimmster Fall ~50 ms, 4× gedrosselt ~120 ms
   mainDiv: 20,                        // Schaden × (1 + Hauptattribut / mainDiv)
-  affixBase: 1, affixPerLvl: 0.5,     // Affix-Wert = per × (affixBase + iLvl × affixPerLvl)
-  pctBase: 10, pctPerLvl: 0.25,       // Prozent-Boni (pct): per × (pctBase + iLvl × pctPerLvl) – wachsen flacher, sonst kippen sie spät
-  tierRefLvl: 60,                     // angezeigte Bonus-Stufe (I–V) aus dem Wert, feste Schwellen: dort stimmt sie mit der gewürfelten überein (→ E „Tiers aus dem Wert“)
+  affixBase: 1, affixPerLvl: 0.5,     // Runen der Schmiede: per × (affixBase + Heldenstufe × affixPerLvl) – Item-Boni haben feste Stufen (TIERS)
+  lastStandMul: 1.4,                  // Set „Tracht“ (3 Teile): Heilung unter halbem Leben ×1,4 (war ×2 – mit mehr eigenen Punkten zu stark, Welle 1a)
+  uniqMult: 1.5,                      // Einzigartige: Werte ihrer festen Boni × 1,5 (weniger Boni als ein seltenes Teil, dafür stärkere)
+  uniqTierUp: 1,                      // Einzigartige + Set-Teile: feste Boni bis eine Stufe über dem, was die Gegenstandsstufe freischaltet
+  dropMult: 1.2,                      // Welle 1a: 20 % mehr Gegenstands-Drops (Chancen × dropMult, feste Anzahlen im Mittel × dropMult; Abgrund nicht)
   rareMinLvl: 4, legendaryMinLvl: 10, // darunter keine/kaum seltene bzw. legendäre Beute
   bossHp: 2.2, bossDiff: 1.35,
   rushPerLvl: 3,                      // Eilen: 1 Gold je 20 s Restzeit × (1 + Stufe / rushPerLvl)
-  attrPerLevel: 5, startPoints: 5,       // Attributpunkte pro Stufenaufstieg
+  attrPerLevel: 9, startPoints: 5,       // Attributpunkte pro Stufenaufstieg
   wayCostPerLvl: 6,                  // Zauber-Weg umentscheiden: Gold je Stufe (erste Wahl gratis)
   respecPerLvl: 30,                        // Läuterung: Gold je Stufe (erste gratis)
   cryptCdSec: 180, arenaCdSec: 300, arenaGlut: 4,                         // Pause nach jedem Krypta-Kampf (Prototyp)
@@ -496,7 +510,8 @@ export const CFG = {
   lootChance: 0.55, critBase: 0.05,
   strArmor: 0.5,                      // Stärke gibt jeder Klasse Rüstung (je Punkt)
   spellK: 60,                         // Zauberkraft = 1 + Int / (Int + spellK)  (sättigt, max. ×2)
-  monHp: 1.3, monDmg: 1.1,
+  monHp: 1.15, monDmg: 1.0,
+  monGrow: 2.7,                       // Monster-Attribute je Stufe (3 + Stufe × monGrow); power() und die Werte-Ansicht rechnen mit demselben Wert
   hemoBleed: 0.85,                    // Ausbluten: Grundstärke des Blutens je Treffer (dafür nie kritisch)
   igniteTurns: 3,                     // Brand (Schlüsselstein Verbrennung): wie viele Runden der Brand des Zaubers läuft
   offWeapon: 0.7, offWeaponSpell: 0.6,  // fremde Waffe (nicht die der Klasse): Schaden ×0,7, Zauberkraft ×0,6                // Ausgleich für Zauber (Monster-Leben/-Schaden)
@@ -567,7 +582,7 @@ export const RANKS = [
 export const EFFECT_NAMES = { dmgPct: 'Schaden', hpPct: 'Leben', armorPct: 'Rüstung', crit: 'Krit-Chance', evade: 'Ausweichen',
   block: 'Blocken', leech: 'Lebensraub', bleed: 'Bluten bei Krit', rage: 'Raserei', pen: 'Rüstung ignorieren', regen: 'Regeneration/Runde',
   thorns: 'Dornen', execute: 'Schaden gg. Sterbende', first: 'Erstschlag', poison: 'Gift', toll: 'Betäuben', haste: 'Zaubertempo', echo: 'Zauber-Nachhall', ward: 'Knochenschild bei Kampfbeginn',
-  lastStand: 'Doppelte Heilung unter halbem Leben', venom: 'Dein Gift heilt dich', execHp: 'Henker-Schwelle',
+  lastStand: '+40 % Heilung unter halbem Leben', venom: 'Dein Gift heilt dich', execHp: 'Henker-Schwelle',
   vengeance: 'Mehr Schaden, je weniger Leben', zeal: 'Jeder dritte Hieb trifft zweimal', siphon: 'Krit heilt dich',
   bulwark: 'Blocken gibt Schild', shred: 'Krit bricht Rüstung', secondWind: 'Heilt einmal, wenn es eng wird', lastBreath: 'Überlebt einen tödlichen Treffer',
   nohealSelf: 'Du kannst dich nicht heilen',
@@ -603,7 +618,7 @@ export const TREE = {
         N('as1', 'Nebelschritt', 3, { evade: 0.045 }, 'Ausweichen.'),
         N('as2', 'Verwischt', 1, { evadeCap: 0.08, evade: 0.05, first: 1 }, 'Deine Ausweich-Grenze steigt von 50 % auf 58 % – erst damit zählt dein Ausweichen aus der Ausrüstung. Und du schlägst zuerst zu.', 'nt'),
         N('as3', 'Flinkheit', 3, { hpPct: 0.06 }, 'Mehr Leben.'),
-        N('as4', 'Zweiter Atem', 1, { secondWind: 0.25 }, 'Heilt dich einmal, wenn du unter 30 % fällst.', 'nt'),
+        N('as4', 'Zweiter Atem', 1, { secondWind: 0.22 }, 'Heilt dich einmal, wenn du unter 30 % fällst.', 'nt'),
         N('as5', 'Hinterhalt', 2, { dmgPct: 0.05 }, 'Aus dem Dunkel trifft es härter.'),
         N('as6', 'Schattenform', 1, { evade: 0.3, evadeCap: 0.2, hpPct: -0.15 }, 'Du weichst viel öfter aus, und deine Grenze steigt von 50 % auf 70 % – erst damit kommt alles an. Dafür bist du nur noch ein Hauch von einem Körper.', 'key'),
       ] },
@@ -612,7 +627,7 @@ export const TREE = {
         N('ag2', 'Ätzende Wunde', 1, { shred: 0.25 }, 'Kritische Treffer brechen Rüstung heraus.', 'nt'),
         N('ag3', 'Zersetzung', 3, { pen: 0.047 }, 'Ignoriert Rüstung.'),
         N('ag4', 'Aderlass', 1, { siphon: 0.06 }, 'Jeder Krit heilt dich.', 'nt'),
-        N('ag5', 'Lotusblatt', 2, { crit: 0.03 }, 'Krit-Chance.'),
+        N('ag5', 'Lotusblatt', 2, { critDmg: 0.15 }, 'Krit-Schaden.'),
         N('ag6', 'Schwarzer Lotus', 1, { venom: 1, poison: 0.17, dmgPct: 0.2, armorPct: -0.25 }, 'Jeder Treffer vergiftet, und das Gift nährt dich. Dafür zerfrisst es auch deine Rüstung.', 'key'),
       ] },
     ],
@@ -646,8 +661,8 @@ export const TREE = {
       { name: 'Arkan', nodes: [
         N('sa1', 'Mana', 3, { spellPct: 0.06 }, 'Deine Zauber wiegen schwerer.'),
         N('sa2', 'Manabrand', 1, { haste: 0.3 }, 'Deine Zauber laden 30 % schneller.', 'nt'),
-        N('sa3', 'Fokus', 3, { haste: 0.07 }, 'Zaubertempo.'),
-        N('sa4', 'Zuflucht', 1, { secondWind: 0.3 }, 'Heilt dich einmal, wenn du unter 30 % fällst.', 'nt'),
+        N('sa3', 'Fokus', 3, { haste: 0.1 }, 'Zaubertempo.'),
+        N('sa4', 'Zuflucht', 1, { secondWind: 0.27 }, 'Heilt dich einmal, wenn du unter 30 % fällst.', 'nt'),
         N('sa5', 'Seelenzehrung', 2, { leech: 0.035 }, 'Lebensraub.'),
         N('sa6', 'Nachhall', 1, { echo: 0.5, haste: 0.25, spellPct: 0.15, hpPct: -0.05 }, 'Jeder zweite Zauber wirkt ein zweites Mal, alle laden schneller und wiegen schwerer. Dafür hält dein Körper etwas weniger aus.', 'key'),
       ] },
@@ -717,7 +732,7 @@ export const SHARD_CRYPTS = ['c1', 'c2', 'c3', 'c4'];
 
 // Zauber-Boni aus SPELLS erzeugen (Waffe der Klasse → nur deren Zauber)
 for (const [cls, list] of Object.entries(SPELLS)) for (const sp of list)
-  AFFIXES.push({ stat: 'sk_' + sp.id, per: SKILL_PER, pre: 'Geweihter', suf: 'des Rituals', pct: 1, label: sp.name, slots: ['weapon'], cls, kind: CLASSES[cls].weapon });
+  AFFIXES.push({ stat: 'sk_' + sp.id, per: SKILL_PER, pre: 'Geweihter', suf: 'des Rituals', pct: 1, label: sp.name, side: 'pre', group: 'skill', slots: ['weapon'], cls, kind: CLASSES[cls].weapon });
 
 // --- Zauber-Wege: je Zauber 3 Stufen, auf jeder Stufe 1 von 2 Wegen (Wahl statt Punkte, GameGene: Diablo III Runen).
 // Stufe t öffnet sich ab Charakterstufe TREE_LVL[t] (und erst, wenn der Zauber gelernt ist). Bausteine `m` wirken in combat.js:
@@ -837,7 +852,7 @@ export const POTIONS = [
   { id: 'jaegerblick', rare: 1, name: 'Jägerblick', text: 'Gegner weicht 8 % seltener aus.', fx: { acc: 0.08 }, cost: { herz: 1, silberstaub: 1 } },
   { id: 'bollwerk', rare: 1, name: 'Bollwerk-Trank', text: '+7 % Blocken im ganzen Kampf.', fx: { block: 0.07 }, cost: { herz: 1, weihrauch: 1 } },
   { id: 'rostsaeure', rare: 1, name: 'Rostsäure', text: 'Ignoriert 30 % der Rüstung.', fx: { pen: 0.3 }, cost: { herz: 1, schwefel: 1 } },
-  { id: 'zaubertinte', rare: 1, name: 'Zaubertinte', text: 'Alle Zauber starten halb geladen.', fx: { charge: 0.5 }, cost: { herz: 1, nachtschatten: 1 } },
+  { id: 'zaubertinte', rare: 1, name: 'Zaubertinte', text: 'Alle Zauber starten zu 40 % geladen.', fx: { charge: 0.4 }, cost: { herz: 1, nachtschatten: 1 } },
   { id: 'vampirsud', rare: 1, name: 'Vampirsud', text: '+8 % Lebensraub im ganzen Kampf.', fx: { leech: 0.08 }, cost: { herz: 1, rotwurz: 1 } },
 ];
 export const TRIGGERS = { start: 'zu Kampfbeginn', hp50: 'Leben unter 50 %', hp30: 'Leben unter 30 %', dot: 'wenn vergiftet/blutend', low: 'Gegner unter 50 %', heal: 'wenn Gegner heilt' };

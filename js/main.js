@@ -1,4 +1,4 @@
-import { CFG, MATS, TUTORIAL, TRADERS, FORGE, CRYPTS, HERBS, POTIONS, LOCATIONS, DESC_ROOMS, ACTS, PIT, SETS, SET } from './data.js';
+import { PLAYABLE, CFG, MATS, TUTORIAL, TRADERS, FORGE, CRYPTS, HERBS, POTIONS, LOCATIONS, DESC_ROOMS, ACTS, PIT, SETS, SET } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import * as Game from './game.js';
@@ -244,7 +244,7 @@ const actions = {
     const go = () => { const p = G.power(), err = G.chooseWay(d.s, +d.t, +d.i); if (err) return note(err); G.save(); render(); toast(p); };
     if (cur != null) return ask(`Weg wechseln für <b>${G.wayCost()} Gold</b>?`, 'Wechseln', go); go(); },
   dlgok: () => { const f = dlgFn; dlgFn = null; f?.(); },
-  pick: d => { pickCls = d.c; render(); setTimeout(() => document.getElementById('nm')?.focus()); },
+  pick: d => { pickCls = PLAYABLE.includes(d.c) ? d.c : null; render(); setTimeout(() => document.getElementById('nm')?.focus()); },
   create: () => { const n = document.getElementById('nm').value.trim() || 'Namenloser'; G.newChar(n, pickCls);
     G.journal(`${n} erwacht im Grab. Drei Gestalten warten am Friedhofstor.`); view = 'traders'; render(); },
   wipe: () => ask('Held wirklich vernichten?<small>Stufe, Ausrüstung und Fortschritt sind dann fort.</small>', 'Vernichten', () => { G.wipe(); pickCls = null; render(); }, true),

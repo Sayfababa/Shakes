@@ -7,7 +7,7 @@ const SCR = [['i13app', 390, 844, 0], ['i13band', 390, 844, 60]];
   await Promise.all(SCR.map(async ([nm, w, h, cut]) => {
     const c = await b.newContext({ ...devices['iPhone 15 Pro Max'], viewport: { width: w, height: h }, deviceScaleFactor: 1 }); const p = await c.newPage();
     await p.goto('http://localhost:8781/'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(300);
-    await p.tap('[data-c="witch"]'); await p.fill('#nm', 'Sayfa'); await p.tap('[data-action=create]'); await p.waitForTimeout(150);
+    await p.tap('[data-c="sorceress"]'); await p.fill('#nm', 'Sayfa'); await p.tap('[data-action=create]'); await p.waitForTimeout(150);
     if (cut) await p.addStyleTag({ content: `#app { bottom: ${cut}px !important; }` });
     const sizes = new Set();
     for (const t of ['halvar', 'ysolde', 'kaspar']) for (let qi = 0; qi < 7; qi++) for (const ready of [0, 1]) for (const lvl of [5, 25]) {

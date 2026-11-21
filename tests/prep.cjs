@@ -12,7 +12,7 @@ const CASES = [[0, 0, 3, 0, 0], [1, 4, 7, 0, 0], [1, 4, 60, 1, 1], [3, 4, 30, 1,
   await Promise.all(SCR.map(async ([nm, w, h, cut]) => {
     const c = await b.newContext({ ...devices['iPhone 15 Pro Max'], viewport: { width: w, height: h }, deviceScaleFactor: 1 }); const p = await c.newPage();
     await p.goto('http://localhost:8782/'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(300);
-    await p.tap('[data-c="witch"]'); await p.fill('#nm', 'Sayfa'); await p.tap('[data-action=create]'); await p.waitForTimeout(150);
+    await p.tap('[data-c="sorceress"]'); await p.fill('#nm', 'Sayfa'); await p.tap('[data-action=create]'); await p.waitForTimeout(150);
     if (cut) await p.addStyleTag({ content: `#app { bottom: ${cut}px !important; }` });
     for (const [ci, fl, lvl, loy, potsOn] of CASES) {
       const id = await p.evaluate(async ([ci, fl, lvl, loy, potsOn]) => { const D = await import('./js/data.js'); const G = await import('./js/state.js'); const S = G.S;

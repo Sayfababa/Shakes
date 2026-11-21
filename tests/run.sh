@@ -7,15 +7,15 @@ cd "$(dirname "$0")/.."
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 
 ways() { node tests/ways.mjs all all 1500 --check > "$T/ways.full"; rc=$?; grep -E '^!!|Rahmen' "$T/ways.full"; return $rc; }
-pots() { for c in barbarian paladin assassin huntress sorceress witch; do node tests/potions.mjs $c all 300 --check > "$T/pot.$c" 2>&1 & done; wait
-  grep -h '^!!' "$T"/pot.*; n=$(grep -l 'im Rahmen' "$T"/pot.* | wc -l); echo "Tränke im Rahmen: $n/6 Klassen"; [ "$n" -eq 6 ]; }
+pots() { for c in barbarian assassin sorceress; do node tests/potions.mjs $c all 300 --check > "$T/pot.$c" 2>&1 & done; wait
+  grep -h '^!!' "$T"/pot.*; n=$(grep -l 'im Rahmen' "$T"/pot.* | wc -l); echo "Tränke im Rahmen: $n/3 Klassen"; [ "$n" -eq 3 ]; }
 acts() { node tests/acts.mjs all 3 --check > "$T/acts.full"; rc=$?; cat "$T/acts.full"; return $rc; }
 sets() { node tests/sets.mjs all all 400 --check > "$T/sets.full"; rc=$?; grep -E '^!!|Rahmen' "$T/sets.full"; return $rc; }
 caps() { node tests/caps.mjs all 24 250 --check > "$T/caps.full"; rc=$?; grep -E '^!!|TOT|kommen an|tote' "$T/caps.full"; return $rc; }
 tree() { node tests/tree.mjs all all 600 --check > "$T/tree.full"; rc=$?; grep -E '^!!|Rahmen' "$T/tree.full"; return $rc; }
 uniq() { node tests/uniques.mjs all all 300 --check > "$T/uniq.full"; rc=$?; grep -E '^!!|Rahmen' "$T/uniq.full"; return $rc; }
 desc() { node tests/descent.mjs all 10 120 --check > "$T/desc.full"; rc=$?; grep -E '⚠|Stufe 10' "$T/desc.full"; return $rc; }
-bot() { for c in barbarian paladin assassin huntress sorceress witch; do node tests/bot.mjs $c 3 1 | grep -E "Kämpfe" | sed "s/^/$c: /" & done; wait; }
+bot() { for c in barbarian assassin sorceress; do node tests/bot.mjs $c 3 1 | grep -E "Kämpfe" | sed "s/^/$c: /" & done; wait; }
 
 if [ "$1" = "quick" ]; then
   set -- logic ui trader prep

@@ -19,7 +19,7 @@ const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height:
     p.on('console', m => m.type() === 'error' && !/favicon|404/.test(m.text()) && note(`Konsole: ${m.text()}`, `${tag} nach ${last}`));
     p.on('dialog', d => { note('Systemdialog: ' + d.message(), tag); d.dismiss().catch(() => {}); });   // es darf keinen mehr geben
     await p.goto('http://localhost:8771/'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(300);
-    await p.tap('[data-c="witch"]'); await p.fill('#nm', 'Fuzz'); await p.tap('[data-action=create]'); await p.waitForTimeout(150);
+    await p.tap('[data-c="sorceress"]'); await p.fill('#nm', 'Fuzz'); await p.tap('[data-action=create]'); await p.waitForTimeout(150);
     if (stage === 'spät') await p.evaluate(async () => { const G = await import('./js/state.js'); const L = await import('./js/loot.js');
       Object.assign(G.S, { lvl: 26, points: 60, gold: 50000, tut: 99, shards: ['c1', 'c2', 'c3', 'c4'] });
       for (const k of Object.keys(G.S.mats).concat(['zahn', 'leinen', 'staub', 'schwanz', 'siegel', 'blutstein', 'haar', 'asche'])) G.S.mats[k] = 30;

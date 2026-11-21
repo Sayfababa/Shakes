@@ -85,7 +85,7 @@ export function fight(A, B) {
   function pb(x) { return x.rageN > 0 ? 1 + x.potRage : 1; }
   // Betäuben (Glocke, Zauber): nicht wenn unbetäubbar; danach ist der Gegner kurz „erschüttert“ (für Kombos)
   // Set „Tracht der Wäscherinnen“: unter halbem Leben heilt dich alles doppelt
-  function healMul(x) { return x.lastStand && x.cur < x.hp * 0.5 ? 2 : 1; }
+  function healMul(x) { return x.lastStand && x.cur < x.hp * 0.5 ? CFG.lastStandMul : 1; }
   function stun(y, n = 1, by = null) { if (y.stunImm > 0) { ev.status = 'Widersteht'; return false; }
     y.stunned = Math.max(+y.stunned || 0, n); y.dazed = 2;
     // Set „Ornat des Glöckners“: wer dich betäubt, wird selbst betäubt

@@ -10,7 +10,7 @@ const G = await import('../js/state.js');
 const { makeItem, makeSetItem } = await import('../js/loot.js');
 const { fight } = await import('../js/combat.js');
 
-const only = process.argv[2] && process.argv[2] !== 'all' ? [process.argv[2]] : Object.keys(D.CLASSES);
+const only = process.argv[2] && process.argv[2] !== 'all' ? [process.argv[2]] : D.PLAYABLE;
 const LV = +process.argv[3] ? [+process.argv[3]] : [14, 24];
 const N = +process.argv[4] || 400, CHECK = process.argv.includes('--check');
 // Rahmen: 2 Teile wie ein guter Bonus, 3 Teile wie ein Sonderbonus; ein volles Set darf drei seltene Teile nicht abhängen.
@@ -35,13 +35,16 @@ const mobs = (L, diff) => Array.from({ length: N }, (_, i) => G.makeMonster(L, d
 const rate = list => { const A = G.stats(); let w = 0; list.forEach((m, i) => { seed = 7919 * (i + 1); if (fight(A, m).winner === 'a') w++; }); seed = 0x5eed; return w / list.length; };
 const f = x => ((x >= 0 ? '+' : '') + (x * 100).toFixed(1)).padStart(8);
 
-for (const cls of only) for (const L of LV) {
+// Mehrere Ausrüstungswürfe je Klasse und Stufe (Falle: ein einzelner Wurf entscheidet alles) – geprüft wird der Mittelwert
+const R = +(process.argv.find(a => a.startsWith('--rolls='))?.slice(8)) || 4, got = {};
+for (const cls of only) for (const L of LV) for (let g = 0; g < R; g++) {
+  seed = 0x5eed + g * 104729;   // je Wurf eigene Ausrüstung (rate() setzt den Keim sonst immer zurück)
   const S = hero(cls, L);
-  let lo = 0.5, hi = 2.5, diff = 1;
+  let lo = 0.5, hi = 5, diff = 1;   // Welle 1a: gut ausgerüstete Helden liegen über 2,5 – sonst misst man bei 100 % Sieg nur Rauschen
   for (let i = 0; i < 8; i++) { diff = (lo + hi) / 2; if (rate(mobs(L, diff).slice(0, 250)) > 0.5) lo = diff; else hi = diff; }
   const base = { ...S.equip }, M = mobs(L, diff);
   const B = []; for (let i = 0; i < Math.ceil(N / 4); i++) B.push(...bosses(L));
-  let bf = 1; { let l2 = 0.3, h2 = 3; for (let i = 0; i < 8; i++) { bf = (l2 + h2) / 2; if (rate(B.slice(0, 160).map(b => ({ ...b, hp: b.hp * bf, dmg: b.dmg.map(x => x * bf) }))) > 0.5) l2 = bf; else h2 = bf; } }
+  let bf = 1; { let l2 = 0.3, h2 = 6; for (let i = 0; i < 8; i++) { bf = (l2 + h2) / 2; if (rate(B.slice(0, 160).map(b => ({ ...b, hp: b.hp * bf, dmg: b.dmg.map(x => x * bf) }))) > 0.5) l2 = bf; else h2 = bf; } }
   const BB = B.map(b => ({ ...b, hp: b.hp * bf, dmg: b.dmg.map(x => x * bf) }));
   const r0 = rate(M), b0 = rate(BB), p0 = G.power();
   console.log(`\n${D.CLASSES[cls].name} Stufe ${L}  (ohne Set: Sieg ${(r0 * 100).toFixed(0)} %, Boss ${(b0 * 100).toFixed(0)} %, KK ${p0})`);
@@ -59,9 +62,13 @@ for (const cls of only) for (const L of LV) {
       for (const p of pieces) { const it = makeItem(L, { slot: p.slot, minRarity: 3 }); delete it.fx; delete it.special; S.equip[slotOf(S, { slot: p.slot, set: 1 })] = it; }
       rr += rate(M) / k; }
     S.equip = { ...base };
-    const chk = (v, [a, b], what) => { if (CHECK && (v * 100 < a || v * 100 > b)) { bad++; console.log(`!! ${set.name} ${what}: ${(v * 100).toFixed(1)} Pkt außerhalb ${a}…${b}`); } };
-    chk(r2, LIM.two, 'Bonus 2 Teile'); chk(r3, LIM.three, 'Bonus 3 Teile'); chk(full - rr, LIM.vsRare, 'gegen 3 seltene');
+    (got[set.id + '|' + cls + '|' + L] ||= []).push([r2, r3, full - rr]);
     console.log(set.name.slice(0, 25).padEnd(26) + f(r2) + f(r3) + f(rb) + f(dp) + '  ' + f(full - rr));
   }
+}
+if (CHECK) for (const [k, l] of Object.entries(got)) {
+  const [id, cls, L] = k.split('|'), name = D.SETS.find(x => x.id === id).name, m = i => l.reduce((a, x) => a + x[i], 0) / l.length;
+  const chk = (v, [a, b], what) => { if (v * 100 < a || v * 100 > b) { bad++; console.log(`!! ${name} ${what} (${D.CLASSES[cls].name} ${L}, Ø ${l.length} Würfe): ${(v * 100).toFixed(1)} Pkt außerhalb ${a}…${b}`); } };
+  chk(m(0), LIM.two, 'Bonus 2 Teile'); chk(m(1), LIM.three, 'Bonus 3 Teile'); chk(m(2), LIM.vsRare, 'gegen 3 seltene');
 }
 if (CHECK) { if (bad) { console.log(`\n${bad} Set-Bonus/Boni außerhalb des Rahmens.`); process.exit(1); } console.log('\nGrab-Sets im Rahmen.'); }

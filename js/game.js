@@ -10,8 +10,13 @@ import { pick, roll, chance, rand, seeded } from './rng.js';
 const now = () => Date.now();
 
 function dropMat(m, rew, sure = 0) { if (m.mat && (sure || chance(CFG.matChance))) { const n = (m.boss ? 3 : 1) + sure; G.addMat(m.mat, n); rew.mats.push([m.mat, n]); } }
+// Welle 1a: 20 % mehr Gegenstands-Drops (CFG.dropMult). Chancen wachsen mit, feste Anzahlen im Mittel (1 → 1,2),
+// gesammelte Fundstücke (Expedition, Umherziehen) je Stück mit Chance auf ein zweites. Der Abgrund rechnet selbst.
+const dropP = p => Math.min(1, p * CFG.dropMult);
+const dropN = n => { const x = n * CFG.dropMult, k = Math.floor(x); return k + (chance(x - k) ? 1 : 0); };
+const moreItems = list => list.flatMap(r => chance(CFG.dropMult - 1) ? [r, r] : [r]);
 function dropItem(lvl, p, minRarity, rew) {
-  if (!chance(p)) return;
+  if (!chance(dropP(p))) return;
   const it = makeItem(lvl, { luck: G.stats().lck, cls: CLASSES[G.S.cls], minRarity });
   const wo = G.keep(it); if (wo) rew.item = it; else { G.sellOff(it); rew.item = { ...it, soldFull: true }; }
 }
@@ -50,7 +55,7 @@ function tripLoot(l, m, tr, depth, od, rew, gb = 0) {
   if (m.mat && chance(CFG.matChance)) rew.mats.push([m.mat, 1 + (depth >= 2 ? 1 : 0)]);
   if (od?.mats && m.mat) rew.mats.push([m.mat, 2]);
   const p = od?.loot ? 1 : Math.min(1, tr.loot + depth * 0.1 + gb / 2), minR = Math.max(od?.loot || 0, tr.minRarity || 0, depth >= 3 ? 3 : depth >= 1 ? 2 : 0);
-  if (chance(p)) rew.item = makeItem(m.lvl, { luck: G.stats().lck + depth * 20, cls: CLASSES[G.S.cls], minRarity: minR });
+  if (chance(dropP(p))) rew.item = makeItem(m.lvl, { luck: G.stats().lck + depth * 20, cls: CLASSES[G.S.cls], minRarity: minR });
   G.haulAdd(rew.gold, rew.mats, rew.item, rew.xp);
 }
 export function resolveTrip() {
@@ -112,7 +117,7 @@ export function cryptFight(id, m0 = null) {
   if (dropHerb('herz', ALCH.heartChance, ALCH.bossHearts, rew)) dropHerb(herbRoll(HERB_LOC[G.cryptAct(c)?.loc]), ALCH.bossHerb, 1, rew);
   if (chance(DESCENT.sealCrypt)) { addSeal(1); rew.seal = 1; }      // die Krypta speist den Abgrund
   const k = CRYPT.rarAt.filter(x => t >= x).length - 1;   // höhere Stufe → mehr und bessere Beute
-  rew.items = []; for (let i = 0; i < CRYPT.items[k]; i++) { const it = makeItem(m.lvl, { luck: G.stats().lck + t * 15, cls: CLASSES[S.cls], minRarity: Math.min(4, 2 + k + (i === 0 && t >= CRYPT.rarAt[2] ? 1 : 0)) }); rew.items.push(it); if (!G.keep(it)) { G.sellOff(it); it.soldFull = true; } }
+  rew.items = []; for (let i = 0, nI = dropN(CRYPT.items[k]); i < nI; i++) { const it = makeItem(m.lvl, { luck: G.stats().lck + t * 15, cls: CLASSES[S.cls], minRarity: Math.min(4, 2 + k + (i === 0 && t >= CRYPT.rarAt[2] ? 1 : 0)) }); rew.items.push(it); if (!G.keep(it)) { G.sellOff(it); it.soldFull = true; } }
   const sp = setDrop(c, t); if (sp) { rew.items.push(sp); rew.set = sp; if (!G.keep(sp)) { G.sellOff(sp); sp.soldFull = true; } }
   rew.item = rew.items[0];
   G.journal(`${m.name} ist gefallen (Stufe ${t + 1}).`);
@@ -164,7 +169,7 @@ export function actFight(id, z, m0 = null) {
   const xf = replay ? ACT.replay : boss ? ACT.bossXp : ACT.firstXp, gf = replay ? ACT.replay : boss ? ACT.bossGold : ACT.firstGold;
   pay(rew, Math.round((6 + lv * 4) * gf * gb * (od?.gold || 1)), Math.round((20 + lv * 12) * xf * (od?.xp || 1)));
   dropMat(m, rew, replay ? 0 : ACT.matFirst + (m.elite ? 1 : 0)); dropHerb(herbRoll(HERB_LOC[l.id]), ALCH.herbChance * (m.elite ? 2 : 1), 1, rew);   // erster Sieg in einem Gebiet: Material sicher und mehr
-  if (boss) { rew.items = []; for (let i = 0; i < ACT.bossItems; i++) { const it = makeItem(lv, { luck: G.stats().lck + 20, cls: CLASSES[S.cls], minRarity: i ? 2 : 3 }); rew.items.push(it); if (!G.keep(it)) { G.sellOff(it); it.soldFull = true; } } rew.item = rew.items[0]; }
+  if (boss) { rew.items = []; for (let i = 0, nI = dropN(ACT.bossItems); i < nI; i++) { const it = makeItem(lv, { luck: G.stats().lck + 20, cls: CLASSES[S.cls], minRarity: i ? 2 : 3 }); rew.items.push(it); if (!G.keep(it)) { G.sellOff(it); it.soldFull = true; } } rew.item = rew.items[0]; }
   else { const pos = z / ACT.zones, minR = m.elite ? 2 : pos >= 0.6 ? 2 : pos >= 0.3 ? 1 : 0;
     dropItem(lv, m.elite || od?.loot ? 1 : Math.min(1, ACT.itemP + rew.grade.bonus / 2), minR, rew); }
   if (od && G.fulfillOmen()) { Q.event({ type: 'omen' }); rew.omen = true; }
@@ -449,7 +454,7 @@ function expFinish() {
   for (const [k, n] of Object.entries(a.herbs)) if (n > 0) { G.addHerb(k, n); rew.herbs.push([k, n]); }
   for (const [k, n] of Object.entries(a.mats)) if (n > 0) { G.addMat(k, n); rew.mats.push([k, n]); }
   const lvl = G.locLvl(l); rew.items = [];
-  for (const minRarity of a.items) { const it = makeItem(lvl, { luck: G.stats().lck, cls: CLASSES[S.cls], minRarity }); if (G.keep(it)) rew.items.push(it); else { rew.gold += G.sellOff(it).gold; rew.items.push({ ...it, soldFull: true }); } }
+  for (const minRarity of moreItems(a.items)) { const it = makeItem(lvl, { luck: G.stats().lck, cls: CLASSES[S.cls], minRarity }); if (G.keep(it)) rew.items.push(it); else { rew.gold += G.sellOff(it).gold; rew.items.push({ ...it, soldFull: true }); } }
   rew.item = rew.items[0] || null;
   if (a.glut) S.glut = Math.min(CFG.maxGlut, S.glut + a.glut);
   if (a.bless) S.bless = Math.max(EXPED.curseMax, Math.min(EXPED.blessMax, (S.bless || 0) + a.bless));
@@ -753,7 +758,7 @@ export function wanderClaim() {
   for (const [k, n] of Object.entries(A.herbs)) { G.addHerb(k, n); rew.herbs.push([k, n]); }
   for (const [k, n] of Object.entries(A.mats)) { G.addMat(k, n); rew.mats.push([k, n]); }
   const lv = G.actZoneLvl(a, Math.min(wanderZone(a), ACT.zones)); rew.items = [];
-  for (const minRarity of A.items) { const it = makeItem(lv, { luck: G.stats().lck, cls: CLASSES[S.cls], minRarity }); if (G.keep(it)) rew.items.push(it); else { rew.gold += G.sellOff(it).gold; rew.items.push({ ...it, soldFull: true }); } }
+  for (const minRarity of moreItems(A.items)) { const it = makeItem(lv, { luck: G.stats().lck, cls: CLASSES[S.cls], minRarity }); if (G.keep(it)) rew.items.push(it); else { rew.gold += G.sellOff(it).gold; rew.items.push({ ...it, soldFull: true }); } }
   rew.item = rew.items[0] || null; rew.n = W.n; rew.min = Math.round((W.t - W.start) / 60000); S.wander = null; G.journal(`Vom Umherziehen zurück: ${rew.n} Punkte.`);
   return rew;
 }

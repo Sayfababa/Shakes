@@ -1,10 +1,10 @@
 import { RARITIES, TREE, SETS, SET, ACTS, ACT, CRYPT, DESCENT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, SELL, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, STASH_W, STASH_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, HERB_LOC, ALCH } from './data.js';
-import { affixPool, makeItem, itemValue, rollTier, tierOf, affixValue, renameMagic, adj, fixName } from './loot.js';
+import { affixPool, affixRoom, pickAffix, makeItem, itemValue, rollTier, tierOf, affixValue, renameMagic, adj, fixName } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 import { evadeShare } from './combat.js';
 
 const KEY = 'aschenkrone_v1';
-export const SAVE_VERSION = 21;
+export const SAVE_VERSION = 22;
 export let S = null; // aktueller Spielstand
 
 export const now = () => Date.now();
@@ -15,13 +15,15 @@ export function sealOf(txt) { let h = 0x811c9dc5; const t = 'aschenkrone|' + txt
 // Lässt sich ein Spielstand nicht lesen (kaputt, oder alter Code aus dem Offline-Speicher trifft einen neueren Stand), wird er
 // als Sicherung abgelegt, bevor ein neuer Held ihn überschreiben kann. Fehlt der Stand, wird eine lesbare Sicherung zurückgeholt.
 const BAK = KEY + '_bak';
-export let unreadable = false;
+export let unreadable = false, restarted = 0;   // restarted = Stufe des alten Helden (Neustart v22)
+// Ein Stand vor v22 (Neustart): Stufe des alten Helden, sonst 0
+const oldHero = raw => { try { const d = JSON.parse(raw); return typeof d?.v === 'number' && d.v < SAVE_VERSION ? d.lvl || 1 : 0; } catch { return 0; } };
 const read = raw => { try { const d = JSON.parse(raw); return d ? migrate(d) : null; } catch { return null; } };
 export function load() {
-  S = null; unreadable = false; let raw = null;
+  S = null; unreadable = false; restarted = 0; let raw = null;
   try { raw = localStorage.getItem(KEY); const sig = localStorage.getItem(SIG);
     S = raw ? read(raw) : null; if (S && sig && sig !== sealOf(raw)) S.tampered = true;
-    if (raw && !S) { localStorage.setItem(BAK, raw); unreadable = true; }
+    if (raw && !S) { localStorage.setItem(BAK, raw); const old = oldHero(raw); if (old) restarted = old; else unreadable = true; }
     if (!raw) { const bak = localStorage.getItem(BAK); S = bak ? read(bak) : null; if (S) { localStorage.removeItem(BAK); save(); } }
   } catch { S = null; }
   return S;
@@ -35,77 +37,11 @@ export const freshPit = (title = null) => ({ lad: [...PIT_RIVALS.map(r => r.id),
 const freshTraders = () => Object.fromEntries(GIVERS.map(k => [k, freshGiver()]));
 const baseOf = it => BASES.find(b => b.name === it.base) || { w: 1, h: 1, art: 'ring' };
 
+// v22 (Welle 1a „Boni-Umbau“, Besitzer 2026-11-21): kompletter Neustart. Alte Teile passen nicht in die festen Stufen,
+// darum wird nichts umgerechnet: ein älterer Stand ist unlesbar (→ Sicherung `_bak`, nie überschrieben), `restarted`
+// lässt die Heldenwahl erklären, warum. Die Umrechnungen v1–v21 sind damit tot und wurden entfernt (Git-Verlauf).
+// Neue Umrechnungen ab v22 kommen hier hinein.
 function migrate(d) {
-  if (d.v === 1) {
-    d.attrs = baseAttrs(d.cls); d.points = CFG.startPoints + (d.lvl - 1) * CFG.attrPerLevel; delete d.bought;
-    d.tal = {}; d.respecs = 0; d.crypt = { diff: 0, prog: {}, cd: 0 }; d.trophies = []; d.v = 2;
-  }
-  if (d.v === 2) { // v2 -> v3: Händler, Material, Raster-Inventar, Streifzüge
-    d.traders = freshTraders(); d.mats = {}; d.active = null; delete d.quests; delete d.shop; delete d.shopTs;
-    const items = [...d.bag, ...Object.values(d.equip).filter(Boolean)];
-    for (const it of items) { const b = baseOf(it); it.w = b.w; it.h = b.h; it.art = b.art; }
-    const bag = d.bag; d.bag = []; S = d; for (const it of bag) addToBag(it);
-    d.v = 3;
-  }
-  if (d.v === 3) { // v3 -> v4: neue Questgeber, Omen, Splitter, Tutorial, Titel
-    for (const k of GIVERS) d.traders[k] ||= freshGiver();
-    d.omen = null; d.omens = 0; d.shards = []; d.tut = 99; d.title = null; d.v = 4;
-  }
-  if (d.v === 4) { d.haul = null; d.v = 5;
-  }
-  if (d.v === 5) { d.bounty = null; d.v = 6; }
-  if (d.v === 6) { d.sp = {}; d.v = 7; }   // Zauber-Wege
-  if (d.v === 7) { d.belt = [null, null, null]; d.herbs = {}; d.pots = {}; d.potDay = today(); d.v = 8; }   // Alchemie
-  if (d.v === 8) { d.exp = null; d.v = 9; }   // Expedition
-  if (d.v === 9) {   // Expedition mit Weg: alte Ausrichtung → Stationen
-    if (d.exp) { const t = { beute: 'ruin', kraeuter: 'herb', material: 'mats' }[d.exp.focus] || 'herb', n = { 1: 1, 2: 2, 4: 3, 8: 4 }[d.exp.h] || 1;
-      d.exp = { loc: d.exp.loc, h: d.exp.h, start: d.exp.start, end: d.exp.end, nodes: Array.from({ length: n }, () => ({ t, x: 0.5 })), goal: 'Ziel' }; }
-    d.bless = 0; d.v = 10; }
-  if (d.v === 10) { d.desc = null; d.descDay = null; d.v = 11; }   // Der Abstieg
-  if (d.v === 11) { d.pit = freshPit(d.title); d.v = 12; }   // Grube als Rangleiter
-  if (d.v === 12) {   // Akte statt Orte, Krypten nur Boss mit Stufen; ungesicherte Beute wird gesichert
-    if (d.haul) { const h = d.haul; d.gold += h.gold || 0; for (const [k, n] of Object.entries(h.mats || {})) d.mats[k] = (d.mats[k] || 0) + n; const S0 = S; S = d; for (const it of h.items || []) addToBag(it); S = S0; }
-    d.haul = null; d.active = null; d.acts = { prog: {} };
-    const won = c => (d.trophies || []).some(t => t.key.startsWith(c + ':'));
-    d.crypt = { diff: 0, prog: Object.fromEntries(CRYPTS.filter(c => won(c.id)).map(c => [c.id, 1])), cd: 0 };
-    ACTS.forEach((a, i) => { if (d.lvl >= ACT.doneAt[i] || (a.crypt && won(a.crypt))) d.acts.prog[a.id] = ACT.zones + 1; });
-    for (let i = ACTS.length - 1; i > 0; i--) if (d.acts.prog[ACTS[i].id]) for (let j = 0; j < i; j++) d.acts.prog[ACTS[j].id] = ACT.zones + 1;
-    d.v = 13; }
-  if (d.v === 13) { d.wander = null; d.v = 14; }   // Umherziehen
-  if (d.v === 14) {   // Steckbriefe und Omen folgen den Akten: alte Zettel umschreiben, Omen an gesperrtem Ort neu ziehen
-    for (const b of d.bounty?.list || []) { if (b.id === 'blood') b.id = 'elite'; if (b.id === 'deep') Object.assign(b, { id: 'zones', n: BOUNTIES.find(x => x.id === 'zones').n, prog: 0 }); }
-    if (d.omen && !d.omen.done) d.omen = null;
-    d.v = 15; }
-  if (d.v === 15) {   // Gegenstandsnamen mit richtigem Geschlecht
-    for (const it of [...d.bag, ...Object.values(d.equip), ...Object.values(d.traders).flatMap(t => t.shop || []), ...(d.desc?.sack.items || []), ...Object.values(d.pit?.shop || {}).flat().map(w => w.item)]) fixName(it);
-    d.v = 16; }
-  if (d.v === 16) {   // Schärfen/Verstärken gehören dem Platz, nicht mehr dem Teil: Stufe wandert auf den Platz, das Teil bekommt seine Grundwerte zurück
-    d.temper = {};
-    for (const it of [...d.bag, ...Object.values(d.equip)]) { if (!it?.up) continue;
-      const sv = TEMPER[it.slot]; if (sv) { d.temper[it.slot] = Math.max(d.temper[it.slot] || 0, it.up);
-        for (let i = 0; i < it.up; i++) { if (it.dmg) it.dmg = it.dmg.map(v => Math.max(1, Math.round((v - 1) / (1 + sv.per)))); if (it.armor) it.armor = Math.max(1, Math.round((it.armor - 1) / (1 + sv.per))); }
-        it.value = Math.max(1, Math.round(it.value / 1.3 ** it.up)); }
-      delete it.up; }
-    d.v = 17; }
-  if (d.v === 17) {   // Das Brett löst den alten Baum ab: Klassen mit TREE bekommen ihre Talentpunkte zurück,
-    // weil die alten Knoten-IDs dort nicht mehr vorkommen. Punkte zählt talentPoints() aus S.tal, also reicht Leeren.
-    if (TREE[d.cls]) d.tal = {};
-    d.v = 18; }
-  d.name = cleanName(d.name);
-  // v19: Grabsiegel statt Tageszaehler. Der volle Vorrat zum Start, damit niemand
-  // nach dem Aufspielen vor einem leeren Abgrund steht.
-  if (d.v === 18) { d.seals = { day: today(), n: DESCENT.sealMax }; d.descDay = null; d.v = 19; }
-  // v20: Lager. Der Beutel ist von 10x4 auf 10x6 gewachsen – alte Plaetze (y 0..3) bleiben gueltig.
-  if (d.v === 19) { d.stash = []; d.v = 20; }
-  // v21: Die Zauberin hat jetzt ein Brett. Wie bei v17 gibt es keine Umrechnung alter Knoten –
-  // die IDs des alten Baums kommen auf dem Brett nicht vor. Leeren reicht, talentPoints() zählt
-  // die Punkte aus S.tal, sie kommen also von selbst zurück. Die Pruefung laeuft ueber die IDs,
-  // nicht ueber eine Klassenliste – damit gilt sie auch fuer die naechste Klasse, die aufs Brett kommt.
-  if (d.v === 20) {
-    const T = TREE[d.cls];
-    if (T) { const ids = new Set([...T.cols.flatMap(c => c.nodes.map(n => n.id)), ...(T.bridges || []).map(b => b.id)]);
-      if (Object.keys(d.tal || {}).some(k => !ids.has(k))) d.tal = {}; }
-    d.v = 21; }
   return d.v === SAVE_VERSION ? d : null;
 }
 
@@ -249,7 +185,7 @@ export function stats(p = S) {
 
 // Monster skaliert auf Stufe; diff 0.8 .. 1.3
 export function makeMonster(lvl, diff = 1, m = pick(MONSTERS)) {
-  const a = k => Math.round((3 + lvl * 2.7) * diff * (k === 'main' ? 1.4 : 0.8 + rand() * 0.4));
+  const a = k => Math.round((3 + lvl * CFG.monGrow) * diff * (k === 'main' ? 1.4 : 0.8 + rand() * 0.4));
   const main = pick(['str', 'dex', 'int']);
   const mo = { name: m.name, glyph: m.glyph, mat: m.mat, lvl, main, str: a(), dex: a(), int: a(), con: a(), lck: a() * 0.5, armor: Math.round(lvl * 5 * diff) };
   mo[main] = a('main');
@@ -261,7 +197,7 @@ export function makeMonster(lvl, diff = 1, m = pick(MONSTERS)) {
 // --- Kampfkraft: eine Zahl für "wie stark bin ich" (erwarteter Schaden × Haltbarkeit gegen einen Gegner deiner Stufe) ---
 // Ohne Zufall, damit Vergleiche (Item, Attributpunkt) stabil sind.
 export function power(A = stats()) {
-  const L = A.lvl, en = 3 + L * 2.7, eArmor = L * 5, eDmg = ((2 + L * 1.7) + (5 + L * 3)) / 2 * (1 + en * 1.4 / CFG.mainDiv);
+  const L = A.lvl, en = 3 + L * CFG.monGrow, eArmor = L * 5, eDmg = ((2 + L * 1.7) + (5 + L * 3)) / 2 * (1 + en * 1.4 / CFG.mainDiv);
   const red = Math.min(0.6, eArmor / (eArmor + 20 + L * 8)) * (1 - Math.min(0.9, A.pen || 0));
   // Gegner streuen im Geschick (gemessen: etwa 0,7× bis 1,3× um en). Mit einem einzigen Vertreter
   // landete die Schätzung auf Stufe 20 genau auf der Ausweich-Grenze: ein Geschick-Bonus sah doppelt
@@ -281,7 +217,7 @@ export function power(A = stats()) {
   // Einzigartige, die eine Regel ändern (grobe Schätzung; die echten Werte misst tests/uniques.mjs)
   dpt *= 1 + (A.vengeance || 0) * 0.35;        // Vergeltung: im Schnitt etwa ein Drittel Leben fehlt
   dpt *= 1 + (A.zeal || 0) / 3;                // Eifer: jeder dritte Hieb trifft zweimal
-  let heal = (A.regen || 0) * A.hp * (A.lastStand ? 1.15 : 1) + (A.siphon || 0) * A.hp * crit * 0.6, takenF = 1, vulnF = 1;
+  let heal = (A.regen || 0) * A.hp * (A.lastStand ? 1 + (CFG.lastStandMul - 1) * 0.15 : 1) + (A.siphon || 0) * A.hp * crit * 0.6, takenF = 1, vulnF = 1;
   const stunner = (A.spells || []).some(s => s.kind === 'stun' || s.m?.stun), dotter = (A.spells || []).some(s => s.kind === 'dot' || s.m?.poison);
   for (const s of A.spells || []) {
     const m = s.m || {}, cm = (A.critMult || 2) - 1;
@@ -321,7 +257,7 @@ export function power(A = stats()) {
     if (m.noheal || m.cleanse || m.stunImmune) takenF *= 0.985;   // Antworten auf Boss-Mechaniken: im Schnitt wenig, gegen den passenden Boss viel
   }
   dpt *= vulnF;
-  heal += dpt * (A.leech || 0) * (A.lastStand ? 1.15 : 1);   // Lebensraub aus Hieben und Zaubern (Set: unter halbem Leben doppelt)
+  heal += dpt * (A.leech || 0) * (A.lastStand ? 1 + (CFG.lastStandMul - 1) * 0.15 : 1);   // Lebensraub aus Hieben und Zaubern (Set: unter halbem Leben × CFG.lastStandMul)
   if (A.venom) heal += dpt * (A.poison || 0) * A.venom * 2;
   if (A.tollback) takenF *= 0.97;   // betäubte Gegner schlagen seltener – gegen die Glocke viel mehr
   if (A.shred) dpt *= 1 + A.shred * 0.8;       // gebrochene Rüstung wirkt den Rest des Kampfs
@@ -607,7 +543,7 @@ export function craftCheck(it, opId, stat) {
   if ((opId === 'chaos' || opId === 'values' || opId === 'remove') && !free.length) return 'Kein unversiegelter Bonus.';
   if (opId === 'add' && keys.length >= CRAFT.maxAff[it.rarity] && !rise)
     return it.risen ? 'Dieses Teil wurde schon erhoben.' : 'Kein Platz für weitere Boni.';
-  if (opId === 'add' && !affixPool(it).some(a => !(a.stat in base))) return 'Alle Boni schon vorhanden.';
+  if (opId === 'add' && !affixRoom(it, keys, rise || it.rarity).length) return 'Kein passender Bonus mehr frei (Präfix/Suffix voll).';
   return null;
 }
 // Alle unversiegelten Boni neu (gleiche Anzahl), versiegelter bleibt – auch für Ysoldes „Neu weihen“
@@ -616,13 +552,15 @@ export function craft(id, opId, stat) {
   const op = CRAFT.ops.find(o => o.id === opId), legend = it.rarity === 'legendary';
   const need = craftMat(it, opId), rise = craftRaises(it, opId);
   const gold = craftGold(it), base = baseMods(it), tiers = { ...(it.tiers || {}) };
-  const roll1 = k => { const T = rollTier(it.lvl); tiers[k] = T.t; base[k] = affixValue(AFFIXES.find(a => a.stat === k), it.lvl, T, legend); };
+  const roll1 = k => { const T = rollTier(it.lvl); tiers[k] = T.t; base[k] = affixValue(AFFIXES.find(a => a.stat === k), T); };
+  // Ein neuer Bonus kommt nur, wo Präfix/Suffix und Gruppe frei sind (affixRoom) – dieselbe Regel wie bei der Beute
+  const add1 = (rar = it.rarity) => { const room = affixRoom(it, Object.keys(base), rar); if (room.length) roll1(pickAffix(room).stat); };
   const free = Object.keys(base).filter(k => k !== it.sealed);
   if (opId === 'seal') it.sealed = stat;
   else if (opId === 'chaos') { const n = free.length; for (const k of free) { delete base[k]; delete tiers[k]; }
-    const pool = affixPool(it).filter(a => !(a.stat in base)).sort(() => rand() - 0.5).slice(0, n); for (const a of pool) roll1(a.stat); }
+    for (let i = 0; i < n; i++) add1(); }
   else if (opId === 'values') for (const k of free) roll1(k);
-  else if (opId === 'add') { const pool = affixPool(it).filter(a => !(a.stat in base)); roll1(pool[Math.floor(rand() * pool.length)].stat); }
+  else if (opId === 'add') add1(rise || it.rarity);
   else if (opId === 'remove') { const k = free[Math.floor(rand() * free.length)]; delete base[k]; delete tiers[k]; }
   it.tiers = tiers; setBase(it, base);
   // Neu gewuerfelt heisst: nicht mehr fusioniert. Bei `values`/`chaos` wuerfelt roll1() auch die
@@ -660,8 +598,10 @@ export const fuseFull = main => Object.keys(baseMods(main)).length >= CRAFT.maxA
 export const fusePromote = (main, mainStat) => fuseFull(main) && !mainStat && !main.risen ? nextRar(main.rarity) : null;
 // Welcher Bonus des Hauptteils weicht? Hat es den Futter-Bonus schon, ersetzt er genau diesen
 // (gleicher Bonus, anderer Wert/Stufe) – sonst der angetippte, aber nur bei vollem Teil.
+// Ein angetippter Bonus weicht nur, wenn er muss: Teil voll, oder der Futter-Bonus findet auf seiner Seite keinen Platz.
+const fuseNeedsRoom = (main, foodStat) => fuseFull(main) || !affixRoom(main, Object.keys(baseMods(main))).some(a => a.stat === foodStat);
 export const fuseReplaces = (main, foodStat, mainStat) =>
-  foodStat && foodStat in baseMods(main) ? foodStat : fuseFull(main) && mainStat ? mainStat : null;
+  foodStat && foodStat in baseMods(main) ? foodStat : mainStat && mainStat in baseMods(main) && fuseNeedsRoom(main, foodStat) ? mainStat : null;
 
 // Warum geht die Fusion nicht? null = möglich
 export function fuseCheck(main, food, foodStat, mainStat) {
@@ -677,10 +617,15 @@ export function fuseCheck(main, food, foodStat, mainStat) {
   if (foodStat in mb) return foodStat === main.sealed ? 'Dieser Bonus ist versiegelt.'
     : mainStat && mainStat !== foodStat ? 'Gleicher Bonus ersetzt sich selbst – im Hauptteil nichts antippen.' : null;
   if (!affixPool(main).some(a => a.stat === foodStat)) return 'Dieser Bonus passt nicht auf diesen Platz.';
-  if (!fuseFull(main)) return null;                                  // Platz frei: der Bonus kommt einfach dazu
+  // Präfix/Suffix und Gruppe (affixRoom): passt der Bonus nur, wenn einer derselben Seite weicht, muss man ihn antippen
+  const fits = (keep, rar = main.rarity) => affixRoom(main, keep, rar).some(a => a.stat === foodStat);
+  if (!fuseFull(main) && fits(Object.keys(mb))) return null;          // Platz frei: der Bonus kommt einfach dazu
   if (mainStat) return mainStat === main.sealed ? 'Dieser Bonus ist versiegelt.'
-    : !(mainStat in mb) ? 'Bonus im Hauptteil antippen, der weichen soll.' : null;
-  return nextRar(main.rarity) ? null : 'Bonus im Hauptteil antippen, der weichen soll.';
+    : !(mainStat in mb) ? 'Bonus im Hauptteil antippen, der weichen soll.'
+    : fits(Object.keys(mb).filter(k => k !== mainStat)) ? null : 'Passt nur, wenn ein Bonus derselben Seite (Präfix/Suffix) weicht.';
+  if (!fuseFull(main)) return 'Diese Seite (Präfix/Suffix) ist voll – Bonus im Hauptteil antippen, der weichen soll.';
+  if (nextRar(main.rarity) && !main.risen && fits(Object.keys(mb), nextRar(main.rarity))) return null;
+  return 'Bonus im Hauptteil antippen, der weichen soll.';
 }
 
 export function fuse(mainId, foodId, foodStat, mainStat) {

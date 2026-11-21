@@ -1,17 +1,18 @@
-// Eichung der Item-Boni: Wie viel Kampfkraft bringt ein Bonus der Stufe III, verglichen mit dem Hauptattribut (Stufe III)?
+// Eichung der Item-Boni: Wie viel Kampfkraft bringt ein Bonus, verglichen mit dem Hauptattribut derselben Bonus-Stufe?
+// Seit Welle 1a (feste Stufen) gilt je Heldenstufe L die beste Stufe, die Gegenstandsstufe L freischaltet (topTier), Wert = Mitte.
 // Für jede Klasse und Stufe wird ein typischer Held gebaut (Punkte wie ein Spieler: viel Hauptattribut, etwas Konstitution,
 // gewöhnliche Ausrüstung der Stufe). Ausgabe: Verhältnis je Bonus (1,00 = so gut wie das Hauptattribut).
 // Aufruf: node tests/calib.mjs [--per]   (--per: schlägt `per`-Werte vor, mit denen alle Boni gleich viel bringen)
 globalThis.localStorage = { _d: {}, getItem(k) { return this._d[k] ?? null; }, setItem(k, v) { this._d[k] = String(v); }, removeItem(k) { delete this._d[k]; } };
 const D = await import('../js/data.js');
 const G = await import('../js/state.js');
-const { makeItem, affixScale } = await import('../js/loot.js');
+const { makeItem, tierBand, topTier } = await import('../js/loot.js');
 const wantPer = process.argv.includes('--per');
 const perCls = process.argv.includes('--cls');   // flache Werte je Klasse zeigen – der Mittelwert versteckt den Entwurf
 
 const LV = [5, 10, 20, 30, 40], SLOTS = ['helm', 'chest', 'gloves', 'boots', 'belt', 'amulet', 'ring1', 'ring2', 'offhand'];
 const DEF = new Set(['con', 'lifep', 'evadep', 'blockp', 'thornsp', 'armor']);   // Verteidigung: gegen Konstitution messen
-const tierVal = (a, L) => (a.per || 1) * affixScale(a, L);   // Stufe III, ohne Streuung
+const tierVal = (a, L) => { const [lo, hi] = tierBand(a, topTier(L)); return (lo + hi) / 2; };   // beste freie Stufe, Mitte
 
 function hero(cls, L) {
   G.newChar('Eich', cls); const S = G.S; S.lvl = L;
@@ -26,19 +27,19 @@ function hero(cls, L) {
 const gain = (slot, k, v) => { const S = G.S, it = S.equip[slot], old = it.mods; it.mods = { [k]: v }; const p = G.power(); it.mods = old; return p; };
 
 const rows = {}, clsRows = {};
-for (const cls of Object.keys(D.CLASSES)) for (const L of LV) {
+for (const cls of D.PLAYABLE) for (const L of LV) {
   hero(cls, L); const p0 = G.power(), main = D.CLASSES[cls].main;
-  const ref = { off: gain('ring1', main, tierVal({ per: 1 }, L)) - p0, def: gain('ring1', 'con', tierVal({ per: 1 }, L)) - p0 };
+  const ref = { off: gain('ring1', main, tierVal(main, L)) - p0, def: gain('ring1', 'con', tierVal('con', L)) - p0 };
   for (const a of D.AFFIXES) {
     if (a.cls && a.cls !== cls) continue;
     const slot = !a.slots ? 'ring1' : a.slots.includes('ring') ? 'ring1' : a.slots[0] === 'weapon' ? 'weapon' : a.slots[0];
     const unit = 10;                                         // 10 Punkte bzw. 10 % messen (Grenzwert)
     const g = gain(slot, a.stat, unit) - p0, r = ref[DEF.has(a.stat) ? 'def' : 'off'];
     const key = a.cls ? 'sk_* (Zauber)' : a.stat;
-    // Verhältnis bei per=1 (Bonuswert = Skala der Stufe) → nötiges per = 1 / Verhältnis
-    const r1 = (g / unit) * affixScale(a, L) / r;
-    (rows[key] ||= {})[L] = (rows[key][L] || []); rows[key][L].push(wantPer ? r1 : r1 * (a.per || 0));
-    ((clsRows[key] ||= {})[L] ||= []).push(r1 * (a.per || 0));
+    // Verhältnis beim Wert der Stufe → nötiges per = per / Verhältnis
+    const r1 = (g / unit) * tierVal(a, L) / r;
+    (rows[key] ||= {})[L] = (rows[key][L] || []); rows[key][L].push(wantPer ? r1 / (a.per || 1) : r1);
+    ((clsRows[key] ||= {})[L] ||= []).push(r1);
   }
 }
 const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
@@ -48,14 +49,14 @@ if (perCls) {
   const FLACH = ['str', 'dex', 'int', 'con', 'lck', 'armor', 'dmg', 'haste'];
   for (const k of FLACH) {
     console.log(`\n${k}`.padEnd(14) + LV.map(l => ('St.' + l).padStart(8)).join(''));
-    Object.keys(D.CLASSES).forEach((cls, i) => {
+    D.PLAYABLE.forEach((cls, i) => {
       console.log(('  ' + D.CLASSES[cls].name + (D.CLASSES[cls].main === k ? ' *' : '')).padEnd(14)
         + LV.map(L => (clsRows[k]?.[L]?.[i] ?? NaN).toFixed(2).padStart(8)).join(''));
     });
   }
   process.exit(0);
 }
-console.log((wantPer ? 'Vorschlag per (gleich viel wie Hauptattribut/Konstitution)' : 'Bonus III ÷ Hauptattribut III (Verteidigung ÷ Konstitution)').padEnd(44) + LV.map(l => ('St.' + l).padStart(8)).join(''));
+console.log((wantPer ? 'Vorschlag per (gleich viel wie Hauptattribut/Konstitution)' : 'Bonus ÷ Hauptattribut, gleiche Stufe (Abwehr ÷ Konst.)').padEnd(44) + LV.map(l => ('St.' + l).padStart(8)).join(''));
 for (const [k, byL] of Object.entries(rows)) {
   const a = D.AFFIXES.find(x => x.stat === k) || {};
   console.log(k.padEnd(44) + LV.map(L => { const r = avg(byL[L]); return (wantPer ? (1 / r).toFixed(2) : r.toFixed(2)).padStart(8); }).join(''));

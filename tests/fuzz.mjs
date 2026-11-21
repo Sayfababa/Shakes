@@ -133,7 +133,7 @@ const names = Object.keys(actions);
 
 let crashes = 0;
 for (let r = 0; r < RUNS; r++) {
-  localStorage._d = {}; const cls = Object.keys(D.CLASSES)[r % 6]; G.newChar('Fuzz' + r, cls); G.S.tut = 99;
+  localStorage._d = {}; const cls = D.PLAYABLE[r % D.PLAYABLE.length]; G.newChar('Fuzz' + r, cls); G.S.tut = 99;
   if (r % 2) { G.S.lvl = 18 + r * 2; G.S.points = 5 + (G.S.lvl - 1) * 5; G.S.gold = 5000; G.S.shards = ['c1', 'c2', 'c3', 'c4'].slice(0, r % 5); }   // auch späte Spielphasen prüfen
   for (let i = 0; i < STEPS; i++) {
     const a = pick(names);

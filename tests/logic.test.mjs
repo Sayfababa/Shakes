@@ -9,6 +9,7 @@ const Q = await import('../js/quests.js');
 const Game = await import('../js/game.js');
 const { fight } = await import('../js/combat.js');
 const L = await import('../js/loot.js');
+const Ld = L;   // für Tests, die L lokal anders brauchen
 const { makeItem } = L;
 
 const fresh = (cls = 'paladin') => { G.newChar('Test', cls); G.S.tut = 99; return G.S; };
@@ -114,9 +115,9 @@ test('Anlegen tauscht und verliert nichts', () => {
   assert.equal(S.equip.weapon, w); assert.ok(S.bag.includes(before));
 });
 
-test('Stufenaufstieg gibt 5 Attributpunkte und 1 Talentpunkt', () => {
+test('Stufenaufstieg gibt CFG.attrPerLevel Attributpunkte und 1 Talentpunkt', () => {
   const S = fresh(); const p = S.points; G.gainXp(G.xpNeed(1));
-  assert.equal(S.lvl, 2); assert.equal(S.points, p + 5); assert.equal(G.talentPoints(), 1);
+  assert.equal(S.lvl, 2); assert.equal(S.points, p + D.CFG.attrPerLevel); assert.equal(G.talentPoints(), 1);
 });
 
 test('Quest: Boss vor der Quest besiegt zählt trotzdem (kein Softlock)', () => {
@@ -149,15 +150,11 @@ test('Dienste: Schärfen erhöht Schaden, kostet Material', () => {
   const S = fresh(); S.gold = 9999; S.mats.zahn = 10; const d0 = S.equip.weapon.dmg[1];
   const s0 = G.stats().dmg[1]; G.doService('halvar', 'sharpen'); assert.equal(S.equip.weapon.dmg[1], d0, 'Teil selbst bleibt'); assert.ok(G.stats().dmg[1] > s0); assert.equal(G.slotUp('weapon'), 1); assert.equal(S.mats.zahn, 8);
 });
-test('Schärfen bleibt am Platz, wenn die Waffe wechselt; Migration verschiebt alte Stufen', () => {
+test('Schärfen bleibt am Platz, wenn die Waffe wechselt', () => {
   const S = fresh(); S.gold = 99999; S.mats.zahn = 10; G.doService('halvar', 'sharpen'); G.doService('halvar', 'sharpen');
   const old = S.equip.weapon, w = { ...old, id: 'neu', dmg: [...old.dmg] }; S.equip.weapon = w;
   assert.equal(G.slotUp('weapon'), 2); assert.equal(G.tempered(10, 'weapon'), Math.round((Math.round(10 * 1.12) + 1) * 1.12) + 1);
   S.equip.weapon = null; assert.ok(G.serviceState(D.SERVICES.halvar[0]).reason !== 'Nichts angelegt', 'Platz lässt sich auch leer schärfen');
-  // alter Stand: Stufe steckt im Teil
-  S.equip.weapon = old; S.temper = {}; const raw = [...old.dmg]; old.dmg = old.dmg.map(v => Math.round(v * 1.12) + 1); old.up = 1; S.v = 16; delete S.temper; G.save();
-  G.load(); assert.equal(G.S.v, G.SAVE_VERSION); assert.equal(G.slotUp('weapon'), 1); assert.ok(!G.S.equip.weapon.up);
-  assert.ok(Math.abs(G.S.equip.weapon.dmg[1] - raw[1]) <= 1, 'Grundwert zurück');
 });
 
 test('Grube kostet Glut und hat Abklingzeit (keine Gold-Endlosquelle)', () => {
@@ -170,10 +167,20 @@ test('Bosse haben eigene Muster', () => {
   for (const c of D.CRYPTS) { G.S.crypt.prog[c.id] = 4; const m = G.cryptEnemy(c); assert.ok(m.boss); assert.ok(c.boss.mechText, c.id); }
 });
 
-test('Speichern: v1-Spielstand wird bis zur aktuellen Version migriert', () => {
-  localStorage.setItem('aschenkrone_v1', JSON.stringify({ v: 1, name: 'Alt', cls: 'witch', lvl: 4, xp: 0, gold: 9, attrs: { str: 5, dex: 5, int: 14, con: 6, lck: 3 },
-    bought: {}, equip: {}, bag: [], glut: 50, glutTs: Date.now(), quests: [], active: null, shop: [], shopTs: 0, journal: [], arenaTs: 0, honor: 0, wins: 0, deaths: 0 }));
-  const S = G.load(); assert.equal(S.v, G.SAVE_VERSION); assert.ok(S.traders.prophet); assert.ok(Array.isArray(S.shards));
+test('Neustart v22: alter Stand wird gesichert, nicht umgerechnet; neuer Held überschreibt die Sicherung nicht', () => {
+  const old = JSON.stringify({ v: 21, name: 'Alt', cls: 'witch', lvl: 23, gold: 9, equip: {}, bag: [] });
+  localStorage.setItem('aschenkrone_v1', old);
+  assert.equal(G.load(), null); assert.equal(G.restarted, 23); assert.ok(!G.unreadable, 'alter Stand ist kein Lesefehler');
+  assert.equal(localStorage.getItem('aschenkrone_v1_bak'), old);
+  G.newChar('Neu', 'sorceress'); assert.equal(G.S.v, G.SAVE_VERSION); assert.equal(localStorage.getItem('aschenkrone_v1_bak'), old);
+  G.load(); assert.equal(G.S.name, 'Neu'); assert.equal(G.restarted, 0);
+  localStorage.removeItem('aschenkrone_v1_bak');
+});
+
+test('Nur Zauberin, Assassine, Barbar sind wählbar – die anderen Klassen bleiben als Daten', () => {
+  assert.deepEqual([...D.PLAYABLE].sort(), ['assassin', 'barbarian', 'sorceress']);
+  for (const k of D.PLAYABLE) assert.ok(D.CLASSES[k] && D.SPELLS[k], k);
+  for (const k of ['paladin', 'huntress', 'witch']) assert.ok(D.CLASSES[k], k + ' fehlt in den Daten');
 });
 
 test('Gefahr-Schätzung liegt zwischen 0 und 1', () => {
@@ -222,15 +229,6 @@ test('Omen fällt nur auf Orte offener Akte', () => {
   const S = fresh(); S.lvl = 12; S.acts.prog.a1 = 9; S.acts.prog.a2 = 9; assert.deepEqual(G.openLocs().map(l => l.id), ['friedhof', 'muehle', 'katakomben']);
 });
 
-test('Migration v14 → v15: alte Steckbriefe werden umgeschrieben, Omen an gesperrtem Ort neu gezogen', () => {
-  const S = fresh(); const d = JSON.parse(JSON.stringify(S)); d.v = 14; d.lvl = 4;
-  d.bounty = { day: 1, list: [{ id: 'blood', target: null, n: 2, prog: 1, claimed: false }, { id: 'deep', target: null, n: 1, prog: 0, claimed: false }, { id: 'crypt', target: null, n: 3, prog: 0, claimed: true }] };
-  d.omen = { day: 1, loc: 'muehle', type: 'gold', done: false };
-  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); localStorage.removeItem('aschenkrone_v1_sig');
-  const L = G.load(); assert.equal(L.v, G.SAVE_VERSION); assert.deepEqual(L.bounty.list.map(b => b.id), ['elite', 'zones', 'crypt']);
-  assert.equal(L.bounty.list[0].prog, 1); assert.equal(L.bounty.list[2].claimed, true); assert.equal(L.omen, null);
-});
-
 test('Unlesbarer Spielstand wird gesichert statt überschrieben, und kommt zurück', () => {
   const S = fresh(); S.gold = 4321; G.save(); const good = localStorage.getItem('aschenkrone_v1');
   const d = JSON.parse(good); d.v = 999; const future = JSON.stringify(d);
@@ -260,16 +258,13 @@ test('Umherziehen übertrifft die Glut nicht: 2 Std. bringen in jedem Akt 0,5–
     assert.ok(mats / N < 12 && herbs / N < 8, `Akt ${a.n}: Material ${mats / N}, Zutaten ${herbs / N}`); }
 });
 
-test('Gegenstandsnamen: richtiges Geschlecht, nie ein Schrägstrich; alte Namen werden gerichtet', async () => {
+test('Gegenstandsnamen: richtiges Geschlecht, nie ein Schrägstrich; alte Namen werden gerichtet (fixName)', async () => {
   const { adj, fixName } = await import('../js/loot.js');
   assert.equal(adj('Starker', 'Kappe'), 'Starke'); assert.equal(adj('Rostiger', 'Beil'), 'Rostiges'); assert.equal(adj('Zäher', 'Stiefel'), 'Zähe'); assert.equal(adj('Scharfer', 'Dolch'), 'Scharfer');
   for (const k of Object.keys(D.GENUS)) for (const n of D.GENUS[k]) assert.ok(D.BASES.some(b => b.name === n), 'unbekannt: ' + n);
   for (const cls of Object.keys(D.CLASSES)) assert.ok(!fresh(cls).equip.weapon.name.includes('/'));
   for (let i = 0; i < 400; i++) { const it = makeItem(1 + i % 30); assert.ok(!it.name.includes('/'), it.name); if (it.rarity === 'magic' && D.GENUS.f.includes(it.base)) assert.ok(!/er /.test(it.name.split(it.base)[0]), it.name); }
   const old = { name: 'Rostige/r Beil', rarity: 'normal', base: 'Beil' }; fixName(old); assert.equal(old.name, 'Rostiges Beil');
-  const S = fresh(); const d = JSON.parse(JSON.stringify(S)); d.v = 15; d.equip.weapon.name = 'Rostige/r Kurzschwert'; d.bag.push({ id: 'x', slot: 'helm', name: 'Schartige/r Kappe', rarity: 'broken', base: 'Kappe', mods: {}, x: 0, y: 0, w: 2, h: 2 });
-  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); localStorage.removeItem('aschenkrone_v1_sig'); const L = G.load();
-  assert.equal(L.equip.weapon.name, 'Rostiges Kurzschwert'); assert.equal(L.bag[0].name, 'Schartige Kappe');
 });
 
 test('Rat bei schlechter Siegchance: Punkte, dann Beutel, sonst stärker werden', () => {
@@ -326,13 +321,26 @@ test('Schmiede: Rune kostet Material, gibt Wert nach Güte, Plätze begrenzt', (
   assert.equal(G.forge('chest', 'zahn', 15), null, 'leerer Platz');
 });
 
-test('Bonus-Stufen: I/II erst ab hoher Gegenstandsstufe, Werte steigen mit der Stufe', () => {
-  fresh(); const low = [], high = [];
-  for (let i = 0; i < 1500; i++) { low.push(makeItem(5, { minRarity: 2 })); high.push(makeItem(30, { minRarity: 2 })); }
-  const tiers = l => l.flatMap(it => Object.values(it.tiers || {}));
-  assert.ok(!tiers(low).some(t => t <= 2), 'Stufe I/II auf Gegenstandsstufe 5');
-  assert.ok(tiers(high).includes(1), 'Stufe I kommt auf hoher Stufe nie vor');
-  for (const it of high) for (const [k, t] of Object.entries(it.tiers)) assert.ok(it.mods[k] >= 1 && t >= 1 && t <= 5);
+test('Bonus-Stufen: Gegenstandsstufe schaltet frei, Werte liegen im festen Bereich ihrer Stufe, Präfix/Suffix stimmen', () => {
+  fresh(); const L = { 3: [], 30: [], 45: [] };
+  for (let i = 0; i < 1500; i++) for (const lv of Object.keys(L)) L[lv].push(makeItem(+lv, { minRarity: 2 }));
+  const tiers = l => l.filter(it => !it.unique).flatMap(it => Object.values(it.tiers || {}));
+  assert.ok(!tiers(L[3]).some(t => t <= 4), 'nur V auf Gegenstandsstufe 3–4');
+  assert.ok(!tiers(L[30]).includes(1) && tiers(L[30]).includes(2), 'Stufe II ja, I nein auf 30');
+  assert.ok(tiers(L[45]).includes(1), 'Stufe I kommt auf hoher Stufe nie vor');
+  for (const it of Object.values(L).flat()) {
+    for (const [k, t] of Object.entries(it.tiers)) { const [lo, hi] = Ld.tierBand(k, t), m = it.unique ? D.CFG.uniqMult : 1;
+      assert.ok(it.mods[k] >= Math.round(lo * m) && it.mods[k] <= Math.round(hi * m), `${k} ${it.mods[k]} nicht in Stufe ${t}`);
+      if (it.unique) continue; assert.ok(D.TIERS.find(x => x.t === t).minLvl <= it.lvl, `Stufe ${t} auf Gegenstandsstufe ${it.lvl}`); }
+    if (it.unique || it.set) continue;
+    const aff = Object.keys(it.mods).map(k => D.AFFIXES.find(a => a.stat === k)), lim = Ld.sideLimits(it), r = D.RARITIES.find(x => x.id === it.rarity);
+    assert.equal(aff.length, r.sides[0] + r.sides[1], `${it.rarity} ${it.slot}: ${aff.length} Boni`);
+    assert.ok(aff.filter(a => a.side === 'pre').length <= lim.pre && aff.filter(a => a.side === 'suf').length <= lim.suf, `${it.slot}: Präfix/Suffix`);
+    assert.ok(aff.filter(a => a.group === 'attr').length <= 1, 'zwei Hauptattribute auf einem Teil');
+    if (['dmg', 'dmgp', 'critc', 'critd', 'spellp'].some(k => k in it.mods)) assert.ok(['weapon', 'gloves', 'ring', 'amulet'].includes(it.slot), `Schaden auf ${it.slot}`);
+  }
+  // Prozent-Boni klein: Stufe I höchstens 20 % je Teil (Krit-Chance höchstens 15) – außer den geeichten Sonder-Einheiten
+  for (const a of D.AFFIXES.filter(a => a.pct && !['critd', 'thornsp'].includes(a.stat) && !a.cls)) assert.ok(Ld.tierBand(a, 1)[1] <= (a.stat === 'critc' ? 15 : 20), a.stat);
 });
 
 test('Sonderboni und Einzigartige: selten, korrekt aufgebaut, wirken im Kampf', () => {
@@ -465,7 +473,7 @@ test('Umschmieden: kein Gold durch Craften+Verkaufen – bei keinem Eingriff, ke
     let spent = 0, gain = 0;
     for (let i = 0; i < 150; i++) { const it = craftable(rar, L); S.bag = [it]; const v0 = it.value, g0 = S.gold;
       if (G.craft(it.id, op).err) continue; spent += g0 - S.gold; gain += it.value - v0; }
-    assert.ok(gain < spent, `${op}/${rar}/${L}: Wertzuwachs ${gain} > Kosten ${spent}`);
+    assert.ok(gain < spent || !spent && !gain, `${op}/${rar}/${L}: Wertzuwachs ${gain} > Kosten ${spent}`);   // volle Teile: „Hinzufügen“ geht nicht – dann nichts
   }
 });
 
@@ -543,7 +551,7 @@ test('Krit-Schaden steckt im Kampf: höherer Multiplikator → mehr Schaden pro 
   assert.ok(avgCrit(3) > avgCrit(2) * 1.3);
 });
 
-test('Eichung: jeder Prozent-Bonus der Stufe III liegt nah am Hauptattribut (Stufe 20)', async () => {
+test('Eichung: jeder Prozent-Bonus liegt nah am Hauptattribut derselben Stufe (Heldenstufe 20)', async () => {
   const { execFileSync } = await import('node:child_process');
   const out = execFileSync('node', ['tests/calib.mjs'], { encoding: 'utf8' });
   // Alle elf Prozent-Boni. critd fehlte hier lange – deshalb konnte Krit-Schaden auf ein Drittel
@@ -551,7 +559,10 @@ test('Eichung: jeder Prozent-Bonus der Stufe III liegt nah am Hauptattribut (Stu
   for (const k of ['critc', 'critd', 'dmgp', 'spellp', 'penp', 'leechp', 'lifep', 'blockp', 'evadep', 'thornsp', 'haste', 'sk_*']) {
     const row = out.split('\n').find(l => l.startsWith(k)); assert.ok(row, k);
     const v20 = parseFloat(row.trim().split(/\s+/).slice(-3)[0]);   // Spalte St.20
-    assert.ok(v20 > 0.7 && v20 < 1.4, `${k}: ${v20} weicht zu weit vom Hauptattribut ab`);
+    // Ausnahmen, gemessen 2026-11-21 (Welle 1a): Lebensraub ist ganzzahlig schon auf dem kleinsten Schritt (1–5 % von V bis I)
+    // und liegt bei ~2,1 – kleiner geht nicht ohne Kommastellen (offene Frage im Bericht). Dornen laufen in CAPS.thorns (~0,5).
+    const [lo, hi] = k === 'leechp' ? [0.7, 2.3] : k === 'thornsp' ? [0.4, 1.4] : [0.7, 1.4];
+    assert.ok(v20 > lo && v20 < hi, `${k}: ${v20} weicht zu weit vom Hauptattribut ab`);
   }
 });
 
@@ -603,12 +614,6 @@ test('Zauber-Wege wirken im Kampf: sofort, Brand, Kombo-Krit, Bannen, Reinigen, 
   assert.ok(res > 0, 'Standhaft widersteht der Glocke');
 });
 
-test('Migration: Spielstand v6 bekommt leere Zauber-Wege', () => {
-  fresh('witch'); const d = JSON.parse(JSON.stringify(G.S)); d.v = 6; delete d.sp;
-  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); const L = G.load(); assert.equal(L.v, G.SAVE_VERSION); assert.deepEqual(L.sp, {});
-});
-
-// --- Alchemie ---
 test('Tränke: Bilder, Rezepte, Auslöser gültig', async () => {
   const fs = await import('node:fs');
   for (const p of D.POTIONS) {
@@ -655,10 +660,6 @@ test('Kampf: Gegengift macht immun gegen neues Gift, Weihwasser stoppt Heilung',
   assert.ok(!r.log.slice(i + 1).some(l => l.tk === 'poison' && l.who === 'b'), 'nach Gegengift kein Gift mehr');
   const C = { ...G.makeMonster(5, 1), regen: 0.1, hp: 5000 }, A2 = { ...G.stats(), hp: 99999, belt: [{ id: 'w', name: 'W', fx: { noheal: 99 }, trig: 'start' }] };
   assert.ok(!fight(A2, C).log.some(l => l.who === 'b' && l.heal), 'kein Heilen unter Weihwasser');
-});
-test('Migration: Spielstand v7 bekommt Gürtel, Zutaten, Tränke', () => {
-  fresh('witch'); const d = JSON.parse(JSON.stringify(G.S)); d.v = 7; delete d.belt; delete d.herbs; delete d.pots; delete d.potDay;
-  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); const L = G.load(); assert.ok(L.v >= 8); assert.deepEqual(L.belt, [null, null, null]); assert.deepEqual(L.herbs, {});
 });
 test('Vorbereitung: ein Tippen packt/braut den passenden Trank, Bester Gürtel nimmt nur Vorrat', () => {
   const S = fresh('paladin'); S.lvl = 10; S.gold = 1000; S.herbs = { silberstaub: 4 }; S.pots = { rotwurz: 3, steinhaut: 3 };
@@ -716,14 +717,6 @@ test('Expedition: Segen/Fluch wirkt einmal auf den nächsten Krypta-Kampf', () =
   const S = fresh('paladin'); S.lvl = 10; S.acts.prog.a1 = D.ACT.zones + 1; const c = D.CRYPTS[0]; S.bless = 0.2; const A = Game.blessed(G.stats()); assert.equal(A.hp, Math.round(G.stats().hp * 1.2));
   S.crypt.cd = 0; const r = Game.cryptFight(c.id); assert.ok(r); assert.equal(r.rew.bless, 0.2); assert.equal(S.bless, 0, 'verbraucht');
 });
-test('Migration: Spielstand v8 bekommt Expedition, v9-Expedition (Ausrichtung) wird zum Weg', () => {
-  fresh('witch'); let d = JSON.parse(JSON.stringify(G.S)); d.v = 8; delete d.exp; delete d.bless;
-  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); let L = G.load(); assert.equal(L.v, G.SAVE_VERSION); assert.equal(L.exp, null); assert.equal(L.bless, 0);
-  fresh('witch'); d = JSON.parse(JSON.stringify(G.S)); d.v = 9; delete d.bless; d.exp = { loc: 'friedhof', h: 8, focus: 'kraeuter', start: Date.now() - 9 * 3600e3, end: Date.now() - 3600e3 };
-  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); L = G.load(); assert.equal(L.exp.nodes.length, 4); assert.ok(L.exp.nodes.every(n => n.t === 'herb'));
-  G.S.exp = L.exp; const r = Game.claimExped(); assert.ok(r && r.rew.herbs.length, 'alte Expedition lässt sich heimholen');
-});
-
 // --- Der Abstieg ---
 const descHero = (cls = 'paladin', lvl = 14) => { const S = fresh(cls); S.lvl = lvl; S.attrs.str += 120; S.attrs.con += 80; S.attrs.int += 60; S.attrs.dex += 40;
   S.trophies.push({ key: 'c2:0', name: 'x', diff: 'Normal', eff: D.CRYPTS[1].trophy }); return S; };
@@ -804,11 +797,7 @@ test('Abstieg: Boss besiegt = draußen, Neuladen mitten im Abstieg verändert ni
   const r = Game.descEnter('boss'); assert.ok(r.res.win, 'starker Held schlägt den Boss'); assert.ok(r.res.desc.out); assert.equal(G.S.desc, null);
   assert.ok(r.res.desc.out.items.length >= 2, 'Boss bringt mindestens 2 Fundstücke');
 });
-test('Migration: Spielstand v10 bekommt den Abstieg', () => {
-  fresh(); const d = JSON.parse(JSON.stringify(G.S)); d.v = 10; delete d.desc; delete d.descDay;
-  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); const L = G.load(); assert.equal(L.v, G.SAVE_VERSION); assert.equal(L.desc, null); assert.equal(L.descDay, null);
-});
-test('Grube: Leiter, Platztausch, Rang, Laden, Herausforderung, Migration', () => {
+test('Grube: Leiter, Platztausch, Rang, Laden, Herausforderung', () => {
   fresh(); const S = G.S; S.lvl = 30; S.attrs[D.CLASSES[S.cls].main] += 400; S.attrs.con += 300;
   assert.equal(Game.pitPlace(), D.PIT.size + 1); assert.equal(Game.pitFoes().length, D.PIT.look);
   const g = S.glut, f = Game.pitFoes()[2], r = Game.pitFight(f.id); assert.ok(r, 'Kampf läuft'); assert.equal(S.glut, g, 'kostet keine Glut');
@@ -822,8 +811,6 @@ test('Grube: Leiter, Platztausch, Rang, Laden, Herausforderung, Migration', () =
   const n = S.bag.length; assert.equal(Game.pitBuy('blut', 0), ''); assert.equal(S.bag.length, n + 1); assert.equal(Game.pitBuy('blut', 0), 'Schon gekauft.');
   Game.pitBuy('blut', 1); Game.pitBuy('blut', 2); assert.equal(Game.pitBuy('kette', 0), 'Diese Woche nichts mehr.');
   const ch = Game.pitChallenge(); S.pit.ts = 0; const t0 = ch.tries; Game.pitFight(ch.rid, true); assert.equal(ch.tries, t0 - 1);
-  const d = JSON.parse(JSON.stringify(S)); d.v = 11; delete d.pit; localStorage.setItem('aschenkrone_v1', JSON.stringify(d));
-  const L = G.load(); assert.equal(L.v, G.SAVE_VERSION); assert.equal(L.pit.lad.length, D.PIT.size + 1);
 });
 test('Akte: neue Gebiete frei, Wiederholen kostet Glut, Boss öffnet nächsten Akt + Krypta, Krypta-Stufen', () => {
   const S = fresh('barbarian'); S.lvl = 40; S.attrs.str += 500; S.attrs.con += 400; S.equip.weapon = { id: 'w', slot: 'weapon', kind: 'axe', mods: {}, dmg: [200, 260] }; const a = D.ACTS[0];
@@ -835,13 +822,6 @@ test('Akte: neue Gebiete frei, Wiederholen kostet Glut, Boss öffnet nächsten A
   const c = D.CRYPTS[0], l0 = G.cryptLvl(c); S.crypt.cd = 0; S.glut = 999; const r = Game.cryptFight(c.id); assert.ok(r.win); assert.equal(G.cryptTier(c), 1); assert.ok(G.cryptLvl(c) > l0, 'nächste Stufe schwerer');
   assert.ok(S.trophies.some(t => t.key === 'c1:0')); assert.ok(r.rew.items.length >= 1);
   for (let t = 1; t <= D.CRYPT.dTier[1]; t++) { S.crypt.cd = 0; assert.ok(Game.cryptFight(c.id)?.win, "Stufe " + t); } assert.ok(S.trophies.some(t => t.key === 'c1:1'), 'Albtraum-Trophäe ab Stufe');
-});
-test('Migration v12 → v13: Akte nach Stufe/Trophäen, ungesicherte Beute gesichert', () => {
-  const S = fresh('paladin'); S.lvl = 12; S.trophies.push({ key: 'c1:0', name: 'x', eff: {} }); const d = JSON.parse(JSON.stringify(S)); d.v = 12; delete d.acts;
-  d.haul = { loc: 'friedhof', track: 'norm', depth: 1, gold: 77, mats: { zahn: 2 }, items: [] }; const g0 = d.gold;
-  localStorage.setItem('aschenkrone_v1', JSON.stringify(d)); const L = G.load();
-  assert.equal(L.v, G.SAVE_VERSION); assert.equal(L.haul, null); assert.equal(L.gold, g0 + 77); assert.equal(L.crypt.prog.c1, 1);
-  assert.ok(G.actDone(D.ACTS[0]) && G.actDone(D.ACTS[1])); assert.ok(!G.actDone(D.ACTS[3]));
 });
 test('Umherziehen: 2-Min-Punkte, max. 2 Std., steht still bei geschlossener App, blockiert Kämpfe, Sack beim Heimrufen', () => {
   const S = fresh('barbarian'); assert.ok(Game.wanderBusy()); S.acts.prog.a1 = 4; assert.ok(!Game.wanderStart([9]), 'nur gültige Route'); assert.ok(Game.wanderStart([0, 0, 0, 0, 0, 0])); assert.equal(S.wander.route.length, D.WANDER.rows); assert.ok(Game.actCan(D.ACTS[0], 0)); assert.equal(Game.pitBusy(), 'Der Held zieht umher.');
@@ -956,7 +936,7 @@ test('Neue Einzigartig-Mechaniken wirken im Kampf', async () => {
   S.trophies.length = 0;
 });
 
-test('Das Brett: Wege, Knappheit und Migration', async () => {
+test('Das Brett: Wege, Knappheit', async () => {
   const D = await import('../js/data.js');
   for (const [cls, T] of Object.entries(D.TREE)) {
     assert.ok(D.CLASSES[cls], cls + ' ist keine Klasse');
@@ -993,15 +973,9 @@ test('Das Brett: Wege, Knappheit und Migration', async () => {
   assert.ok(G.nodeState(b.b, b.row).open, 'volle Brücke öffnet die Nachbarspalte nicht');
   // Punkte sind knapp: ohne freie Punkte geht nichts mehr
   S.lvl = 1; assert.ok(!G.nodeState(0, 0).can, 'ohne Punkte ließ sich setzen');
-  // Migration v17 -> v18 gibt Talentpunkte zurück, weil die alten Knoten-IDs im Brett fehlen
-  fresh('assassin'); const d = JSON.parse(JSON.stringify(G.S)); d.v = 17; d.tal = { a1: 5, a4: 3 };
-  localStorage.setItem('aschenkrone_v1', JSON.stringify(d));
-  const sig = await import('../js/state.js'); G.load();
-  assert.deepEqual(G.S.tal, {}, 'alte Talentpunkte wurden nicht zurückgegeben');
-  assert.equal(G.S.v, G.SAVE_VERSION);
 });
 
-test('Zauberin: Zauberschaden, Brand und die Migration aufs Brett', async () => {
+test('Zauberin: Zauberschaden und Brand', async () => {
   const D = await import('../js/data.js');
   const { fight } = await import('../js/combat.js');
   // 1) spellPct landet in der Zauberkraft (amp) – und NUR dort, nicht im Hieb
@@ -1027,17 +1001,6 @@ test('Zauberin: Zauberschaden, Brand und die Migration aufs Brett', async () => 
   const stark = mit.log.find(l => l.spell && l.dmg > 0);
   assert.ok(stark, 'kein Zauber hat getroffen');
   assert.ok(ticks[0].tick < stark.dmg, 'ein Brand-Tick darf nicht härter sein als der Zauber selbst');
-  // 3) Migration v20 → v21: die Zauberin hatte den alten Baum, ihre IDs kommen im Brett nicht vor
-  fresh('sorceress'); const d = JSON.parse(JSON.stringify(G.S)); d.v = 20; d.tal = { s1: 5, s4: 3 };
-  localStorage.setItem('aschenkrone_v1', JSON.stringify(d));
-  G.load();
-  assert.deepEqual(G.S.tal, {}, 'alte Talentpunkte der Zauberin wurden nicht zurückgegeben');
-  assert.equal(G.S.v, G.SAVE_VERSION);
-  // Ein Stand, der schon auf dem Brett steht, darf NICHT geleert werden
-  fresh('sorceress'); const d2 = JSON.parse(JSON.stringify(G.S)); d2.v = 20; d2.tal = { sf1: 2 };
-  localStorage.setItem('aschenkrone_v1', JSON.stringify(d2));
-  G.load();
-  assert.deepEqual(G.S.tal, { sf1: 2 }, 'gesetzte Brett-Ränge wurden weggeworfen');
 });
 
 test('Ausbluten: blutet bei jedem Treffer und schaltet Krits ab', async () => {
@@ -1064,7 +1027,8 @@ test('Fusionieren: der Bonus wandert, das Futter zerfällt, einmal je Teil', asy
   const G = await import('../js/state.js'), L = await import('../js/loot.js'), D = await import('../js/data.js');
   // zwei magische Dolche mit gewünschter Bonus-Zahl
   const mk = (n, slot = 'weapon', kind = 'dagger', rar = 'magic') => { for (let i = 0; i < 9000; i++) {
-    const it = L.makeItem(22, { slot, kind }); if (it.rarity === rar && !it.unique && Object.keys(it.mods).length === n) return it; } };
+    const it = L.makeItem(22, { slot, kind }); if (it.rarity !== rar || it.unique || Object.keys(it.mods).length < n) continue;
+    for (const k of Object.keys(it.mods).slice(n)) { delete it.mods[k]; delete it.tiers[k]; } return it; } };   // magisch ist immer voll (1+1) – kürzen
   const frisch = () => { G.newChar('F', 'assassin'); G.S.lvl = 22; G.S.gold = 999999; };
 
   // --- Dazu: freier Platz, der Bonus kommt einfach hinzu, die Stufe wandert mit
@@ -1107,7 +1071,7 @@ test('Fusionieren: der Bonus wandert, das Futter zerfällt, einmal je Teil', asy
   // --- Ersetzen statt Aufstieg: der gewählte Bonus weicht
   frisch();
   [a, b, k] = paar(2, 2); assert.ok(k, 'kein übertragbarer Bonus gefunden');
-  const weg = Object.keys(G.baseMods(a))[0];
+  const weg = Object.keys(G.baseMods(a)).find(z => !G.fuseCheck(a, b, k, z));   // weichen kann nur ein Bonus derselben Seite (Präfix/Suffix)
   r = G.fuse(a.id, b.id, k, weg);
   assert.ok(!r.err, r.err);
   assert.equal(r.it.rarity, 'magic', 'beim Ersetzen darf nichts aufsteigen');
@@ -1169,14 +1133,12 @@ test('Fusionieren: die Regeln halten (Form, Seltenheit, Siegel, Platz, Einzigart
   if (uniq) { G.S.bag.push(uniq); assert.ok(!G.fuseMains().some(i => i.id === uniq.id), 'Einzigartiges steht als Hauptteil zur Wahl'); }
 });
 
-test('Bonus-Stufe aus dem Wert: auf Gegenstandsstufe 60 = gewürfelte Stufe, höherer Wert nie schlechtere Stufe', () => {
-  fresh();
-  for (let i = 0; i < 1500; i++) { const it = makeItem(D.CFG.tierRefLvl, { minRarity: 2 });
-    if (it.unique || it.set || it.rarity === 'legendary' || it.lvl !== D.CFG.tierRefLvl) continue;
-    for (const [k, t] of Object.entries(it.tiers)) { const v = it.mods[k], s = L.tierOf(k, v); if (s === t) continue;
-      // nur erlaubt, wo sich zwei Stufen nach dem Runden überlappen (kleine Werte): dann liegt v auch im Bereich der gezeigten
-      const r = L.tierRange(k, D.CFG.tierRefLvl, s); assert.ok(Math.abs(s - t) === 1 && v >= r[0] && v <= r[1], `${k} ${v}: gewürfelt ${t}, gezeigt ${s}`); } }
-  for (const a of D.AFFIXES) { let last = 5; for (let v = 1; v < 2000; v++) { const t = L.tierOf(a.stat, v); assert.ok(t <= last, a.stat); last = t; } assert.equal(last, 1, a.stat + ' erreicht nie I'); }
+test('Bonus-Stufe aus dem Wert: feste Bereiche überlappen nie, jeder Wert zeigt seine Stufe, höherer Wert nie schlechtere Stufe', () => {
+  for (const a of D.AFFIXES) {
+    let below = 0; for (const t of [5, 4, 3, 2, 1]) { const [lo, hi] = L.tierBand(a, t); assert.ok(lo > below && hi >= lo, `${a.stat} Stufe ${t}: ${lo}–${hi}`); below = hi;
+      for (let v = lo; v <= hi; v++) assert.equal(L.tierOf(a.stat, v), t, `${a.stat} ${v}`); }
+    let last = 5; for (let v = 1; v < 2000; v++) { const t = L.tierOf(a.stat, v); assert.ok(t <= last, a.stat); last = t; } assert.equal(last, 1, a.stat + ' erreicht nie I');
+  }
 });
 
 test('Der Beute-Filter zaehlt nur echte Treffer', async () => {

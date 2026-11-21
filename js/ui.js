@@ -1,8 +1,8 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
-import { TREE, AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, STASH_W, STASH_H, SERVICES, SHARD_CRYPTS, TUTORIAL, BOUNTIES, SETS, SET } from './data.js';
+import { PLAYABLE, TREE, AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, STASH_W, STASH_H, SERVICES, SHARD_CRYPTS, TUTORIAL, BOUNTIES, SETS, SET } from './data.js';
 import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
 import { affixPool, tierOf } from './loot.js';
-import { sellPrice, sellMat, potion, beltSlots, brewCost, canBrew, potMax, unreadable, herbPrice, canBuyHerb, herbLeft, herbSource } from './state.js';
+import { sellPrice, sellMat, potion, beltSlots, brewCost, canBrew, potMax, unreadable, restarted, herbPrice, canBuyHerb, herbLeft, herbSource } from './state.js';
 import { WIKI_CATS, wikiList, wikiEntry, upgradePaths, matBottleneck } from './wiki.js';
 import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, craftRaises, craftMat, baseMods, fusedMods, filterHits, filterOf, filterOn, setFilterMod, fuseMains, fuseFoods, fuseCheck, fuseFull, fusePromote, fuseReplaces, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
@@ -140,8 +140,9 @@ export function navBar(view) {
 
 export function viewCreate(sel) {
   return `<div class="create"><h1>Aschenkrone</h1><div class="sub">Die Glocke hat geschlagen. Die Toten stehen auf.</div>
+  ${restarted ? `<p class="cdesc"><b class="hot">Die Welt ist neu geschmiedet.</b> Beute und Boni folgen jetzt festen Stufen – dein alter Held (Stufe ${restarted}) passt nicht mehr hinein. Er ist gesichert und wird nicht überschrieben. Beginne einen neuen.</p>` : ''}
   ${unreadable ? '<p class="cdesc"><b class="hot">Dein Spielstand ließ sich nicht lesen.</b> Er ist gesichert und wird nicht überschrieben. Lade die App neu (online), bevor du einen neuen Helden beginnst.</p>' : ''}
-  <div class="classes">${Object.entries(CLASSES).map(([k, c]) =>
+  <div class="classes">${PLAYABLE.map(k => [k, CLASSES[k]]).map(([k, c]) =>
     `<div class="cls ${sel === k ? 'on' : ''}" data-action="pick" data-c="${k}"><img class="portrait" src="${P(k)}" alt=""><div class="lbl">${c.name}</div></div>`).join('')}</div>
   ${sel ? `<p class="cdesc"><b>${CLASSES[sel].name}.</b> ${CLASSES[sel].desc}</p>
   <div class="cname"><input id="nm" maxlength="16" placeholder="Dein Name"><button class="red" data-action="create">Erwachen</button></div>` : '<p class="sub">Wähle, wer du warst.</p>'}</div>`;
@@ -185,7 +186,7 @@ function invPanel(stash, mats) {
 
 // Was ein Attribut gerade bewirkt (gegen einen Gegner deiner Stufe)
 function attrNow(k, st) {
-  const L = st.lvl, en = 3 + L * 2.7, c = CLASSES[S.cls];
+  const L = st.lvl, en = 3 + L * CFG.monGrow, c = CLASSES[S.cls];
   const main = k === c.main ? `Schaden ×${(1 + st[k] / CFG.mainDiv).toFixed(1).replace('.', ',')}` : '';
   const v = { str: `${Math.round(st.str * CFG.strArmor)} Rüstung`, dex: `${Math.round(Math.min(0.5, st.dex / (st.dex + en * 3 + 40) + (st.evade || 0)) * 100)} % Ausweichen`,
     int: `Zauber ×${st.amp.toFixed(2).replace('.', ',')}`, con: `${fmtN(st.hp)} Leben`, lck: `${Math.round(Math.min(0.6, CFG.critBase + st.lck / (st.lck + 100 + L * 5) + (st.crit || 0)) * 100)} % Krit` }[k];

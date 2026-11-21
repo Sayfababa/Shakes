@@ -9,7 +9,7 @@ const D = await import('../js/data.js');
 const G = await import('../js/state.js');
 const { makeItem } = await import('../js/loot.js');
 const { fight } = await import('../js/combat.js');
-const only = process.argv[2] && process.argv[2] !== 'all' ? [process.argv[2]] : Object.keys(D.CLASSES);
+const only = process.argv[2] && process.argv[2] !== 'all' ? [process.argv[2]] : D.PLAYABLE;
 const LV = +process.argv[3] ? [+process.argv[3]] : [12, 24];
 const N = +process.argv[4] || 400, CHECK = process.argv.includes('--check'); let bad = 0;
 const sum = {};
