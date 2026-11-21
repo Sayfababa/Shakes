@@ -92,6 +92,7 @@
 **Grab-Sets** (`SETS`, `SET` in data.js; `setCount`/`setOwned`/`setsWorn` + Boni in `effects()` in state.js; `makeSetItem` in loot.js; `setDrop` in game.js; `setBox`/`viewSets` in ui.js): je Krypta ein Set aus 3 Teilen, Seltenheit `set` (grün, `--r-set`, fällt nie zufällig). Teile fallen **nur beim Boss ihrer Krypta**, ab Stufe `SET.minTier`, Chance `SET.chance` + `perTier` je Stufe (max `SET.max`) – bevorzugt ein Teil, das noch fehlt. 2 Teile = ein guter Bonus, 3 Teile = eine **Regeländerung**; `t2`/`t3` sind die Kurztexte für die Anzeige (< 60 Zeichen, Test prüft). Boni müssen Effekt-Schlüssel aus `EFFECT_NAMES` sein (ein Affix-Name wie `critc` wirkt **nicht**), Teil-Boni Affix-Namen mit Stufe wie bei `UNIQUES`. Set-Teile sind vom Umschmieden und Neu weihen ausgenommen und brauchen zum Verkaufen zwei Tipps. Übersicht: Krypta-Tab → Ilse → „Grab-Sets“ (`viewSets`), Details im Item-Fenster (`setBox`). **Balance:** `node tests/sets.mjs [klasse] [stufe] [kämpfe] [--check]` (gekoppelter Zufall, in run.sh): 2 Teile −1…+10, 3 Teile −2…+22 Punkte Siegchance; die Spalte „statt 3 seltenen“ ist nur ein grobes Geländer. Neue Kampf-Schlüssel: `lastStand` (unter halbem Leben heilt alles doppelt), `venom` (Gift heilt dich), `execHp` (Henker-Schwelle), `tollback` (Betäubung prallt zurück), `firstEcho` (erster Zauber wirkt zweimal).
 
 ### Tiers aus dem Wert
+**Ersetzt 2026-11-21 durch „Feste Stufen (Welle 1a)“** – Folgendes ist Geschichte.
 Gebaut 2026-11-19 (Besitzer: „V muss auf jedem Teil gleich sein“, Weg 1, Bezugsstufe 60). Vorher hing die Stufe am Wurf
 und damit an der Gegenstandsstufe – ein V auf Stufe 49 schlug ein I auf Stufe 22. Jetzt: `tierOf(stat, wert)` in loot.js liest
 die Stufe aus dem Wert, feste Schwellen je Bonus, geeicht auf `CFG.tierRefLvl` = 60 (dort zeigt jeder Wert die gewürfelte
@@ -121,3 +122,16 @@ Die Bremse gegen „jeder hat das perfekte Teil“ ist jetzt nur Material + Gold
 Tracht der Wäscherinnen 3 Teile +60,5 statt ~+20, fünf Einzigartige unter ihrer Grenze. Mit dem Wurf als leerem Platzhalter
 wieder im Rahmen → beide Tests würfeln die Ausrüstung nur **einmal** (Falle „Ein einzelner Ausrüstungswurf entscheidet alles“).
 Der Platzhalter steht in loot.js; richtig wäre, beide Tests über mehrere Ausrüstungswürfe mitteln zu lassen (wie tree.mjs).
+
+### Feste Stufen (Welle 1a)
+Gebaut 2026-11-21 (Besitzer-Freigabe über die Koordination). Befund vorher: Zauberin St. 22 mit GS-59-Beute gewann 62 % der
+Krypta-Bosskämpfe mit dem ersten Treffer (`tests/oneshot.mjs`), Teile mit 57 % Krit / 90 % Zaubertempo. Jetzt: `TIERS` mit festen
+Bereichen (`flat`, `pct`, × `per`), GS schaltet frei (V 1, IV 5, III 12, II 22, I 35); %-Boni Stufe I ≤ 15–20 % (Krit 10–12);
+Präfix/Suffix je Seltenheit, eine je Gruppe (Hauptattribute = eine Gruppe), strenge Platz-Listen, Legendär-×1,5 weg (nur
+Einzigartige behalten ×1,5, `CFG.uniqMult`; Einzigartige/Sets höchstens eine Stufe über der GS, `uniqTierUp`).
+**Ausgleich**, sonst kippt die Geschichte (Akt VI erst St. 27–28): `attrPerLevel` 5 → 9, Monster `monHp` 1,3 → 1,15,
+`monDmg` 1,1 → 1,0, Konstitution seltener (`w` 0,6, nicht auf Waffe/Handschuhen/Nebenhand – sonst trug fast jedes Teil Kon).
+Verworfen: nur Attributpunkte (×11: Assassine sitzt allein durch Glück am Krit-Deckel), nur Monster (späte Akte hingen an
+Beute über Heldenstufe). Eichung jetzt „Bonus ÷ Hauptattribut derselben Stufe“. Folgeänderungen: Tracht-Set 3 Teile ×1,4 statt
+×2 (`lastStandMul`), Zaubertinte 0,4, Lotusblatt Krit-Schaden statt Krit-Chance, Zweiter Atem/Zuflucht 0,22/0,27, Fokus 0,1,
+4 Einzigartige + 1 Set-Teil angepasst. uniques/sets mitteln jetzt über 8/4 Ausrüstungswürfe; Platzhalter-Wurf in loot.js raus.

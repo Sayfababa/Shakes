@@ -70,7 +70,8 @@ Systems dort nachlesen, besonders vor Balance-Zahlen.
 - Logik DOM-frei: `data.js` (nur Daten), `rng.js`, `state.js` (Spielstand, `stats()`, `power()`),
   `loot.js`, `quests.js`, `game.js` (Spielzüge), `combat.js` (`fight(a,b)`), `wiki.js`.
   Anzeige: `ui.js` (Templates, Tooltips), `main.js` (Navigation, `data-action`), `art.js` (SVG).
-- Save: localStorage `aschenkrone_v1`, **Version 21**; Unlesbares → `aschenkrone_v1_bak`, nie überschrieben.
+- Save: localStorage `aschenkrone_v1`, **Version 22** (Neustart: ältere Stände → `_bak`, kein Umrechnen); Unlesbares → `aschenkrone_v1_bak`, nie überschrieben.
+- **Wählbar nur `PLAYABLE`** (Zauberin, Assassine, Barbar); die anderen Klassen bleiben als Daten.
 - Wo was steht: `sh tests/karte.sh <datei>`.
 
 ## Konventionen

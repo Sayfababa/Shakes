@@ -7,8 +7,10 @@ eines Systems seinen Block hier lesen** (`grep -n '^\*\*' SYSTEME.md` zeigt die 
 **Kampf & Werte**
 - **Kampfkraft** `power()`/`powerWith()`/`powerAttr()` in state.js – eine Zahl, deterministisch.
   Grundlage für Item-Vergleich und „+N" an Attributen. Neue Effekte dort einrechnen. → E
-- **Kampf-Boni auf Items** `AFFIXES` (`pct`/`slots`/`kind`), Obergrenzen `CAPS` (critMult 3,5).
-  `affixPool(it)` entscheidet, was ein Teil tragen kann. **Neuer Prozent-Bonus → in die Liste des
+- **Kampf-Boni auf Items** `AFFIXES` (`pct`/`slots`/`kind`/`side`/`group`/`w`), Obergrenzen `CAPS` (critMult 3,5).
+  **Feste Stufen (Welle 1a):** Wert = `tierBand(stat, t)` aus `TIERS.flat/pct × per`, GS schaltet nur frei (`minLvl`).
+  **Präfix = Angriff, Suffix = Abwehr/Nutzen**, `RARITIES.sides` (1+1/2+2/3+2), eine je `group`; `affixRoom(it)` ist
+  die EINE Regel für Beute, Umschmieden, Fusion. `affixPool(it)` entscheidet, was ein Platz tragen kann. **Neuer Prozent-Bonus → in die Liste des
   Eich-Tests.** Flache Werte bewusst ohne Wache. → E
 - **Treffer-Wirkungen** combat.js: `finish()` (Henker, Krit), `onHit()` (Leech, Bluten, Gift, Dornen).
   Zauber sind nur nicht blockbar. → E
@@ -142,6 +144,7 @@ eines Systems seinen Block hier lesen** (`grep -n '^\*\*' SYSTEME.md` zeigt die 
 - Balance (alle mit gekoppeltem Zufall, `--check` in run.sh): `caps.mjs` (laufen Boni ins Leere?),
   `calib.mjs` (Eichung), `tree.mjs`, `ways.mjs`, `uniques.mjs`, `sets.mjs`, `potions.mjs`,
   `descent.mjs`, `acts.mjs`.
+- `tests/oneshot.mjs [klasse] [heldenstufe] [GS]` – Anteil Krypta-Boss-Siege mit dem ersten Treffer (Welle 1a).
 - `tests/bot.mjs [klasse] [tage] [läufe] [risiko] [--pots]` – Bot mit simulierter Uhr, für
   Balance-Fragen. **Deckt den Spieler *nach* der Geschichte kaum ab.** → E
 - `tests/personas.mjs [tage]` – Optimist/Realist/Pessimist, Auswertung in BOT-REVIEW.md.
