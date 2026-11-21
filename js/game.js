@@ -482,11 +482,27 @@ export function descLeft() {
 }
 export function addSeal(n = 1) { descLeft(); G.S.seals.n = Math.min(DESCENT.sealMax, G.S.seals.n + n); }
 export const descBusy = () => { const S = G.S; return S.exp ? 'Dein Held ist auf Expedition.' : S.wander ? 'Dein Held zieht umher.' : S.active ? 'Erst den Streifzug beenden.' : S.haul ? 'Erst die Beute des Streifzugs sichern.' : ''; };
-export const descCanStart = c => { const S = G.S; return descOpen(c) && !S.desc && !descBusy() && descLeft() > 0; };
-export const descLvl = c => Math.max(c.lvl + 1, G.S.lvl + DESCENT.lvlAdd);
-const descNowLvl = () => Math.max(G.S.desc.lvl, G.S.lvl + DESCENT.lvlAdd);   // wer unten aufsteigt, trifft stärkere Gegner
+// Endlose Tiefe: Rekord je Held (best) und Bestwert dieser Woche (wBest, das Wochenziel).
+// Ein Stand ohne das Feld (alt oder neu) bekommt es beim ersten Hinsehen – nie ein Absturz.
+export function descRec() {
+  const S = G.S, w = weekNo(), r = S.deep && typeof S.deep === 'object' ? S.deep : (S.deep = { best: 0, week: w, wBest: 0 });
+  if (!(r.best >= 0)) r.best = 0;
+  if (r.week !== w) { r.week = w; r.wBest = 0; }
+  return r;
+}
+export const descMaxDepth = () => descRec().best + 1;   // tiefer als eine Tiefe unter dem Rekord geht es nicht
+// Alles, was eine Tiefe ausmacht – an einer Stelle, damit Welle 2 hier Modifikatoren anhängt.
+export function descAt(d) {
+  const list = descCrypts(); d = Math.floor(+d);
+  if (!list.length || !(d >= 1)) return null;
+  return { d, c: list[(d - 1) % list.length], lvl: Math.round(DESCENT.lvlBase + d * DESCENT.lvlPer),
+    diff: DESCENT.diff * (1 + (d - 1) * DESCENT.diffPer), mods: DESCENT.depthMods.filter(m => d >= m.from) };
+}
+export const descCanStart = d => { const S = G.S; return !!descAt(d) && d <= descMaxDepth() && !S.desc && !descBusy() && descLeft() > 0; };
+export const descLvl = d => descAt(d)?.lvl ?? 0;
+const descNowLvl = () => G.S.desc.lvl;   // fest für den ganzen Abstieg: wer unten aufsteigt, hat Glück
 export const descMult = (u = G.S.desc?.unrest || 0) => Math.round((1 + u * DESCENT.unrestLoot) * 10) / 10;
-const descDiff = u => DESCENT.diff * (1 + u * DESCENT.unrestDiff) * DIFFICULTIES[G.S.crypt.diff].mult;
+const descDiff = u => (G.S.desc.df || DESCENT.diff) * (1 + u * DESCENT.unrestDiff);
 const descCrypt = () => CRYPTS.find(x => x.id === G.S.desc.c);
 function descNode(c, t, x) {
   const n = { t, x }; if (t === 'fight' || t === 'elite') n.mob = pick(c.floors);
@@ -504,11 +520,12 @@ export function descMap(c) {
   });
   return rows;
 }
-export function descStart(cid) {
-  const S = G.S, c = CRYPTS.find(x => x.id === cid); if (!descCanStart(c)) return null;
+export function descStart(d) {
+  const S = G.S; d = Math.floor(+d); if (!descCanStart(d)) return null;
+  const at = descAt(d), c = at.c;
   descLeft(); S.seals.n--;
-  S.desc = { c: c.id, lvl: descLvl(c), rows: descMap(c), path: [], unrest: 0, hpf: 1, rooms: 0, xp: 0, sack: { gold: 0, items: [], mats: {}, herbs: {} } };
-  G.journal(`Abstieg in ${c.name}.`); return S.desc;
+  S.desc = { d, c: c.id, lvl: at.lvl, df: at.diff, rows: descMap(c), path: [], unrest: 0, hpf: 1, rooms: 0, xp: 0, sack: { gold: 0, items: [], mats: {}, herbs: {} } };
+  G.journal(`Abstieg in Tiefe ${d} (${c.name}).`); return S.desc;
 }
 // Erreichbare Räume der nächsten Reihe (Indizes), oben 'boss'
 export function descNext() {
@@ -521,7 +538,7 @@ export const descNodeAt = j => { const D = G.S.desc; return j === 'boss' ? 'boss
 export const descWellCost = () => DESCENT.wellGold * G.S.desc.lvl;
 export function descEnemy(nd, u = G.S.desc.unrest) {
   const D = G.S.desc, c = descCrypt();
-  if (nd === 'boss') return G.makeBoss(c, descNowLvl(), DESCENT.boss * DIFFICULTIES[G.S.crypt.diff].mult);   // Boss wächst nicht mit der Unruhe: er ist schon am Ende des Wegs
+  if (nd === 'boss') return G.makeBoss(c, descNowLvl(), DESCENT.boss * (D.df || DESCENT.diff));   // Boss wächst nicht mit der Unruhe: er ist schon am Ende des Wegs
   const elite = nd.t === 'elite', m = G.makeMonster(descNowLvl(), descDiff(u) * (elite ? ELITE.diff : 1), MONSTERS.find(x => x.name === nd.mob));
   if (elite) { m.hp = Math.round(m.hp * ELITE.hp); m.elite = nd.mods.map(id => ELITE.mods.find(x => x.id === id).name);
     for (const id of nd.mods) { const e = ELITE.mods.find(x => x.id === id); Object.assign(m, e.eff || {}); for (const [k, v] of Object.entries(e.mult || {})) m[k] = Math.round(m[k] * v); }
@@ -555,7 +572,7 @@ function descLoot(lvl, u, { gold = 1, item = 0, minR = 0, heart = 0, mat = null,
   return got;
 }
 function descExtract(how) {
-  const S = G.S, D = S.desc, s = D.sack, c = descCrypt(), out = { how, crypt: c.name, rooms: D.rooms, unrest: D.unrest, xp: D.xp, gold: s.gold, items: [], mats: [], herbs: [] };
+  const S = G.S, D = S.desc, s = D.sack, c = descCrypt(), out = { how, crypt: c.name, d: D.d || 0, rooms: D.rooms, unrest: D.unrest, xp: D.xp, gold: s.gold, items: [], mats: [], herbs: [] };
   S.gold += s.gold;
   for (const it of s.items) { if (G.keep(it)) out.items.push(it); else { out.gold += G.sellOff(it).gold; out.items.push({ ...it, soldFull: true }); } }
   for (const [k, n] of Object.entries(s.mats)) if (n > 0) { G.addMat(k, n); out.mats.push([k, n]); }
@@ -567,7 +584,7 @@ function descFight(nd, u, exit = null) {
   const S = G.S, D = S.desc, c = descCrypt(), boss = nd === 'boss', elite = nd?.t === 'elite';
   const A = descHero(), m = descEnemy(nd, u), r = fight(A, m), win = r.winner === 'a', rew = newRew();
   G.usePotions(r.used); rew.used = r.used; D.hpf = Math.max(0, r.endA / A.hp);
-  if (!win) { S.deaths++; const lost = { ...D.sack, rooms: D.rooms, unrest: D.unrest, xp: D.xp, crypt: c.name }; S.desc = null;
+  if (!win) { S.deaths++; const lost = { ...D.sack, d: D.d || 0, rooms: D.rooms, unrest: D.unrest, xp: D.xp, crypt: c.name }; S.desc = null;
     G.journal(`In ${c.name} gefallen. Der Sack bleibt unten.`); return { A, B: m, r, win, rew, desc: { lost } }; }
   S.wins++; Q.event({ type: 'kill', mob: boss ? c.boss.name : nd.mob }); if (boss) Q.event({ type: 'boss', crypt: c.id }); G.bountyEvent({ type: 'kill', mob: boss ? c.boss.name : nd.mob }); if (elite) G.bountyEvent({ type: 'elite' });
   rew.grade = gradeOf(r); if (rew.grade.id === 'dom') G.bountyEvent({ type: 'dom' });
@@ -577,7 +594,11 @@ function descFight(nd, u, exit = null) {
     : { gold: gb, item: DESCENT.item, heart: DESCENT.heart, mat: m.mat });
   // Wer ganz durchkommt, bekommt sein Siegel zurueck – der Haken, der nach unten zieht.
   if (boss) addSeal(DESCENT.sealBoss);
-  if (boss || exit) return { A, B: m, r, win, rew, desc: { out: descExtract(boss ? c.boss.name : exit), seal: boss ? DESCENT.sealBoss : 0 } };
+  // Nur der Boss zählt als geschafft: Seil, Brunnen und Stiege retten den Sack, nicht den Rekord.
+  let rec = null;
+  if (boss && D.d) { const R = descRec(); rec = { d: D.d, best: D.d > R.best, week: D.d > R.wBest };
+    R.best = Math.max(R.best, D.d); R.wBest = Math.max(R.wBest, D.d); }
+  if (boss || exit) return { A, B: m, r, win, rew, desc: { out: { ...descExtract(boss ? c.boss.name : exit), rec }, seal: boss ? DESCENT.sealBoss : 0 } };
   return { A, B: m, r, win, rew, desc: { hpf: D.hpf } };
 }
 // Einen Raum betreten. Ergebnis: { kind: 'fight', res } | { kind: 'room', t, text, got? } | { kind: 'out', out }

@@ -740,18 +740,18 @@ test('Abstieg: Karte – Reihen, Ausgänge, jeder Raum erreichbar, Boss oben', (
   }
 });
 test('Abstieg: nur nach dem Boss der Gruft, je Tag begrenzt, nicht neben Expedition/Streifzug; Umkehren vor Raum 1 zählt nicht', () => {
-  const S = fresh(); assert.equal(Game.descStart('c2'), null, 'ohne Bosssieg gesperrt');
-  descHero(); assert.ok(Game.descStart('c2')); assert.equal(Game.descStart('c2'), null, 'nicht zweimal');
+  const S = fresh(); assert.equal(Game.descStart(1), null, 'ohne Bosssieg gesperrt');
+  descHero(); assert.ok(Game.descStart(1)); assert.equal(Game.descStart(1), null, 'nicht zweimal');
   assert.equal(Game.descStair().kind, 'back'); assert.equal(G.S.desc, null); assert.equal(Game.descLeft(), D.DESCENT.sealMax, 'Umkehren kostet kein Siegel');
-  for (let i = 0; i < D.DESCENT.sealMax; i++) { assert.ok(Game.descStart('c2')); G.S.desc = null; }
-  assert.equal(Game.descLeft(), 0); assert.equal(Game.descStart('c2'), null, 'ohne Siegel kein Abstieg');
+  for (let i = 0; i < D.DESCENT.sealMax; i++) { assert.ok(Game.descStart(1)); G.S.desc = null; }
+  assert.equal(Game.descLeft(), 0); assert.equal(Game.descStart(1), null, 'ohne Siegel kein Abstieg');
   // Ein verpasster Tag wird nachgetragen, ein unlesbares Datum gibt genau eine Gutschrift.
   G.S.seals = { day: new Date(Date.now() - 3 * 864e5).toISOString().slice(0, 10), n: 0 };
   assert.equal(Game.descLeft(), 3 * D.DESCENT.sealDay, 'drei verpasste Tage werden nachgetragen');
   G.S.seals = { day: 'kaputt', n: 0 }; assert.equal(Game.descLeft(), D.DESCENT.sealDay, 'unlesbares Datum = eine Gutschrift');
-  assert.ok(Game.descStart('c2'), 'neuer Tag'); G.S.desc = null;
-  G.S.active = { loc: 'friedhof', end: Date.now() + 1e6 }; assert.equal(Game.descStart('c2'), null, 'nicht während eines Streifzugs'); G.S.active = null;
-  assert.ok(Game.descStart('c2')); assert.equal(Game.startExped('friedhof', 1, [0]), false, 'keine Expedition während des Abstiegs');
+  assert.ok(Game.descStart(1), 'neuer Tag'); G.S.desc = null;
+  G.S.active = { loc: 'friedhof', end: Date.now() + 1e6 }; assert.equal(Game.descStart(1), null, 'nicht während eines Streifzugs'); G.S.active = null;
+  assert.ok(Game.descStart(1)); assert.equal(Game.startExped('friedhof', 1, [0]), false, 'keine Expedition während des Abstiegs');
   G.S.crypt.cd = 0; assert.equal(Game.cryptFight('c1'), null, 'keine Krypta während des Abstiegs'); assert.equal(G.startTrip('friedhof'), false, 'kein Streifzug');
 });
 test('Kampf: Startleben (cur0) wird übernommen, Restleben kommt zurück', () => {
@@ -760,7 +760,7 @@ test('Kampf: Startleben (cur0) wird übernommen, Restleben kommt zurück', () =>
   const r2 = fight(G.stats(), m); assert.equal(r2.curA0, G.stats().hp);
 });
 test('Abstieg: Leben läuft mit, Unruhe steigt, Beute im Sack; Seil sichert, Tod verliert den Sack, EP bleiben', () => {
-  descHero(); Game.descStart('c2'); const D0 = G.S.desc;
+  descHero(); Game.descStart(1); const D0 = G.S.desc;
   const j = Game.descNext()[0], r = Game.descEnter(j); assert.equal(r.kind, 'fight'); assert.ok(r.res.win, 'starker Held gewinnt Raum 1');
   assert.equal(D0.unrest, 1); assert.equal(D0.rooms, 1); assert.ok(Math.abs(D0.hpf - r.res.r.endA / r.res.A.hp) < 1e-9, 'Leben = Restleben');
   assert.ok(D0.sack.gold > 0); assert.equal(Game.descMult(), 1.4);
@@ -776,26 +776,26 @@ test('Abstieg: Leben läuft mit, Unruhe steigt, Beute im Sack; Seil sichert, Tod
     const out = Game.descEnter(rp); assert.equal(out.kind, 'out'); assert.equal(G.S.desc, null);
     assert.equal(G.S.gold, gold0 + sack); assert.ok(G.S.bag.some(x => x.id === it.id), 'Item im Beutel'); }
   // Tod: Sack weg, EP bleiben
-  const S = descHero('witch', 14); S.attrs = { str: 5, dex: 5, int: 5, con: 6, lck: 3 }; Game.descStart('c2'); G.S.desc.hpf = 0.01; G.S.desc.sack.gold = 999;
+  const S = descHero('witch', 14); S.attrs = { str: 5, dex: 5, int: 5, con: 6, lck: 3 }; Game.descStart(1); G.S.desc.hpf = 0.01; G.S.desc.sack.gold = 999;
   const gold0 = G.S.gold, xp0 = G.S.xp, lvl0 = G.S.lvl, rr = Game.descEnter(Game.descNext()[0]);
   assert.equal(rr.res.win, false); assert.equal(G.S.desc, null); assert.equal(G.S.gold, gold0, 'Sack-Gold verloren'); assert.equal(rr.res.desc.lost.gold, 999);
   assert.ok(G.S.lvl > lvl0 || G.S.xp >= xp0, 'EP bleiben');
 });
 test('Abstieg: Brunnen kostet Gold (erst aus dem Sack), Schrein heilt, Schatzkammer füllt den Sack', () => {
-  descHero(); Game.descStart('c2'); const Dd = G.S.desc;
+  descHero(); Game.descStart(1); const Dd = G.S.desc;
   const wr = Dd.rows[D.DESCENT.well], wj = wr.findIndex(n => n.t === 'well'), pj = Dd.rows[D.DESCENT.well - 1].findIndex(n => !D.DESC_ROOMS[n.t].exit && Game.expLinked(n, wr[wj]));
   Dd.path = Array.from({ length: D.DESCENT.well }, (_, i) => i === D.DESCENT.well - 1 ? pj : Dd.rows[i].findIndex(n => !D.DESC_ROOMS[n.t].exit));
   // Weg gültig machen (Verbindungen)
   for (let i = D.DESCENT.well - 2; i >= 0; i--) Dd.path[i] = Dd.rows[i].findIndex(n => !D.DESC_ROOMS[n.t].exit && Game.expLinked(n, Dd.rows[i + 1][Dd.path[i + 1]]));
   const cost = Game.descWellCost(); Dd.sack.gold = Math.floor(cost / 2); G.S.gold = cost; const g0 = G.S.gold, s0 = Dd.sack.gold;
   const out = Game.descEnter(wj); assert.equal(out.kind, 'out'); assert.equal(G.S.gold, g0 - (cost - s0), 'Rest aus eigenem Gold, Sack-Rest 0 kommt dazu');
-  descHero(); Game.descStart('c2'); G.S.desc.rows[1][0] = { t: 'shrine', x: G.S.desc.rows[1][0].x }; G.S.desc.path = [0]; G.S.desc.hpf = 0.4;
+  descHero(); Game.descStart(1); G.S.desc.rows[1][0] = { t: 'shrine', x: G.S.desc.rows[1][0].x }; G.S.desc.path = [0]; G.S.desc.hpf = 0.4;
   const sh = Game.descEnter(0); assert.equal(sh.kind, 'room'); assert.ok(Math.abs(G.S.desc.hpf - (0.4 + D.DESCENT.heal)) < 1e-9);
   G.S.desc.rows[2][0] = { t: 'treasure', x: G.S.desc.rows[2][0].x }; G.S.desc.rows[1][0].x = G.S.desc.rows[2][0].x; const n0 = G.S.desc.sack.items.length;
   const tr = Game.descEnter(0); assert.equal(tr.kind, 'room'); assert.ok(G.S.desc.sack.items.length > n0, 'Schatzkammer bringt ein Fundstück'); assert.ok(G.S.desc.hpf > 0);
 });
 test('Abstieg: Boss besiegt = draußen, Neuladen mitten im Abstieg verändert nichts', () => {
-  const SB = descHero('paladin', 10); SB.attrs.str += 600; SB.attrs.con += 400; Game.descStart('c2');
+  const SB = descHero('paladin', 10); SB.attrs.str += 600; SB.attrs.con += 400; Game.descStart(1);
   const s0 = JSON.stringify(G.S); G.save(); assert.equal(JSON.stringify(G.load()), s0); const Dd = G.S.desc;
   Dd.path = Dd.rows.map(() => 0); for (let i = Dd.rows.length - 2; i >= 0; i--) Dd.path[i] = Dd.rows[i].findIndex(n => !D.DESC_ROOMS[n.t].exit && Game.expLinked(n, Dd.rows[i + 1][Dd.path[i + 1]]));
   Dd.path[Dd.rows.length - 1] = Dd.rows[Dd.rows.length - 1].findIndex(n => !D.DESC_ROOMS[n.t].exit);
@@ -803,6 +803,33 @@ test('Abstieg: Boss besiegt = draußen, Neuladen mitten im Abstieg verändert ni
   assert.deepEqual(Game.descNext(), ['boss']);
   const r = Game.descEnter('boss'); assert.ok(r.res.win, 'starker Held schlägt den Boss'); assert.ok(r.res.desc.out); assert.equal(G.S.desc, null);
   assert.ok(r.res.desc.out.items.length >= 2, 'Boss bringt mindestens 2 Fundstücke');
+});
+// Boss der laufenden Tiefe sofort angehen (Pfad wie oben bis unter den Boss legen)
+const descToBoss = () => { const Dd = G.S.desc;
+  Dd.path = Dd.rows.map(() => 0); Dd.path[Dd.rows.length - 1] = Dd.rows[Dd.rows.length - 1].findIndex(n => !D.DESC_ROOMS[n.t].exit);
+  for (let i = Dd.rows.length - 2; i >= 0; i--) Dd.path[i] = Dd.rows[i].findIndex(n => !D.DESC_ROOMS[n.t].exit && Game.expLinked(n, Dd.rows[i + 1][Dd.path[i + 1]]));
+  return Game.descEnter('boss'); };
+test('Abgrund endlos: Tiefe statt Heldenstufe, Rekord öffnet die nächste, Wochenziel, kein Absturz ohne Feld', () => {
+  const S = descHero('paladin', 10); delete S.deep;
+  assert.equal(Game.descRec().best, 0, 'fehlendes Feld wird angelegt'); assert.equal(Game.descMaxDepth(), 1);
+  assert.equal(Game.descStart(2), null, 'Tiefe 2 erst nach dem Boss von Tiefe 1'); assert.equal(Game.descStart(0), null); assert.equal(Game.descStart('x'), null);
+  assert.ok(Game.descStart(1)); const l1 = G.S.desc.lvl; G.S.desc = null;
+  S.lvl = 45; S.deep.best = 30; assert.ok(Game.descStart(1)); assert.equal(G.S.desc.lvl, l1, 'Gegnerstufe hängt nicht an der Heldenstufe'); G.S.desc = null;
+  for (let d = 2; d <= 60; d++) { const a = Game.descAt(d - 1), b = Game.descAt(d); assert.ok(b.lvl * b.diff > a.lvl * a.diff, `Tiefe ${d} schwerer als ${d - 1}`); assert.ok(Array.isArray(b.mods)); }
+  assert.ok(Game.descAt(500), 'keine letzte Tiefe'); assert.equal(Game.descAt(31).c.id, 'c2', 'Gruft reihum aus den offenen');
+  // Boss schlagen → Rekord + Wochenbest steigen, nächste Tiefe offen
+  S.lvl = 10; S.deep = { best: 0, week: -1, wBest: 0 }; S.attrs.str += 900; S.attrs.con += 600;
+  Game.descStart(1); const r = descToBoss(); assert.ok(r.res.win);
+  assert.deepEqual(r.res.desc.out.rec, { d: 1, best: true, week: true }); assert.equal(Game.descRec().best, 1); assert.equal(Game.descRec().wBest, 1);
+  assert.equal(Game.descMaxDepth(), 2); assert.ok(Game.descStart(2), 'Tiefe 2 offen'); assert.equal(G.S.desc.d, 2); G.S.desc = null;
+  // neue Woche: Wochenziel von vorn, Rekord bleibt
+  S.deep.week = -5; assert.equal(Game.descRec().wBest, 0); assert.equal(Game.descRec().best, 1);
+  // Ausgang ohne Boss zählt nicht: Seil rettet den Sack, nicht den Rekord
+  Game.descStart(2); const Dd = G.S.desc, rp = Dd.rows[D.DESCENT.rope].findIndex(n => n.t === 'rope');
+  Dd.path = Dd.rows.slice(0, D.DESCENT.rope).map(() => 0); Dd.path[D.DESCENT.rope - 1] = Dd.rows[D.DESCENT.rope - 1].findIndex(n => !D.DESC_ROOMS[n.t].exit && Game.expLinked(n, Dd.rows[D.DESCENT.rope][rp]));
+  const o = Game.descEnter(rp); assert.equal(o.kind, 'out'); assert.equal(Game.descRec().best, 1, 'Seil hebt den Rekord nicht');
+  // Abstieg aus einem alten Stand ohne Tiefe: läuft weiter, Boss stürzt nicht ab
+  Game.descStart(1); delete G.S.desc.d; delete G.S.desc.df; const r2 = descToBoss(); assert.ok(r2.res); assert.equal(Game.descRec().best, 1);
 });
 test('Migration: Spielstand v10 bekommt den Abstieg', () => {
   fresh(); const d = JSON.parse(JSON.stringify(G.S)); d.v = 10; delete d.desc; delete d.descDay;
