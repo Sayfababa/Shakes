@@ -698,7 +698,7 @@ export function descEnter(j) {
 // Rückweg über die Stiege: ein Kampf bei höherer Unruhe, dann draußen. Vor dem ersten Raum: umkehren ohne Kampf (zählt nicht).
 export function descStair() {
   const S = G.S, D = S.desc; if (!D) return null;
-  if (!D.rooms) { S.desc = null; addSeal(1); return { kind: 'back' }; }   // Umkehren vor Raum 1 kostet nichts
+  if (!D.rooms) { for (const x of D.sig || []) addSigil(x.id, x.t, 1); S.desc = null; addSeal(1); return { kind: 'back' }; }   // Umkehren vor Raum 1 kostet nichts – auch keine Siegel
   return { kind: 'fight', res: descFight({ t: 'fight', mob: pick(descCrypt().floors) }, D.unrest + DESCENT.stairUnrest, 'Stiege') };
 }
 

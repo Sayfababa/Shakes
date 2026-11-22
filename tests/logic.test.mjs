@@ -1500,3 +1500,69 @@ test('Zauberin: Passiv ist Elementar-Durchdringung, Stab-Bonus addiert sich, Kam
   const with_ = fb(seeded(5, () => fight(H, M))), without = fb(seeded(5, () => fight({ ...H, elemPen: 0 }, M)));
   assert.ok(Math.abs(with_ - without * 1.25) <= 1, `Feuerball +25 % gegen 0 % Resi: ${without} → ${with_}`);
 });
+
+test('Siegel des Abgrunds: einlegen, bereinigen, verbrauchen, wirken; alter Stand ohne Feld stürzt nicht ab', () => {
+  descHero(); delete G.S.sigils;
+  assert.equal(Game.sigHave('blut', 1), 0, 'ohne Feld: leerer Vorrat, kein Absturz');
+  // Ohne Vorrat: Auswahl wird bereinigt, der Abstieg geht trotzdem
+  assert.ok(Game.descStart(1, [{ id: 'blut', t: 1 }])); assert.deepEqual(G.S.desc.sig, []); assert.equal(Game.descStair().kind, 'back');
+  Game.addSigil('blut', 2, 1); Game.addSigil('seele', 1, 1); Game.addSigil('rune', 3, 2);
+  const pick = [{ id: 'blut', t: 2 }, { id: 'blut', t: 2 }, { id: 'seele', t: 1 }, { id: 'rune', t: 3 }, { id: 'gibtsnicht', t: 1 }, { id: 'rune', t: 9 }];
+  assert.equal(Game.sigClean(pick).length, D.SIGILS.max, 'höchstens max, eine je Art, Unsinn raus');
+  // Umkehren vor Raum 1 gibt die Siegel zurück (kostet nichts)
+  assert.ok(Game.descStart(1, pick)); assert.equal(Game.sigHave('blut', 2), 0, 'beim Abstieg verbraucht'); Game.descStair();
+  assert.equal(Game.sigHave('blut', 2), 1); assert.equal(Game.sigHave('rune', 3), 2, 'Umkehren gibt sie zurück');
+  assert.ok(Game.descStart(1, pick)); const D0 = G.S.desc;
+  const fx = Game.sigFx(); assert.equal(fx.foe, D.SIGILS.kinds[0].foe[1]); assert.equal(fx.res, D.SIGILS.kinds[2].res[2]); assert.equal(fx.eliteR, 3);
+  // Wirkung auf den Boss: gleicher Zufall, mit Blutsiegel stärker
+  const boss = () => { const r = Math.random; let k = 1; Math.random = () => (k = (k * 16807) % 2147483647) / 2147483647; try { return Game.descEnemy('boss'); } finally { Math.random = r; } };
+  const withS = boss(); const keep = D0.sig; D0.sig = []; const without = boss(); D0.sig = keep;
+  assert.ok(withS.hp > without.hp * 1.15 && withS.dmg[1] > without.dmg[1], `Blutsiegel: Boss ${withS.hp} gegen ${without.hp}`);
+  // Seelensiegel: mehr Elite-Räume (Karte)
+  const c = D.CRYPTS[0], el = f => { let n = 0; for (let i = 0; i < 300; i++) n += Game.descMap(c, f).flat().filter(x => x.t === 'elite').length; return n; };
+  assert.ok(el(Game.sigFx([{ id: 'seele', t: 3 }])) > el(Game.sigFx([])) * 1.5, 'Elite häufiger');
+  // Ein laufender Abstieg aus der Zeit vor den Siegeln (ohne sig/sack.sig) stürzt nicht ab
+  delete D0.sig; delete D0.sack.sig; assert.ok(Game.descEnemy('boss').hp > 0); assert.ok(Game.descChance('boss') >= 0);
+  // Siegel im Sack werden am Ausgang gutgeschrieben – und überleben Speichern/Laden
+  D0.sack.sig = { 'seele:2': 2 }; D0.rows[0][0] = { t: 'rope', x: D0.rows[0][0].x };
+  const r = Game.descEnter(0); assert.equal(r.kind, 'out'); assert.deepEqual(r.out.sig, [{ id: 'seele', t: 2, n: 2 }]);
+  G.save(); G.load(); assert.equal(Game.sigHave('seele', 2), 2, 'nach Laden noch da');
+  assert.deepEqual([1, 7, 8, 15, 16, 40].map(Game.sigTierAt), [1, 1, 2, 2, 3, 3], 'tiefer = bessere Siegel');
+  assert.equal(Game.coreChance(D.ASHCORE.from - 1), 0, 'Aschenkern nicht über der Mindesttiefe');
+  assert.ok(Game.coreChance(200) <= D.ASHCORE.max);
+});
+
+test('Aschenkern: eine Wirkung je Teil, Einzigartiges zerfällt, Nachteile wandern mit, bleibt nach Speichern/Laden', async () => {
+  const S = fresh('barbarian'); S.lvl = 40; S.gold = 1e6;
+  const uq = name => { for (let i = 0; i < 40000; i++) { const it = makeItem(50, { slot: D.UNIQUES.find(u => u.name === name).slot, minRarity: 4 }); if (it.unique === name) return it; } };
+  const plain = slot => { for (;;) { const it = makeItem(50, { slot, minRarity: 3 }); if (!it.unique && !it.set) return it; } };
+  const u = uq('Totengräbers Griff'), t = plain('gloves'), ring = plain('ring'); G.addToBag(u); G.addToBag(t); G.addToBag(ring);
+  assert.deepEqual(G.coreKeys(u).sort(), ['dmgPct', 'execute'], 'Begleiter (execHp) nicht wählbar');
+  assert.deepEqual(G.coreEff(u, 'execute'), { execute: Math.round(u.fx.execute * D.ASHCORE.mult * 1000) / 1000, execHp: u.fx.execHp }, 'Begleiter wandert ganz mit');
+  const sch = uq('Scherbenschneide'); assert.equal(G.coreEff(sch, 'dmgPct').hpPct, sch.fx.hpPct, 'Nachteil wandert ganz mit');
+  assert.equal(G.coreCheck(u, 'dmgPct', t), 'Kein Aschenkern.');
+  S.mats.aschenkern = 2;
+  assert.equal(G.coreCheck(u, 'dmgPct', ring), 'Nur ein Teil desselben Platzes.');
+  assert.equal(G.coreCheck(u, 'execHp', t), 'Eine Wirkung des Einzigartigen antippen.');
+  S.equip.gloves = u; G.removeFromBag(u.id); assert.ok(G.coreCheck(u, 'dmgPct', t), 'nie vom Körper'); S.equip.gloves = null; G.addToBag(u);
+  const pw0 = (S.equip.gloves = t, G.power()); S.equip.gloves = null; G.addToBag(t);
+  const r = G.coreApply(u.id, 'dmgPct', t.id); assert.ok(!r.err, r.err);
+  assert.ok(!S.bag.some(x => x.id === u.id), 'Einzigartiges zerfällt'); assert.equal(S.mats.aschenkern, 1);
+  assert.deepEqual(t.core, { from: 'Totengräbers Griff', key: 'dmgPct', eff: { dmgPct: 0.12 } });
+  // Höchstens einer je Teil – ein zweites Einzigartiges wird abgewiesen, nichts still überschrieben
+  const u2 = uq('Fäuste des Eifers'); G.addToBag(u2);
+  assert.equal(G.coreCheck(u2, 'zeal', t), 'Dieses Teil trägt schon einen Aschenkern.'); assert.ok(G.coreApply(u2.id, 'zeal', t.id).err);
+  assert.ok(!G.coreTargets(u2).includes(t), 'Teil mit Kern ist kein Ziel mehr');
+  // Wirkt: effects()/power() zählen ihn
+  G.removeFromBag(t.id); S.equip.gloves = t; assert.ok(G.effects().dmgPct >= 0.12); assert.ok(G.power() > pw0, 'Kampfkraft steigt');
+  // Umschmieden lässt ihn stehen, als Futter taugt er nicht
+  const t2 = plain('gloves'); t2.core = { from: 'x', key: 'crit', eff: { crit: 0.05 } }; G.addToBag(t2);
+  t.rarity = t2.rarity; t.kind = t2.kind; assert.ok(!G.fuseFoods(t).includes(t2), 'Kern-Teil nie Futter');
+  G.craft(t.id, 'chaos'); assert.equal(t.core.key, 'dmgPct', 'Neu würfeln lässt den Kern stehen');
+  // Speichern/Laden
+  G.save(); const L2 = G.load(); assert.deepEqual(L2.equip.gloves.core.eff, { dmgPct: 0.12 });
+  // Marke: Klasse am Feld und eine CSS-Regel dafür, Zeile im Tooltip
+  const fs = await import('node:fs'), css = fs.readFileSync('css/style.css', 'utf8');
+  assert.ok(/\.fslot\.kern::after/.test(css) && /\.item\.kern::after/.test(css), 'Marke braucht eine CSS-Regel');
+  assert.ok(/core-l/.test(UI.itemTip(L2.equip.gloves)) && /Aschenkern/.test(UI.itemTip(L2.equip.gloves)));
+});
