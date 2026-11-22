@@ -1739,3 +1739,12 @@ test('Zeitachse: Tempo wird Aktionsrate, Ticks laufen je Zeit, Krit-Schwung einm
     } finally { D.CFG.tempoMode = false; }
   });
 });
+
+test('Glück-Beute L5: neutral beim Bezugswert (2 × Stufe + 10), mehr Glück → mehr Seltenes/Legendäres', () => {
+  const mk = (seed0, o) => { let seed = seed0; const R = Math.random; Math.random = () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+    try { const c = {}; for (let i = 0; i < 6000; i++) { const r = makeItem(30, { luck: 90, ...o }).rarity; c[r] = (c[r] || 0) + 1; } return c; } finally { Math.random = R; } };
+  assert.deepEqual(mk(5, { own: 70, hl: 30 }), mk(5, {}), 'eigenes Glück = Bezug (70 bei Stufe 30): genau wie ohne L5');
+  const lo = mk(9, { own: 20, hl: 30 }), hi = mk(9, { own: 200, hl: 30 });
+  assert.ok(hi.legendary > lo.legendary * 1.8 && hi.rare > lo.rare * 1.2, `legendär ${lo.legendary} → ${hi.legendary}, selten ${lo.rare} → ${hi.rare}`);
+  assert.ok(Math.abs((hi.magic || 0) - (lo.magic || 0)) < 0.25 * lo.magic, 'magisch bleibt (nur über das Gesamtglück)');
+});

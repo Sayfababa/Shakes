@@ -48,7 +48,8 @@ export function affixRoom(it, have = Object.keys(it.mods || {}), rarity = it.rar
 }
 
 // Erzeugt ein Item für Stufe `lvl`. luck verschiebt Seltenheiten nach oben.
-export function makeItem(lvl, { luck = 0, slot, slots, cls, kind, minRarity = 0, depth = 0, favor = null } = {}) {
+// own/hl: eigenes Glück und Heldenstufe (Glück-Beute L5); fehlen sie, zählt luck wie bisher (Händler, Quest-Lohn …)
+export function makeItem(lvl, { luck = 0, own = null, hl = null, slot, slots, cls, kind, minRarity = 0, depth = 0, favor = null } = {}) {
   const okLvl = b => !b.minLvl || lvl >= b.minLvl;   // höhere Grundgegenstände erst ab ihrer Stufe
   let pool = (slot ? BASES.filter(b => b.slot === slot) : slots ? BASES.filter(b => slots.includes(b.slot)) : BASES).filter(okLvl);
   if (cls && rand() < 0.6) pool = pool.filter(b => b.slot !== 'weapon' || b.kind === cls.weapon);
@@ -57,7 +58,11 @@ export function makeItem(lvl, { luck = 0, slot, slots, cls, kind, minRarity = 0,
   const boost = 1 + Math.min(luck, 200) / 100;
   // Seltenes/Legendäres erst ab bestimmter Gegenstandsstufe (wie Stufen-Anforderungen bei Uniques)
   const gate = r => r.id === 'legendary' ? (lvl >= CFG.legendaryMinLvl ? 1 : 0) : r.id === 'rare' ? (lvl >= CFG.rareMinLvl ? 1 : 0.15) : 1;
-  let ws = RARITIES.map((r, i) => ({ ...r, w: i < minRarity ? 0 : (r.id === 'normal' || r.id === 'broken' ? r.w : r.w * boost) * gate(r) }));
+  // Glück-Beute L5 (2026-11-22, Bericht 3): selten/legendär zusätzlich × (eigenes Glück / Bezug)^e, Bezug wächst mit der Heldenstufe
+  // (CFG.lootLuck.ref: 2 × Stufe + 10). Bei typischem Glück neutral, Glücks-Builds farmen besser, Umfeld-Glück (Tiefe, Unruhe) wie bisher.
+  const LL = CFG.lootLuck, lf = r => { if (!LL || own == null || !LL.exp[r.id]) return 1;
+    const o = 1 + Math.min(Math.max(0, own), 200) / 100, ref = 1 + (LL.ref[0] * (hl ?? lvl) + LL.ref[1]) / 100; return (o / ref) ** LL.exp[r.id]; };
+  let ws = RARITIES.map((r, i) => ({ ...r, w: i < minRarity ? 0 : (r.id === 'normal' || r.id === 'broken' ? r.w : r.w * boost * lf(r)) * gate(r) }));
   if (!ws.some(r => r.w > 0)) ws = RARITIES.map((r, i) => ({ ...r, w: i === Math.min(minRarity, 3) ? 1 : 0 }));   // Mindest-Seltenheit gewinnt
   const rar = weighted(ws);
   const ilvl = Math.max(1, lvl + roll(-1, 1));

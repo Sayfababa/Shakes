@@ -236,8 +236,8 @@ export function power(A = stats()) {
   const strike = (A.dmg[0] + A.dmg[1]) / 2 * (1 + A[A.main] / CFG.mainDiv), physF = resMul(A.mix, FOE_RES);   // Hiebe gegen die mittlere Gegner-Resistenz
   // Bluten: sonst nur bei Krit, mit Ausbluten bei jedem Treffer (0,2 + eigener Bonus), dafür ohne Krit-Schaden
   // Ausbluten: das Bluten stapelt nicht (stärkster Treffer zählt) und verfällt am toten Gegner. Mit Faktor 2,2 schätzte power()
-  // den Stein (Blutung 1,2, Bericht 3) auf das Doppelte der beiden anderen, gemessen lag er dahinter (kk-Messung 2026-11-22: 0,25).
-  const bleedT = A.hemorrhage ? (CFG.hemoBleed + (A.bleed || 0)) * 0.25 : crit * (A.bleed || 0);
+  // den Stein (Blutung 1,2, Bericht 3) auf das Doppelte der beiden anderen; am Datensatz geeicht (mit powerExp) 0,6.
+  const bleedT = A.hemorrhage ? (CFG.hemoBleed + (A.bleed || 0)) * 0.6 : crit * (A.bleed || 0);
   // Henker: der Anteil (Schwelle) des Gegnerlebens fällt (1 + Henker)-mal so schnell – Zeitgewinn statt linearer Schätzung (Schlächter 1,2 / +15 %)
   const exT = 0.3 + (A.execHp || 0), exF = 1 / (1 - Math.min(0.9, exT) * (A.execute || 0) / (1 + (A.execute || 0)));
   const onHit = (1 + crit * ((A.critMult || 2) - 1) + bleedT) * (exF + (A.poison || 0));   // gilt für Hieb und Zauber
@@ -270,7 +270,7 @@ export function power(A = stats()) {
     // Verbrennung: jeder Zauber brennt nach. Der Brand stapelt NICHT – der naechste Zauber ueberschreibt ihn,
     // also tickt er hoechstens bis zum naechsten Wurf. Dazu ein Drittel Abzug fuer Ticks, die am toten Gegner verfallen.
     // Ohne diese Deckel schaetzte power() den Schluesselstein auf +75 %, gemessen sind es +11,6 Punkte Siegchance.
-    if (A.ignite && !['heal', 'shield', 'buff'].includes(s.kind)) v += raw * A.ignite * Math.min(CFG.igniteTurns, ev) * 0.3;   // 2026-11-22: Brand 0,7 → 1,0, Faktor 0,65 → 0,3 (gemessen)
+    if (A.ignite && !['heal', 'shield', 'buff'].includes(s.kind)) v += raw * A.ignite * Math.min(CFG.igniteTurns, ev) * 0.5;   // 2026-11-22: Brand 0,7 → 1,0, Faktor 0,65 → 0,5 (am Datensatz geeicht, mit powerExp)
     dpt += (v * (1 + (A.echo || 0)) - dpt) / ev;
     if (m.buff) dpt *= 1 + m.buff * 1.5 / ev;
     if (s.kind === 'heal' || s.kind === 'shield') heal += A.hp * s.pct * A.amp * b * (m.overshield ? 1.15 : 1) / ev;
@@ -285,10 +285,12 @@ export function power(A = stats()) {
     if (m.noheal || m.cleanse || m.stunImmune) takenF *= 0.985;   // Antworten auf Boss-Mechaniken: im Schnitt wenig, gegen den passenden Boss viel
   }
   dpt *= vulnF;
-  heal += dpt * (A.leech || 0) * (A.lastStand ? 1 + (CFG.lastStandMul - 1) * 0.15 : 1);   // Lebensraub aus Hieben und Zaubern (Set: unter halbem Leben × CFG.lastStandMul)
+  // Lebensraub ×0,45: im Kampf (gemeinsame Würfel, 3 Klassen, St. 20/30) ist ein Lebensraub-Bonus so viel wert wie 1,0–1,2 × Hauptattribut;
+  // ungedämpft schätzte power() mit der Gewichtung 0,35/0,65 das 2,4-fache (Eichung 2026-11-22)
+  heal += 0.45 * dpt * (A.leech || 0) * (A.lastStand ? 1 + (CFG.lastStandMul - 1) * 0.15 : 1);   // Lebensraub aus Hieben und Zaubern (Set: unter halbem Leben × CFG.lastStandMul)
   if (A.venom) heal += dpt * (A.poison || 0) * A.venom * 2;
   if (A.tollback) takenF *= 0.97;
-  if (A.toll) takenF *= 0.75;        // Kältestarre: jeder dritte eigene Treffer betäubt – vorher kannte power() das gar nicht
+  // Kältestarre (toll): ein eigener Abschlag verschlechterte die Vorhersage (Eichung 2026-11-22) – sie wirkt über die längeren Kämpfe schon mit
   if (A.igniteBan) takenF *= 0.985;  // Verbrennung: brennende Gegner heilen nicht (wie Läuterung/Bann)   // betäubte Gegner schlagen seltener – gegen die Glocke viel mehr
   if (A.shred) dpt *= 1 + A.shred * 0.8;       // gebrochene Rüstung wirkt den Rest des Kampfs
   if (A.bulwark) heal += A.hp * A.bulwark * Math.min(0.5, A.block || 0);
@@ -301,7 +303,7 @@ export function power(A = stats()) {
      * (1 - myEvade) * (1 - Math.min(0.5, A.block || 0)) * takenF;
   dpt += taken * (A.thorns || 0);   // Dornen: Teil jedes erlittenen Treffers geht zurück
   const ehp = A.hp * (1 + (A.ward || 0)) * (A.lastBreath ? 1.12 : 1) / (taken * Math.max(0.3, 1 - heal * 0.6 / Math.max(1, taken))) * eDmg;   // Leben, umgerechnet in "wie viele Gegner-Hiebe halte ich aus"
-  return Math.round(Math.sqrt(Math.max(1, dpt) * ehp) * 20);
+  return Math.round(Math.max(1, dpt) ** CFG.powerExp * ehp ** (1 - CFG.powerExp) * 20);
 }
 // Kampfkraft, wenn ein Item angelegt wäre (Ringe: ersetzt den schwächeren bzw. freien Platz)
 export function powerWith(it) {
@@ -354,7 +356,7 @@ export function rollShop(id) {
   const t = TRADERS[id], L = loyalty(id);
   const kept = S.traders[id].shop.filter(x => x.lock);   // gesperrte Ware bleibt liegen
   S.traders[id].shop = kept.concat(Array.from({ length: CFG.shopSize - kept.length }, () => {
-    const it = makeItem(S.lvl + L, { luck: S.attrs.lck + L * 25, slots: t.slots, cls: CLASSES[S.cls], minRarity: Math.min(3, L) });
+    const it = makeItem(S.lvl + L, { luck: S.attrs.lck + L * 25, own: stats().lck, hl: S.lvl, slots: t.slots, cls: CLASSES[S.cls], minRarity: Math.min(3, L) });
     it.price = Math.round(it.value * (4.5 - L * 0.4)); return it;
   }));
   S.traders[id].ts = now();
@@ -776,7 +778,7 @@ export function doService(tid, svId) {
   const it = st.it;
   if (sv.max) { (S.temper ||= {})[sv.slot] = st.step + 1; return { name: sv.name, up: st.step + 1 }; }   // bleibt am Platz, auch wenn das Teil wechselt
   if (sv.id === 'gamble') {
-    const g = makeItem(S.lvl, { luck: S.attrs.lck, minRarity: 2 });   // meist magisch, selten mehr – wie das Glücksspiel in D2
+    const g = makeItem(S.lvl, { luck: S.attrs.lck, own: stats().lck, hl: S.lvl, minRarity: 2 });   // meist magisch, selten mehr – wie das Glücksspiel in D2
     if (!addToBag(g)) { S.gold += goldOf(sv, 0); return null; }
     return g;
   }

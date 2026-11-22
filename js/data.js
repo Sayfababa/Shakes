@@ -540,6 +540,11 @@ export const CFG = {
   // Zeitachse (System C, → E „Zeitachse“): Zaubertempo wird Aktionsrate des Helden statt Zauberladung. AUS, bis neu geeicht.
   // tempoCap: über dieser Rate zählt Tempo nur halb · critCharge: ein Krit lädt alle Zauber (höchstens einmal je Aktion)
   // dexHaste: Geschick → Zaubertempo je Punkt (nur zum Messen, 0 = aus)
+  // Glück-Beute L5: Exponent je Seltenheit, Bezugswert = ref[0] × Heldenstufe + ref[1] (→ E „Glück-Beute“)
+  // Kampfkraft (power): gegen echte Siegchancen geeicht (2026-11-22, 486 Builds × 3 Stufen, Rangkorrelation 0,37 → 0,83 auf
+  // zurückgehaltenen Würfen): Schaden^exp × Haltbarkeit^(1 − exp). → E „Kampfkraft geeicht“
+  powerExp: 0.35,
+  lootLuck: { exp: { rare: 0.75, legendary: 1.5 }, ref: [2, 10] },
   tempoMode: false, tempoCap: 1.6, critCharge: 0.34, dexHaste: 0,
   igniteTurns: 3,                     // Brand (Schlüsselstein Verbrennung): wie viele Runden der Brand des Zaubers läuft
   resCap: 0.75, resCapPhys: 0.5,      // Deckel Elementar-Resi 75 % (D2/PoE), Phys.-Resi 50 % (D2 „Schaden reduziert“, stapelt mit Rüstung)
