@@ -686,7 +686,7 @@ function viewCore(sel) {
         ${eff && Object.keys(eff).length > 1 ? `<p class="small dim fwarn">Wandert mit: ${effLine(Object.fromEntries(Object.entries(eff).filter(([k]) => k !== key)))}</p>` : ''}</div></div>`;
   const msg = sel.msg || (!us.length ? 'Kein Einzigartiges im Beutel. Nur was im Beutel liegt, kann zerfallen – nie, was du trägst.'
     : err ? `<span class="${/Gold|Kein Asch/.test(err) ? 'down' : ''}">${err}</span>`
-    : `Positive Werte wandern zu ${Math.round(ASHCORE.mult * 100)} %, Nachteile ganz. <b>${u.name}</b> zerfällt · ${craftGold(it)} Gold`);
+    : `${key && ASHCORE.multOf?.[key] ? `Diese Wirkung wandert zu ${Math.round(ASHCORE.multOf[key] * 100)} %` : `Positive Werte wandern zu ${Math.round(ASHCORE.mult * 100)} %`}, Nachteile ganz. <b>${u.name}</b> zerfällt · ${craftGold(it)} Gold`);
   return `<div class="col forge craft fusev corev">${forgeTabs(sel)}
     <section class="panel"><h2>Aschenkern <span class="h2r"><img class="matimg" src="assets/forge/${MAT_ART.aschenkern}.webp" alt="">${have} · einer je Teil</span></h2>
       <div class="cpick">${us.map(x => cell(x, x.id === sel.cu, 'corepick')).join('') || '<span class="dim small">Kein Einzigartiges im Beutel.</span>'}</div></section>

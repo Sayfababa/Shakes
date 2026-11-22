@@ -110,7 +110,9 @@ export const GENUS = {
   n: ['Lederwams', 'Kettenhemd', 'Amulett', 'Beil', 'Kurzschwert', 'Bastardschwert', 'Grabszepter', 'Blutszepter'],
   p: ['Lederhandschuhe', 'Panzerhandschuhe', 'Stiefel', 'Kriegsstiefel'],
 };
-export const LEGEND_NAMES = ['Grabesruh', 'Aschenkuss', 'Der Letzte Psalm', 'Witwenmacher', 'Knochenkrone', 'Sünde von Vhal', 'Rabenschwur', 'Blutglocke'];
+// Eigene Namen, nie die eines Einzigartigen (sonst verwechselt man beim Aschenkern „Witwenmacher" legendär mit einzigartig).
+// Der Logik-Test prüft, dass sich beide Listen nicht überschneiden.
+export const LEGEND_NAMES = ['Grabesstille', 'Glutgebet', 'Der Stille Chor', 'Rabenmal', 'Beinhausfund', 'Vhals Erbe', 'Eisenpsalm', 'Kerzenruß'];
 
 // --- Bonus-Stufen (PoE-Art, Welle 1a): I ist die beste. Jede Stufe hat einen FESTEN Wertebereich (flat: Attribute, Rüstung,
 // Schaden; pct: Prozent-Boni), jeweils × per des Bonus. Die Gegenstandsstufe schaltet höhere Stufen nur frei (minLvl),
@@ -1043,7 +1045,8 @@ export const SIGILS = {
 // Er zieht EINE Sonderwirkung aus einem Einzigartigen (das zerfällt) und brennt sie in ein magisches, seltenes oder
 // legendäres Teil desselben Platzes – höchstens ein Kern je Teil, für immer. Positive Werte × mult (ganzzahlige
 // Schalter wie „toll: 1" bleiben ganz); Nachteile (negative Werte, `curse`) und Begleiter (`tie`) wandern immer mit.
-export const ASHCORE = { from: 12, base: 0.03, per: 0.005, max: 0.15, mult: 0.75,
+// multOf: eigene Rate je Wirkung – Henker (execute) war als Kern für alle Klassen der beste (kern.mjs), Besitzer: auf 50 %.
+export const ASHCORE = { from: 12, base: 0.03, per: 0.005, max: 0.15, mult: 0.75, multOf: { execute: 0.5 },
   tie: { execute: ['execHp'] }, curse: ['nohealSelf'], helper: ['execHp'], gold: 40 };
 export const DESC_ROOMS = {
   fight:    { name: 'Kampf', w: 5, img: 'mon', text: 'Ein Gegner der Gruft.' },

@@ -1547,7 +1547,8 @@ test('Aschenkern: eine Wirkung je Teil, Einzigartiges zerfällt, Nachteile wande
   const plain = slot => { for (;;) { const it = makeItem(50, { slot, minRarity: 3 }); if (!it.unique && !it.set) return it; } };
   const u = uq('Totengräbers Griff'), t = plain('gloves'), ring = plain('ring'); G.addToBag(u); G.addToBag(t); G.addToBag(ring);
   assert.deepEqual(G.coreKeys(u).sort(), ['dmgPct', 'execute'], 'Begleiter (execHp) nicht wählbar');
-  assert.deepEqual(G.coreEff(u, 'execute'), { execute: Math.round(u.fx.execute * D.ASHCORE.mult * 1000) / 1000, execHp: u.fx.execHp }, 'Begleiter wandert ganz mit');
+  assert.deepEqual(G.coreEff(u, 'execute'), { execute: Math.round(u.fx.execute * G.coreMult('execute') * 1000) / 1000, execHp: u.fx.execHp }, 'Begleiter wandert ganz mit');
+  assert.equal(G.coreMult('execute'), 0.5, 'Henker wandert nur zu 50 % (Besitzer)');
   const sch = uq('Scherbenschneide'); assert.equal(G.coreEff(sch, 'dmgPct').hpPct, sch.fx.hpPct, 'Nachteil wandert ganz mit');
   assert.equal(G.coreCheck(u, 'dmgPct', t), 'Kein Aschenkern.');
   S.mats.aschenkern = 2;
@@ -1574,4 +1575,9 @@ test('Aschenkern: eine Wirkung je Teil, Einzigartiges zerfällt, Nachteile wande
   const fs = await import('node:fs'), css = fs.readFileSync('css/style.css', 'utf8');
   assert.ok(/\.fslot\.kern::after/.test(css) && /\.item\.kern::after/.test(css), 'Marke braucht eine CSS-Regel');
   assert.ok(/core-l/.test(UI.itemTip(L2.equip.gloves)) && /Aschenkern/.test(UI.itemTip(L2.equip.gloves)));
+});
+
+test('Legendäre heißen nie wie Einzigartige (Aschenkern-Verwechslung)', async () => {
+  const D = await import('../js/data.js'), U = D.UNIQUES.map(u => u.name);
+  for (const n of D.LEGEND_NAMES) assert.ok(!U.some(u => u.includes(n) || n.includes(u)), n + ' heißt wie ein Einzigartiges');
 });

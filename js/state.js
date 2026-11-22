@@ -669,9 +669,10 @@ export function fuse(mainId, foodId, foodStat, mainStat) {
 export const coreUniques = () => S.bag.filter(it => it.unique && it.fx && coreKeys(it).length);
 // Wählbar sind die positiven Wirkungen; Begleiter (execHp) und Flüche wandern ungefragt mit
 export const coreKeys = u => Object.keys(u?.fx || {}).filter(k => u.fx[k] > 0 && !ASHCORE.helper.includes(k) && !ASHCORE.curse.includes(k));
+export const coreMult = key => ASHCORE.multOf?.[key] ?? ASHCORE.mult;
 export function coreEff(u, key) {
   const fx = u?.fx || {}; if (!coreKeys(u).includes(key)) return null;
-  const e = { [key]: Number.isInteger(fx[key]) ? fx[key] : Math.round(fx[key] * ASHCORE.mult * 1000) / 1000 };
+  const e = { [key]: Number.isInteger(fx[key]) ? fx[key] : Math.round(fx[key] * coreMult(key) * 1000) / 1000 };
   for (const t of ASHCORE.tie[key] || []) if (t in fx) e[t] = fx[t];
   for (const [k, v] of Object.entries(fx)) if (v < 0 || ASHCORE.curse.includes(k)) e[k] = v;   // der Preis geht mit
   return e;

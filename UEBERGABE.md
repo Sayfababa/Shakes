@@ -33,6 +33,8 @@ einmal teuer geworden; die Herkunft steht in `entscheidungen/fallen.md`.
 endloser Abgrund mit Leiter/Lohn/Abgrund-Stufen/Wochenlohn, Resistenzen, Grube wächst mit, Siegel, Aschenkern).
 Was genau und die **offenen Fragen an den Besitzer** stehen je Welle in `berichte/welle*.md` (Abschnitt „Offen").
 Die Befund-Liste darunter ist damit größtenteils erledigt.
+Entschieden 2026-11-22 (Besitzer: „wie empfohlen“): flach + 3 Siegel darf mehr Menge bringen · Henker als Kern 50 %
+(`ASHCORE.multOf`) · die vier Abgrund-Materialien bleiben geparkt, keine eigenen Bilder · Legendäre haben eigene Namen.
 
 **Befunde 2026-11-19 (gemessen, nichts davon gebaut – Reihenfolge wählt er):**
 1. ~~Siegchance mit < ohne Tränke~~ **erledigt 2026-11-19**: gekoppelter Zufall, 200 Probekämpfe, „etwa gleich“
