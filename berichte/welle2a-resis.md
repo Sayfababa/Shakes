@@ -14,7 +14,6 @@
 - Anzeige: Vorbereitung „Schaden Phys 60 · Eis 40 %“ und „Resi Elem 10 %“; „Trifft dich“ rechnet deine Resi ein. Werte-Ansicht
   „Phys.-Resi 0 % / 75“ (über dem Deckel in Klammern). Screenshots: `welle2a-vorbereitung.png`, `welle2a-werte.png` (iPhone 13).
 - `power()` rechnet gegen den gemittelten Gegner (`FOE_MIX`/`FOE_RES`, aus den Daten abgeleitet); Siegchance-Caches kennen `res`.
-
 **Messwerte vorher → nachher**
 - Erster Treffer gewinnt (oneshot.mjs, St. 22, GS 59, 5 Würfe × 1500): Zauberin **18,3 → 1,1 %** (Bericht 1A: 23,7 % vor dem
   Zusammenführen) · Assassine 7,7 → 0,0 · Barbar 8,9 → 1,2. ≤ 2 Treffer: Zauberin 47 → 17 %.
