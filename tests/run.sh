@@ -23,7 +23,7 @@ if [ "$1" = "quick" ]; then
 elif [ -n "$1" ]; then
   :  # einzelne Teile, z. B. sh tests/run.sh logic ui
 else
-  set -- logic bot fuzz ways potions descent lohn acts sets uniques tree caps ui trader prep uifuzz
+  set -- logic bot fuzz ways potions descent lohn acts sets uniques kern tree caps ui trader prep uifuzz
 fi
 for t in "$@"; do
   case $t in
@@ -39,6 +39,7 @@ for t in "$@"; do
     lohn) lohn ;;
     acts) acts ;;
     sets) sets ;;
+    kern)   node tests/kern.mjs 40 --check > "$T/kern.full" && echo "Aschenkern im Rahmen" || { grep '⚠' "$T/kern.full"; false; } ;;
     uniques) uniq ;;
     tree) tree ;;
     caps) caps ;;
