@@ -11,7 +11,7 @@ export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'ar
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
 import { weakAdvice, wanderMap, wanderAct, wanderBusy, wanderDone, actEnemy, actChance, actOdds, packSlot, actCan, actZoneGlut, actZoneMob, pitWeek, pitPlace, pitRank, pitFoes, pitChance, pitOdds, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, cryptChance, cryptOdds, threatLabel, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
-  descCrypts, descLeft, descCanStart, descBusy, descLvl, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
+  descCrypts, descLeft, descCanStart, descBusy, descLvl, descAt, descRec, descMaxDepth, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
 const P = cls => `assets/portraits/${CLASSES[cls].portrait}.jpg`;
@@ -778,19 +778,21 @@ function viewDescStart(st) {
   const list = descCrypts();
   if (!list.length) return `<div class="col desc">${cryptTabs('desc')}<section class="panel waiting"><h2>Der Abgrund</h2><p class="lore">Unter den Krypten liegt mehr als Knochen. Wer dort hinab will, muss erst einen Krypta-Boss bezwungen haben.</p>
     <p class="small dim">Rausholen oder verlieren: Leben läuft von Raum zu Raum mit, die Beute zählt erst draußen.</p></section></div>`;
-  const c = list.find(x => x.id === st.c) || list[list.length - 1], i = list.indexOf(c), left = descLeft();
+  const R = descRec(), max = descMaxDepth(), d = Math.max(1, Math.min(max, +st.d || max)), at = descAt(d), c = at.c, left = descLeft();
   return `<div class="col desc">${cryptTabs('desc')}
     <section class="panel dhead">${monsterArt(c.boss.glyph)}<div><h2>Der Abgrund <span class="h2r seals" title="${DESCENT.sealDay} je Tag, Krypta-Bosse und neue Ränge"><img class="matimg" src="assets/forge/grabsiegel.webp" alt="">${left}/${DESCENT.sealMax}</span></h2>
-      <div class="xhead"><button class="tiny" data-action="descc" data-d="-1" ${i <= 0 ? 'disabled' : ''}>‹</button><b>${c.name}</b><button class="tiny" data-action="descc" data-d="1" ${i >= list.length - 1 ? 'disabled' : ''}>›</button></div>
-      <p class="small dim">Gegner Stufe ${descLvl(c)} · oben wartet ${c.boss.name.split(',')[0]}: <i>${c.boss.mechText}</i></p></div></section>
+      <div class="xhead"><button class="tiny" data-action="descc" data-d="-1" ${d <= 1 ? 'disabled' : ''}>‹</button><b>Tiefe ${d}</b><button class="tiny" data-action="descc" data-d="1" ${d >= max ? 'disabled' : ''}>›</button></div>
+      <p class="small dim">${c.name} · Gegner Stufe ${at.lvl} · oben wartet ${c.boss.name.split(',')[0]}: <i>${c.boss.mechText}</i></p>
+      <p class="small drec">Rekord <b>Tiefe ${R.best}</b> · diese Woche <b class="${R.wBest >= R.best && R.best ? 'up' : ''}">${R.wBest}</b></p></div></section>
     <section class="panel drules"><h2>Rausholen oder verlieren</h2>
       <p class="small">Jeder Raum ein Kampf. <b>Leben und Trank-Ladungen füllen sich unten nicht auf.</b></p>
       <p class="small">Mit jedem Raum steigt die <b>Unruhe</b>: Gegner stärker, Beute bis ×${descMult(5)}.</p>
       <p class="small">Beute liegt im <b>Beutesack</b>. Dir gehört sie erst an einem <span class="up">Ausgang</span>: Seil, Brunnen, Stiege oder hinter dem Boss.</p>
       <p class="small down">Fällst du, bleibt der Sack unten. Ausrüstung, Stufe und EP behältst du.</p>
+      <p class="small">Keine letzte Tiefe: <b>Wer den Boss schlägt, öffnet die nächste.</b> Jede Tiefe ist stärker – die Beute wächst mit.</p>
       <p class="small sealnote">Kostet ein <b>Grabsiegel</b> – <span class="up">der Boss erstattet seines</span>.</p>${descBusy() ? `<p class="small hot">${descBusy()}</p>` : ''}</section>
     <section class="panel"><h2>Dein Gürtel <span class="gbtns"><button class="tiny" data-action="alch" data-b="desc">Tränke</button></span></h2><div class="beltrow">${[0, 1, 2].slice(0, beltSlots()).map(beltCell).join('')}</div></section>
-    <div class="btns"><button data-action="go" data-v="crypt">Zurück</button><button class="red" data-action="descgo" data-c="${c.id}" ${descCanStart(c) ? '' : 'disabled'}>${left ? 'Hinabsteigen' : 'Kein Grabsiegel'}</button></div>
+    <div class="btns"><button data-action="go" data-v="crypt">Zurück</button><button class="red" data-action="descgo" data-d="${d}" ${descCanStart(d) ? '' : 'disabled'}>${left ? 'Hinabsteigen' : 'Kein Grabsiegel'}</button></div>
   </div>`;
 }
 function sackRow(s) {
@@ -841,7 +843,7 @@ function viewDescRun(st) {
   return `<div class="col descv">
     <section class="panel dtop">
       <div class="dbars"><span>Leben</span><div class="bar"><i style="width:${D.hpf * 100}%"></i></div><b>${hp}/${A.hp}</b>
-        <span>Unruhe</span><div class="bar xp"><i style="width:${Math.min(100, D.unrest / 6 * 100)}%"></i></div><b class="up">Beute ×${descMult()}</b></div><div class="dsackh"><span>Raum ${D.rooms + 1} · ${c.name}</span></div></section>
+        <span>Unruhe</span><div class="bar xp"><i style="width:${Math.min(100, D.unrest / 6 * 100)}%"></i></div><b class="up">Beute ×${descMult()}</b></div><div class="dsackh"><span>${D.d ? `Tiefe ${D.d} · ` : ''}Raum ${D.rooms + 1} · ${c.name}</span></div></section>
     <section class="panel dmap"><div class="map" style="--rows:${nR}"><svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none"><g class="l0">${lines}</g><g class="l1">${gold}</g></svg>${nodes}</div></section>
     <section class="panel dinfo">${info}</section>
     <section class="panel dsackp"><div class="dsackl"><b>Sack</b><span>${D.sack.gold} Gold</span></div>${sackRow(D.sack)}</section>
@@ -857,7 +859,7 @@ function viewDescRes(res) {
       <p class="small">Behalten: <b class="up">${l.xp} EP</b>, Ausrüstung, Stufe · ${l.rooms} Räume geschafft</p></section>
       <div class="btns"><button class="red" data-action="descok">Weiter</button></div></div>`; }
   const o = res.out, chips = [...o.herbs.map(([k, n]) => `<span title="${HERBS[k].name}">${herbImg(k)}<i class="nm">${HERBS[k].name} </i>×${n}</span>`), ...o.mats.map(([k, n]) => `<span title="${MATS[k]}">${matImg(k)}<i class="nm">${MATS[k]} </i>×${n}</span>`)];
-  return `<div class="col descres">${cryptTabs('desc')}<section class="panel"><h2>Entkommen · ${o.how}</h2>
+  return `<div class="col descres">${cryptTabs('desc')}<section class="panel"><h2>Entkommen · ${o.how}</h2>${o.rec ? `<p class="small ${o.rec.best ? 'up' : ''}">${o.rec.best ? `Neuer Rekord: <b>Tiefe ${o.rec.d}</b>` : `Tiefe ${o.rec.d} geschafft`} – Tiefe ${o.rec.d + 1} ist offen.</p>` : ''}
     <div class="drows"><p><span>Räume</span><b>${o.rooms} · Unruhe ×${descMult(o.unrest)}</b></p><p><span>Erfahrung</span><b>${o.xp} EP</b></p><p><span>Gold</span><b class="up">+${o.gold}</b></p></div></section>
     <section class="panel"><h2>Gesichert</h2><div class="xloot">
       ${o.items.length ? `<p>${o.items.map(it => `<span class="r-${it.rarity}">${it.name}</span>${it.soldFull ? ' <span class="dim small">(Beutel voll, verkauft)</span>' : ''}`).join(' · ')}</p>` : ''}

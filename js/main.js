@@ -11,7 +11,7 @@ let pitBack = 'arena';   // woher man in Vargos Laden kam
 let titleBack = 'pitshop';  // ... und woher man ins Titel-Fenster kam
 let stashOn = false;        // Beutel oder Lager im Helden-Bildschirm
 let forgeSel = { mat: null, slot: null, mode: 'rune', item: null, stat: null, msg: '' }, forgeRes = null, FG = null;
-let descSt = { c: null, j: null, msg: '', res: null };
+let descSt = { d: null, j: null, msg: '', res: null };
 let wPath = [], wInfo = null, wanderRes = null, actSel = null, zoneSel = null, prepC = null, prepM = null, alchSel = POTIONS[0].id, alchBack = 'traders';
 let wikiCat = null, wikiSel = null;   // Verzeichnis: Kategorie und Eintrag
 let view = 'hero', pickCls = null, F = null, pitSel = null, fightTimer = null, trader = 'halvar', turnin = null, npc = 'prophet', turninBy = null;
@@ -350,15 +350,15 @@ const actions = {
     const slot = Object.entries(S.equip).find(([, x]) => x === it)?.[0];
     if (G.craftItems().includes(it)) Object.assign(forgeSel, { mode: 'craft', item: it.id, stat: null, msg: '', changed: null }); else Object.assign(forgeSel, { mode: 'rune' });
     if (slot) forgeSel.slot = slot; view = 'forge'; render(); },
-  descc: d => { const list = Game.descCrypts(), i = Math.max(0, list.findIndex(c => c.id === descSt.c)), cur = list.some(c => c.id === descSt.c) ? i : list.length - 1;
-    descSt.c = list[Math.max(0, Math.min(list.length - 1, cur + +d.d))].id; render(); },
-  descgo: d => { if (Game.descStart(d.c)) { descSt = { c: d.c, j: null, msg: '', res: null }; view = 'desc'; } render(); },
+  descc: d => { const max = Game.descMaxDepth(), cur = Math.max(1, Math.min(max, +descSt.d || max));
+    descSt.d = Math.max(1, Math.min(max, cur + +d.d)); render(); },
+  descgo: d => { if (Game.descStart(+d.d)) { descSt = { d: +d.d, j: null, msg: '', res: null }; view = 'desc'; } render(); },
   descsel: d => { descSt.j = descSt.j === d.j ? null : d.j; descSt.msg = ''; descSt.ask = false; render(); },
   descgo2: d => { const r = Game.descEnter(d.j); descSt.j = null; descSt.msg = ''; descSt.ask = false; if (!r) return render(); descResult(r); },
   descstair: () => { if (G.S.desc?.rooms && !descSt.ask) { descSt.ask = true; descSt.j = null; return render(); }   // zwei Tipps: erst fragen
     descSt.ask = false; const r = Game.descStair(); descSt.j = null; if (!r) return render();
     if (r.kind === 'back') { view = 'desc'; return render(); } descResult(r); },
-  descok: () => { descSt.res = null; view = 'desc'; render(); },
+  descok: () => { if (descSt.res?.out?.rec) descSt.d = null; descSt.res = null; view = 'desc'; render(); },   // nach dem Boss steht die neue Tiefe vorn
   expsel: d => { if (d.h) { expSel.h = +d.h; expSel.path = []; } render(); },
   exploc: d => { const open = LOCATIONS.filter(G.locOpen), i = open.findIndex(l => l.id === expSel.loc), cur = i < 0 ? open.length - 1 : i;
     expSel.loc = open[Math.max(0, Math.min(open.length - 1, cur + +d.d))].id; expSel.path = []; render(); },

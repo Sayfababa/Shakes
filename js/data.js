@@ -968,7 +968,14 @@ export const DESCENT = {
   rope: 2, well: 3,                 // Reihe (0-basiert) mit Seil / Brunnen
   unrestLoot: 0.4,                  // Beute × (1 + Unruhe × 0,4) → bis ×3
   unrestDiff: 0.08,                 // Gegner × (1 + Unruhe × 0,08)
-  diff: 1, lvlAdd: 1,               // Gegner: Stufe = max(Gruft-Ebene 3, Heldenstufe + lvlAdd) – wächst mit, wenn du unten aufsteigst
+  // Endlose Tiefe: keine letzte Tiefe. Gegner richten sich nach der Tiefe, nie nach der Heldenstufe
+  // (vorher Heldenstufe + 1 → mit Krypta-Beute zwangsläufig zu leicht). Stufe = lvlBase + Tiefe × lvlPer,
+  // Stärke × (1 + (Tiefe − 1) × diffPer) obendrauf: jede Tiefe ist messbar schwerer, auch wenn die
+  // Beute (Stufe = Gegnerstufe, nie mehr) den Helden mitwachsen lässt. Wer den Boss einer Tiefe schlägt,
+  // öffnet die nächste. Gruft (Aussehen, Gegner, Boss) wechselt reihum durch die offenen Grüfte.
+  // `mods` je Tiefe: Platz für Siegel/Modifikatoren (Welle 2) – heute leer.
+  diff: 1, lvlBase: 3, lvlPer: 2, diffPer: 0.02,
+  depthMods: [],                    // Welle 2: [{ from: Tiefe, id, … }] – descAt() hängt sie an
   gold: 1.1, xp: 0.6,               // gegenüber einem Krypta-Kampf
   item: 0.35, eliteMinR: 2, bossMinR: 3,
   heart: 0.1, eliteHeart: 0.35,

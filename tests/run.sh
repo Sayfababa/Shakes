@@ -14,7 +14,7 @@ sets() { node tests/sets.mjs all all 400 --check > "$T/sets.full"; rc=$?; grep -
 caps() { node tests/caps.mjs all 24 250 --check > "$T/caps.full"; rc=$?; grep -E '^!!|TOT|kommen an|tote' "$T/caps.full"; return $rc; }
 tree() { node tests/tree.mjs all all 600 --check > "$T/tree.full"; rc=$?; grep -E '^!!|Rahmen' "$T/tree.full"; return $rc; }
 uniq() { node tests/uniques.mjs all all 300 --check > "$T/uniq.full"; rc=$?; grep -E '^!!|Rahmen' "$T/uniq.full"; return $rc; }
-desc() { node tests/descent.mjs all 10 120 --check > "$T/desc.full"; rc=$?; grep -E '⚠|Stufe 10' "$T/desc.full"; return $rc; }
+desc() { node tests/descent.mjs all 10 120 --check --deep > "$T/desc.full"; rc=$?; grep -E '⚠|Stufe 10' "$T/desc.full"; return $rc; }
 bot() { for c in barbarian assassin sorceress; do node tests/bot.mjs $c 3 1 | grep -E "Kämpfe" | sed "s/^/$c: /" & done; wait; }
 
 if [ "$1" = "quick" ]; then

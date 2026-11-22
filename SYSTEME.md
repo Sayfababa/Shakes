@@ -90,7 +90,10 @@ eines Systems seinen Block hier lesen** (`grep -n '^\*\*' SYSTEME.md` zeigt die 
 - **Der Abstieg / Der Abgrund** `DESCENT`/`DESC_ROOMS`/`ELITE`; `descStart`/`descNext`/`descEnter`/
   `descStair`, Save v11. Leben und Trank-Ladungen laufen mit, Unruhe +1 je Raum, Beute zählt erst am
   Ausgang, Tod = Sack weg. Kostet ein **Grabsiegel** (`S.seals`, Save v19; 2/Tag, max 6).
-  `node tests/descent.mjs … --check`. **Die vier Abgrund-Materialien stehen in DESIGN.md und sind
+  **Endlos:** Tiefe 1…∞ (`descAt(d)`: Gruft reihum aus den offenen, Gegnerstufe `lvlBase + d·lvlPer`, Stärke
+  `1 + (d−1)·diffPer`, `mods` für Welle 2) – **nie nach Heldenstufe**. Beutestufe = Gegnerstufe. Boss schlagen
+  hebt `S.deep.best` (Rekord) und `wBest` (Woche, Wochenziel); Ausgänge nicht. Start bis `best + 1`.
+  `node tests/descent.mjs … --check [--deep]` (--deep: Tiefe je Stufe 20/30/40, Kurve Gefahr vs. Beute). **Die vier Abgrund-Materialien stehen in DESIGN.md und sind
   vom Besitzer zurückgestellt – nicht ohne seinen Zuruf anfangen.** → E
 - **Expedition** `EXPED`/`EXP_NODES`/`EXP_EVENTS`; `expedMap`/`startExped`/`expAdvance`/`claimExped`,
   Save v10. Kostet keine Glut, 1/2/4/8 Std., Weg mit Gabelungen. Ø EP < 50 % der Glut derselben Zeit. → E
