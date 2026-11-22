@@ -36,6 +36,11 @@ Die Befund-Liste darunter ist damit größtenteils erledigt.
 Entschieden 2026-11-22 (Besitzer: „wie empfohlen“): flach + 3 Siegel darf mehr Menge bringen · Henker als Kern 50 %
 (`ASHCORE.multOf`) · die vier Abgrund-Materialien bleiben geparkt, keine eigenen Bilder · Legendäre haben eigene Namen.
 
+**Attribut-Analyse 2026-11-22** (nur Analyse, nichts geändert): `berichte/attribut-analyse.html` (auch als Artifact
+https://claude.ai/artifact/GQoDo53XFfQdUm4pnQxquo). Kern: nur Kon (Leben) und Hauptattribut (Hieb) linear ohne Deckel; Rüstung steht allein aus
+Gegenständen am 60-%-Deckel (Stärke tot), Glück/Int sättigen, Ausweichen verliert im Abgrund (Gegner-Geschick × Tiefen-Stärke).
+Messung +30 Punkte je Attribut: `node tests/attribute.mjs <klasse>` (~1 Min.). **Der Besitzer hat eine eigene Lösung und will sie analysiert haben – auf seinen Befehl warten.**
+
 **Befund 2026-11-22 (Balance-Gesamtschau, gemessen, nichts am Spiel geändert):** Bot spielt jetzt den Abgrund (`tests/bot.mjs`).
 Boss erstattet sein Grabsiegel (`DESCENT.sealBoss: 1`) → wer gewinnt, steigt endlos ab: Tag 1 40–47 Abstiege, St. 17–26; Tag 30 St. 50–55,
 Rekord T24–33. Gegenprobe ohne Erstattung: Tag 1 St. 15–19, Tag 30 St. 42–44, Rekord T24–29 (je 2 Läufe × 3 Klassen). Barbar ~6 Tiefen hinter

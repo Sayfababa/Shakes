@@ -1,0 +1,219 @@
+<title>Attribut-Analyse Aschenkrone</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@600&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+SC:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: eine Lesespalte (~70 Zeichen), Tabellen dürfen breiter laufen und scrollen in sich. Bewusst nur dunkel – die Farbwelt des Spiels. */
+:root {
+  --bg: #0e0b08; --panel: #17120d; --line: #3a2d20; --fg: #e4d8c2; --dim: #a89676;
+  --gold: #c9a24e; --blood: #c2412f; --ok: #8fb36a; --cold: #8fbfe6;
+  --f-display: 'Grenze Gotisch', 'Alegreya', Georgia, serif;
+  --f-body: 'Alegreya', Georgia, 'Times New Roman', serif;
+  --f-label: 'Alegreya SC', 'Alegreya', Georgia, serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 17px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; }
+main { max-width: 46rem; margin: 0 auto; display: flex; flex-direction: column; gap: 1.1rem; }
+h1 { font-family: var(--f-display); color: var(--gold); font-size: clamp(2rem, 6vw, 2.8rem); line-height: 1.05; margin: 0; text-wrap: balance; font-weight: 600; }
+h2 { font-family: var(--f-display); color: var(--gold); font-size: 1.65rem; margin: 1.6rem 0 0; font-weight: 600; text-wrap: balance; border-bottom: 1px solid var(--line); padding-bottom: .25rem; }
+h3 { font-family: var(--f-label); color: var(--fg); font-size: 1.1rem; margin: .8rem 0 0; letter-spacing: .02em; }
+p, ul, ol { margin: 0; } ul, ol { padding-left: 1.3rem; display: flex; flex-direction: column; gap: .35rem; }
+.lede { color: var(--dim); font-size: 1.05rem; }
+.meta { font-family: var(--f-label); color: var(--dim); font-size: .85rem; letter-spacing: .04em; }
+b, strong { color: var(--gold); font-weight: 700; }
+em { color: var(--fg); }
+code, .f { font-family: var(--f-mono); font-size: .82em; color: var(--cold); }
+.formula { font-family: var(--f-mono); font-size: .85rem; background: var(--panel); border-left: 3px solid var(--gold); padding: .6rem .8rem; overflow-x: auto; white-space: pre; color: var(--fg); }
+.src { font-family: var(--f-mono); font-size: .75rem; color: var(--dim); }
+.box { background: var(--panel); border: 1px solid var(--line); padding: .9rem 1rem; display: flex; flex-direction: column; gap: .5rem; }
+.box h3 { margin: 0; color: var(--gold); }
+.tw { overflow-x: auto; border: 1px solid var(--line); }
+table { border-collapse: collapse; width: 100%; font-size: .88rem; font-variant-numeric: tabular-nums; }
+th, td { padding: .38rem .55rem; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-label); font-weight: 500; color: var(--dim); background: var(--panel); letter-spacing: .03em; white-space: nowrap; }
+td.n { text-align: right; white-space: nowrap; }
+tr.hl td { background: rgba(201,162,78,.08); }
+.up { color: var(--ok); } .down { color: var(--blood); } .zero { color: var(--dim); }
+.tag { font-family: var(--f-label); font-size: .78rem; padding: 0 .4rem; border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
+.tag.p1 { color: var(--blood); border-color: #6b2a1f; } .tag.p2 { color: var(--gold); border-color: #6b5222; } .tag.p3 { color: var(--cold); border-color: #2f4a63; }
+.keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .6rem; }
+.keys .box p { font-size: .95rem; }
+a { color: var(--gold); }
+a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+</style>
+
+<main>
+<p class="meta">Aschenkrone · Stand des Codes vom 22.11.2026 · Branch claude/determined-mccarthy-vzvwfm</p>
+<h1>Warum alle Punkte in Konstitution und Schaden wandern</h1>
+<p class="lede">Eine Analyse des Attribut-, Schadens-, Abwehr- und Kampfsystems, wie es im Code steht. Jede Formel trägt ihre Fundstelle, jede Zahl ist entweder aus der Formel nachgerechnet oder in simulierten Kämpfen gemessen. Bestehende Mechaniken sind nur die mit Fundstelle. Was neu wäre, steht ausdrücklich unter „Empfehlungen“.</p>
+
+<div class="keys">
+  <div class="box"><h3>Der Kern</h3><p>Nur zwei Größen wachsen <em>linear und ohne Deckel</em>: Leben (aus Konstitution) und Hiebschaden (aus dem Hauptattribut). Alles andere ist ein Verhältnis gegen den Gegner oder läuft in eine Grenze.</p></div>
+  <div class="box"><h3>Die Messung</h3><p>+30 Konstitution bringt auf Stufe 40 je nach Klasse <b>+18 bis +24 Punkte</b> Siegchance. +30 Stärke, Glück oder Intelligenz bringen außerhalb der eigenen Klasse <b>0 bis 3</b>.</p></div>
+  <div class="box"><h3>Die Verstärker</h3><p>Die grüne Zahl „Kampfkraft je Punkt“ rechnet mit √(Schaden × Haltbarkeit) und zeigt Spielern genau dieses Optimum. Der Abgrund macht Gegner multiplikativ stärker, was nur die Verhältnis-Werte entwertet.</p></div>
+</div>
+
+<h2>Wie gemessen wurde</h2>
+<ul>
+  <li><b>Formeln</b> aus <code>js/state.js</code> (<code>stats()</code>, <code>makeMonster()</code>, <code>power()</code>), <code>js/combat.js</code> (Treffer, Ausweichen, Krit, Rüstung), <code>js/loot.js</code>, <code>js/game.js</code>, Zahlen aus <code>js/data.js</code> (<code>CFG</code>, <code>AFFIXES</code>).</li>
+  <li><b>Testheld</b> aus <code>tests/held.mjs</code>: Punkte wie ein Spieler (55 % Hauptattribut, 30 % Konstitution, 10 % Glück, 5 % Intelligenz), Ausrüstung über die echte Beute-Regel, Talente vom Bot nach Kampfkraft gewählt.</li>
+  <li><b>Kampf</b>: echte <code>fight()</code>-Simulation gegen <code>makeMonster(Stufe, Stärke)</code>, die Gegner-Stärke je Fall so geeicht, dass der Held ohne Zusatzpunkte rund 50 % gewinnt. Dann +30 Punkte in ein Attribut (≈ 3⅓ Stufen), 700 Kämpfe je Variante, gemittelt über 4 Ausrüstungswürfe.</li>
+  <li><b>Kampfkraft (KK)</b>: dieselbe Zahl, die das Spiel als grüne „Kampfkraft je Punkt“ zeigt (<code>power()</code>).</li>
+  <li><b>Nicht belegt</b>: wie echte Spieler ihre Punkte verteilen (das ist dein Befund, ich habe ihn nur am System nachvollzogen); Rauschen der Siegchance etwa ±2 Punkte; der Abgrund ist über Formeln eingerechnet, nicht je Attribut ausgespielt.</li>
+</ul>
+
+<h2>1 · Die Attribute und was sie im Code tun</h2>
+<p>Es gibt fünf Attribute (<span class="src">data.js:13</span>). Jeder Held startet mit 5 in allem, 6 Konstitution, 3 Glück und 10 im Hauptattribut, und bekommt <b>9 Punkte je Stufe</b> (5 zum Start). Auf Stufe 40 sind das 356 frei verteilte Punkte. Neu verteilen („Läutern“) ist beim ersten Mal gratis, danach kostet es 30 Gold × Stufe (<span class="src">state.js:102–107</span>). Dazu kommen Attribute von Gegenständen und Runen.</p>
+
+<div class="tw"><table>
+<thead><tr><th>Attribut</th><th>Wirkung im Code</th><th>Formel</th><th>Form</th></tr></thead>
+<tbody>
+<tr><td><b>Hauptattribut</b><br><span class="src">Stärke (Barbar), Geschick (Assassine), Intelligenz (Zauberin)</span></td><td>Multipliziert jeden Hieb. Auch Zauber nehmen den Hieb als Grundlage.</td><td><span class="f">Hieb = Waffenschaden × (1 + Haupt / 20)</span><br><span class="src">combat.js:241, CFG.mainDiv</span></td><td class="up">linear, kein Deckel</td></tr>
+<tr><td><b>Konstitution</b></td><td>Leben</td><td><span class="f">Leben = Kon × Klassenfaktor × (3 + 0,25 × Stufe) × (1 + Leben%)</span><br><span class="src">state.js:187</span> · Klassenfaktor: Zauberin 4,6 · Assassine 5,5 · Barbar 6</td><td class="up">linear, kein Deckel, wächst mit der Stufe</td></tr>
+<tr><td><b>Stärke</b> (alle Klassen)</td><td>Rüstung</td><td><span class="f">Rüstung = Gegenstände + Stärke × 0,5</span> <span class="src">state.js:185</span><br><span class="f">Minderung = min(60 %, R / (R + 20 + 8 × Angreiferstufe))</span> <span class="src">combat.js:29</span></td><td class="down">Verhältnis, harter Deckel 60 %</td></tr>
+<tr><td><b>Geschick</b> (alle Klassen)</td><td>Ausweichen, Treffsicherheit (senkt das Ausweichen des Gegners), Erstschlag</td><td><span class="f">Ausweichen = weich gedeckelt(Ges / (Ges + 3 × Gegner-Ges + 40) + Boni), Grenze 50 %</span> <span class="src">combat.js:27</span><br><span class="f">Erstschlag: wer (Ges + Wurf 0–10) höher hat; Effekt <code>first</code> (z. B. Knoten „Verwischt“) +1000</span> <span class="src">combat.js:61</span></td><td class="down">Verhältnis gegen Gegner, weicher Deckel, Serienbremse (max. 2 Ausweicher in Folge)</td></tr>
+<tr><td><b>Intelligenz</b> (alle Klassen)</td><td>Zauberkraft</td><td><span class="f">Zauberkraft = (1 + Int / (Int + 60)) × (1 + Zauber%)</span><br><span class="src">state.js:176, CFG.spellK</span></td><td class="down">sättigt gegen ×2</td></tr>
+<tr><td><b>Glück</b></td><td>Krit-Chance, bessere Beute</td><td><span class="f">Krit = weich gedeckelt(5 % + Gl / (Gl + 100 + 5 × Gegnerstufe) + Krit-Boni), Grenze 60 %</span> <span class="src">combat.js:28</span><br><span class="f">Beute: Gewicht magisch+ × (1 + min(Glück, 200) / 100)</span> <span class="src">loot.js:57</span></td><td class="down">Verhältnis, zwei Deckel</td></tr>
+</tbody></table></div>
+
+<h3>Gegenstände</h3>
+<ul>
+  <li>Stärke, Geschick und Intelligenz sind <b>eine Gruppe</b> (<code>group: 'attr'</code>, <span class="src">data.js:72–74</span>): Ein Gegenstand trägt höchstens eines davon, und es sitzt auf der Angriffsseite (Präfix), wo es mit Schaden, Schaden %, Krit und Zaubertempo um Plätze konkurriert.</li>
+  <li><b>Konstitution</b> ist ein Suffix auf sechs Plätzen (Helm, Brust, Stiefel, Gürtel, Amulett, Ring, <span class="src">data.js:82</span>). Dazu kommt <b>Leben %</b> (Helm, Brust, Stiefel, Gürtel), das multiplikativ auf die Konstitution wirkt.</li>
+  <li><b>Glück</b> ist ein Suffix mit Faktor 1,5 (<span class="src">data.js:83</span>).</li>
+  <li>Flache Werte je Stufe: V 1–2 · IV 4–5 · III 8–10 · II 14–18 · I 22–28 · Abgrund I+ 29–32 · I++ 34–38 (<span class="src">data.js:122–129</span>).</li>
+</ul>
+
+<h3>Gegner</h3>
+<div class="formula">Gegner-Attribute  = (3 + 2,7 × Stufe) × Stärke × (0,8 … 1,2)   Hauptattribut × 1,4      state.js:192
+Gegner-Leben     = Kon × 3,6 × (3 + 0,25 × Stufe) × 1,15                                state.js:197
+Gegner-Schaden   = [2 + 1,7·St, 5 + 3·St] × Stärke × 0,9, im Kampf × (1 + Haupt/20)    state.js:196
+Gegner-Rüstung   = Stufe × 5 × Stärke                                                    state.js:194
+Abgrund-Stärke   = 1,15 × 1,05^(Tiefe − 1)    (Tiefe 20: 2,91)                            game.js:521</div>
+<p>Beispiel Stufe 40, Stärke 1: Gegner-Geschick ≈ 111 (89–133), Hauptattribut ≈ 155, Leben ≈ 5 970, ein Hieb vor Abwehr ≈ 97 × 0,9 × 8,8 ≈ <b>770</b>.</p>
+
+<h2>2 · Warum Konstitution und Schaden gewinnen</h2>
+
+<h3>a) Sie sind die einzigen linearen Größen</h3>
+<p>Leben ist proportional zu Konstitution, Hiebschaden proportional zu (20 + Hauptattribut). Beide haben keinen Deckel, und keine Gegnerwerte stehen im Nenner. Der relative Gewinn von +30 Punkten ist deshalb schlicht:</p>
+<div class="formula">Konstitution:   +30 / Kon          bei Kon 127  → +23,6 % Leben
+Hauptattribut:  +30 / (Haupt + 20)  bei Haupt 252 → +11,0 % Schaden</div>
+<p>Alle anderen Attribute wirken über ein Verhältnis zum Gegner oder gegen eine Grenze. Ihr Ertrag je Punkt fällt, wenn man mehr hat, und fällt zusätzlich, wenn der Gegner stärker wird.</p>
+
+<h3>b) Die Kampfkraft-Formel belohnt genau dieses Paar</h3>
+<div class="formula">Kampfkraft = 20 × √( Schaden je Zug × Haltbarkeit )                                   state.js:207–280
+Haltbarkeit ∝ Leben / erlittener Schaden je Zug</div>
+<p>Ein geometrisches Mittel aus Angriff und Abwehr wird am größten, wenn man die beiden <em>linearen</em> Hebel im Gleichgewicht hält. Die grüne Zahl „Kampfkraft je Punkt“ (<span class="src">ui.js:204</span>) zeigt dem Spieler nach jedem Punkt, welcher gerade am meisten bringt, und das ist fast immer Konstitution oder das Hauptattribut. Weil das erste Läutern gratis und jedes weitere billig ist, landen Spieler, die der Zahl folgen, zuverlässig dort.</p>
+
+<h3>c) Gemessen: +30 Punkte in jedes Attribut</h3>
+<p>Siegchance in Prozentpunkten gegen Gegner, die ohne die Punkte zu ~50 % fallen. In Klammern der Zuwachs der Kampfkraft.</p>
+<div class="tw"><table>
+<thead><tr><th>Klasse</th><th>Stufe</th><th>Stärke</th><th>Geschick</th><th>Intelligenz</th><th>Konstitution</th><th>Glück</th></tr></thead>
+<tbody>
+<tr><td>Zauberin</td><td class="n">10</td><td class="n zero">+0,3 (0,5 %)</td><td class="n">+12,2 (19 %)</td><td class="n">+15,0 (17 %) ★</td><td class="n up">+43,1 (38 %)</td><td class="n">+4,0 (5 %)</td></tr>
+<tr><td></td><td class="n">20</td><td class="n zero">−0,4 (0,2 %)</td><td class="n">+5,8 (16 %)</td><td class="n">+7,1 (12 %) ★</td><td class="n up">+35,3 (22 %)</td><td class="n">+3,2 (3 %)</td></tr>
+<tr><td></td><td class="n">30</td><td class="n zero">−0,2 (0,2 %)</td><td class="n">+1,9 (12 %)</td><td class="n">+2,0 (8 %) ★</td><td class="n up">+25,8 (16 %)</td><td class="n">+1,9 (2 %)</td></tr>
+<tr class="hl"><td></td><td class="n">40</td><td class="n zero">+1,9 (0,2 %)</td><td class="n">+4,2 (9 %)</td><td class="n">+4,3 (6 %) ★</td><td class="n up">+18,0 (12 %)</td><td class="n">+2,9 (2 %)</td></tr>
+<tr><td>Assassine</td><td class="n">10</td><td class="n zero">−0,2 (0 %)</td><td class="n">+29,4 (24 %) ★</td><td class="n">+8,7 (7 %)</td><td class="n up">+44,0 (34 %)</td><td class="n">+4,5 (5 %)</td></tr>
+<tr><td></td><td class="n">20</td><td class="n zero">+0,8 (0 %)</td><td class="n">+14,9 (13 %) ★</td><td class="n">+3,4 (6 %)</td><td class="n up">+35,2 (19 %)</td><td class="n zero">−1,4 (0 %)</td></tr>
+<tr><td></td><td class="n">30</td><td class="n zero">+0,9 (0 %)</td><td class="n">+7,3 (9 %) ★</td><td class="n">+2,5 (4 %)</td><td class="n up">+26,3 (15 %)</td><td class="n zero">+1,5 (0 %)</td></tr>
+<tr class="hl"><td></td><td class="n">40</td><td class="n zero">+1,6 (0,1 %)</td><td class="n">+4,7 (7 %) ★</td><td class="n">+3,1 (4 %)</td><td class="n up">+18,1 (11 %)</td><td class="n zero">+0,4 (0 %)</td></tr>
+<tr><td>Barbar</td><td class="n">10</td><td class="n">+15,5 (16 %) ★</td><td class="n">+18,1 (19 %)</td><td class="n">+2,8 (5 %)</td><td class="n up">+46,1 (34 %)</td><td class="n">+4,6 (5 %)</td></tr>
+<tr><td></td><td class="n">20</td><td class="n">+4,8 (10 %) ★</td><td class="n">+5,6 (14 %)</td><td class="n">+4,4 (5 %)</td><td class="n up">+37,1 (19 %)</td><td class="n">+1,1 (3 %)</td></tr>
+<tr><td></td><td class="n">30</td><td class="n">+4,4 (8 %) ★</td><td class="n">+4,3 (11 %)</td><td class="n">+4,8 (5 %)</td><td class="n up">+33,3 (14 %)</td><td class="n">+1,5 (2 %)</td></tr>
+<tr class="hl"><td></td><td class="n">40</td><td class="n">+1,0 (6 %) ★</td><td class="n">+0,3 (8 %)</td><td class="n">+0,5 (3 %)</td><td class="n up">+24,0 (11 %)</td><td class="n">+0,8 (1 %)</td></tr>
+</tbody></table></div>
+<p class="src">★ = Hauptattribut der Klasse. Messung: tests/held.mjs-Held, 4 Ausrüstungswürfe × 700 Kämpfe je Zelle, Gegner auf ~50 % geeicht.</p>
+<p>Drei Dinge fallen auf:</p>
+<ol>
+  <li><b>Konstitution führt auf jeder Stufe und in jeder Klasse</b>, mit Abstand. In echten Kämpfen ist sie sogar mehr wert, als die Kampfkraft zeigt (Stufe 40: KK +11–12 %, Siegchance +18–24 Punkte). Mehr Leben fängt auch Pech-Serien und Spitzentreffer ab, die ein Mittelwert nicht sieht.</li>
+  <li><b>Auch das Hauptattribut verliert</b>: Beim Barbaren fällt es von +15,5 auf +1,0 Punkte, bei der Assassine von +29 auf +5. Der „Schaden“, den Spieler im Endspiel suchen, kommt deshalb zunehmend aus Gegenständen (Waffe, Schaden %, Krit-Schaden), nicht aus Punkten.</li>
+  <li><b>Stärke ist für Zauberin und Assassine auf jeder Stufe wertlos</b> (Kampfkraft +0,0 bis 0,5 %).</li>
+</ol>
+
+<h2>3 · Welche Attribute zu wenig bringen oder wegskalieren</h2>
+
+<div class="box"><h3>Stärke (außer Barbar): tot, weil die Rüstung schon am Deckel steht</h3>
+<p>Die Minderung ist <span class="f">R / (R + 20 + 8 × Angreiferstufe)</span>, höchstens 60 %. Für 60 % braucht man R = 1,5 × (20 + 8 × Stufe). Das sind 150 Rüstung auf Stufe 10 und 510 auf Stufe 40.</p>
+<p>Gemessen hatten die Testhelden allein aus Gegenständen 135–317 Rüstung auf Stufe 10 und 961–1 001 auf Stufe 40, also <b>57–60 % Minderung auf jeder Stufe</b> und im Endspiel fast das Doppelte des Nötigen. Jeder weitere Rüstungspunkt, ob aus Stärke (0,5 je Punkt) oder aus Gegenständen, bringt dann exakt nichts. Das betrifft auch den Barbaren: Seine Stärke wirkt nur noch über den Hieb.</p></div>
+
+<div class="box"><h3>Glück: zwei Deckel, die andere schon füllen</h3>
+<p><b>Krit:</b> <span class="f">Gl / (Gl + 100 + 5 × Gegnerstufe)</span>. Auf Stufe 40 bringen 113 Glück 27 %, +30 Glück nur +4,9 Prozentpunkte vor dem weichen Deckel. Die Krit-Chance teilt sich die Grenze von 60 % (volle Wirkung bis 42 %) mit Klasse (Assassine +12 %), Talenten und Gegenständen. Wer den Schlüsselstein „Ausbluten“ nimmt, kritet nie (<span class="src">combat.js:198</span>). Der Bot nimmt ihn bei der Assassine, deshalb dort +0 %.</p>
+<p><b>Beute:</b> Glück vervielfacht nur die Gewichte von magisch aufwärts, gedeckelt bei 200 (<span class="src">loot.js:57</span>). Im Abgrund kommen <b>Unruhe × 15 + Tiefe × 3</b> dazu (<span class="src">game.js:632</span>), im Streifzug <b>Tiefe × 20</b> (<span class="src">game.js:58</span>). Bei Unruhe 5 auf Tiefe 20 sind das schon 135 der 200, eigenes Glück über 65 verpufft dort ganz.</p></div>
+
+<div class="box"><h3>Intelligenz (außer Zauberin): sättigt früh</h3>
+<p><span class="f">1 + Int / (Int + 60)</span> nähert sich ×2. Mit 38 Int (Assassine, Stufe 40) ergibt das ×1,39, mit 68 Int ×1,53: +10 % nur auf Zauber. Bei der Zauberin selbst (Int 247) bringt der Zauberkraft-Teil von +30 Int nur noch +0,9 %; ihr Int lohnt nur noch über den Hieb-Multiplikator. Eine frühere Messung passt dazu: Den Sättigungswert <code>spellK</code> von 60 auf 600 zu stellen (Zauberkraft fast ohne Int), kostete die Zauberin an ihrer Grenz-Tiefe nur 6–14 Punkte Siegchance.</p></div>
+
+<div class="box"><h3>Geschick (außer Assassine): ein Wettrennen gegen das Geschick des Gegners</h3>
+<p><span class="f">Ges / (Ges + 3 × Gegner-Ges + 40)</span>. Die Zauberin mit 37 Geschick hat auf Stufe 40 gegen 111 Gegner-Geschick aus dem Attribut <b>9 %</b> Ausweichen. Für 35 % bräuchte sie etwa 200 Geschick.</p>
+<p>Im Abgrund wächst das Gegner-Geschick mit der Stärke der Tiefe mit (×2,91 auf Tiefe 20). Eine Assassine mit 249 Geschick fällt dort von 38,5 % auf 18,8 % Ausweichen aus dem Attribut. Leben dagegen sinkt in der Tiefe nicht.</p>
+<p>Dazu kommen drei Bremsen: der weiche Deckel (seit 22.11.), die Serienbremse (höchstens 2 Ausweicher in Folge, <span class="src">combat.js:229</span>) und der Erstschlag, der nur „höher oder nicht“ kennt: Wer den Gegner schon überholt, gewinnt durch mehr Geschick nichts mehr. Auffällig: Die Kampfkraft <em>überschätzt</em> Geschick bei Nicht-Assassinen (Barbar Stufe 40: KK +8 %, Siegchance +0,3).</p></div>
+
+<h2>4 · Welche Mechaniken die einseitige Verteilung fördern</h2>
+<ol>
+  <li><b>Linear gegen Verhältnis.</b> Leben und Hieb wachsen proportional, alles andere über <span class="f">x / (x + Gegnerwert)</span> oder gegen eine Grenze. Der Ertrag je Punkt fällt bei den Verhältnis-Werten mit jedem Punkt, bei den linearen nicht.</li>
+  <li><b>Deckel werden von Gegenständen gefüllt, nicht von Attributen.</b> Rüstung 60 % (allein aus Ausrüstung erreicht), Krit 60 % (Klasse und Gegenstände), Ausweichen 50 % (Talente, Gegenstände), Glück 200 (Tiefe und Unruhe). Was dann noch aus dem Attribut käme, fällt weg.</li>
+  <li><b>Der Abgrund skaliert Gegner multiplikativ</b> (×1,05 je Tiefe auf alle Gegner-Attribute, <span class="src">game.js:521</span>). Leben und Hieb des Helden stehen gegen Gegner-Schaden und -Leben, das bleibt ein fairer Vergleich. Ausweichen steht gegen Gegner-Geschick × Stärke und wird mit der Tiefe entwertet. Der Abgrund ist das Endspiel, also wiegt das genau dort am meisten.</li>
+  <li><b>Die Kampfkraft-Anzeige erzieht.</b> Sie ist ein geometrisches Mittel aus Angriff und Haltbarkeit und zeigt nach jedem Punkt den besten nächsten Punkt. Das ist in sich richtig, führt aber in genau ein Optimum. Sie unterschätzt Konstitution und überschätzt Geschick, die Wahl fällt trotzdem gleich aus.</li>
+  <li><b>Gegenstände verstärken Konstitution doppelt.</b> Konstitution als Suffix auf sechs Plätzen, dazu Leben % auf vier Plätzen, das die Konstitution multipliziert. Die drei Kampf-Attribute teilen sich eine Affix-Gruppe auf der Angriffsseite.</li>
+  <li><b>Abwehr ist eine Kette multiplikativer, gedeckelter Schichten</b> (Ausweichen → Block → Rüstung → Resistenz, <span class="src">combat.js:235–243</span>). Jede Schicht, die am Deckel steht, macht das Attribut dahinter wertlos. Leben ist die einzige Abwehr ohne Deckel.</li>
+  <li><b>Läutern ist billig</b> (erstes Mal gratis, dann 30 Gold × Stufe). Experimente mit Neben-Attributen kosten nichts, eine Bindung entsteht also auch nicht: Wer einmal Kampfkraft vergleicht, landet beim Optimum.</li>
+</ol>
+
+<h2>5 · Empfehlungen</h2>
+<p>Ziel: Auf Stufe 40 bringt jedes Attribut mindestens einer Klasse einen Ertrag in der Größe von Konstitution (Faustregel: mindestens 50 % ihres Werts in der Tabelle oben), und es gibt mindestens zwei verschiedene gute Verteilungen je Klasse. Die Reihenfolge folgt Aufwand gegen Wirkung.</p>
+
+<h3><span class="tag p1">zuerst</span> A · Tote Zonen öffnen (Formeln und Zahlen, klein)</h3>
+<ol>
+  <li><b>Rüstung</b>: Nenner steiler mit der Gegnerstufe und weicher Deckel wie bei Ausweichen und Krit:
+    <div class="formula">heute:     min(60 %, R / (R + 20 + 8 × St))
+Vorschlag: weich(R / (R + 20 + 20 × St), Grenze 60 %, voll bis 42 %)</div>
+    Auf Stufe 40 liegt der Testheld mit 1 000 Rüstung dann bei roh 55 %, also in der Zone, in der jeder Punkt zählt. Stärke (0,5 Rüstung je Punkt) und Rüstung auf Gegenständen bekommen wieder Wert.</li>
+  <li><b>Ausweichen gegen die Gegner<em>stufe</em> statt gegen Gegner-Geschick × Abgrund-Stärke</b>, z. B. <span class="f">Ges / (Ges + 8 × St + 40)</span>. Dann entwertet die Tiefe das Attribut nicht mehr, die Schwierigkeit kommt über Leben und Schaden der Gegner.</li>
+  <li><b>Glück für Beute ohne gemeinsamen Deckel</b>: Tiefe und Unruhe multiplikativ statt additiv, z. B. <span class="f">(1 + min(Glück, 200)/100) × (1 + Tiefe × 0,03 + Unruhe × 0,15)</span>. Dann bleibt eigenes Glück auch tief unten etwas wert.</li>
+  <li><b>Intelligenz-Sättigung lockern</b>: <span class="f">Int / (Int + 60)</span> → <span class="f">Int / (Int + 60 + 4 × St)</span>. So sättigt sie erst im Endspiel und nicht schon bei Stufe 15. Achtung: Das stärkt die Zauberin weiter, deren Vorsprung wir gerade gekürzt haben. Gemeinsam messen.</li>
+</ol>
+
+<h3><span class="tag p2">dann</span> B · Jedem Attribut einen kleinen linearen Grundnutzen</h3>
+<p>Prinzip wie in Path of Exile, wo jedes Attribut neben seiner Rolle einen kleinen allgemeinen Nutzen gibt (dort etwa Stärke → Leben): Kein Punkt ist je ganz wertlos, und Mischungen entstehen. Vorschläge, alle <em>neu</em>:</p>
+<div class="tw"><table>
+<thead><tr><th>Attribut</th><th>Zusatz je Punkt</th><th>Warum gerade das</th></tr></thead>
+<tbody>
+<tr><td>Stärke</td><td class="n">+0,2 % Leben</td><td>Multipliziert mit Konstitution: Stärke und Konstitution ergänzen sich, statt dass Konstitution allein gewinnt. Bei 100 Stärke sind das +20 % Leben.</td></tr>
+<tr><td>Geschick</td><td class="n">+0,1 % Schaden aller Hiebe</td><td>Hält Geschick für den Barbaren und für Hieb-Zauberinnen interessant, ohne das Ausweichen hochzutreiben.</td></tr>
+<tr><td>Intelligenz</td><td class="n">+0,1 % Zaubertempo</td><td>Tempo existiert schon (<code>haste</code>) und wirkt auf alle Zauber, auch die des Barbaren. Bei der Zauberin vorsichtig: Ihr Vorsprung kam vom Tempo.</td></tr>
+<tr><td>Glück</td><td class="n">+0,2 % Gold und EP aus Kämpfen</td><td>Ein „Farm-Build“ wird zur echten Wahl: weniger Kampfkraft, schnellerer Fortschritt. Kein Deckel.</td></tr>
+</tbody></table></div>
+
+<h3><span class="tag p2">dann</span> C · Gegner, die eine einseitige Verteilung bestrafen</h3>
+<p>Heute bestraft kein Gegner reines Leben. Vorschläge als Abgrund-Modifikatoren (die Liste <code>DESCENT.depthMods</code> und die Boss-Mechaniken <code>boss.mech</code> gibt es schon, die Inhalte wären neu):</p>
+<ul>
+  <li><b>„Ausbluten der Tiefe“</b>: Gegner treffen zusätzlich 3 % des <em>maximalen</em> Lebens. Großes Leben schützt dann weniger, Ausweichen und Block schützen voll.</li>
+  <li><b>„Gepanzert“</b>: Gegner-Rüstung ×2. Durchdringung und Zauber gewinnen.</li>
+  <li><b>„Flink“</b>: Gegner weichen 25 % öfter aus. Geschick des Helden (Treffsicherheit) gewinnt. Das gibt es heute als Formel schon, aber nicht als sichtbare Herausforderung.</li>
+  <li>Wöchentlich wechselnd, vor dem Abstieg angezeigt (Leitlinie „kein unfairer Verlust“). So hat jede Woche einen anderen besten Build.</li>
+</ul>
+
+<h3><span class="tag p3">begleitend</span> D · Anzeige und Wächter</h3>
+<ul>
+  <li><b>Kampfkraft nachschärfen</b>: Konstitution wird unter-, Geschick überschätzt. Die grüne Zahl sollte die echte Wirkung zeigen, sonst führt sie in die falsche Richtung. In der Vorbereitung zusätzlich „gegen diesen Gegner“ anzeigen, damit sichtbar wird, wenn ein Modifikator ein anderes Attribut verlangt.</li>
+  <li><b>Wächter-Test</b>: Die Messung oben (+30 Punkte je Attribut, Gegner auf 50 % geeicht, 4 Ausrüstungswürfe) als festen Test ins Repository, mit dem Rahmen „jedes Attribut ≥ 50 % von Konstitution für mindestens eine Klasse auf Stufe 40“. Wie bei <code>tests/calib.mjs</code> für Boni, damit eine spätere Änderung das nicht still wieder kippt.</li>
+  <li><b>Läutern</b> bleibt billig. Teurer zu machen löst nichts, solange es nur ein Optimum gibt.</li>
+</ul>
+
+<h3>Was ich nicht empfehle</h3>
+<ul>
+  <li><b>Konstitution kürzen.</b> Sie ist nicht zu stark, sie ist das einzige Attribut ohne Bremse. Wer sie dämpft, verschiebt das Problem nur auf das Hauptattribut, und Spieler verlieren Haltbarkeit, die sie im Abgrund brauchen.</li>
+  <li><b>Weitere harte Deckel.</b> Jeder harte Deckel erzeugt genau die toten Zonen, die hier das Problem sind.</li>
+</ul>
+
+<h2>Reihenfolge, wenn umgesetzt wird</h2>
+<ol>
+  <li>A1 Rüstung und A2 Ausweichen, dann die Tabelle aus Abschnitt 2c neu messen.</li>
+  <li>B (Grundnutzen) mit kleinen Faktoren, messen, Faktoren nachziehen.</li>
+  <li>C als Wochen-Modifikatoren im Abgrund.</li>
+  <li>D-Wächter-Test vor dem ersten Push dieser Reihe.</li>
+</ol>
+<p class="src">Fundstellen beziehen sich auf den Code-Stand dieses Dokuments. Messskript: <code>attr.mjs</code> (Arbeitsordner), Testheld: <code>tests/held.mjs</code>.</p>
+</main>
