@@ -39,7 +39,11 @@ Entschieden 2026-11-22 (Besitzer: „wie empfohlen“): flach + 3 Siegel darf me
 **Attribut-Analyse 2026-11-22** (nur Analyse, nichts geändert): `berichte/attribut-analyse.html` (auch als Artifact
 https://claude.ai/artifact/GQoDo53XFfQdUm4pnQxquo). Kern: nur Kon (Leben) und Hauptattribut (Hieb) linear ohne Deckel; Rüstung steht allein aus
 Gegenständen am 60-%-Deckel (Stärke tot), Glück/Int sättigen, Ausweichen verliert im Abgrund (Gegner-Geschick × Tiefen-Stärke).
-Messung +30 Punkte je Attribut: `node tests/attribute.mjs <klasse>` (~1 Min.). **Der Besitzer hat eine eigene Lösung und will sie analysiert haben – auf seinen Befehl warten.**
+Messung +30 Punkte je Attribut: `node tests/attribute.mjs <klasse>` (~1 Min.).
+**Build-Vielfalt 2026-11-22** (nur Analyse): `berichte/build-diversitaet.html` (Artifact https://claude.ai/artifact/Cg9Ej4RRBjENBDRZievacM),
+Skripte `berichte/messung-build/`. Kern: Kon-Optimum 60–70 % der Punkte (KK zeigt 50 %); 23 Formel-Varianten (weiche Deckel, Ausweichen
+gegen Stufe, Int, Glück, Kampflänge …) kippen es nicht. Wirksam: KK ehrlich, ein Schlüsselstein je Brett, Müllerin/Aldemar mit echtem Zorn,
+Glück-Beute (heute 0 ab Tiefe 8). **Plan liegt ihm vor – nichts gebaut, auf sein „ja“ warten.**
 
 **Befund 2026-11-22 (Balance-Gesamtschau, gemessen, nichts am Spiel geändert):** Bot spielt jetzt den Abgrund (`tests/bot.mjs`).
 Boss erstattet sein Grabsiegel (`DESCENT.sealBoss: 1`) → wer gewinnt, steigt endlos ab: Tag 1 40–47 Abstiege, St. 17–26; Tag 30 St. 50–55,

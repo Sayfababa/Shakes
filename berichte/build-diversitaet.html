@@ -1,0 +1,408 @@
+<title>Build-Vielfalt Aschenkrone</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@600&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+SC:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: eine Lesespalte (~70 Zeichen) wie die Attribut-Analyse; Tabellen scrollen in sich. Bewusst nur dunkel – die Farbwelt des Spiels. */
+:root {
+  --bg: #0e0b08; --panel: #17120d; --line: #3a2d20; --fg: #e4d8c2; --dim: #a89676;
+  --gold: #c9a24e; --blood: #c2412f; --ok: #8fb36a; --cold: #8fbfe6;
+  --f-display: 'Grenze Gotisch', 'Alegreya', Georgia, serif;
+  --f-body: 'Alegreya', Georgia, 'Times New Roman', serif;
+  --f-label: 'Alegreya SC', 'Alegreya', Georgia, serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 17px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; }
+main { max-width: 48rem; margin: 0 auto; display: flex; flex-direction: column; gap: 1.1rem; }
+h1 { font-family: var(--f-display); color: var(--gold); font-size: clamp(2rem, 6vw, 2.8rem); line-height: 1.05; margin: 0; text-wrap: balance; font-weight: 600; }
+h2 { font-family: var(--f-display); color: var(--gold); font-size: 1.65rem; margin: 1.6rem 0 0; font-weight: 600; text-wrap: balance; border-bottom: 1px solid var(--line); padding-bottom: .25rem; }
+h3 { font-family: var(--f-label); color: var(--fg); font-size: 1.1rem; margin: .8rem 0 0; letter-spacing: .02em; }
+p, ul, ol { margin: 0; } ul, ol { padding-left: 1.3rem; display: flex; flex-direction: column; gap: .35rem; }
+.lede { color: var(--dim); font-size: 1.05rem; }
+.meta { font-family: var(--f-label); color: var(--dim); font-size: .85rem; letter-spacing: .04em; }
+b, strong { color: var(--gold); font-weight: 700; }
+code, .f { font-family: var(--f-mono); font-size: .82em; color: var(--cold); }
+.formula { font-family: var(--f-mono); font-size: .85rem; background: var(--panel); border-left: 3px solid var(--gold); padding: .6rem .8rem; overflow-x: auto; white-space: pre; color: var(--fg); }
+.src { font-family: var(--f-mono); font-size: .75rem; color: var(--dim); }
+.box { background: var(--panel); border: 1px solid var(--line); padding: .9rem 1rem; display: flex; flex-direction: column; gap: .5rem; }
+.box h3 { margin: 0; color: var(--gold); }
+.warn { border-color: #6b2a1f; }
+.tw { overflow-x: auto; border: 1px solid var(--line); }
+table { border-collapse: collapse; width: 100%; font-size: .86rem; font-variant-numeric: tabular-nums; }
+th, td { padding: .36rem .5rem; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-label); font-weight: 500; color: var(--dim); background: var(--panel); letter-spacing: .03em; white-space: nowrap; }
+td.n { text-align: right; white-space: nowrap; }
+tr.hl td { background: rgba(201,162,78,.08); }
+tr.sec td { font-family: var(--f-label); color: var(--gold); background: var(--panel); }
+.up { color: var(--ok); } .down { color: var(--blood); } .zero { color: var(--dim); }
+.tag { font-family: var(--f-label); font-size: .78rem; padding: 0 .4rem; border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
+.tag.p1 { color: var(--blood); border-color: #6b2a1f; } .tag.p2 { color: var(--gold); border-color: #6b5222; } .tag.p3 { color: var(--cold); border-color: #2f4a63; }
+.tag.ok { color: var(--ok); border-color: #3f5a2c; } .tag.no { color: var(--blood); border-color: #6b2a1f; }
+.keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .6rem; }
+.keys .box p { font-size: .95rem; }
+dl.plan { display: grid; grid-template-columns: 9.5rem 1fr; gap: .25rem .8rem; margin: 0; font-size: .95rem; }
+dl.plan dt { font-family: var(--f-label); color: var(--dim); }
+dl.plan dd { margin: 0; min-width: 0; }
+@media (max-width: 34rem) { dl.plan { grid-template-columns: 1fr; } dl.plan dd { margin-bottom: .3rem; } }
+a { color: var(--gold); }
+a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+</style>
+
+<main>
+<p class="meta">Aschenkrone · Balancing-Bericht · 22.11.2026 · nur Analyse, am Spiel nichts geändert</p>
+<h1>Build-Vielfalt und Attribut-Balance</h1>
+<p class="lede">Prüfung der Attribut-Analyse gegen den aktuellen Code, Bestandsaufnahme aller Build-Systeme, 15 Archetypen in der echten Kampf-Engine, 23 simulierte Formel-Varianten und ein Umsetzungsplan in drei Phasen. Alle Zahlen sind gemessen, keine geschätzt.</p>
+
+<div class="keys">
+  <div class="box warn"><h3>Leben ist zwei- bis viermal so viel wert wie Schaden</h3><p>+10 % Leben bringen 6,5–12,8 Punkte Siegchance, +10 % Schaden nur 0,4–3,8. Das beste Verhältnis liegt bei <b>60–70 % der freien Punkte in Konstitution</b>, nicht bei den 30 %, die heute als „normal“ gelten. Die Kampfkraft-Zahl hat ihr Maximum bei 50 % und führt so in die falsche Richtung.</p></div>
+  <div class="box warn"><h3>Formel-Korrekturen allein ändern nichts</h3><p>Ich habe 23 Varianten an einer Kopie des Codes simuliert (weiche Deckel, Ausweichen gegen die Stufe, Int-Sättigung, Glück→Krit-Schaden, Tempo aus Int oder Geschick, Boss-Zorn, längere Kämpfe, Prozent-Leben-Treffer, Schaden lädt Zauber). In <b>keiner</b> davon fällt das Konstitutions-Optimum unter 50 %. Die Empfehlungen A1–A4 der alten Analyse sind richtig als Fehlerkorrektur, aber sie schaffen keine neuen Builds.</p></div>
+  <div class="box"><h3>Talente sind der stärkste Hebel, und sie verschwinden</h3><p>Auf Stufe 20–30 bringt die Wahl der Brett-Spalte bis zu +28 Punkte Siegchance, mehr als jede Attribut-Verteilung außer Konstitution. Ab Stufe 40 (39 Punkte für 41 Ränge) hat jeder fast alles. Exklusive Schlüsselsteine halten die Wahl offen. Gemessen ergibt das je Klasse einen klaren Gewinner, der Rest muss nachgezogen werden.</p></div>
+  <div class="box"><h3>Glück wirkt im Endspiel auf die Beute exakt null</h3><p>Glück vervielfacht magisch, selten und legendär <em>gleich</em>. Sobald eine Mindest-Seltenheit gilt (Abgrund ab Tiefe 8, Unruhe ab 3), ändert es kein Verhältnis mehr. Gemessen: Tiefe 20, Unruhe 5: 16,9 % legendär mit 0 Glück, 17,3 % mit 200.</p></div>
+</div>
+
+<div class="box">
+  <h3>Größte Wirkung bei geringstem Aufwand</h3>
+  <ol>
+    <li><b>Kampfkraft ehrlich machen</b> (power(), klein bis mittel): Sie ist der Ratgeber, dem Spieler und Bot folgen. Heute unterschätzt sie Konstitution, überschätzt Geschick und das Arkan-Brett und schätzt den Schlüsselstein Schwarzer Lotus um 27 % zu schwach, obwohl er gemessen der beste ist.</li>
+    <li><b>Schlüsselsteine exklusiv</b> (ein Stein je Brett, klein): Die Talentwahl bleibt bis ins Endspiel eine Build-Entscheidung. Danach die schwachen Steine nachziehen.</li>
+    <li><b>Boss-Versprechen einlösen</b> (Daten und wenige Zeilen): Die Müllerin („je länger, desto härter“) und Bruder Aldemar („kurze Kämpfe gewinnen“) bestrafen lange Kämpfe heute gar nicht. Ein echter Zorn je Zug halbiert gemessen den Wert von Konstitution gegen Bosse. So bekommt der Schadens-Build seinen Einsatzzweck.</li>
+    <li><b>Glück-Beute reparieren</b> (eine Zeile in loot.js): Glück stärker auf seltener als auf magisch wirken lassen, dann zählt es auch mit Mindest-Seltenheit.</li>
+  </ol>
+  <p>Erst danach lohnen die Formel-Korrekturen (Rüstung, Ausweichen) als Phase 1b. Sie öffnen tote Zonen, verschieben die Schwierigkeit aber spürbar und brauchen eine neue Eichung.</p>
+</div>
+
+<h2>1 · Die bekannten Befunde gegen den aktuellen Code</h2>
+<p>Gegenprobe mit <code>node tests/attribute.mjs &lt;klasse&gt;</code> (+30 Punkte je Attribut, Gegner auf 50 % geeicht, 4 Ausrüstungswürfe × 700 Kämpfe) und eigenen Messungen. Stand: Commit <code>9e73100</code>.</p>
+<div class="tw"><table>
+<tr><th>Befund</th><th>Im Code</th><th>Gemessen heute (St. 40)</th><th>Abweichung</th></tr>
+<tr><td>Konstitution linear, ohne Deckel</td><td><code>hp = Kon × Klasse × (3 + 0,25·St) × (1 + Leben%)</code> state.js:189</td><td>+30 Kon: Barbar +28,5, Assassine +17,3, Zauberin +13,7 Punkte Sieg</td><td><span class="tag p1">stärker</span> Optimum 60–70 % der Punkte (Abschn. 4)</td></tr>
+<tr><td>Hauptattribut linear im Hieb</td><td><code>× (1 + Haupt / 20)</code> combat.js, auch Grundlage aller Zauber</td><td>+30 Haupt: +3,1 / +3,6 / +1,6</td><td><span class="tag p2">schwächer</span> linear, aber +10 % Schaden sind nur 0,4–3,8 Punkte wert</td></tr>
+<tr><td>Rüstung über Gegenstände am 60-%-Deckel</td><td><code>min(0,6, R / (R + 20 + 8·St))</code> combat.js:29</td><td>Alle 15 Archetypen 58–60 %, ab St. 10 (Assassine St. 10: 55 %)</td><td><span class="tag ok">bestätigt</span> Ausnahme: Schwarzer Lotus (−25 % Rüstung) 54 %</td></tr>
+<tr><td>Ausweichen verliert im Abgrund</td><td><code>Ges / (Ges + 3·Gegner-Ges + 40)</code>, Gegner-Ges × Tiefen-Stärke</td><td>+30 Ges im Abgrund (Boss T19): Assassine +1,9, Barbar 0,0, Zauberin +5,8</td><td><span class="tag ok">bestätigt</span> Assassine erreicht mit Schatten-Talenten trotzdem 74–75 % Gesamt-Ausweichen</td></tr>
+<tr><td>Intelligenz sättigt</td><td><code>1 + Int / (Int + 60)</code> state.js:178</td><td>Zauberkraft gesamt ×3,2 (Zauberin), ×1,4–1,7 (andere); +30 Int ≤ +1,6</td><td><span class="tag p2">anders</span> Lockern der Sättigung gemessen ohne Wirkung (Abschn. 5)</td></tr>
+<tr><td>Glück verliert an Krit- und Beute-Deckeln</td><td>Krit weich bis 60 %; Beute <code>1 + min(Gl, 200)/100</code> loot.js:57</td><td>+30 Glück: −0,7 / −1,3 / −0,2</td><td><span class="tag p1">neu</span> Beute-Wirkung null bei Mindest-Seltenheit; Gold und EP hängen nie an Glück</td></tr>
+<tr><td>Kampfkraft bevorzugt Schaden und Haltbarkeit</td><td><code>20 · √(Schaden je Zug × Haltbarkeit)</code> state.js:207</td><td>Zauberin +30 Ges: KK +8,5 %, Sieg +0,7. KK-Maximum bei 50 % Kon, Sieg steigt bis 70 %</td><td><span class="tag p1">neu</span> ignoriert Erstschlag ganz, irrt bei Brett und Schlüsselsteinen</td></tr>
+<tr><td>Kon gewinnt die meisten Siegpunkte</td><td colspan="2">auf jeder Stufe, in jeder Klasse, gegen jeden Gegner und jeden Boss</td><td><span class="tag ok">bestätigt</span> auch gegen alle 7 Elite-Modifikatoren</td></tr>
+</table></div>
+<p class="src">Zufall: ±2–3 Punkte je Zelle (dieselbe Messung zweimal lief auf ±3 auseinander). Unterschiede unter 4 Punkten sind Rauschen.</p>
+
+<h2>2 · Was es heute gibt: Systeme, Synergien, Lücken</h2>
+<h3>Kampfablauf (combat.js, 252 Zeilen)</h3>
+<ul>
+  <li><b>Erstschlag:</b> wer <code>Ges + Wurf 0–10</code> höher hat (Effekt <code>first</code> +1000). Binär: Mehr Geschick als der Gegner bringt nichts.</li>
+  <li><b>Zug:</b> Zustände laufen ab, Tränke prüfen ihren Auslöser, Regeneration, Betäubung, dann laden alle Zauber um <code>1 + Zaubertempo</code>. Der zuletzt volle Zauber wird gewirkt, sonst ein Hieb. Raserei (unter 50 % Leben) gibt einen zweiten Hieb. Danach ticken Bluten, Gift und Brand.</li>
+  <li><b>Abwehr-Kette eines Hiebs:</b> Ausweichen (weich bis 50 %, Serienbremse 2) → Blocken (hart 50 %, Zauber werden nie geblockt) → Rüstung (nur physischer Anteil, hart 60 %) → Resistenz (Phys. 50 %, Elem. 75 %) → Krit ×2 bis ×3,5. Leben ist die einzige Schicht ohne Deckel.</li>
+  <li><b>Ende:</b> nach höchstens 50 Aktionen gewinnt der höhere Lebensanteil. Gemessene Kampfdauer: 4–18 Aktionen beider Seiten (St. 40, siehe Abschn. 3).</li>
+</ul>
+<h3>Bauteile je Klasse (nur Vorhandenes)</h3>
+<div class="tw"><table>
+<tr><th>Klasse</th><th>Zauber (Takt)</th><th>Talente</th><th>Schlüsselsteine</th></tr>
+<tr><td>Barbar<br><span class="src">Raserei 30 %, Leben ×6</span></td><td>Kriegsschrei Buff (4), Wirbelwind 3×70 % (5), Blutdurst heilt 15 % (6)</td><td>alter Baum, 3 Zweige: Blutrausch (Schaden %, Raserei), Fell &amp; Narbe (Leben %, Regeneration), Kriegsschrei (Ausweichen, Durchbohren)</td><td>Schlächter (Henker 50 %), Unsterblich (+20 % Leben, Dornen 15 %), Ahnenruf (+10 % Krit, +10 % Schaden)</td></tr>
+<tr><td>Assassine<br><span class="src">Krit +12 %, Bluten 25 %, Leben ×5,5</span></td><td>Schattenstich 170 % (3), Giftklinge Gift 35 %/Runde (4), Todesmal 160 %, doppelt gegen Verwundete (5)</td><td>Brett: Klinge (Schaden, Durchbohren, Henker), Schatten (Ausweichen, Leben, Zweiter Atem), Gift (Krit, Splittern, Aderlass)</td><td>Ausbluten (nie Krit, jeder Hieb blutet), Schattenform (+30 % Ausweichen, Grenze +20 %, −15 % Leben), Schwarzer Lotus (Gift heilt, +20 % Schaden, −25 % Rüstung)</td></tr>
+<tr><td>Zauberin<br><span class="src">Elem.-Resi 25 %, Durchdringung 15 %, Leben ×4,6</span></td><td>Feuerball 170 % (3), Frostnova 120 % + Betäubung (5), Meteor 350 % (7)</td><td>Brett: Feuer (Zauberkraft, Krit, Schmerzrausch), Frost (Blocken, Wall, Leben, Kältestarre), Arkan (Zauberkraft, Tempo, Zuflucht, Lebensraub)</td><td>Verbrennung (Brand 70 %, keine Selbstheilung), Eisgrab (Wall, +18 % Leben, Blocken, −30 % Tempo), Nachhall (50 % Doppelwurf, −5 % Leben)</td></tr>
+</table></div>
+<p>Dazu je Zauber 3 Stufen mit je 2 <b>Zauber-Wegen</b> (z. B. Meteor: Sternenfall oder Einschlag, Glutfeld oder Kometenschweif, Weltenbrand oder Gestirn). Die Wege sind exklusiv und bleiben auch im Endspiel eine echte Wahl.</p>
+<h3>Gegenstände</h3>
+<ul>
+  <li>Stärke, Geschick und Intelligenz teilen <b>eine</b> Affix-Gruppe auf der Angriffsseite (höchstens eins je Teil) und konkurrieren mit Schaden, Schaden %, Krit und Zaubertempo.</li>
+  <li>Konstitution ist ein Suffix auf 6 Plätzen, Leben % auf 4 Plätzen, und beides multipliziert sich. Glück ist ein Suffix auf allen Plätzen (×1,5).</li>
+  <li>Rüstung kommt fast ganz aus Gegenständen (721–1 051 auf St. 40). Stärke gibt 0,5 je Punkt, also +15 für 30 Punkte.</li>
+  <li>Ohne Wirkung auf Attribute: Runen, Sets und Einzigartige ändern Regeln (Eifer, Letzter Atem, Krone ohne Träger …), keines skaliert mit einem Attribut.</li>
+</ul>
+<h3>Gegner</h3>
+<ul>
+  <li><b>Normale Gegner</b> unterscheiden sich nur in Schadensmischung (Feuer/Eis 0–50 %) und Resistenz (bis 20 %). Keiner hat Krit-Boni, Heilung oder Sonderregeln. Krit kommt über ihr Glück (rund 20 % auf St. 40).</li>
+  <li><b>11 Bosse</b> mit Mechanik (Regeneration, Gift, Henker, Glocke, Spiegel, Wall, Raserei, Blocken, Dornen). <b>Alle elf belohnen Leben</b>: Selbst gegen Bruder Aldemar („kurze Kämpfe gewinnen“) siegt der Koloss-Barbar zu 89–94 %, der Berserker zu 1–9 %. Ursache: Das Gift des Gegners ist auf 8 % des <em>eigenen</em> maximalen Lebens je Runde gedeckelt und wächst damit mit dem Leben.</li>
+  <li><b>Elite</b> (7 Modifikatoren): Flink, Steinhaut, Dornig, Blutsauger, Rasend, Giftig, Zäh. Giftig ist für alle die schwerste, auch dort gewinnt der Koloss.</li>
+  <li><b>Abgrund:</b> Gegnerstufe <code>3 + 2·Tiefe</code>, Stärke <code>1,15 · 1,05^(Tiefe−1)</code>, Fluch −10 % Elem.-Resi je 10 Tiefen. <code>depthMods</code> ist angelegt, aber leer.</li>
+</ul>
+<h3>Skalierung des Testhelden (55 % Haupt, 30 % Kon, Bot-Talente)</h3>
+<div class="tw"><table>
+<tr><th>Klasse</th><th>Stufe</th><th class="n">Leben</th><th class="n">Rüstung</th><th class="n">Ausweichen</th><th class="n">Krit</th><th class="n">Zauberkraft</th></tr>
+<tr><td>Barbar</td><td>10 / 20 / 30 / 40</td><td class="n">1 414 / 6 264 / 10 240 / 19 347</td><td class="n">60 % überall</td><td class="n">19 / 12 / 29 / 42 %</td><td class="n">22 / 38 / 34 / 45 %</td><td class="n">×1,28 / 1,44 / 1,30 / 1,73</td></tr>
+<tr><td>Assassine</td><td>10 / 20 / 30 / 40</td><td class="n">1 437 / 4 342 / 8 970 / 14 094</td><td class="n">55 / 60 / 60 / 60 %</td><td class="n">44 / 46 / 72 / 74 %</td><td class="n">46 / 47 / 45 / 52 %</td><td class="n">×1,19 / 1,20 / 1,58 / 1,38</td></tr>
+<tr><td>Zauberin</td><td>10 / 20 / 30 / 40</td><td class="n">1 525 / 3 350 / 7 923 / 12 507</td><td class="n">60 % überall</td><td class="n">9 / 4 / 5 / 32 %</td><td class="n">22 / 36 / 36 / 45 %</td><td class="n">×1,87 / 2,56 / 2,66 / 3,21</td></tr>
+</table></div>
+
+<h3>Synergien und Lücken</h3>
+<div class="tw"><table>
+<tr><th>Was</th><th>Stand</th><th>Bewertung</th></tr>
+<tr><td>Gift → Detonation (Todesmal), Gift heilt (Lotus, Blutgift)</td><td><span class="tag ok">gebaut</span></td><td>Stärkste vorhandene Synergie. Gemessen Lotus St. 40: Boss Ø 68 % gegen 51 % Standard</td></tr>
+<tr><td>Betäubung → Kombo-Krit (Schmelzen), Verwundbar (Spröde, Gezeichnet)</td><td><span class="tag ok">gebaut</span></td><td>Frost-Spalte der Zauberin trägt den besten Nicht-Koloss-Build (Frostweber)</td></tr>
+<tr><td>Blocken → Schild (Bollwerk, Einzigartiges)</td><td><span class="tag ok">gebaut</span></td><td>nur ein Item, kein Attribut dahinter</td></tr>
+<tr><td>Attribut ↔ Schlüsselstein</td><td><span class="tag no">fehlt</span></td><td>Kein Talent, Weg oder Gegenstand wird mit einem Attribut stärker. Deshalb gibt es keine Verteilung „passend zum Build“</td></tr>
+<tr><td>Stärke für Nicht-Barbaren</td><td><span class="tag no">tot</span></td><td>+30 Str: −0,7 bis +0,6 Punkte</td></tr>
+<tr><td>Glück als Farm-Attribut</td><td><span class="tag no">fehlt</span></td><td>Gold und EP unabhängig, Beute ab Tiefe 8 unabhängig</td></tr>
+<tr><td>Erstschlag-Vorsprung</td><td><span class="tag no">fehlt</span></td><td>binär, in der Kampfkraft gar nicht enthalten</td></tr>
+<tr><td>Gegner, die lange Kämpfe bestrafen</td><td><span class="tag no">fehlt</span></td><td>Müllerin-Text verspricht es, Mechanik ist Raserei unter 50 %</td></tr>
+<tr><td>Leben als Ressource (Blutmagier)</td><td><span class="tag no">fehlt</span></td><td>nahe dran: Schmerzrausch (Vergeltung), Verbrennung (keine Selbstheilung)</td></tr>
+<tr><td>Kontrolle beim Barbaren</td><td><span class="tag no">fehlt</span></td><td>keine Betäubung, nur Einschüchtern (−10 % Schaden) und Unbeugsam</td></tr>
+</table></div>
+
+<h2>3 · Archetypen in der Simulation</h2>
+<p>Jede Zeile ist ein eigener Build: Attribut-Anteile der freien Punkte plus bevorzugte Brett-Spalte. Alle Builds tragen <b>dieselbe Ausrüstung</b> (3 Würfe je Stufe, Gegenstandsstufe = Heldenstufe, mindestens magisch). Normale Gegner sind auf 50 % für den Standard-Build geeicht, Bosse und Elite daraus abgeleitet. Abgrund: echte Abstiege mit <code>descStart/descEnter</code>, Boss-Sieg. „Puppe“ = Schaden je eigenem Zug gegen einen Gegner, der nicht zurückschlägt (25 Züge).</p>
+<div class="tw"><table>
+<tr><th>Build (St. 40)</th><th>Verteilung</th><th class="n">Sieg</th><th class="n">Aktionen</th><th class="n">Puppe/Zug</th><th class="n">erlitten/Akt.</th><th class="n">Boss Ø</th><th class="n">Abgrund T17 / 19 / 21</th></tr>
+<tr class="sec"><td colspan="8">Barbar</td></tr>
+<tr><td>Standard</td><td>Str 55 · Kon 30 · Gl 10 · Int 5</td><td class="n">50 %</td><td class="n">10,6</td><td class="n">6 158</td><td class="n">18,6 %</td><td class="n">65 %</td><td class="n">32 / 0 / 0</td></tr>
+<tr class="hl"><td>Koloss</td><td>Str 35 · Kon 55 · Gl 10</td><td class="n up">96 %</td><td class="n">14,1</td><td class="n">3 997</td><td class="n">8,0 %</td><td class="n up">94 %</td><td class="n up">92 / 22 / 1</td></tr>
+<tr><td>Berserker</td><td>Str 60 · Kon 15 · Gl 25</td><td class="n down">10 %</td><td class="n">6,5</td><td class="n">6 861</td><td class="n">34,6 %</td><td class="n down">17 %</td><td class="n">0 / 0 / 0</td></tr>
+<tr><td>Kriegsherr</td><td>Str 40 · Kon 30 · Ges 20 · Gl 10</td><td class="n">48 %</td><td class="n">11,7</td><td class="n">4 684</td><td class="n">17,2 %</td><td class="n">66 %</td><td class="n">39 / 0 / 0</td></tr>
+<tr><td>Glaskanone</td><td>Str 85 · Kon 10 · Gl 5</td><td class="n down">6 %</td><td class="n">4,8</td><td class="n">8 339</td><td class="n">47,5 %</td><td class="n down">8 %</td><td class="n">2 / 0 / 0</td></tr>
+<tr class="sec"><td colspan="8">Assassine</td></tr>
+<tr><td>Standard</td><td>Ges 55 · Kon 30 · Gl 10 · Int 5</td><td class="n">53 %</td><td class="n">8,7</td><td class="n">8 608</td><td class="n">22,7 %</td><td class="n">46 %</td><td class="n">41 / 2 / 0</td></tr>
+<tr><td>Schatten</td><td>Ges 65 · Kon 25 · Gl 10, Schatten-Spalte</td><td class="n">46 %</td><td class="n">8,2</td><td class="n">8 750</td><td class="n">25,5 %</td><td class="n">40 %</td><td class="n">27 / 2 / 0</td></tr>
+<tr><td>Henker</td><td>Ges 55 · Kon 15 · Gl 30, Klinge</td><td class="n down">15 %</td><td class="n">6,8</td><td class="n">7 538</td><td class="n">38,0 %</td><td class="n down">12 %</td><td class="n">3 / 0 / 0</td></tr>
+<tr><td>Giftmeister</td><td>Ges 45 · Kon 30 · Int 15 · Gl 10, Gift</td><td class="n">44 %</td><td class="n">7,6</td><td class="n up">12 741</td><td class="n">29,7 %</td><td class="n">50 %</td><td class="n">42 / 3 / 0</td></tr>
+<tr class="hl"><td>Koloss</td><td>Ges 35 · Kon 55 · Str 10</td><td class="n up">83 %</td><td class="n">11,3</td><td class="n">5 250</td><td class="n">14,1 %</td><td class="n up">61 %</td><td class="n">43 / 11 / 0</td></tr>
+<tr class="sec"><td colspan="8">Zauberin</td></tr>
+<tr><td>Standard</td><td>Int 55 · Kon 30 · Gl 10 · Ges 5</td><td class="n">52 %</td><td class="n">7,0</td><td class="n">12 556</td><td class="n">21,6 %</td><td class="n">80 %</td><td class="n">95 / 76 / 44</td></tr>
+<tr><td>Arkanist</td><td>Int 70 · Kon 20 · Gl 10, Arkan</td><td class="n down">21 %</td><td class="n">3,6</td><td class="n">24 026</td><td class="n">48,9 %</td><td class="n">47 %</td><td class="n">76 / 42 / 14</td></tr>
+<tr><td>Feuer</td><td>Int 65 · Kon 15 · Gl 20, Feuer</td><td class="n down">26 %</td><td class="n">4,0</td><td class="n up">28 510</td><td class="n">47,5 %</td><td class="n">44 %</td><td class="n">48 / 18 / 3</td></tr>
+<tr><td>Frostweber</td><td>Int 45 · Kon 40 · Str 15, Frost</td><td class="n up">65 %</td><td class="n">8,5</td><td class="n">10 412</td><td class="n">16,4 %</td><td class="n up">89 %</td><td class="n">100 / 94 / 53</td></tr>
+<tr class="hl"><td>Koloss</td><td>Int 35 · Kon 55 · Str 10</td><td class="n up">86 %</td><td class="n">10,2</td><td class="n">8 462</td><td class="n">10,5 %</td><td class="n up">96 %</td><td class="n up">100 / 97 / 75</td></tr>
+</table></div>
+<p class="src">400 Kämpfe je Build und Wurf gegen normale Gegner, 133 je Boss (5 Krypta-Bosse mit Mechanik), 133 je Elite-Art, 67 Abstiege je Tiefe; 3 Ausrüstungswürfe. Skript: berichte/messung-build/builds.mjs.</p>
+
+<h3>Auf Stufe 20 und 30 sieht es anders aus, und zwar wegen der Talente</h3>
+<div class="tw"><table>
+<tr><th>St. 20, Sieg normal / Boss Ø</th><th>Standard (Bot)</th><th>gleiche Attribute, andere Spalte</th><th>bester Nicht-Koloss</th><th>Koloss</th></tr>
+<tr><td>Barbar</td><td class="n">52 / 53 %</td><td class="n">Fell &amp; Narbe: 70 / 66 %</td><td>Kriegsherr 41 / 35 %</td><td class="n">100 / 97 %</td></tr>
+<tr><td>Assassine</td><td class="n">52 / 35 %</td><td class="n">Schatten: <b>80 / 60 %</b>, Gift: 61 / <b>73 %</b></td><td>Giftmeister 64 / 73 %</td><td class="n">77 / 47 %</td></tr>
+<tr><td>Zauberin</td><td class="n">48 / 66 %</td><td class="n">Arkan: 56 / <b>83 %</b>, Frost: 53 / 70 %</td><td>Frostweber 69 / 80 %</td><td class="n">78 / 85 %</td></tr>
+</table></div>
+<p>Auf Stufe 20 ist eine Assassine mit Standard-Attributen und Schatten-Spalte (80 %) <b>besser als der Koloss</b> (77 %), gegen Bosse liegt die Gift-Spalte (73 %) weit vorn. Der Bot wählt nach Kampfkraft die Klinge und landet 28 Punkte darunter. Auf Stufe 40 sind diese Unterschiede verschwunden (Std/Spalte 0/1/2: 47–54 %), weil 39 Punkte fast alle 41 Ränge füllen.</p>
+
+<h3>Welche Hypothesen tragen</h3>
+<div class="tw"><table>
+<tr><th>Archetyp</th><th>Mit Vorhandenem?</th><th>Befund</th></tr>
+<tr><td>Barbar Koloss</td><td><span class="tag ok">ja</span></td><td>dominiert jede Lage, auch jeden Boss</td></tr>
+<tr><td>Barbar Berserker</td><td><span class="tag no">nein</span></td><td>kein Gegner belohnt kurze Kämpfe; Glück-Krit sättigt</td></tr>
+<tr><td>Barbar Kriegsherr</td><td><span class="tag no">teils</span></td><td>Geschick hebt Ausweichen 28 → 41 %, ohne Siegwirkung. Kontrolle fehlt der Klasse</td></tr>
+<tr><td>Assassine Schatten</td><td><span class="tag ok">bis St. 30</span></td><td>über die Spalte, nicht über Geschick-Punkte. Im Endspiel gleich Standard</td></tr>
+<tr><td>Assassine Henker</td><td><span class="tag no">nein</span></td><td>Glück statt Kon kostet 38 Punkte</td></tr>
+<tr><td>Assassine Giftmeister</td><td><span class="tag ok">ja</span></td><td>höchster Puppenschaden, stark gegen Bosse; mit Schwarzem Lotus der beste Assassinen-Build</td></tr>
+<tr><td>Zauberin Arkanist</td><td><span class="tag no">nein</span></td><td>auf St. 20 stark, auf 40 der schwächste Build (21 %). Kampfkraft hält ihn für den besten</td></tr>
+<tr><td>Zauberin Frostweber</td><td><span class="tag ok">ja</span></td><td>einziger Build mit eigenem Profil (Kontrolle, Wall) nahe am Koloss</td></tr>
+<tr><td>Zauberin Blutmagier</td><td><span class="tag no">neu nötig</span></td><td>es gibt keine Mechanik „Leben ausgeben für Wirkung“</td></tr>
+</table></div>
+
+<h3>Farm-Effizienz</h3>
+<p>Der Lohn je Kampf hängt an Stufe und Ort, nicht am Build. Im Abgrund wachsen Gold und EP um 5 % je Tiefe, Fundstücke um 3 %. Farm-Effizienz ist deshalb <b>erreichbare Tiefe × Siegchance</b>, und da führt wieder der Koloss (Zauberin T21: 75 % gegen 44 % Standard). Glück ändert daran nichts (Abschnitt 1). Kampfdauer kostet nur Animationszeit: Der Koloss braucht 30–45 % mehr Aktionen, und das ist der einzige gemessene Nachteil von Konstitution. Wie viel Echtzeit das ausmacht, habe ich nicht gemessen.</p>
+
+<h2>4 · Warum Konstitution gewinnt</h2>
+<h3>Das Optimum liegt bei 60–70 % Konstitution</h3>
+<p>Punkte zwischen Konstitution und Hauptattribut verschoben, 10 % Glück fest. Sieg gegen normale Gegner / Abgrund-Boss Tiefe 19 / Kampfkraft (Tausend).</p>
+<div class="tw"><table>
+<tr><th>St. 40</th><th class="n">10 %</th><th class="n">20 %</th><th class="n">30 %</th><th class="n">40 %</th><th class="n">50 %</th><th class="n">60 %</th><th class="n">70 %</th></tr>
+<tr><td>Barbar</td><td class="n">2 / 0 / 557</td><td class="n">16 / 1 / 679</td><td class="n">50 / 14 / 752</td><td class="n">82 / 28 / 793</td><td class="n">96 / 39 / <b>806</b></td><td class="n">100 / 65 / 792</td><td class="n"><b>100 / 85</b> / 749</td></tr>
+<tr><td>Assassine</td><td class="n">17 / 2 / 1 954</td><td class="n">31 / 7 / 2 420</td><td class="n">50 / 16 / 2 662</td><td class="n">64 / 30 / <b>2 777</b></td><td class="n">75 / 43 / 2 776</td><td class="n">79 / 42 / 2 668</td><td class="n"><b>87 / 45</b> / 2 437</td></tr>
+<tr><td>Zauberin</td><td class="n">16 / 29 / 1 994</td><td class="n">27 / 51 / 2 377</td><td class="n">53 / 67 / 2 598</td><td class="n">66 / 75 / 2 713</td><td class="n">76 / 83 / <b>2 732</b></td><td class="n">90 / 90 / 2 661</td><td class="n"><b>94</b> / 89 / 2 492</td></tr>
+</table></div>
+<p>Die Kampfkraft hat ihr Maximum bei 40–50 %, die echte Siegchance steigt bis 70 % weiter. Wer der grünen Zahl folgt, landet bei „Kon und Haupt halbe-halbe“. Genau das beobachtet der Besitzer bei Spielern, und es ist immer noch zu wenig Konstitution.</p>
+
+<h3>Gleich viel Prozent: Leben gegen Schaden</h3>
+<p>Dem fertigen Kämpfer +10 % Leben oder +10 % auf alle Schadenswerte geben (Waffe, damit auch alle Zauber, Bluten, Gift), Gegner je Fall neu geeicht.</p>
+<div class="tw"><table>
+<tr><th>Punkte Sieg für +10 %</th><th class="n">Barbar 20 / 40</th><th class="n">Assassine 20 / 40</th><th class="n">Zauberin 20 / 40</th></tr>
+<tr><td>Leben, echt</td><td class="n">9,0 / 12,8</td><td class="n">8,9 / 8,1</td><td class="n">6,5 / 10,1</td></tr>
+<tr><td>Schaden, echt</td><td class="n down">0,4 / 2,8</td><td class="n down">3,8 / 3,1</td><td class="n down">1,0 / 0,7</td></tr>
+<tr><td>Leben, ohne Heilung und Schild</td><td class="n">10,2 / 11,1</td><td class="n">9,1 / 6,9</td><td class="n">8,7 / 8,5</td></tr>
+<tr><td>Schaden, ohne Heilung und Schild</td><td class="n">1,9 / 5,5</td><td class="n">3,6 / 3,4</td><td class="n">0,3 / 1,7</td></tr>
+<tr><td>Leben, nur Hiebe (keine Zauber, Raserei, Heilung)</td><td class="n">14,8 / 9,4–16,8</td><td class="n">10,3 / 6,3–8,8</td><td class="n">11,8 / 13,5–15,4</td></tr>
+<tr><td>Schaden, nur Hiebe</td><td class="n">6,7 / 7,0–7,7</td><td class="n">6,6 / 5,3–8,2</td><td class="n">7,7 / 6,8–11,6</td></tr>
+</table></div>
+<p>Heilungen und Schilde in Prozent des Lebens erklären nur einen kleinen Teil. Ohne Zauber, Raserei und Heilung rückt das Verhältnis auf etwa 1,5 : 1 zusammen, Leben bleibt vorn. Die Zauber verstärken den Abstand: Ihr Takt läuft nach Zügen, und Züge kauft man mit Leben. Dass Schaden die Zauber mitlädt, habe ich als Gegenprobe simuliert. Es ändert nichts (Abschnitt 5), also ist das nicht die ganze Erklärung. <b>Die genaue Ursache ist offen</b>, und Phase 3 beginnt deshalb mit einer Messarbeit statt mit Code.</p>
+
+<h2>5 · Simulierte Formel-Varianten</h2>
+<p>An einer Kopie von <code>js/</code> (Repository unberührt), jede Variante einzeln schaltbar. Je Klasse 3 Würfe × 400 Kämpfe normal + 400 gegen Bosse, Gegner je Wurf neu geeicht. Spalten: Siegpunkte für +30 Kon auf St. 40 (Barbar / Assassine / Zauberin) und das beste Kon-Verhältnis.</p>
+<div class="tw"><table>
+<tr><th>Variante</th><th>Formel</th><th class="n">+30 Kon</th><th class="n">Optimum Kon</th><th>Wirkung auf andere Attribute</th></tr>
+<tr class="hl"><td>heute</td><td>–</td><td class="n">24,0 / 17,6 / 17,5</td><td class="n">70 / 60 / 70 %</td><td>alle ≤ 3 Punkte</td></tr>
+<tr><td>Rüstung weich, steiler</td><td><code>weich(R/(R+20+20·St), 60 %)</code></td><td class="n">30,8 / 16,1 / 14,3</td><td class="n">70 / 60 / 70</td><td>Barbar Str 2,2 → 7,0</td></tr>
+<tr><td>… + Stärke hebt Rüstung %</td><td><code>× (1 + 0,3 % · Str)</code></td><td class="n">26,6 / 13,8 / 14,3</td><td class="n">70 / 60 / 70</td><td>Barbar Str 5,2, sonst ≤ 1,3</td></tr>
+<tr><td>Ausweichen gegen Stufe</td><td><code>Ges/(Ges + 3·(3+2,7·St) + 40)</code></td><td class="n">20,8 / 15,8 / 12,7</td><td class="n">70 / 50 / 70</td><td>Barbar Ges 0,3 → 8,3 (Boss 9,7)</td></tr>
+<tr><td>Int sättigt später</td><td><code>Int/(Int + 60 + 4·St)</code></td><td class="n">18,6 / 17,3 / 12,1</td><td class="n">70 / 50 / 60</td><td>Zauberin Int −0,5 (Rauschen)</td></tr>
+<tr><td>Int gibt Zaubertempo</td><td><code>+0,1 % je Int</code></td><td class="n">25,3 / 15,3 / 16,3</td><td class="n">70 / 60 / 60</td><td>≤ 3,4</td></tr>
+<tr><td>Geschick gibt Zaubertempo</td><td><code>+0,15 % je Ges</code></td><td class="n">24,0 / 15,6 / 13,9</td><td class="n">70 / 60 / 70</td><td>≤ 6,3</td></tr>
+<tr><td>Glück gibt Krit-Schaden</td><td><code>+0,4 % je Gl</code></td><td class="n">24,3 / 20,9 / 11,3</td><td class="n">70 / 60 / 70</td><td>Glück ≈ 0</td></tr>
+<tr><td>Boss-Zorn 6 % je Zug</td><td><code>buff += 0,06</code></td><td class="n">25,0 / 18,1 / 18,0</td><td class="n">70 / 60 / 70</td><td>–</td></tr>
+<tr class="hl"><td>Boss-Zorn 15 % je Zug</td><td><code>buff += 0,15</code></td><td class="n">Boss: 14,2 / 8,6 / 16,7</td><td class="n">70 / 60 / 70</td><td>Kon gegen Bosse St. 20: 36 → 16, 25 → 9, 21 → 14</td></tr>
+<tr><td>Kämpfe doppelt / dreifach so lang</td><td>Leben aller × 2 / × 3</td><td class="n">39,4 / 22,9 / 17,6</td><td class="n">70 / 60 / 60</td><td>–</td></tr>
+<tr><td>Treffer kosten 3 % / 6 % max. Leben</td><td>vor Rüstung</td><td class="n">21–26 / 15–20 / 13–17</td><td class="n">70 / 50–60 / 70</td><td>–</td></tr>
+<tr><td>Schaden lädt Zauber</td><td><code>Ladung += Schaden/Gegnerleben</code></td><td class="n">20,6 / 14,5 / 15,2</td><td class="n">70 / 60 / 70</td><td>–</td></tr>
+<tr><td>Gegner-Leben und -Schaden × 1,5 / 2 / 3</td><td>makeMonster</td><td class="n">23,7–33,6 / 15–17 / 15–21</td><td class="n">70 / 50–60 / 60–70</td><td>Eichung gleicht über die Stärke teils aus</td></tr>
+<tr><td>Paket aller Formel-Korrekturen</td><td>Rüstung, Str, Ausw., Gl-Krit, Int-Tempo, Zorn 6 %</td><td class="n">18,8 / 17,7 / 18,8</td><td class="n">70 / 60 / 70</td><td>Barbar Int +4,8 / Boss +9,0</td></tr>
+<tr><td>dazu Kämpfe × 2 und 4 %-Treffer</td><td></td><td class="n">34,3 / 17,9 / 14,5</td><td class="n">70 / 50 / 50</td><td>Zauberin Ges +5,7; einzige Variante mit 50 % für zwei Klassen</td></tr>
+</table></div>
+<div class="box warn"><h3>Was daraus folgt</h3>
+<p>Kein Deckel, keine Sättigung und keine Kampflänge kippt das Optimum. Der einzige Hebel mit großer, gezielter Wirkung ist ein <b>Gegner, der lange Kämpfe bestraft</b>: Zorn 15 % je Zug halbiert den Wert von Konstitution gegen Bosse, lässt normale Gegner unberührt und macht damit einen Einsatzzweck für Schadens-Builds. Das passt zur Vorgabe „Spezialisten dürfen in ihrer Lage besser sein“.</p>
+<p>Wichtig für Phase 1: Diese Messung eicht die Gegner jedes Mal neu. Weichere Rüstung oder Ausweichen gegen die Stufe ändern aber die <em>absolute</em> Schwierigkeit. Bei 1 000 Rüstung auf Stufe 40 sinkt die Minderung von 60 % auf rund 51 %, das sind rund 20 % mehr physischer Schaden für jeden Helden. Ohne neue Eichung von <code>monDmg</code> wird das Spiel dadurch schwerer.</p></div>
+
+<h2>6 · Exklusive Schlüsselsteine</h2>
+<p>Alles lernen außer den zwei anderen Schlüsselsteinen der Klasse, Standard- bzw. Koloss-Attribute, St. 40. Sieg normal / Boss Ø / Abgrund-Boss T21.</p>
+<div class="tw"><table>
+<tr><th>Klasse</th><th>Stein</th><th class="n">Standard-Attribute</th><th class="n">Koloss-Attribute</th><th>Kampfkraft hält ihn für</th></tr>
+<tr><td rowspan="3">Barbar</td><td>Schlächter</td><td class="n">29 / 44 / 0</td><td class="n">88 / 80 / 2</td><td>−8 %</td></tr>
+<tr class="hl"><td>Unsterblich</td><td class="n">48 / 56 / 0</td><td class="n">98 / 89 / 4</td><td>−8 %</td></tr>
+<tr><td>Ahnenruf</td><td class="n">31 / 48 / 0</td><td class="n">88 / 81 / 3</td><td>−7 %</td></tr>
+<tr><td rowspan="3">Assassine</td><td>Ausbluten</td><td class="n down">36 / 35 / 3</td><td class="n">60 / 53 / 3</td><td>−5 %</td></tr>
+<tr><td>Schattenform</td><td class="n">55 / 54 / 14</td><td class="n">74 / 69 / 26</td><td>−31 %</td></tr>
+<tr class="hl"><td>Schwarzer Lotus</td><td class="n up">56 / 68 / 25</td><td class="n up">78 / 78 / 43</td><td>−27 % (falsch)</td></tr>
+<tr><td rowspan="3">Zauberin</td><td>Verbrennung</td><td class="n">45 / 63 / 10</td><td class="n">67 / 85 / 42</td><td>−32 %</td></tr>
+<tr class="hl"><td>Eisgrab</td><td class="n">49 / 75 / 52</td><td class="n up">78 / 91 / 80</td><td>gleich</td></tr>
+<tr><td>Nachhall</td><td class="n">41 / 71 / 38</td><td class="n">72 / 92 / 71</td><td>+23 % (falsch)</td></tr>
+</table></div>
+<p>Exklusivität erzeugt eine echte Entscheidung, aber heute mit je einem klaren Sieger. Drei Steine brauchen Nachbesserung: Ausbluten, Schlächter und Verbrennung. Bemerkenswert: Mit Lotus erreicht die Assassine im Abgrund 25 % statt 3 %, und mit Standard-Attributen liegt Lotus gegen Bosse gleichauf mit dem Koloss ohne Lotus (68 % gegen 66 %), im Abgrund vor ihm (25 % gegen 15 %). Das ist der einzige gemessene Fall, in dem ein Build-Baustein mit Konstitution mithält.</p>
+
+<h2>7 · Lösungen für A bis F</h2>
+<h3>A · Konstitution</h3>
+<p><b>Mathematische Begründung liegt vor</b> (Abschnitt 4), trotzdem empfehle ich keine pauschale Kürzung. Jede getestete Korrektur an anderer Stelle ließ sie vorn, und eine Kürzung macht nur alle Helden schwächer. Stattdessen: (1) Die Kampfkraft zeigt den echten Wert. (2) Zwei Bosse, deren Text es schon verspricht, bestrafen lange Kämpfe (Zorn je Zug, Aldemars Gift ohne Bezug zum Leben des Helden). (3) Schlüsselsteine mit Lebens-Malus (Schattenform −15 %, Nachhall −5 %) werden zu bewussten Entscheidungen gegen Konstitution.</p>
+<h3>B · Rüstung und Stärke</h3>
+<p>Weicher Deckel und steilerer Nenner: <code>weich(R / (R + 20 + 20·St), 60 %, voll bis 42 %)</code>. Gemessen hebt das Stärke beim Barbaren von 2,2 auf 7,0 Punkte, schafft aber keinen eigenen Build. Den Build schafft erst eine Bindung an einen Schlüsselstein: <b>Unsterblich: +1 % Rüstung je 10 Stärke</b> (neu, Phase 2). Gegen „unbesiegbar“ schützt der weiche Deckel, der bei 60 % bleibt.</p>
+<h3>C · Geschick</h3>
+<p>Ausweichen gegen die Gegnerstufe statt gegen Gegner-Geschick × Tiefen-Stärke. Gemessen: Barbar +30 Ges 0,3 → 8,3 Punkte. Im Abgrund wirkt es stärker, weil dort die Stärke exponentiell wächst (Tiefe 20: ×2,9). Das habe ich unter der Variante nicht eigens gemessen. Erstschlag in die Kampfkraft aufnehmen (heute fehlt er ganz). Ein abgestufter Erstschlag (Vorsprung gibt Zauber-Ladung) wäre neu und gehört in Phase 3.</p>
+<h3>D · Intelligenz</h3>
+<p>Die Sättigung zu lockern bringt gemessen nichts (−0,5 bis +3,8 Punkte, Rauschen). Zauberkraft kommt im Endspiel zu zwei Dritteln aus Gegenständen und Brett (×3,2). Mein Vorschlag: <code>spellK</code> unverändert lassen und Int über den Schlüsselstein binden, <b>Eisgrab: Wall wächst mit Int</b> (neu, Phase 2). Das stärkt den Frostweber, der heute schon am nächsten am Koloss liegt, und nicht den reinen Arkanisten.</p>
+<h3>E · Glück</h3>
+<p>Beute: Glück stärker auf die höheren Seltenheiten wirken lassen, damit es auch mit Mindest-Seltenheit zählt (Phase 1). Krit-Schaden aus Glück ist gemessen wirkungslos. Ein Farm-Build braucht einen Lohn, der an Glück hängt: <b>+0,2 % Gold und Fundchance je Punkt Glück</b>, ohne Deckel (Phase 2, alte Empfehlung B). Weil der Lohn je Glut fest ist, ist das ein echter Tausch: Siegchance gegen Ertrag je Sieg.</p>
+<h3>F · Gegenstände und Talente</h3>
+<ul>
+  <li>Kein Gegenstand und kein Talent belohnt eine Attribut-Verteilung. Das ist die größte Lücke im Buildcrafting.</li>
+  <li>Das Brett ist ab Stufe 40 voll → exklusive Schlüsselsteine (Phase 2).</li>
+  <li>Der Barbar hat noch den alten Baum mit 3 × 10 Rängen „+5 % Schaden“ / „+6 % Leben“. Sein Brett steht ohnehin aus (Übergabe), und dort sollte die Attribut-Bindung von Anfang an mitgeplant werden.</li>
+  <li>Stärke, Geschick und Intelligenz teilen eine Affix-Gruppe. Das bleibt so, es ist kein Problem, solange die Attribute selbst wenig wert sind.</li>
+</ul>
+
+<h2>8 · Umsetzungsplan</h2>
+<h3><span class="tag p1">Phase 1</span> Kleine Korrekturen</h3>
+
+<div class="box"><h3>1.1 Kampfkraft ehrlich machen</h3><dl class="plan">
+<dt>Datei, Funktion</dt><dd><code>js/state.js power()</code>, Eich-Test <code>tests/calib.mjs</code></dd>
+<dt>Heute</dt><dd><code>20·√(dpt × ehp)</code>; Erstschlag fehlt; Gift/Lotus geschätzt <code>× (1 + poison)</code>; Nachhall als <code>× (1 + echo)</code></dd>
+<dt>Vorschlag</dt><dd>Haltbarkeit höher gewichten (z. B. <code>dpt^0,4 × ehp^0,6</code>, Exponent per Messung so wählen, dass KK-Optimum = Sieg-Optimum); Lotus, Nachhall, Schattenform, Verbrennung gegen <code>tests/calib.mjs</code> auf 0,85–1,2 eichen; Erstschlag aufnehmen</dd>
+<dt>Begründung</dt><dd>Spieler und Bot folgen der Zahl. Sie zeigt heute 50 % Kon statt 60–70 % und führt bei Zauberin und Assassine in die schwächeren Spalten</dd>
+<dt>Auswirkung</dt><dd>Bot: Assassine wählt Schatten oder Gift (+9 bis +28 Punkte normal, Gift +38 gegen Bosse, St. 20); grüne Zahl am Attribut zeigt Konstitution ehrlich</dd>
+<dt>Risiko</dt><dd>keins für Spielstände; die Zahl im HUD springt einmal. Bot-Fortschritt ändert sich → Balance-Tests neu ansehen</dd>
+<dt>Aufwand / Prio</dt><dd>mittel / <b>hoch</b></dd>
+<dt>Regression</dt><dd>calib, ways, uniques, bot, descent; neuer Wächter: KK-Optimum des Kon-Anteils liegt im Sieg-Optimum ±10 %</dd>
+</dl></div>
+
+<div class="box"><h3>1.2 Glück wirkt auf die Beute auch mit Mindest-Seltenheit</h3><dl class="plan">
+<dt>Datei, Funktion</dt><dd><code>js/loot.js makeItem()</code> Zeile 57–60</dd>
+<dt>Heute</dt><dd>magisch, selten, legendär je <code>× (1 + min(Gl, 200)/100)</code></dd>
+<dt>Vorschlag</dt><dd>magisch × b, selten × b<sup>1,5</sup>, legendär × b<sup>2</sup> (b wie heute). Deckel 200 auf das <em>eigene</em> Glück, Tiefe und Unruhe multiplikativ statt additiv (alte A3)</dd>
+<dt>Begründung</dt><dd>heute exakt null Wirkung ab Tiefe 8 und ab Unruhe 3</dd>
+<dt>Auswirkung</dt><dd>alle Klassen gleich; mehr seltene und legendäre Teile bei hohem Glück. Gerechnet bei 200 Glück und Mindest-Seltenheit selten: legendär 17 % → rund 26 % (vor dem Bau messen)</dd>
+<dt>Risiko</dt><dd>Beute-Inflation im Abgrund; keine Spielstand-Änderung</dd>
+<dt>Aufwand / Prio</dt><dd>klein / hoch</dd>
+<dt>Regression</dt><dd>logic, lohn, descent; Verteilung mit <code>berichte/messung-build/loot.mjs</code> vorher/nachher</dd>
+</dl></div>
+
+<div class="box"><h3>1.3 Rüstung: weicher Deckel, steilerer Nenner</h3><dl class="plan">
+<dt>Datei, Funktion</dt><dd><code>js/combat.js armorRed</code>, dieselbe Formel in <code>game.js:250</code> (Gefahr-Anzeige) und <code>power()</code></dd>
+<dt>Heute</dt><dd><code>min(0,6, R/(R + 20 + 8·St))</code></dd>
+<dt>Vorschlag</dt><dd><code>softCap(R/(R + 20 + 20·St), 0,6)</code></dd>
+<dt>Begründung</dt><dd>Gegenstände füllen den Deckel ab St. 10, danach ist jeder Rüstungspunkt wertlos</dd>
+<dt>Auswirkung</dt><dd>Barbar Str +30: 2,2 → 7,0 Punkte; Zauberin/Assassine kaum. Alle nehmen rund 20 % mehr physischen Schaden</dd>
+<dt>Risiko</dt><dd>Spiel wird schwerer, wenn nicht nachgeeicht; Gegner-Rüstung (Hiebe der Helden) wird ebenfalls weicher</dd>
+<dt>Aufwand / Prio</dt><dd>klein / mittel (nach 1.1)</dd>
+<dt>Regression</dt><dd>voller Lauf; descent, lohn, acts zur Nacheichung von <code>monDmg</code></dd>
+</dl></div>
+
+<div class="box"><h3>1.4 Ausweichen gegen die Gegnerstufe</h3><dl class="plan">
+<dt>Datei, Funktion</dt><dd><code>js/combat.js dodged()</code>, <code>game.js:250</code>, <code>power()</code>, Werte-Ansicht <code>ui.js:197</code></dd>
+<dt>Heute</dt><dd>Held weicht aus gegen <code>3 × Gegner-Geschick</code> (wächst mit 1,05<sup>Tiefe</sup>)</dd>
+<dt>Vorschlag</dt><dd>gegen Monster: <code>3 × (3 + 2,7 × Gegnerstufe)</code>; Treffsicherheit des Helden (sein Geschick gegen Monster) bleibt</dd>
+<dt>Begründung</dt><dd>Geschick verliert heute mit jeder Tiefe, Leben nicht</dd>
+<dt>Auswirkung</dt><dd>Barbar Ges +30: 0,3 → 8,3; Assassine unverändert (Talente füllen die Grenze); im Abgrund zusätzlich stärker</dd>
+<dt>Risiko</dt><dd>Abgrund wird für Ausweich-Builds leichter → Rekord-Tiefen steigen; vorher descent --deep</dd>
+<dt>Aufwand / Prio</dt><dd>klein / mittel</dd>
+<dt>Regression</dt><dd>descent --deep, caps, fuzz</dd>
+</dl></div>
+
+<h3><span class="tag p2">Phase 2</span> Build-Synergien</h3>
+
+<div class="box"><h3>2.1 Ein Schlüsselstein je Brett</h3><dl class="plan">
+<dt>Datei, Funktion</dt><dd><code>js/state.js nodeState()</code>; Markierung der Steine in <code>data.js TREE</code> (letzter Knoten jeder Spalte); beim Barbaren <code>talentState()</code>; UI-Hinweis im Brett</dd>
+<dt>Heute</dt><dd>alle drei lernbar; ab St. 42 hat jeder alles</dd>
+<dt>Vorschlag</dt><dd>Ein Stein sperrt die anderen beiden; Umlernen über Läutern</dd>
+<dt>Begründung</dt><dd>Talente sind gemessen der stärkste Build-Hebel (bis +28 Punkte) und verschwinden im Endspiel</dd>
+<dt>Auswirkung</dt><dd>je Klasse 3 Endspiel-Profile; heute führend: Unsterblich, Schwarzer Lotus, Eisgrab</dd>
+<dt>Risiko</dt><dd>Spielstände mit mehreren Steinen: beim Laden alle Steine zurückerstatten und Wahl anbieten (SAVE_VERSION nicht nötig, Prüfung in <code>effects()</code>)</dd>
+<dt>Aufwand / Prio</dt><dd>klein / <b>hoch</b></dd>
+<dt>Regression</dt><dd>tree, logic, ui (Brett-Ansicht, ein Gerät), Screenshot</dd>
+</dl></div>
+
+<div class="box"><h3>2.2 Schwache Schlüsselsteine nachziehen</h3><dl class="plan">
+<dt>Datei</dt><dd><code>data.js TREE / TALENTS</code></dd>
+<dt>Heute</dt><dd>Abstand zum besten Stein bis 20 Punkte Sieg (Ausbluten, Schlächter, Verbrennung)</dd>
+<dt>Vorschlag</dt><dd>Zahlen je Stein in Schritten heben, bis jeder in mindestens einer Lage (Boss, Abgrund, Elite) vorn liegt</dd>
+<dt>Begründung</dt><dd>sonst ist 2.1 nur ein Pflichtstein je Klasse</dd>
+<dt>Risiko / Aufwand / Prio</dt><dd>gering / mittel (Messrunden) / hoch nach 2.1</dd>
+<dt>Regression</dt><dd><code>berichte/messung-build/keys.mjs</code> je Klasse, tree, calib</dd>
+</dl></div>
+
+<div class="box"><h3>2.3 Boss-Versprechen einlösen</h3><dl class="plan">
+<dt>Datei, Funktion</dt><dd><code>data.js CRYPTS[…].boss.mech</code>; <code>combat.js fight()</code> eine Zeile (<code>if (atk.ramp) atk.buff += atk.ramp</code>), <code>onHit()</code> Gift-Deckel</dd>
+<dt>Heute</dt><dd>Müllerin: Raserei unter 50 %. Aldemar: Gift gedeckelt auf 8 % des <em>Helden</em>-Lebens je Runde</dd>
+<dt>Vorschlag</dt><dd>Müllerin: Zorn 15 % je eigenem Zug. Aldemar: Deckel an der Boss-Stufe statt am Helden-Leben</dd>
+<dt>Begründung</dt><dd>Die Texte versprechen es schon; gemessen halbiert Zorn 15 % den Wert von Kon gegen Bosse</dd>
+<dt>Auswirkung</dt><dd>Schadens-Builds (Feuer, Giftmeister, Berserker) bekommen zwei Bosse, gegen die sie vorn liegen</dd>
+<dt>Risiko</dt><dd>die zwei Krypten werden für Koloss-Helden schwerer; Gefahr-Anzeige muss den Zorn kennen (Leitlinie „kein unfairer Verlust“)</dd>
+<dt>Aufwand / Prio</dt><dd>klein / hoch</dd>
+<dt>Regression</dt><dd>acts, logic (Boss-Mechanik), neue Messung: Archetypen je Boss mit builds.mjs</dd>
+</dl></div>
+
+<div class="box"><h3>2.4 Attribute an Schlüsselsteine binden</h3><dl class="plan">
+<dt>Datei</dt><dd>neue Effekt-Schlüssel in <code>data.js EFFECT_NAMES</code>, Auswertung in <code>stats()</code>, Eintrag in <code>power()</code> und <code>calib.mjs</code></dd>
+<dt>Vorschlag (neu)</dt><dd>Unsterblich: +1 % Rüstung je 10 Str · Schattenform: Ausweich-Grenze +1 % je 25 Ges · Eisgrab: Wall +1 % je 20 Int · Ausbluten: Blutung +1 % je 10 Gl · Lotus: Gift +1 % je 20 Int</dd>
+<dt>Begründung</dt><dd>ohne Bindung gibt es keine „Verteilung passend zum Build“; das ist der Kern des PoE-Gefühls</dd>
+<dt>Auswirkung</dt><dd>jedes Neben-Attribut hat genau einen Build, der es will. Faktoren sind Startwerte und müssen gemessen werden</dd>
+<dt>Risiko / Aufwand / Prio</dt><dd>mittel (neue Effekte) / mittel / mittel, nach 2.1–2.2</dd>
+<dt>Regression</dt><dd>attribute.mjs mit Schlüsselstein-Builds, Wächter: je Attribut ≥ 50 % von Kon in mindestens einem Build</dd>
+</dl></div>
+
+<div class="box"><h3>2.5 Glück als Farm-Lohn</h3><dl class="plan">
+<dt>Datei, Funktion</dt><dd><code>game.js</code> Lohn-Stellen (Krypta, Streifzug, <code>descLoot</code>)</dd>
+<dt>Vorschlag (neu)</dt><dd>+0,2 % Gold und Fundchance je Punkt Glück, kein Deckel</dd>
+<dt>Risiko / Aufwand / Prio</dt><dd>Gold-Inflation, Händlerpreise / klein / mittel</dd>
+<dt>Regression</dt><dd>lohn, bot (Gold-Kurve über 30 Tage)</dd>
+</dl></div>
+
+<h3><span class="tag p3">Phase 3</span> Optionale Erweiterungen</h3>
+<div class="box"><h3>3.1 Ursache des Leben-Vorteils isolieren (Messarbeit, kein Code)</h3>
+<p>Heilungen, Kampflänge und Zauber-Takt sind als alleinige Ursache gemessen ausgeschlossen. Nächster Versuch: Gegner-Krit (rund 20 % über ihr Glück), Serienbremse beim Ausweichen und Erstschlag einzeln abschalten, je 3 Würfe × 1 000 Kämpfe. <b>Prio hoch</b>, weil davon abhängt, ob Konstitution später doch eine Formel-Änderung braucht.</p></div>
+<div class="box"><h3>3.2 Abgestufter Erstschlag (neu)</h3>
+<p>Vorsprung im Geschick lädt die Zauber zu Kampfbeginn vor, z. B. <code>min(25 %, (Ges − Gegner-Ges) / Gegner-Ges × 25 %)</code> einer Ladung. Er gibt Geschick einen Wert, der nicht am Ausweich-Deckel hängt. Vor dem Bau simulieren.</p></div>
+<div class="box"><h3>3.3 Abgrund-Modifikatoren je Woche</h3>
+<p><code>DESCENT.depthMods</code> ist angelegt und leer. Zorn je Zug, Gepanzert (Rüstung ×2) und Flink als sichtbare Wochen-Modifikatoren, vor dem Abstieg angezeigt. Dann hat jede Woche einen anderen besten Build. Nur wenn 2.3 gemessen trägt.</p></div>
+<div class="box"><h3>3.4 Blutmagier und Kontrolle beim Barbaren</h3>
+<p>Beides braucht neue Mechaniken („Leben zahlen für Wirkung“, eine Betäubung beim Barbaren). Es gehört ins Barbar-Brett und in die Zauber-Ketten, die ohnehin ausstehen, und nicht in diese Reihe.</p></div>
+
+<h3>Nach Messung verworfen</h3>
+<p>Int-Sättigung lockern (alte A4), Int oder Geschick als Zaubertempo, Glück als Krit-Schaden, längere Kämpfe, Prozent-Leben-Treffer, Schaden lädt Zauber, Zorn 6 %. Gemessen wirkt keins davon über das Rauschen hinaus.</p>
+
+<h2>9 · Wirkung gegen Aufwand</h2>
+<div class="tw"><table>
+<tr><th>Maßnahme</th><th>Aufwand</th><th>Gemessene Wirkung</th><th>Rang</th></tr>
+<tr class="hl"><td>1.1 Kampfkraft ehrlich</td><td>mittel</td><td>bis +28 Punkte durch richtige Talentwahl; Spieler sehen Kon richtig</td><td class="n">1</td></tr>
+<tr class="hl"><td>2.1 Ein Schlüsselstein je Brett</td><td>klein</td><td>3 Endspiel-Profile je Klasse; Lotus +22 Punkte Abgrund</td><td class="n">2</td></tr>
+<tr class="hl"><td>2.3 Müllerin und Aldemar</td><td>klein</td><td>Wert von Kon gegen diese Bosse etwa halbiert</td><td class="n">3</td></tr>
+<tr><td>1.2 Glück-Beute</td><td>klein</td><td>Glück zählt wieder im Endspiel (heute 0)</td><td class="n">4</td></tr>
+<tr><td>2.2 Steine nachziehen</td><td>mittel</td><td>Voraussetzung, damit 2.1 kein Pflichtstein wird</td><td class="n">5</td></tr>
+<tr><td>2.4 Attribut-Bindung</td><td>mittel</td><td>noch nicht gemessen; einziger Weg zu „Verteilung je Build“</td><td class="n">6</td></tr>
+<tr><td>1.3 / 1.4 Rüstung, Ausweichen</td><td>klein + Nacheichung</td><td>+5 bis +8 Punkte für Str/Ges beim Barbaren, sonst wenig</td><td class="n">7</td></tr>
+</table></div>
+
+<h2>Methode und Grenzen</h2>
+<ul>
+  <li>Testheld <code>tests/held.mjs</code>: Ausrüstung über <code>makeItem</code> (mindestens magisch, keine Einzigartigen und Sets), Talente gierig nach Kampfkraft, Zauber-Wege nach Kampfkraft. Archetypen bevorzugen ihre Spalte. Tränke im Gürtel: keine.</li>
+  <li>Gegner je Wurf neu auf 50 % geeicht (Falle aus CLAUDE.md beachtet), 3–4 Ausrüstungswürfe je Zelle.</li>
+  <li>Rauschen ±2–3 Punkte. Die Ursachenzerlegung in Abschnitt 4 schwankt zwischen zwei Läufen stärker (bis ±4).</li>
+  <li>Nicht gemessen: Grube, Expedition, Streifzug-Zeiten, Echtzeit je Kampf, Einzigartige und Sets im Zusammenspiel mit Archetypen, Varianten 1.3/1.4 im Abgrund.</li>
+  <li>Varianten liefen auf einer Kopie mit schaltbaren Formeln (<code>berichte/messung-build/varianten.patch</code>), am Spiel ist nichts geändert. Skripte: <code>berichte/messung-build/</code> (builds, sweep, sym, keys, loot, marg).</li>
+</ul>
+<p class="src">Fundstellen: Code-Stand 9e73100 (Branch claude/determined-mccarthy-vzvwfm).</p>
+</main>

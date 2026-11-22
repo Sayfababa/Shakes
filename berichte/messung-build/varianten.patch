@@ -1,0 +1,91 @@
+--- /home/user/Shakes/js/combat.js	2026-11-22 17:53:28.183570372 +0000
++++ js/combat.js	2026-11-22 18:04:45.551024488 +0000
+@@ -26,7 +26,7 @@
+ // Kampf, power(), Gefahr-Anzeige und Werte-Ansicht rufen diese beiden – nie die Formel abtippen.
+ export const evadeChance = (y, atkDex) => softCap(Math.max(0, y.dex / (y.dex + atkDex * 3 + 40) + (y.evade || 0)), 0.5 + (y.evadeCap || 0));
+ export const critChance = (x, defLvl, extra = 0) => softCap(Math.max(0, CFG.critBase + x.lck / (x.lck + 100 + defLvl * 5) + (x.crit || 0) + extra), 0.6 + extra);
+-export const armorRed = (armor, atkLvl, pen = 0) => Math.min(0.6, armor / (armor + 20 + atkLvl * 8)) * (1 - Math.min(0.9, pen));
++export const armorRed = (armor, atkLvl, pen = 0) => (globalThis.V?.arm ? softCap(armor / (armor + 20 + atkLvl * globalThis.V.arm), 0.6) : Math.min(0.6, armor / (armor + 20 + atkLvl * 8))) * (1 - Math.min(0.9, pen));
+ // Anteile eines Hiebs: mix = { fire, cold } (Rest physisch). Für Anzeige und power() dieselbe Regel wie im Kampf.
+ export const mixOf = mix => { const fire = mix?.fire || 0, cold = mix?.cold || 0; return { phys: Math.max(0, 1 - fire - cold), fire, cold }; };
+ // Schadensfaktor gegen y: el = Art eines Zaubers (fehlt bei Hieben → mix des Angreifers); arm = Rüstungs-Minderung,
+@@ -73,7 +73,7 @@
+       if (h) say(atk.side, `${atk.name} schöpft Atem (+${h}).`, { heal: h, status: 'Zuflucht' }); }
+     if (atk.regen && atk.cur < atk.hp && !(atk.noheal > 0)) { const h = Math.round(atk.hp * atk.regen * healMul(atk)); atk.cur = Math.min(atk.hp, atk.cur + h); atk.didHeal = true; say(atk.side, `${atk.name} regeneriert ${h}.`, { heal: h }); }
+     if (atk.stunned) { atk.stunned = atk.stunned === true ? 0 : atk.stunned - 1; say(def.side, `${atk.name} ist betäubt und taumelt.`); [atk, def] = [def, atk]; continue; }
+-    atk.turn++;
++    atk.turn++; if (atk.ramp) atk.buff += atk.ramp;
+     // Zauber laden pro eigenem Zug um 1 (+ Zaubertempo); der stärkste geladene wird gewirkt
+     const sps = atk.spells || []; let sp = null;
+     sps.forEach((x, i) => { atk.ch[i] = (atk.ch[i] || 0) + (1 + (atk.haste || 0)) * (x.m?.desperate && atk.cur < atk.hp * x.m.desperate ? 2 : 1); if (atk.ch[i] >= x.every) sp = i; });
+@@ -204,6 +204,7 @@
+     // Ausbluten (Schlüsselstein): nie ein kritischer Treffer – dafür blutet jeder Hieb (siehe onHit)
+     const crit = x.hemorrhage ? false : (o.force || chance(critChance(x, y.lvl, o.crit || 0) - (y.critRes || 0)));
+     if (crit) d *= x.critMult || 2;
++    if (globalThis.V?.chg && x.cls && x.spells?.length) x.spells.forEach((s, i) => { x.ch[i] = (x.ch[i] || 0) + globalThis.V.chg * Math.min(1, d / y.hp) * s.every; });
+     return { d: Math.max(1, Math.round(d)), crit };
+   }
+   // Was ein Treffer zusätzlich auslöst (für Hieb und Zauber) – neue Effekte hier eintragen, dann gelten sie für beides
+@@ -228,7 +229,7 @@
+   // für Hiebe und Zauber (sonst Fehlschlag-Serien bis 13 bei Klassen ohne Geschick, → E „Serienbremse beim Ausweichen“)
+   function dodged(x, y) {
+     if ((x.evN || 0) >= CFG.evadeStreak) { x.evN = 0; return false; }
+-    const evade = Math.max(0, evadeChance(y, x.dex) - (x.acc || 0));
++    const evade = Math.max(0, evadeChance(y, globalThis.V?.ev && !x.cls ? 3 + x.lvl * CFG.monGrow : x.dex) - (x.acc || 0));
+     if (chance(evade)) { x.evN = (x.evN || 0) + 1; return true; }
+     x.evN = 0; return false;
+   }
+@@ -239,7 +240,8 @@
+       return say(x.side, `${y.name} blockt.`, { miss: 'Geblockt' }); }
+     // Rüstung wirkt in finish() nur auf den physischen Teil der Hieb-Mischung
+     const raw = roll(x.dmg[0], x.dmg[1]) * (1 + x[x.main] / CFG.mainDiv) * x.buff * pb(x), arm = armorRed(y.armor, x.lvl, x.pen || 0);
+-    const { d, crit } = finish(x, y, raw, { arm });
++    let { d, crit } = finish(x, y, raw, { arm });
++    if (x.pctHp) d += Math.round(y.hp * x.pctHp * (1 - arm));
+     hurt(y, d);
+     let t = `${x.name} trifft ${crit ? 'KRITISCH ' : ''}für ${d}.` + onHit(x, y, d, crit);
+     // Eifer: jeder dritte eigene Hieb trifft ein zweites Mal
+--- /home/user/Shakes/js/state.js	2026-11-22 17:53:28.187570373 +0000
++++ js/state.js	2026-11-22 18:06:10.581246557 +0000
+@@ -173,18 +173,18 @@
+   const base = w ? wpnDmg(w, p.lvl).map(v => tempered(v, 'weapon', p)) : [1, 3], dm = (1 + (e.dmgPct || 0) + P('dmgp')) * (fit ? 1 : CFG.offWeapon);
+   return { ...e, ...st, name: p.name, cls: p.cls, lvl: p.lvl, main: c.main,
+     spells: SPELLS[p.cls].filter(s => p.lvl >= s.lvl).map(s => withWays({ ...s, boost: 1 + P('sk_' + s.id) }, p)),
+-    amp: (1 + st.int / (st.int + CFG.spellK)) * (1 + P('spellp') + (e.spellPct || 0)) * (fit ? 1 : CFG.offWeaponSpell), offWeapon: !fit,
++    amp: (1 + st.int / (st.int + CFG.spellK + (globalThis.V?.intK || 0) * p.lvl)) * (1 + P('spellp') + (e.spellPct || 0)) * (fit ? 1 : CFG.offWeaponSpell), offWeapon: !fit,
+     // Item-Prozente stapeln nur bis zur Obergrenze; was Klasse/Talente schon geben, wird nie gekürzt
+-    crit: cap(e.crit, P('critc'), CAPS.crit), critMult: cap(2 + (e.critDmg || 0), P('critd'), CAPS.critMult),
++    crit: cap(e.crit, P('critc'), CAPS.crit), critMult: cap(2 + (e.critDmg || 0) + (globalThis.V?.lckCd || 0) * st.lck, P('critd'), CAPS.critMult + (globalThis.V?.lckCd ? 1 : 0)),
+     pen: cap(e.pen, P('penp'), CAPS.pen), leech: cap(e.leech, P('leechp'), CAPS.leech),
+     evade: cap(e.evade, P('evadep'), CAPS.evade + (e.evadeCap || 0)), block: cap(e.block, P('blockp'), CAPS.block), thorns: cap(e.thorns, P('thornsp'), CAPS.thorns),
+-    haste: (e.haste || 0) + (st.haste || 0) / 100,
++    haste: (e.haste || 0) + (st.haste || 0) / 100 + (globalThis.V?.intH || 0) * st.int + (globalThis.V?.dexH || 0) * st.dex,
+     // Resistenzen roh (ungedeckelt): der Deckel CFG.resCap wirkt im Kampf (resOf), die Werte-Ansicht zeigt beides
+     res: { phys: P('physr') + (e.physRes || 0), elem: P('elemr') + (e.elemRes || 0) },
+     elemPen: (e.elemPen || 0) + P('elempenp'),   // Elementar-Durchdringung: Klasse (Zauberin) + Stab-Bonus
+-    armor: Math.round((st.armor + st.str * CFG.strArmor) * (1 + (e.armorPct || 0))),
++    armor: Math.round((st.armor + st.str * CFG.strArmor) * (1 + (e.armorPct || 0) + (globalThis.V?.strA || 0) * st.str)),
+     dmg: [Math.round((base[0] + st.dmgBonus) * dm), Math.round((base[1] + st.dmgBonus) * dm)],
+-    hp: Math.round(st.con * c.hp * (CFG.hpBase + p.lvl * CFG.hpPerLvl) * (1 + (e.hpPct || 0) + P('lifep'))) };
++    hp: Math.round(st.con * c.hp * (CFG.hpBase + p.lvl * CFG.hpPerLvl) * (1 + (e.hpPct || 0) + P('lifep')) * (globalThis.V?.hpx || 1)) };
+ }
+ 
+ // Monster skaliert auf Stufe; diff 0.8 .. 1.3
+@@ -194,7 +194,7 @@
+   const mo = { name: m.name, glyph: m.glyph, mat: m.mat, mix: m.mix, res: m.res, lvl, main, str: a(), dex: a(), int: a(), con: a(), lck: a() * 0.5, armor: Math.round(lvl * 5 * diff) };
+   mo[main] = a('main');
+   mo.dmg = [Math.round((2 + lvl * 1.7) * diff * CFG.monDmg), Math.round((5 + lvl * 3) * diff * CFG.monDmg)];
+-  mo.hp = Math.round(mo.con * 3.6 * (CFG.hpBase + lvl * CFG.hpPerLvl) * CFG.monHp);
++  mo.hp = Math.round(mo.con * 3.6 * (CFG.hpBase + lvl * CFG.hpPerLvl) * CFG.monHp * (globalThis.V?.hpx || 1) * (globalThis.V?.mh || 1)); if (globalThis.V?.md) mo.dmg = mo.dmg.map(v => Math.round(v * globalThis.V.md)); if (globalThis.V?.pct) mo.pctHp = globalThis.V.pct;
+   return mo;
+ }
+ 
+@@ -434,7 +434,7 @@
+ // Boss einer Krypta/eines Akts (auch im Abstieg): mehr Leben + eigenes Muster statt nur größerer Zahlen
+ export function makeBoss(c, lvl, mult = 1) {
+   const mo = makeMonster(lvl, CFG.bossDiff * mult, c.boss);
+-  mo.hp = Math.round(mo.hp * CFG.bossHp); mo.boss = true; mo.rage = 0.2; mo.crit = 0.05;
++  mo.hp = Math.round(mo.hp * CFG.bossHp); mo.boss = true; if (globalThis.V?.ramp) mo.ramp = globalThis.V.ramp; mo.rage = 0.2; mo.crit = 0.05;
+   const { mirror, armorMult, ...mech } = c.boss.mech || {};
+   Object.assign(mo, mech); if (armorMult) mo.armor = Math.round(mo.armor * armorMult);
+   if (mirror) { const me = effects(); for (const k of ['crit', 'evade', 'block', 'leech', 'bleed', 'rage', 'pen', 'regen', 'thorns', 'execute']) if (me[k]) mo[k] = me[k]; }
