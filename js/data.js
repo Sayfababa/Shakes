@@ -157,8 +157,8 @@ export const UNIQUES = [
   { name: 'Aschenkuss', slot: 'weapon', kind: 'staff', mods: { int: 1, haste: 2 }, eff: { echo: 0.2 }, lore: 'Was sie berührt, brennt zweimal.' },
   { name: 'Grabesruh', slot: 'weapon', kind: 'wand', mods: { int: 2, con: 2 }, eff: { leech: 0.12 }, lore: 'Die Toten schlafen nicht. Sie warten.' },
   { name: 'Rabenschwur', slot: 'weapon', kind: 'bow', mods: { dex: 2, lck: 2 }, eff: { first: 1, crit: 0.08 }, lore: 'Der Rabe sieht zuerst.' },
-  { name: 'Knochenkrone', slot: 'helm', mods: { con: 2, int: 3 }, eff: { ward: 0.2 }, lore: 'Gewachsen aus dem Schädel ihres Trägers.' },
-  { name: 'Sünde von Vhal', slot: 'chest', mods: { armor: 1, con: 2, lifep: 2 }, eff: { thorns: 0.25 }, lore: 'Getragen vom Metzger, bis er fiel.' },
+  { name: 'Knochenkrone', slot: 'helm', mods: { con: 3, int: 3 }, eff: { ward: 0.15 }, lore: 'Gewachsen aus dem Schädel ihres Trägers.' },
+  { name: 'Sünde von Vhal', slot: 'chest', mods: { armor: 2, con: 3, lifep: 2 }, eff: { thorns: 0.18 }, lore: 'Getragen vom Metzger, bis er fiel.' },
   { name: 'Blutglocke', slot: 'amulet', mods: { str: 1, dmgp: 2, con: 2 }, eff: { rage: 0.3 }, lore: 'Sie schlägt mit deinem Herzen.' },
   { name: 'Totengräbers Griff', slot: 'gloves', mods: { str: 2, dmg: 2, critd: 3 }, eff: { execute: 1.1, execHp: 0.14, dmgPct: 0.16 }, lore: 'Er hat nie jemanden lebendig begraben. Fast nie.' },
   { name: 'Pfad der Asche', slot: 'boots', mods: { dex: 1, evadep: 2 }, eff: { evade: 0.08 }, lore: 'Keine Spur bleibt zurück.' },
@@ -168,7 +168,7 @@ export const UNIQUES = [
   // Zweite Welle: jedes Stück ändert eine Regel oder handelt etwas ein, statt nur Zahlen zu erhöhen
   // Drei Stücke, die ohne den passenden Zweig schwach sind und mit ihm tragen (Synergie statt Zahlen)
   { name: 'Schartige Schneide', slot: 'weapon', kind: 'dagger', mods: { dex: 3, str: 2 }, eff: { bleed: 0.4, dmgPct: -0.15 }, lore: 'Stumpf geworden an zu vielen Rippen. Sie reißt, statt zu schneiden.' },
-  { name: 'Mantel der Leere', slot: 'chest', mods: { dex: 4, con: 2 }, eff: { evade: 0.12, thorns: 0.3 }, lore: 'Wer danach greift, greift ins Dunkel – und blutet dafür.' },
+  { name: 'Mantel der Leere', slot: 'chest', mods: { dex: 4, con: 3 }, eff: { evade: 0.12, thorns: 0.2 }, lore: 'Wer danach greift, greift ins Dunkel – und blutet dafür.' },
   { name: 'Lotusfläschchen', slot: 'offhand', mods: { int: 3, lck: 3 }, eff: { poison: 0.18, siphon: 0.05 }, lore: 'Ein Tropfen auf die Klinge. Mehr braucht die Geduld nicht.' },
   { name: 'Scherbenschneide', slot: 'weapon', kind: 'dagger', mods: { dex: 3, lck: 3 }, eff: { dmgPct: 0.45, hpPct: -0.25 }, lore: 'Scharf genug für zwei Leben. Deins zählt mit.' },
   { name: 'Wut der Witwe', slot: 'weapon', kind: 'axe', mods: { str: 2, dmg: 3 }, eff: { vengeance: 0.8 }, lore: 'Sie schlug zu, als nichts mehr zu verlieren war.' },
@@ -177,14 +177,14 @@ export const UNIQUES = [
   { name: 'Aderlass', slot: 'weapon', kind: 'wand', mods: { int: 3, lck: 3 }, eff: { siphon: 0.1, crit: 0.12, critDmg: 0.3 }, lore: 'Was sie nimmt, gibt sie dir.' },
   { name: 'Die Lange Stille', slot: 'weapon', kind: 'bow', mods: { dex: 2, dmg: 3 }, eff: { pen: 0.35, nohealSelf: 1 }, lore: 'Kein Pfeil kehrt zurück. Kein Atem auch.' },
   { name: 'Haube des Pakts', slot: 'helm', mods: { int: 2, con: 3 }, eff: { dmgPct: 0.3, nohealSelf: 1 }, lore: 'Ein Handel: deine Heilung gegen seinen Zorn.' },
-  { name: 'Der Letzte Atem', slot: 'chest', mods: { con: 1, armor: 2, lifep: 2 }, eff: { lastBreath: 1 }, lore: 'Einmal noch. Nur einmal noch.' },
-  { name: 'Eisernes Gelübde', slot: 'chest', mods: { armor: 2, con: 2, lifep: 3 }, eff: { bulwark: 0.08, block: 0.1 }, lore: 'Jeder abgewehrte Schlag macht den Schild dicker.' },
+  { name: 'Der Letzte Atem', slot: 'chest', mods: { con: 2, armor: 3, lifep: 3 }, eff: { lastBreath: 1 }, lore: 'Einmal noch. Nur einmal noch.' },
+  { name: 'Eisernes Gelübde', slot: 'chest', mods: { armor: 3, con: 3, lifep: 3 }, eff: { bulwark: 0.08, block: 0.07 }, lore: 'Jeder abgewehrte Schlag macht den Schild dicker.' },
   { name: 'Gerlindes Schwur', slot: 'amulet', mods: { con: 2, int: 3 }, eff: { siphon: 0.035, regen: 0.012 }, lore: 'Sie ertrank und kam doch zurück.' },
   { name: 'Herz der Glocke', slot: 'amulet', mods: { str: 3, haste: 3 }, eff: { toll: 1, rage: 0.12 }, lore: 'Jeder dritte Schlag ist ein Läuten.' },
   { name: 'Fäuste des Eifers', slot: 'gloves', mods: { dex: 1, dmg: 2, critc: 3 }, eff: { zeal: 0.9 }, lore: 'Sie hören nie beim ersten Mal auf.' },
   { name: 'Schritt des Verwehten', slot: 'boots', mods: { dex: 3, lck: 3 }, eff: { evade: 0.1, first: 1 }, lore: 'Er war schon fort, als der Schlag kam.' },
   { name: 'Ring der Vergeltung', slot: 'ring', mods: { str: 3, con: 3 }, eff: { vengeance: 0.5, thorns: 0.12 }, lore: 'Je tiefer die Wunde, desto schwerer die Hand.' },
-  { name: 'Reif der Zuflucht', slot: 'ring', mods: { con: 3, lck: 3 }, eff: { secondWind: 0.25 }, lore: 'Einmal darfst du Luft holen.' },
+  { name: 'Reif der Zuflucht', slot: 'ring', mods: { con: 4, lck: 3 }, eff: { secondWind: 0.18 }, lore: 'Einmal darfst du Luft holen.' },
   { name: 'Gurt des Bollwerks', slot: 'belt', mods: { armor: 2, con: 3 }, eff: { bulwark: 0.05, hpPct: 0.08 }, lore: 'Stehen bleiben ist auch ein Angriff.' },
   // --- Drei Stücke für das Brett der Zauberin ---
   // Ihr Brett belohnt Zauberschaden, Schild/Dornen und Nachhall – bisher griff **kein einziges**
@@ -195,7 +195,7 @@ export const UNIQUES = [
   // `haste` als normalen Bonus bis über 50 %, ein Einzigartiges wirft den weg – gemessen kostete
   // ein −12 %-Aufschlag darauf 7 Punkte Siegchance. Ein Einzigartiges kämpft gegen das, was es ERSETZT.
   { name: 'Glutzehrer', slot: 'weapon', kind: 'staff', mods: { int: 3, spellp: 3 }, eff: { spellPct: 0.42 }, lore: 'Er nimmt sich Zeit. Was danach brennt, brennt lange.' },
-  { name: 'Der Kalte Spiegel', slot: 'offhand', mods: { int: 2, con: 3 }, eff: { ward: 0.22, thorns: 0.28 }, lore: 'Wer hineinsieht, sieht seinen eigenen Hieb zurückkommen.' },
+  { name: 'Der Kalte Spiegel', slot: 'offhand', mods: { int: 2, con: 4 }, eff: { ward: 0.16, thorns: 0.2 }, lore: 'Wer hineinsieht, sieht seinen eigenen Hieb zurückkommen.' },
   { name: 'Das Zweite Wort', slot: 'amulet', mods: { int: 3, spellp: 3 }, eff: { firstEcho: 1, echo: 0.25, spellPct: 0.15 }, lore: 'Sprich es einmal. Die Gruft spricht es nach.' },
 ];
 // --- Grab-Sets: je Krypta ein Set aus 3 Teilen (Mockup mockups/sets.html) ---

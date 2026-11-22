@@ -135,3 +135,10 @@ Verworfen: nur Attributpunkte (×11: Assassine sitzt allein durch Glück am Krit
 Beute über Heldenstufe). Eichung jetzt „Bonus ÷ Hauptattribut derselben Stufe“. Folgeänderungen: Tracht-Set 3 Teile ×1,4 statt
 ×2 (`lastStandMul`), Zaubertinte 0,4, Lotusblatt Krit-Schaden statt Krit-Chance, Zweiter Atem/Zuflucht 0,22/0,27, Fokus 0,1,
 4 Einzigartige + 1 Set-Teil angepasst. uniques/sets mitteln jetzt über 8/4 Ausrüstungswürfe; Platzhalter-Wurf in loot.js raus.
+
+### Klassenlose Abwehr-Einzigartige abgeschwächt (2026-11-22)
+Gemessen (uniques.mjs, 300 Kämpfe × 3 Würfe, St. 14/24): sieben Stücke ohne Klassenbindung lagen für **jede** Klasse
++19 bis +28 Punkte über einem fusionierten Teil (Sünde von Vhal, Der Kalte Spiegel, Der Letzte Atem, Mantel der Leere,
+Reif der Zuflucht, Eisernes Gelübde, Knochenkrone) – die Antwort für alle, keine Wahl. Je Stück eine Bonus-Stufe schwächer und
+die Sonderwirkung um ~⅓ kleiner (Dornen, Schutz, Block, zweiter Atem). Danach schwächste Klasse +6 bis +16, im Feld der
+übrigen Einzigartigen; Test im Rahmen. Besitzer: „abschwächen“. Der Letzte Atem bleibt für eine Klasse bei +28 (Wirkung unverändert).
