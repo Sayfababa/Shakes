@@ -1114,7 +1114,7 @@ test('Ausbluten: blutet bei jedem Treffer und schaltet Krits ab', async () => {
   // Ausweich-Grenze: ohne evadeCap bei 50 %, mit darüber
   const flink = { ...held, dex: 400, hp: 999999 }, schlaeger = { ...puppe, dex: 10, dmg: [5, 5] };
   const quote = e => { let aus = 0, tr = 0;
-    for (let i = 0; i < 60; i++) for (const l of fight({ ...flink, ...e }, { ...schlaeger }).log) {
+    for (let i = 0; i < 300; i++) for (const l of fight({ ...flink, ...e }, { ...schlaeger }).log) {
       if (l.who !== 'b') continue; if (l.miss) aus++; else if (l.dmg) tr++; }
     return aus / (aus + tr); };
   const q0 = quote({}), q1 = quote({ evadeCap: 0.2 });
@@ -1648,4 +1648,64 @@ test('Zauber nach Lage: Nachhall und „Krone ohne Träger“ wirken nie öfter 
     let run = 0, max = 0; for (const e of r.log) { if (e.who === 'a' && e.spell) { run++; max = Math.max(max, run); } else if (e.who === 'b' || (e.who === 'a' && !e.spell && !/hallt|zweimal/.test(e.t))) run = 0; }
     assert.ok(max <= 3, `höchstens 3 Würfe am Stück, war ${max}`);
   }
+});
+
+// --- Build-Paket (Bericht 3, 2026-11-22) ---
+test('Schlüsselsteine: höchstens einer je Brett, alte Stände bekommen die Punkte zurück', () => {
+  for (const cls of D.PLAYABLE) {
+    const S = fresh(cls); S.lvl = 60; const keys = G.keyNodes(cls); assert.equal(keys.length, 3, `${cls}: drei Steine`);
+    // alles bis unter die Steine lernen, dann einen Stein: die anderen beiden sind gesperrt
+    S.tal = {}; if (G.treeOf(cls)) D.TREE[cls].cols.forEach(c => c.nodes.forEach(n => { if (n.kind !== 'key') S.tal[n.id] = n.max; }));
+    else D.TALENTS[cls].forEach(b => b.nodes.slice(0, -1).forEach(n => { S.tal[n.id] = 1; }));
+    const can = () => G.treeOf(cls) ? D.TREE[cls].cols.map((c, ci) => G.nodeState(ci, c.nodes.length - 1).can) : [0, 1, 2].map(b => G.talentState(cls, b, 2).can);
+    assert.deepEqual(can(), [true, true, true]);
+    S.tal[keys[1].id] = 1; assert.deepEqual(can(), [false, false, false], `${cls}: nach einem Stein ist keiner mehr lernbar`);
+    assert.ok(G.keyLocked(keys[0].id) && !G.keyLocked(keys[1].id));
+    // alter Stand mit zwei Steinen: beide weg, Punkte zurück, Hinweis-Merker gesetzt
+    S.tal[keys[2].id] = 1; const before = G.talentPoints();
+    assert.ok(G.fixKeystones(S)); assert.equal(G.talentPoints(), before + 2); assert.ok(!keys.some(k => S.tal[k.id])); assert.equal(S.ksNote, 1);
+    assert.equal(G.fixKeystones(S), false, 'ein Stand mit höchstens einem Stein bleibt unberührt');
+  }
+  // beim Laden
+  const S = fresh('sorceress'); S.lvl = 40; for (const k of G.keyNodes('sorceress')) S.tal[k.id] = 1; G.save(); G.load();
+  assert.equal(G.keyNodes('sorceress').filter(k => G.S.tal[k.id]).length, 0); assert.equal(G.S.ksNote, 1);
+});
+
+test('Aldemar: Gift +1,5 % des Lebens je Treffer ohne Deckel – andere Gift-Gegner behalten den Deckel', () => {
+  const ald = D.CRYPTS.find(c => c.boss.name.startsWith('Bruder Aldemar'));
+  assert.equal(ald.boss.mech.poisonPct, 0.015);
+  const hero = { name: 'H', cls: 'barbarian', lvl: 20, main: 'str', str: 0, dex: 0, int: 0, con: 10, lck: 0, armor: 0, dmg: [1, 1], hp: 10000, belt: [] };
+  const tick = mo => { const r = fight(hero, { ...mo, first: 1, dex: 0, crit: 0, rage: 0, dmg: [1, 1], hp: 1e7 }); return Math.max(...r.log.filter(e => e.tk === 'poison' && e.who === 'b').map(e => e.tick), 0); };
+  const boss = G.makeBoss(ald, 20); assert.ok(boss.poisonPct > 0);
+  assert.ok(tick(boss) > 10000 * 0.08 * 1.5, 'stapelt über den alten Deckel von 8 %');
+  assert.ok(tick({ ...G.makeMonster(20), poison: 0.15 }) <= 800, 'Elite „Giftig“: Deckel 8 % bleibt');
+  assert.match(ald.boss.mechText, /Gegengift/);
+});
+
+test('Müllerin: Zorn +10 % je eigenem Zug statt Raserei, Absicht zeigt ihn', () => {
+  const a2 = D.ACTS.find(a => a.id === 'a2'); assert.equal(a2.boss.mech.ramp, 0.1); assert.ok(!a2.boss.mech.rage);
+  const boss = G.makeBoss(a2, 12);
+  const r = fight({ name: 'H', cls: 'barbarian', lvl: 12, main: 'str', str: 0, dex: 0, int: 0, con: 10, lck: 0, armor: 0, dmg: [1, 1], hp: 1e6, belt: [] }, { ...boss, dex: 0 });
+  const z = r.log.map(e => e.iB).filter(t => /^Zorn/.test(t || '')).map(t => +t.match(/\d+/)[0]);
+  assert.ok(z.length > 5 && z.at(-1) > z[0] && z.at(-1) >= 100, `Zorn steigt: ${z.slice(0, 3)} … ${z.at(-1)}`);
+});
+
+test('Verbrennung: Brand verhindert die Heilung des Gegners, eigene Heilung bleibt', () => {
+  const sf6 = D.TREE.sorceress.cols[0].nodes.find(n => n.id === 'sf6'); assert.ok(sf6.eff.igniteBan && !sf6.eff.nohealSelf);
+  const ball = { id: 'b', name: 'b', every: 2, kind: 'hit', mult: 1, el: 'fire', m: { open: 1 } };
+  const mk = ban => fight({ name: 'H', cls: 'sorceress', lvl: 20, main: 'int', str: 0, dex: 0, int: 0, con: 10, lck: 0, armor: 0, dmg: [5, 5], hp: 1e6, first: 1, amp: 1, ignite: 1, igniteBan: ban, spells: [ball], belt: [] },
+    { name: 'G', lvl: 20, main: 'str', str: 0, dex: 0, int: 0, con: 10, lck: 0, armor: 0, dmg: [1, 1], hp: 1e5, regen: 0.01 });
+  assert.ok(mk(0).log.some(e => /regeneriert/.test(e.t))); assert.ok(!mk(1).log.some(e => /regeneriert/.test(e.t)), 'brennend: keine Regeneration');
+});
+
+test('Attribut-Bindungen: Eisgrab Stärke → Schild, Schattenform Stärke → Leben, Ahnenruf Glück → Zaubertempo', () => {
+  const cases = [['sorceress', 'sk6', 'str', st => st.ward], ['assassin', 'as6', 'str', st => st.hp], ['barbarian', 'b9', 'lck', st => st.haste]];
+  for (const [cls, id, at, f] of cases) {
+    const S = fresh(cls); S.lvl = 30; S.attrs[at] = 10; S.tal = { [id]: 1 };
+    const a = f(G.stats()); S.attrs[at] = 60; const b = f(G.stats()); S.tal = {}; const c = f(G.stats()); S.attrs[at] = 10; const d = f(G.stats());
+    assert.ok(b > a, `${id}: mehr ${at} → mehr`); assert.ok(Math.abs((c - d) - 0) < 1e-9 || at === 'str', `${id}: ohne Stein bindet ${at} nichts`);
+    for (const k of Object.keys(D.TREE[cls] ? D.TREE[cls].cols.flatMap(x => x.nodes).find(n => n.id === id).eff : D.TALENTS[cls].flatMap(x => x.nodes).find(n => n.id === id).eff)) assert.ok(D.EFFECT_NAMES[k], `Effekt-Name fehlt: ${k}`);
+  }
+  // genaue Werte: Eisgrab 0,6 % je Punkt
+  const S = fresh('sorceress'); S.lvl = 30; S.tal = { sk6: 1 }; S.attrs.str = 0; const w0 = G.stats().ward; S.attrs.str = 50; assert.ok(Math.abs(G.stats().ward - w0 - 0.3) < 1e-9);
 });

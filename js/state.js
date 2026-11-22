@@ -25,6 +25,7 @@ export function load() {
     S = raw ? read(raw) : null; if (S && sig && sig !== sealOf(raw)) S.tampered = true;
     if (raw && !S) { localStorage.setItem(BAK, raw); const old = oldHero(raw); if (old) restarted = old; else unreadable = true; }
     if (!raw) { const bak = localStorage.getItem(BAK); S = bak ? read(bak) : null; if (S) { localStorage.removeItem(BAK); save(); } }
+    if (S && fixKeystones(S)) save();   // Schlüsselsteine sind einzeln: überzählige weg, Punkte zurück
   } catch { S = null; }
   return S;
 }
@@ -67,12 +68,25 @@ export const rank = (lvl = S.lvl) => { const r = [...RANKS].reverse().find(r => 
 export const talentPointsTotal = () => Math.max(0, S.lvl - 1);
 export const talentPointsSpent = () => Object.values(S.tal).reduce((a, b) => a + b, 0);
 export const talentPoints = () => talentPointsTotal() - talentPointsSpent();
+// --- Schlüsselsteine: höchstens einer je Brett (Bericht 3, 2026-11-22) ---
+// Brett: Knoten mit kind 'key' (letzter jeder Spalte); alter Baum: die letzte Stufe jedes Zweigs.
+export const keyNodes = (cls = S.cls) => TREE[cls] ? TREE[cls].cols.flatMap(c => c.nodes.filter(n => n.kind === 'key')) : (TALENTS[cls] || []).map(b => b.nodes[b.nodes.length - 1]);
+// Gesperrt, weil schon ein ANDERER Schlüsselstein Ränge hat
+export const keyLocked = (id, p = S) => keyNodes(p.cls).some(k => k.id === id) && keyNodes(p.cls).some(k => k.id !== id && (p.tal?.[k.id] || 0) > 0);
+// Alte Stände mit mehreren Steinen: alle Stein-Ränge weg. Punkte = Stufe − 1 − ausgegeben, also sind sie automatisch zurück.
+// Kein neues Format: nur ein Merker für den einmaligen Hinweis (S.ksNote). Gibt true, wenn etwas entfernt wurde.
+export function fixKeystones(p = S) {
+  if (!p?.cls) return false; const ks = keyNodes(p.cls).filter(k => (p.tal?.[k.id] || 0) > 0);
+  if (ks.length <= 1) return false;
+  for (const k of ks) delete p.tal[k.id];
+  p.ksNote = 1; return true;
+}
 export function talentState(cls, branch, tier) {
   const node = TALENTS[cls][branch]?.nodes[tier]; if (!node) return { node: null, r: 0, can: false, locked: true, needLvl: 99 };
   const r = S.tal[node.id] || 0;
   const prev = tier === 0 || (S.tal[TALENTS[cls][branch].nodes[tier - 1].id] || 0) > 0;
-  const lvlOk = S.lvl >= TIER_LVL[tier];
-  return { node, r, can: prev && lvlOk && r < node.max && talentPoints() > 0, locked: !prev || !lvlOk, needLvl: TIER_LVL[tier] };
+  const lvlOk = S.lvl >= TIER_LVL[tier], kl = keyLocked(node.id);
+  return { node, r, can: prev && lvlOk && !kl && r < node.max && talentPoints() > 0, locked: !prev || !lvlOk || kl, keyLock: kl, needLvl: TIER_LVL[tier] };
 }
 export function learn(branch, tier) { const t = talentState(S.cls, branch, tier); if (t.can) S.tal[t.node.id] = t.r + 1; return t.can; }
 // --- Das Brett (neuer Talentbaum, Klassen mit Eintrag in TREE) ---
@@ -91,8 +105,8 @@ export function nodeState(col, row, p = S) {
   const T = treeOf(p.cls); const n = T?.cols[col]?.nodes[row]; if (!n) return null;
   const r = nodeRank(n.id, p);
   const viaBridge = (T.bridges || []).some((b, i) => b.row === row && (b.a === col || b.b === col) && bridgeState(i, p)?.full);
-  const open = row === 0 || nodeFull(T.cols[col].nodes[row - 1], p) || viaBridge;
-  return { node: n, r, full: r >= n.max, open, can: open && r < n.max && talentPoints() > 0 };
+  const open = row === 0 || nodeFull(T.cols[col].nodes[row - 1], p) || viaBridge, kl = keyLocked(n.id, p);
+  return { node: n, r, full: r >= n.max, open, keyLock: kl, can: open && !kl && r < n.max && talentPoints() > 0 };
 }
 export function learnNode(col, row) { const t = nodeState(col, row); if (!t?.can) return false; S.tal[t.node.id] = t.r + 1; return true; }
 export function learnBridge(bi) { const t = bridgeState(bi); if (!t?.can) return false; S.tal[t.b.id] = t.r + 1; return true; }
@@ -178,13 +192,15 @@ export function stats(p = S) {
     crit: cap(e.crit, P('critc'), CAPS.crit), critMult: cap(2 + (e.critDmg || 0), P('critd'), CAPS.critMult),
     pen: cap(e.pen, P('penp'), CAPS.pen), leech: cap(e.leech, P('leechp'), CAPS.leech),
     evade: cap(e.evade, P('evadep'), CAPS.evade + (e.evadeCap || 0)), block: cap(e.block, P('blockp'), CAPS.block), thorns: cap(e.thorns, P('thornsp'), CAPS.thorns),
-    haste: (e.haste || 0) + (st.haste || 0) / 100,
     // Resistenzen roh (ungedeckelt): der Deckel CFG.resCap wirkt im Kampf (resOf), die Werte-Ansicht zeigt beides
     res: { phys: P('physr') + (e.physRes || 0), elem: P('elemr') + (e.elemRes || 0) },
     elemPen: (e.elemPen || 0) + P('elempenp'),   // Elementar-Durchdringung: Klasse (Zauberin) + Stab-Bonus
     armor: Math.round((st.armor + st.str * CFG.strArmor) * (1 + (e.armorPct || 0))),
     dmg: [Math.round((base[0] + st.dmgBonus) * dm), Math.round((base[1] + st.dmgBonus) * dm)],
-    hp: Math.round(st.con * c.hp * (CFG.hpBase + p.lvl * CFG.hpPerLvl) * (1 + (e.hpPct || 0) + P('lifep'))) };
+    hp: Math.round(st.con * c.hp * (CFG.hpBase + p.lvl * CFG.hpPerLvl) * (1 + (e.hpPct || 0) + P('lifep')) * (1 + (e.lifePerStr || 0) * st.str)),
+    // Attribut-Bindungen an Schlüsselsteine (Bericht 3): ein Nebenattribut bekommt je nach Stein einen eigenen Wert
+    ward: (e.ward || 0) + (e.wardPerStr || 0) * st.str,
+    haste: (e.haste || 0) + (st.haste || 0) / 100 + (e.hastePerLck || 0) * st.lck };
 }
 
 // Monster skaliert auf Stufe; diff 0.8 .. 1.3
@@ -219,8 +235,12 @@ export function power(A = stats()) {
   const crit = A.hemorrhage ? 0 : critChance(A, L);
   const strike = (A.dmg[0] + A.dmg[1]) / 2 * (1 + A[A.main] / CFG.mainDiv), physF = resMul(A.mix, FOE_RES);   // Hiebe gegen die mittlere Gegner-Resistenz
   // Bluten: sonst nur bei Krit, mit Ausbluten bei jedem Treffer (0,2 + eigener Bonus), dafür ohne Krit-Schaden
-  const bleedT = A.hemorrhage ? (CFG.hemoBleed + (A.bleed || 0)) * 2.2 : crit * (A.bleed || 0);
-  const onHit = (1 + crit * ((A.critMult || 2) - 1) + bleedT) * (1 + (A.execute || 0) * (0.2 + (A.execHp || 0)) + (A.poison || 0));   // gilt für Hieb und Zauber
+  // Ausbluten: das Bluten stapelt nicht (stärkster Treffer zählt) und verfällt am toten Gegner. Mit Faktor 2,2 schätzte power()
+  // den Stein (Blutung 1,2, Bericht 3) auf das Doppelte der beiden anderen, gemessen lag er dahinter (kk-Messung 2026-11-22: 0,25).
+  const bleedT = A.hemorrhage ? (CFG.hemoBleed + (A.bleed || 0)) * 0.25 : crit * (A.bleed || 0);
+  // Henker: der Anteil (Schwelle) des Gegnerlebens fällt (1 + Henker)-mal so schnell – Zeitgewinn statt linearer Schätzung (Schlächter 1,2 / +15 %)
+  const exT = 0.3 + (A.execHp || 0), exF = 1 / (1 - Math.min(0.9, exT) * (A.execute || 0) / (1 + (A.execute || 0)));
+  const onHit = (1 + crit * ((A.critMult || 2) - 1) + bleedT) * (exF + (A.poison || 0));   // gilt für Hieb und Zauber
   let dpt = strike * physF * (1 - red) * hit * onHit * (1 + (A.rage || 0) * 0.3);
   // Einzigartige, die eine Regel ändern (grobe Schätzung; die echten Werte misst tests/uniques.mjs)
   dpt *= 1 + (A.vengeance || 0) * 0.35;        // Vergeltung: im Schnitt etwa ein Drittel Leben fehlt
@@ -250,7 +270,7 @@ export function power(A = stats()) {
     // Verbrennung: jeder Zauber brennt nach. Der Brand stapelt NICHT – der naechste Zauber ueberschreibt ihn,
     // also tickt er hoechstens bis zum naechsten Wurf. Dazu ein Drittel Abzug fuer Ticks, die am toten Gegner verfallen.
     // Ohne diese Deckel schaetzte power() den Schluesselstein auf +75 %, gemessen sind es +11,6 Punkte Siegchance.
-    if (A.ignite && !['heal', 'shield', 'buff'].includes(s.kind)) v += raw * A.ignite * Math.min(CFG.igniteTurns, ev) * 0.65;
+    if (A.ignite && !['heal', 'shield', 'buff'].includes(s.kind)) v += raw * A.ignite * Math.min(CFG.igniteTurns, ev) * 0.3;   // 2026-11-22: Brand 0,7 → 1,0, Faktor 0,65 → 0,3 (gemessen)
     dpt += (v * (1 + (A.echo || 0)) - dpt) / ev;
     if (m.buff) dpt *= 1 + m.buff * 1.5 / ev;
     if (s.kind === 'heal' || s.kind === 'shield') heal += A.hp * s.pct * A.amp * b * (m.overshield ? 1.15 : 1) / ev;
@@ -267,7 +287,9 @@ export function power(A = stats()) {
   dpt *= vulnF;
   heal += dpt * (A.leech || 0) * (A.lastStand ? 1 + (CFG.lastStandMul - 1) * 0.15 : 1);   // Lebensraub aus Hieben und Zaubern (Set: unter halbem Leben × CFG.lastStandMul)
   if (A.venom) heal += dpt * (A.poison || 0) * A.venom * 2;
-  if (A.tollback) takenF *= 0.97;   // betäubte Gegner schlagen seltener – gegen die Glocke viel mehr
+  if (A.tollback) takenF *= 0.97;
+  if (A.toll) takenF *= 0.75;        // Kältestarre: jeder dritte eigene Treffer betäubt – vorher kannte power() das gar nicht
+  if (A.igniteBan) takenF *= 0.985;  // Verbrennung: brennende Gegner heilen nicht (wie Läuterung/Bann)   // betäubte Gegner schlagen seltener – gegen die Glocke viel mehr
   if (A.shred) dpt *= 1 + A.shred * 0.8;       // gebrochene Rüstung wirkt den Rest des Kampfs
   if (A.bulwark) heal += A.hp * A.bulwark * Math.min(0.5, A.block || 0);
   if (A.secondWind) heal += A.hp * A.secondWind * 0.1;

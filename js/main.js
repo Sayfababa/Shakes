@@ -514,3 +514,5 @@ addEventListener('resize', fitApp); addEventListener('orientationchange', () => 
 actions.dbg = () => { const t = document.querySelector('.tabs')?.getBoundingClientRect();
   note(`innen ${innerWidth}×${innerHeight} · Bildschirm ${screen.width}×${screen.height} · sichtbar ${Math.round(visualViewport?.height || 0)} · Tabs unten ${Math.round(t?.bottom || 0)} · ${STANDALONE ? 'App' : 'Browser'}`); };
 G.load(); if (G.S?.wander) Game.wanderTick(Date.now()); render();
+// Schlüsselsteine sind seit 2026-11 einzeln: ein alter Stand mit mehreren hat sie beim Laden verloren (Punkte zurück) – einmal sagen
+if (G.S?.ksNote) { delete G.S.ksNote; G.save(); setTimeout(() => note('Schlüsselsteine sind jetzt einzeln. Deine Punkte sind zurück – wähle einen neu.'), 600); }

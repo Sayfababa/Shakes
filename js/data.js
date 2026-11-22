@@ -614,7 +614,9 @@ export const EFFECT_NAMES = { dmgPct: 'Schaden', hpPct: 'Leben', armorPct: 'Rüs
   nohealSelf: 'Du kannst dich nicht heilen',
   hemorrhage: 'Bluten bei jedem Treffer – dafür nie kritisch', evadeCap: 'Ausweich-Grenze', critDmg: 'Krit-Schaden',
   tollback: 'Betäubung prallt zurück', firstEcho: 'Erster Zauber wirkt zweimal',
-  spellPct: 'Zauberschaden', ignite: 'Jeder Zauber setzt in Brand', physRes: 'Phys.-Resi', elemRes: 'Elem.-Resi', elemPen: 'Elementar-Durchdringung' };
+  spellPct: 'Zauberschaden', ignite: 'Jeder Zauber setzt in Brand', physRes: 'Phys.-Resi', elemRes: 'Elem.-Resi', elemPen: 'Elementar-Durchdringung',
+  igniteBan: 'Brand verhindert Heilung', poisonPct: 'Gift: Anteil deines Lebens je Treffer', ramp: 'Zorn je Zug',
+  wardPerStr: 'Schild je Punkt Stärke', lifePerStr: 'Leben je Punkt Stärke', hastePerLck: 'Zaubertempo je Punkt Glück' };
 
 // --- Das Brett (neuer Talentbaum) ---
 // Drei Zweige, von unten nach oben: kleine Knoten, dazwischen zwei Notable (ändern eine Regel),
@@ -638,7 +640,7 @@ export const TREE = {
         N('ak3', 'Ätzend', 3, { pen: 0.05 }, 'Zersetzt Rüstung.'),
         N('ak4', 'Todesstoß', 1, { execute: 0.6, execHp: 0.28 }, 'Gegen Sterbende +60 % Schaden – und der Henker schlägt schon bei 58 % Leben zu.', 'nt'),
         N('ak5', 'Schnitt', 2, { dmgPct: 0.05 }, 'Mehr Schaden.'),
-        N('ak6', 'Ausbluten', 1, { hemorrhage: 1 }, 'Jeder Treffer lässt bluten – 85 % des Schadens plus dein Bluten-Bonus. Dafür triffst du nie mehr kritisch.', 'key'),
+        N('ak6', 'Ausbluten', 1, { hemorrhage: 1, bleed: 1.2, pen: 0.2 }, 'Jeder Treffer lässt tief bluten – 85 % des Schadens plus dein Bluten-Bonus, und du gehst durch ein Fünftel der Rüstung. Dafür triffst du nie mehr kritisch.', 'key'),
       ] },
       { name: 'Schatten', nodes: [
         N('as1', 'Nebelschritt', 3, { evade: 0.045 }, 'Ausweichen.'),
@@ -646,7 +648,7 @@ export const TREE = {
         N('as3', 'Flinkheit', 3, { hpPct: 0.06 }, 'Mehr Leben.'),
         N('as4', 'Zweiter Atem', 1, { secondWind: 0.22 }, 'Heilt dich einmal, wenn du unter 30 % fällst.', 'nt'),
         N('as5', 'Hinterhalt', 2, { dmgPct: 0.05 }, 'Aus dem Dunkel trifft es härter.'),
-        N('as6', 'Schattenform', 1, { evade: 0.3, evadeCap: 0.2, hpPct: -0.15 }, 'Du weichst viel öfter aus, und deine Grenze steigt von 50 % auf 70 % – erst damit kommt alles an. Dafür bist du nur noch ein Hauch von einem Körper.', 'key'),
+        N('as6', 'Schattenform', 1, { evade: 0.3, evadeCap: 0.2, hpPct: -0.15, lifePerStr: 0.004 }, 'Du weichst viel öfter aus, und deine Grenze steigt von 50 % auf 70 % – erst damit kommt alles an. Dafür bist du nur noch ein Hauch von einem Körper. Stärke hält den Schatten zusammen.', 'key'),
       ] },
       { name: 'Gift', nodes: [
         N('ag1', 'Toxin', 3, { crit: 0.024 }, 'Krit-Chance.'),
@@ -674,7 +676,7 @@ export const TREE = {
         N('sf3', 'Flammenzunge', 3, { crit: 0.024 }, 'Krit-Chance.'),
         N('sf4', 'Schmerzrausch', 1, { vengeance: 0.4 }, 'Je weniger Leben du hast, desto wilder brennt es – bis zu 40 % mehr Schaden.', 'nt'),
         N('sf5', 'Lohe', 2, { spellPct: 0.08 }, 'Deine Zauber brennen heißer.'),
-        N('sf6', 'Verbrennung', 1, { ignite: 0.7, spellPct: 0.1, nohealSelf: 1 }, 'Jeder Zauber setzt den Gegner in Brand: 70 % des Schadens noch drei Runden lang. Dafür wächst keine Wunde mehr zu – kein Trank, kein Lebensraub, keine Zuflucht heilt dich noch.', 'key'),
+        N('sf6', 'Verbrennung', 1, { ignite: 1.0, spellPct: 0.15, igniteBan: 1 }, 'Jeder Zauber setzt den Gegner in Brand: 100 % des Schadens noch drei Runden lang – und solange es brennt, heilt er nicht.', 'key'),
       ] },
       { name: 'Frost', nodes: [
         N('sk1', 'Eishaut', 3, { block: 0.045 }, 'Das Eis fängt Hiebe ab.'),
@@ -682,7 +684,7 @@ export const TREE = {
         N('sk3', 'Klirrende Kälte', 3, { hpPct: 0.055 }, 'Mehr Leben.'),
         N('sk4', 'Kältestarre', 1, { toll: 1 }, 'Jeder dritte Treffer von dir betäubt den Gegner.', 'nt'),
         N('sk5', 'Reif', 2, { thorns: 0.055 }, 'Wer dich trifft, schneidet sich.'),
-        N('sk6', 'Eisgrab', 1, { ward: 0.15, hpPct: 0.18, block: 0.12, haste: -0.3 }, 'Du stehst wie ein Eisblock: ein Schild aus 15 % deines Lebens, mehr Leben, mehr Blocken. Dafür laden deine Zauber um ein Drittel langsamer.', 'key'),
+        N('sk6', 'Eisgrab', 1, { ward: 0.15, hpPct: 0.18, block: 0.12, haste: -0.3, wardPerStr: 0.006 }, 'Du stehst wie ein Eisblock: ein Schild aus 15 % deines Lebens, mehr Leben, mehr Blocken. Dafür laden deine Zauber um ein Drittel langsamer. Jeder Punkt Stärke verdickt das Eis.', 'key'),
       ] },
       { name: 'Arkan', nodes: [
         N('sa1', 'Mana', 3, { spellPct: 0.06 }, 'Deine Zauber wiegen schwerer.'),
@@ -704,9 +706,9 @@ export const TIER_LVL = [2, 8, 16];
 const T = (id, name, max, eff, desc) => ({ id, name, max, eff, desc });
 export const TALENTS = {
   barbarian: [
-    { name: 'Blutrausch', nodes: [T('b1', 'Zorn', 10, { dmgPct: 0.05 }, 'Mehr Schaden.'), T('b2', 'Ungebändigt', 3, { rage: 0.08 }, 'Öfter Raserei.'), T('b3', 'Schlächter', 1, { execute: 0.5 }, '+50% gegen Feinde unter 30% Leben.')] },
-    { name: 'Fell & Narbe', nodes: [T('b4', 'Dickes Fell', 10, { hpPct: 0.06 }, 'Mehr Leben.'), T('b5', 'Narbengewebe', 3, { regen: 0.015 }, 'Heilt jede Runde.'), T('b6', 'Unsterblich', 1, { hpPct: 0.2, thorns: 0.15 }, 'Leben und Dornen.')] },
-    { name: 'Kriegsschrei', nodes: [T('b7', 'Brüllen', 9, { evade: 0.015 }, 'Feinde zögern.'), T('b8', 'Knochenbrecher', 3, { pen: 0.1 }, 'Zerschmettert Rüstung.'), T('b9', 'Ahnenruf', 1, { crit: 0.1, dmgPct: 0.1 }, 'Die Ahnen führen die Axt.')] },
+    { name: 'Blutrausch', nodes: [T('b1', 'Zorn', 10, { dmgPct: 0.05 }, 'Mehr Schaden.'), T('b2', 'Ungebändigt', 3, { rage: 0.08 }, 'Öfter Raserei.'), T('b3', 'Schlächter', 1, { execute: 1.2, execHp: 0.15, hpPct: 0.05 }, '+120 % gegen Feinde unter 45 % Leben, etwas mehr Leben.')] },
+    { name: 'Fell & Narbe', nodes: [T('b4', 'Dickes Fell', 10, { hpPct: 0.06 }, 'Mehr Leben.'), T('b5', 'Narbengewebe', 3, { regen: 0.015 }, 'Heilt jede Runde.'), T('b6', 'Unsterblich', 1, { hpPct: 0.08, thorns: 0.3 }, 'Leben und starke Dornen.')] },
+    { name: 'Kriegsschrei', nodes: [T('b7', 'Brüllen', 9, { evade: 0.015 }, 'Feinde zögern.'), T('b8', 'Knochenbrecher', 3, { pen: 0.1 }, 'Zerschmettert Rüstung.'), T('b9', 'Ahnenruf', 1, { crit: 0.15, critDmg: 0.6, dmgPct: 0.15, hastePerLck: 0.003 }, 'Die Ahnen führen die Axt – Glück treibt deine Zauber an.')] },
   ],
   paladin: [
     { name: 'Bollwerk', nodes: [T('p1', 'Schildwall', 5, { armorPct: 0.08 }, 'Mehr Rüstung.'), T('p2', 'Standhaft', 3, { block: 0.04 }, 'Öfter blocken.'), T('p3', 'Eiserne Buße', 1, { thorns: 0.3 }, 'Wirft 30% des Schadens zurück.')] },
@@ -745,7 +747,7 @@ export const CRYPTS = [
   { id: 'c1', name: 'Gruft der Wäscherinnen', lvl: 1, glyph: 'skull', floors: ['Knochenhund', 'Skelettkrieger', 'Wiedergänger', 'Grabräuber'],
     boss: { name: 'Mutter Gerlinde, die Ertränkte', glyph: 'gerlinde', mech: { regen: 0.03, leech: 0.1 }, mechText: 'Zieht Leben aus dir und heilt sich', mix: { cold: 0.4 }, res: { elem: 0.1 } }, trophy: { hpPct: 0.05 } },
   { id: 'c2', name: 'Die Pestkapelle', lvl: 6, glyph: 'rat', floors: ['Pestratte', 'Verfaulter Ghul', 'Kultist der Glocke', 'Gehäuteter'],
-    boss: { name: 'Bruder Aldemar, der Verseuchte', glyph: 'aldemar', mech: { poison: 0.25 }, mechText: 'Gift, das sich stapelt – kurze Kämpfe gewinnen', mix: { fire: 0.2 }, res: { phys: 0.15 } }, trophy: { dmgPct: 0.05 } },
+    boss: { name: 'Bruder Aldemar, der Verseuchte', glyph: 'aldemar', mech: { poison: 0.25, poisonPct: 0.015 }, mechText: 'Gift, das sich ohne Ende stapelt (+1,5 % deines Lebens je Treffer) – kurze Kämpfe gewinnen, Gegengift hilft', mix: { fire: 0.2 }, res: { phys: 0.15 } }, trophy: { dmgPct: 0.05 } },
   { id: 'c3', name: 'Das Schlachthaus', lvl: 12, glyph: 'ghoul', floors: ['Gehäuteter', 'Gefallener', 'Blutfürst', 'Höllenbrut'],
     boss: { name: 'Der Metzger von Vhal', glyph: 'butcher', mech: { execute: 0.6, rage: 0.4 }, mechText: 'Wird rasend und schlachtet Geschwächte', res: { phys: 0.2 } }, trophy: { crit: 0.03 } },
   { id: 'c4', name: 'Turm der Glocke', lvl: 20, glyph: 'horn', floors: ['Kultist der Glocke', 'Sumpfhexe', 'Blutfürst', 'Höllenbrut'],
@@ -1128,8 +1130,8 @@ export const ACTS = [
     loc: 'friedhof', lvl: 1, top: 6, diff: 1.0, eliteDiff: 0.9, eliteHp: 1.0, bossMult: 0.52, crypt: 'c1', zones: ['Das Friedhofstor', 'Die Reihen der Armen', 'Das offene Grab', 'Die Wacht am Beinhaus', 'Der Weidenhang', 'Die Gräbergasse', 'Der Mauerbruch', 'Das Leichenhaus'],
     boss: { name: 'Ansgar, der Totengräber', glyph: 'totengraeber', mech: { ward: 0.25, bleed: 0.3 }, mechText: 'Gräbt sich ein: kämpft hinter einem Wall aus Erde', mix: { cold: 0.2 } } },
   { id: 'a2', n: 'II', intro: 'Das Rad dreht sich ohne Wasser. Was die Müllerin mahlt, war einmal ein Dorf.', say: 'Alles wird Mehl. Auch du.', outro: 'Das Mahlwerk steht still. Zum ersten Mal seit dem Glockenschlag ist es leise an der Mühle.',
-    loc: 'muehle', lvl: 6, top: 12, diff: 1.05, eliteDiff: 0.95, eliteHp: 1.0, bossMult: 0.72, crypt: 'c2', zones: ['Der Mühlbach', 'Das Speichertor', 'Die Kornkammer', 'Der Rattenkeller', 'Das Wasserrad', 'Der Mahlboden', 'Die Sackkammer', 'Der Mühlstein'],
-    boss: { name: 'Die Müllerin', glyph: 'muellerin', mech: { rage: 0.6, armorMult: 1.3 }, mechText: 'Mahlt sich in Raserei – je länger der Kampf, desto härter', mix: { fire: 0.3 } } },
+    loc: 'muehle', lvl: 6, top: 12, diff: 1.05, eliteDiff: 0.95, eliteHp: 1.0, bossMult: 0.58, crypt: 'c2', zones: ['Der Mühlbach', 'Das Speichertor', 'Die Kornkammer', 'Der Rattenkeller', 'Das Wasserrad', 'Der Mahlboden', 'Die Sackkammer', 'Der Mühlstein'],
+    boss: { name: 'Die Müllerin', glyph: 'muellerin', mech: { ramp: 0.1, armorMult: 1.3 }, mechText: 'Mahlt sich in Zorn: +10 % Schaden je Zug – je länger der Kampf, desto härter', mix: { fire: 0.3 } } },
   { id: 'a3', n: 'III', intro: 'Unter Vhal liegen mehr Tote, als oben je gelebt haben. Jemand hat begonnen, sie zu zählen.', say: 'Du fehlst in meinen Büchern. Das lässt sich richten.', outro: 'Die Schädelwand bricht. Niemand zählt mehr, und die Knochen bleiben liegen.',
     loc: 'katakomben', lvl: 12, top: 18, diff: 1.12, crypt: 'c3', zones: ['Der Einstieg', 'Die Ossuarien', 'Die Schädelwand', 'Der Brunnenschacht', 'Die Knochenhalle', 'Die Kammer der Ordnung', 'Der tiefe Gang', 'Das Zählwerk'],
     boss: { name: 'Der Knochenordner', glyph: 'knochenordner', mech: { block: 0.35, armorMult: 1.4 }, mechText: 'Knochenschild: blockt viele Hiebe – Zauber treffen immer', mix: { cold: 0.4 }, res: { phys: 0.1 } } },

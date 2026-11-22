@@ -55,9 +55,9 @@ export function fight(A, B) {
   // Was der Gegner als Nächstes vorhat / was ihn ausmacht (Anzeige über seinem Bild)
   const intent = (f, o) => { if (f.cur <= 0 || o.cur <= 0) return null; if (f.stunned) return 'Betäubt';
     if (f.toll) { const n = 3 - ((f.hits || 0) % 3); return n === 1 ? 'Betäubung jetzt!' : `Betäubung in ${n}`; }
-    if (f.execute && o.cur < o.hp * (0.3 + (f.execHp || 0))) return 'Schlachtet!'; if (f.rage > 0.2 && f.cur < f.hp / 2) return 'Rasend';
+    if (f.execute && o.cur < o.hp * (0.3 + (f.execHp || 0))) return 'Schlachtet!'; if (f.ramp) return `Zorn +${Math.round((f.buff - 1 + f.ramp) * 100)} %`; if (f.rage > 0.2 && f.cur < f.hp / 2) return 'Rasend';
     if (f.noheal > 0 && (f.regen || f.leech)) return 'Gebannt'; if (f.regen) return `Heilt ${Math.round(f.regen * 100)} %/Zug`;
-    if (f.poison) return 'Gift je Treffer'; if (f.leech) return 'Saugt Leben'; return null; };
+    if (f.poisonPct) return o.poisonDmg ? `Gift ${o.poisonDmg} je Zug, steigt` : 'Gift stapelt ohne Ende'; if (f.poison) return 'Gift je Treffer'; if (f.leech) return 'Saugt Leben'; return null; };
   const ini = f => (f.first ? 1000 : 0) + f.dex + roll(0, 10);
   let atk = ini(a) >= ini(b) ? a : b, def = atk === a ? b : a;
   for (const [x, y] of [[a, b], [b, a]]) for (const p of x.belt) if (p.rare) potion(x, y, p);   // seltene Tränke: wirken den ganzen Kampf
@@ -73,7 +73,7 @@ export function fight(A, B) {
       if (h) say(atk.side, `${atk.name} schöpft Atem (+${h}).`, { heal: h, status: 'Zuflucht' }); }
     if (atk.regen && atk.cur < atk.hp && !(atk.noheal > 0)) { const h = Math.round(atk.hp * atk.regen * healMul(atk)); atk.cur = Math.min(atk.hp, atk.cur + h); atk.didHeal = true; say(atk.side, `${atk.name} regeneriert ${h}.`, { heal: h }); }
     if (atk.stunned) { atk.stunned = atk.stunned === true ? 0 : atk.stunned - 1; say(def.side, `${atk.name} ist betäubt und taumelt.`); [atk, def] = [def, atk]; continue; }
-    atk.turn++;
+    atk.turn++; if (atk.ramp) atk.buff += atk.ramp;   // Zorn (Müllerin): jeder eigene Zug macht sie härter
     // Zauber laden pro eigenem Zug um 1 (+ Zaubertempo); der stärkste geladene wird gewirkt
     const sps = atk.spells || []; let sp = null;
     const inc = x => (1 + (atk.haste || 0)) * (x.m?.desperate && atk.cur < atk.hp * x.m.desperate ? 2 : 1);
@@ -213,6 +213,7 @@ export function fight(A, B) {
     if (x.ignite && d > 0 && !(y.cureN > 0)) {
       const bd = Math.max(1, Math.round(d * x.ignite / (s.hits || 1)));
       if (!(y.burn?.n > 0) || bd >= y.burn.d) { y.burn = { d: bd, n: CFG.igniteTurns }; t += ` ${y.name} brennt.`; }
+      if (x.igniteBan) { y.noheal = Math.max(y.noheal || 0, CFG.igniteTurns + 1); ev.status ||= 'Gebannt'; }   // Verbrennung: wer brennt, heilt nicht
     }
     if (x.side === 'a') cast.push(s.name);
     say(x.side, t + extra, { spell: s.name, sid: s.id, dmg: d || undefined, crit: anyCrit, hits: hits.length > 1 ? hits : undefined, stun: s.kind === 'stun' || undefined });
@@ -276,7 +277,9 @@ export function fight(A, B) {
     // Bluten: sonst nur bei Krit, mit Ausbluten bei jedem Treffer und mit 20 % Grundstärke obendrauf
     const bl = x.hemorrhage ? CFG.hemoBleed + (x.bleed || 0) : (crit ? x.bleed || 0 : 0);
     if (bl && !(y.cureN > 0)) y.bleedDmg = Math.max(y.bleedDmg || 0, Math.round(d * bl));
-    if (x.poison && !(y.cureN > 0)) y.poisonDmg = Math.min(Math.round(y.hp * 0.08), (y.poisonDmg || 0) + Math.max(1, Math.round(d * x.poison)));
+    // Aldemar (poisonPct): jeder Treffer legt einen Anteil des MAXIMALEN Lebens des Ziels drauf, ohne Deckel – Leben schützt nicht, nur kurze Kämpfe, Ausweichen, Blocken, Gegengift
+    if (x.poison && !(y.cureN > 0)) y.poisonDmg = x.poisonPct ? (y.poisonDmg || 0) + Math.max(1, Math.round(y.hp * x.poisonPct))
+      : Math.min(Math.round(y.hp * 0.08), (y.poisonDmg || 0) + Math.max(1, Math.round(d * x.poison)));
     if (x.toll && (x.hits = (x.hits || 0) + 1) % 3 === 0) { if (stun(y, 1, x)) { t += ' Die Glocke dröhnt!'; ev.stun = true; } else t += ` ${y.name} widersteht der Glocke.`; }
     if (y.thorns && y.cur > 0) { const r = Math.round(d * y.thorns); hurt(x, r); if (r) { t += ` Dornen: ${r}.`; ev.thorns = (ev.thorns || 0) + r; } }
     return t;

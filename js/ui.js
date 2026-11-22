@@ -251,7 +251,7 @@ function viewTalentsOld() {
     <div class="tree">${TALENTS[S.cls].map((br, bi) => `<section class="panel branch"><h3>${br.name}</h3>
       ${br.nodes.map((_, ti) => { const t = talentState(S.cls, bi, ti);
         return `<div class="tal ${t.r ? 'has' : ''} ${t.locked ? 'locked' : ''} ${t.can ? 'can' : ''}" data-action="learn" data-b="${bi}" data-t="${ti}">
-          <div class="tn">${t.node.name}</div><div class="tr">${t.locked && S.lvl < t.needLvl ? `ab Stufe ${t.needLvl}` : `${t.r} / ${t.node.max}`}</div>
+          <div class="tn">${t.node.name}</div><div class="tr">${t.locked && S.lvl < t.needLvl ? `ab Stufe ${t.needLvl}` : t.keyLock ? 'nur ein Stein' : `${t.r} / ${t.node.max}`}</div>
           <div class="te">${effLine(t.node.eff)}${t.node.max > 1 ? ' je Rang' : ''}</div></div>`; }).join('<div class="link"></div>')}
     </section>`).join('')}</div></div>`;
 }
@@ -261,7 +261,7 @@ function viewTalentsOld() {
 export function viewTalents(sel = null) {
   const T = TREE[S.cls]; if (!T) return viewTalentsOld();
   const tp = talentPoints(), rows = T.cols[0].nodes.length, ranks = treeRanks(), spent = talentPointsSpent();
-  const cls = st => `${st.r ? 'has' : ''} ${st.open ? 'can' : 'lock'}`;
+  const cls = st => `${st.r ? 'has' : ''} ${st.open && !st.keyLock ? 'can' : 'lock'}`;
   const cells = [];
   T.cols.forEach((col, c) => col.nodes.forEach((n, r) => { const st = nodeState(c, r), on = sel?.c === c && sel?.r === r;
     cells.push(`<div class="nd ${n.kind} ${cls(st)} ${on ? 'sel' : ''}" style="grid-area:${rows - r}/${c * 2 + 1}"
@@ -271,7 +271,7 @@ export function viewTalents(sel = null) {
       data-action="tbridge" data-i="${i}"><s>&#8286;</s><em>${st.r}/${b.max}</em></div>`); });
 
   // Beschreibung unten – feste Höhe, damit beim Antippen nichts springt
-  let det = `<p class="hint">Tippe einen Knoten an.</p><p class="hint dim2">Gold = gesetzt · hell = erreichbar · rot = Schlüsselstein</p>`;
+  let det = `<p class="hint">Tippe einen Knoten an.</p><p class="hint dim2">Gold = gesetzt · hell = erreichbar · rot = Schlüsselstein (nur einer je Brett)</p>`;
   if (sel?.br != null) { const st = bridgeState(sel.br), b = st.b;
     det = `<h4>${b.name} <small>Brücke · ${st.r} / ${b.max}</small></h4><p>${effLine(b.eff)} je Rang.</p>
       <p class="hint">${b.text} Voll ausgebaut öffnet sie beide Seiten.</p>
@@ -282,7 +282,7 @@ export function viewTalents(sel = null) {
       <p>${n.text}</p><p class="hint">${effLine(good)}${n.max > 1 ? ' je Rang' : ''}</p>
       ${Object.keys(bad).length ? `<p class="cost">${effLine(bad)}</p>` : ''}
       <div class="row">${st.can ? `<button class="${key ? 'red' : ''}" data-action="tlearn">${key ? 'Schwören' : 'Rang setzen'}</button>`
-        : `<button class="off">${st.full ? 'gesetzt' : st.open ? 'keine Punkte' : 'noch gesperrt'}</button>`}</div>`; }
+        : `<button class="off">${st.full ? 'gesetzt' : st.keyLock ? 'nur ein Schlüsselstein' : st.open ? 'keine Punkte' : 'noch gesperrt'}</button>`}</div>`; }
 
   return `<div class="col treev"><section class="panel thead"><b>Talente</b>
       <span>${tp ? `<b class="hot">${tp}</b> frei · ` : ''}${spent} gesetzt · ${ranks} im Baum</span>

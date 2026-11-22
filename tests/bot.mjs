@@ -31,6 +31,10 @@ export function learnAll() {
       if (!best || !best()) break;
     }
   } else for (let more = true; more && G.talentPoints() > 0;) { more = false;   // Runde um Runde je Zweig einen Punkt, höchste offene Stufe zuerst
+    // Schlüsselstein (nur einer je Baum): unter den lernbaren den mit der höchsten Kampfkraft
+    const keys = [0, 1, 2].filter(b => G.talentState(S.cls, b, 2).can);
+    if (keys.length > 1) { const pw = keys.map(b => { const vor = { ...S.tal }; G.learn(b, 2); const p = G.power(); S.tal = vor; return p; });
+      G.learn(keys[pw.indexOf(Math.max(...pw))], 2); more = true; continue; }
     for (let b = 0; b < 3; b++) for (let t = 2; t >= 0; t--) if (G.learn(b, t)) { more = true; break; } }
     // Zauber-Wege: offene Stufen wählen (den Weg mit der höheren Kampfkraft)
     for (const sp of D.SPELLS[S.cls]) (D.SPELL_TREE[sp.id] || []).forEach((opts, t) => { if (!G.wayOpen(sp, t) || G.S.sp?.[sp.id]?.[t] != null) return;

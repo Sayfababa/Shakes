@@ -244,9 +244,11 @@ export function enemyInfo(m, A = G.stats()) {
   // Trifft dich: nach deiner Rüstung UND deinen Resistenzen gegen seine Schadensmischung (dieselbe Regel wie im Kampf)
   const hitDmg = [0, 1].map(i => Math.round(m.dmg[i] * (1 + m[m.main] / CFG.mainDiv) * resMul(m.mix, A, null, armorRed(A.armor, m.lvl))));
   const tags = [];
-  if (m.poison) tags.push(['Gift, das sich stapelt', 'gegengift']); if (m.bleed) tags.push(['Lässt dich bluten', 'gegengift']);
+  if (m.poisonPct) tags.push([`Gift +${String(Math.round(m.poisonPct * 1000) / 10).replace('.', ',')} % Leben je Treffer`, 'gegengift']);
+  else if (m.poison) tags.push(['Gift, das sich stapelt', 'gegengift']); if (m.bleed) tags.push(['Lässt dich bluten', 'gegengift']);
   if (m.regen || m.leech) tags.push(['Heilt sich', 'weihwasser']); if (m.toll) tags.push(['Betäubt dich', 'wachsaft']);
   if (m.execute) tags.push(['Schlachtet Geschwächte', 'steinhaut']); if (m.rage > 0.2) tags.push(['Wird rasend', 'steinhaut']);
+  if (m.ramp) tags.push([`Zorn +${Math.round(m.ramp * 100)} % Schaden je Zug`, 'steinhaut']);
   const evade = evadeChance(m, A.dex), armor = Math.min(0.6, m.armor / (m.armor + 20 + A.lvl * 8));
   const crit = critChance(m, A.lvl);
   if (evade >= 0.25) tags.push(['Weicht oft aus', 'jaegerblick']); if (armor >= 0.4) tags.push(['Schwer gepanzert', 'rostsaeure']); if (crit >= 0.2) tags.push(['Trifft oft kritisch', 'knochenmark']);

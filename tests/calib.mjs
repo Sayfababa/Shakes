@@ -73,3 +73,14 @@ for (const [k, byL] of Object.entries(rows)) {
   const a = D.AFFIXES.find(x => x.stat === k) || {};
   console.log(k.padEnd(44) + LV.map(L => { const r = avg(byL[L]); return (wantPer ? (1 / r).toFixed(2) : r.toFixed(2)).padStart(8); }).join(''));
 }
+// Attribut-Bindungen an Schlüsselsteine (Bericht 3): +10 im gebundenen Attribut mit dem Stein ÷ +10 Konstitution (ohne Stein in Klammern).
+// Gemessen im Kampf (syn.mjs) erreichten alle drei 42–66 % des Konstitutions-Werts.
+const BIND = [['sorceress', 'sk6', 'str', 'wardPerStr'], ['assassin', 'as6', 'str', 'lifePerStr'], ['barbarian', 'b9', 'lck', 'hastePerLck']];
+console.log('\nBindung (+10 Attribut ÷ +10 Kon, ohne Stein)'.padEnd(45) + LV.map(l => (l === 'I++' ? 'St.40 I++' : 'St.' + l).padStart(l === 'I++' ? 10 : 8)).join(''));
+for (const [cls, id, at, key] of BIND) { const out = [];
+  for (const L of LV) { const v = [], w = [];
+    for (let rep = 0; rep < REPS; rep++) { hero(cls, LCOL(L)); const S = G.S, up = k => { S.attrs[k] += 10; const p = G.power(); S.attrs[k] -= 10; return p; };
+      for (const [arr, on] of [[v, 1], [w, 0]]) { S.tal = on ? { [id]: 1 } : {}; const p0 = G.power(); arr.push((up(at) - p0) / (up('con') - p0)); } }
+    out.push(`${avg(v).toFixed(2)}(${avg(w).toFixed(2)})`.padStart(L === 'I++' ? 12 : 11)); }
+  console.log(`${key} (${id}, ${at})`.padEnd(41) + out.join('')); }
+
