@@ -12,6 +12,7 @@ export const tierTag = t => { const T = TIERS.find(x => x.t === t); return T ? `
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
+import { evadeChance, critChance } from './combat.js';
 import { weakAdvice, wanderMap, wanderAct, wanderBusy, wanderDone, actEnemy, actChance, actOdds, packSlot, actCan, actZoneGlut, actZoneMob, pitWeek, pitWinGold, pitWinXp, pitPlace, pitRank, pitFoes, pitChance, pitOdds, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, cryptChance, cryptOdds, threatLabel, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
   sigKind, sigHave, sigClean, sigFx, coreChance, descCrypts, descReward, descWeekReward, descWeekDue, descResPen, descLeft, descCanStart, descBusy, descLvl, descAt, descRec, descMaxDepth, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
@@ -193,8 +194,8 @@ function invPanel(stash, mats) {
 function attrNow(k, st) {
   const L = st.lvl, en = 3 + L * CFG.monGrow, c = CLASSES[S.cls];
   const main = k === c.main ? `Schaden ×${(1 + st[k] / CFG.mainDiv).toFixed(1).replace('.', ',')}` : '';
-  const v = { str: `${Math.round(st.str * CFG.strArmor)} Rüstung`, dex: `${Math.round(Math.min(0.5, st.dex / (st.dex + en * 3 + 40) + (st.evade || 0)) * 100)} % Ausweichen`,
-    int: `Zauber ×${st.amp.toFixed(2).replace('.', ',')}`, con: `${fmtN(st.hp)} Leben`, lck: `${Math.round(Math.min(0.6, CFG.critBase + st.lck / (st.lck + 100 + L * 5) + (st.crit || 0)) * 100)} % Krit` }[k];
+  const v = { str: `${Math.round(st.str * CFG.strArmor)} Rüstung`, dex: `${Math.round(evadeChance(st, en) * 100)} % Ausweichen`,
+    int: `Zauber ×${st.amp.toFixed(2).replace('.', ',')}`, con: `${fmtN(st.hp)} Leben`, lck: `${Math.round(critChance(st, L) * 100)} % Krit` }[k];
   return [main, v].filter(Boolean).join(' · ');
 }
 export function viewStats() {
@@ -208,7 +209,7 @@ export function viewStats() {
       <div class="grid2"><div class="stat"><span>Leben</span><b>${fmtN(st.hp)}</b></div><div class="stat"><span>Schaden</span><b>${st.dmg[0]}–${st.dmg[1]}</b></div>
       ${['phys', 'elem'].map(k => { const v = st.res[k], cap = k === 'phys' ? CFG.resCapPhys : CFG.resCap, on = Math.min(cap, v);   // Resistenzen mit Deckel – was darüber liegt, steht in Klammern
         return `<div class="stat"><span>${RES_NAMES[k]}</span><b>${Math.round(on * 100)} %<small class="dim"> / ${Math.round(cap * 100)}${v > cap ? ` (${Math.round(v * 100)})` : ''}</small></b></div>`; }).join('')}
-      <div class="stat"><span>Rüstung</span><b>${st.armor}</b></div><div class="stat"><span>Krit</span><b>${Math.round(Math.min(0.6, CFG.critBase + st.lck / (st.lck + 100 + S.lvl * 5) + st.crit) * 100)} % · ×${st.critMult.toFixed(2).replace('.', ',').replace(/0$/, '')}</b></div></div>
+      <div class="stat"><span>Rüstung</span><b>${st.armor}</b></div><div class="stat"><span>Krit</span><b>${Math.round(critChance(st, S.lvl) * 100)} % · ×${st.critMult.toFixed(2).replace('.', ',').replace(/0$/, '')}</b></div></div>
       <p class="dim small">${effLine(Object.fromEntries(Object.entries(st).filter(([k, v]) => v && EFFECT_NAMES[k] && !['dmgPct', 'hpPct', 'armorPct', 'crit'].includes(k))))}</p>
       ${S.tampered ? '<p class="small down">Spielstand wurde von Hand verändert – für Handel gesperrt.</p>' : ''}</section>
     <section class="panel"><h2>Trophäen <span class="h2r">${S.trophies.length}</span></h2>

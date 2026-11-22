@@ -54,7 +54,7 @@ test('Vorbereitung: zweiter seltener Trank ersetzt den ersten – und sagt wen; 
 });
 
 test('power() kennt die Serienbremse: evadeShare trifft den Anteil der Ausweicher im echten Kampf', async () => {
-  const { evadeShare } = await import('../js/combat.js');
+  const { evadeShare, evadeChance } = await import('../js/combat.js');
   const S = fresh('barbarian'); S.lvl = 20; const A = { ...G.stats(), hp: 1e6, acc: 0, spells: [] };   // nur Hiebe: Stärkungszauber würfeln kein Ausweichen
   for (const p of [0.2, 0.35, 0.5]) {
     const m = { ...G.makeMonster(20, 1), hp: 1e6, dex: 0, evade: p, evadeCap: 0 };
@@ -62,7 +62,8 @@ test('power() kennt die Serienbremse: evadeShare trifft den Anteil der Ausweiche
     for (let k = 0; k < 120; k++) for (const l of fight(A, m).log) {
       if (l.who !== 'a' || !(l.dmg !== undefined || l.miss || l.spell)) continue;
       all++; if (l.miss === 'Ausgewichen') ev++; }
-    assert.ok(Math.abs(ev / all - evadeShare(p)) < 0.03, `p=${p}: Kampf ${(ev / all).toFixed(3)}, Formel ${evadeShare(p).toFixed(3)} (${all} Angriffe)`);
+    const q = evadeShare(evadeChance(m, A.dex));   // die Regel aufrufen (weicher Deckel), nicht nachbauen
+    assert.ok(Math.abs(ev / all - q) < 0.03, `p=${p}: Kampf ${(ev / all).toFixed(3)}, Formel ${q.toFixed(3)} (${all} Angriffe)`);
   }
 });
 
@@ -1588,4 +1589,14 @@ test('Aschenkern: eine Wirkung je Teil, Einzigartiges zerfällt, Nachteile wande
 test('Legendäre heißen nie wie Einzigartige (Aschenkern-Verwechslung)', async () => {
   const D = await import('../js/data.js'), U = D.UNIQUES.map(u => u.name);
   for (const n of D.LEGEND_NAMES) assert.ok(!U.some(u => u.includes(n) || n.includes(u)), n + ' heißt wie ein Einzigartiges');
+});
+test('Weicher Deckel: Ausweichen/Krit wachsen bis zur Grenze immer weiter, erreichen sie nie, unter dem Knie unverändert', async () => {
+  const { softCap, evadeChance, critChance } = await import('../js/combat.js');
+  for (const cap of [0.5, 0.58, 0.6]) { let prev = 0;
+    for (let x = 0; x <= 1.5; x += 0.05) { const v = softCap(x, cap); assert.ok(v < cap && v >= prev, `x=${x} Grenze ${cap}: ${v}`); if (x > cap * D.CFG.softKnee + 0.01) assert.ok(v - prev > 0, 'jeder Punkt zählt'); prev = v; }
+    assert.equal(softCap(cap * D.CFG.softKnee * 0.9, cap), cap * D.CFG.softKnee * 0.9, 'unter dem Knie voll'); }
+  // Assassine Stufe 8 aus dem Fehlerbericht: Geschick 59, Ausweichen +24 %, Grenze +8 % – vorher hart 58 %, jetzt darunter und mit Luft
+  const y = { dex: 59, evade: 0.24, evadeCap: 0.08 }, e = evadeChance(y, 28);
+  assert.ok(e < 0.55 && e > 0.45, `Ausweichen ${e}`); assert.ok(evadeChance({ ...y, evade: 0.34 }, 28) > e, 'mehr Ausweichen bringt noch etwas');
+  assert.ok(critChance({ lck: 80 }, 8) > critChance({ lck: 53 }, 8), 'mehr Glück bringt noch Krit');
 });

@@ -3,7 +3,7 @@
 import { GRADES, TIERS, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS, DESCENT, DESC_ROOMS, ELITE, SIGILS, ASHCORE, PIT, PIT_STYLES, PIT_RIVALS, PIT_RANKS, PIT_SHOP, PIT_RULES, DIFFICULTIES, SETS, SET, ACTS, ACT, CRYPT, WANDER, WANDER_ST } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
-import { fight, resMul, resOf, mixOf, armorRed } from './combat.js';
+import { fight, resMul, resOf, mixOf, armorRed, evadeChance, critChance } from './combat.js';
 import { makeItem, makeSetItem } from './loot.js';
 import { pick, roll, chance, rand, seeded } from './rng.js';
 
@@ -247,8 +247,8 @@ export function enemyInfo(m, A = G.stats()) {
   if (m.poison) tags.push(['Gift, das sich stapelt', 'gegengift']); if (m.bleed) tags.push(['Lässt dich bluten', 'gegengift']);
   if (m.regen || m.leech) tags.push(['Heilt sich', 'weihwasser']); if (m.toll) tags.push(['Betäubt dich', 'wachsaft']);
   if (m.execute) tags.push(['Schlachtet Geschwächte', 'steinhaut']); if (m.rage > 0.2) tags.push(['Wird rasend', 'steinhaut']);
-  const evade = Math.min(0.5, m.dex / (m.dex + A.dex * 3 + 40) + (m.evade || 0)), armor = Math.min(0.6, m.armor / (m.armor + 20 + A.lvl * 8));
-  const crit = Math.min(0.6, CFG.critBase + m.lck / (m.lck + 100 + A.lvl * 5) + (m.crit || 0));
+  const evade = evadeChance(m, A.dex), armor = Math.min(0.6, m.armor / (m.armor + 20 + A.lvl * 8));
+  const crit = critChance(m, A.lvl);
   if (evade >= 0.25) tags.push(['Weicht oft aus', 'jaegerblick']); if (armor >= 0.4) tags.push(['Schwer gepanzert', 'rostsaeure']); if (crit >= 0.2) tags.push(['Trifft oft kritisch', 'knochenmark']);
   // Schadensart und Resistenzen (Welle 2a): vorher sichtbar, damit kein Verlust unfair wirkt
   return { hp: m.hp, hit: hitDmg, evade, armor, crit, block: m.block || 0, tags, mix: mixOf(m.mix), res: { phys: resOf(m, 'phys'), elem: resOf(m, 'elem') } };

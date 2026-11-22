@@ -84,3 +84,19 @@ nutzt es für eigenes und gegnerisches Ausweichen. Logik-Test vergleicht die For
 nur Hiebe, ±0,03). **Befund calib** (St. 5/10/20/30/40, je 2–3 Läufe): evadep 0,95/0,89/0,97/1,10/1,25 → 0,86/0,81/0,88/1,00/1,12
 – auf St. 10 unter dem Ziel 0,85; dex 0,86/1,14/1,46/1,10/0,76 → 0,83/1,00/1,19/0,92/0,72 (näher an 1). Nicht nachgezogen –
 der Besitzer entscheidet (Vorschlag: `evadep` per 1,5 → ~1,65 hebt St. 10 auf ~0,9, St. 40 auf ~1,23).
+
+### Weicher Deckel für Ausweichen und Krit (2026-11-22)
+Fehlerbericht: Assassine Stufe 8 stand schon an der Ausweich-Grenze (50 %, mit „Verwischt“ 58 %) und fast an der Krit-Grenze (60 %).
+Ursache: Ausweichen aus Geschick ist verhältnisgleich (~31–35 % gegen gleichstufige Gegner auf jeder Stufe), dazu kamen früh
++17–24 % aus Brett/Ausrüstung; Krit 5 % Grund + 12 % Klasse + Glück. Harter Deckel → danach jeder Bonus wertlos. Dazu log die
+Werte-Ansicht (rechnete immer mit 50 %, auch mit angehobener Grenze). Lösung: `softCap` in combat.js – bis `CFG.softKnee` (70 %)
+der Grenze voll, darüber exponentiell weicher, nie ganz die Grenze. Eine Regel (`evadeChance`, `critChance`) für Kampf, power(),
+Gefahr-Anzeige und Werte-Ansicht. Gemessen: Assassine St. 40/T17 51 → 45 % (je 1200 Abstiege), Eichung evadep 0,92 → 0,84,
+critc 0,84 → 0,85, voller Lauf grün. Der Berichts-Fall (roh 55 %, Grenze 58 %) zeigt jetzt 50 % und wächst weiter.
+
+### Zaubertempo der Zauberin halbiert (2026-11-22)
+An der eigenen 50-%-Tiefe gemessen (St. 20/T11, St. 40/T20, je 500 Abstiege): Zauberin lag ~3 Tiefen vor Assassine/Barbar.
+Zauberkraft langsamer (spellK 150–600) wirkte kaum (−6 bis −14 Pkt.), Tempo-Knoten halbieren am meisten (→ 24 %/33 %).
+Gebaut: Manabrand 0,3 → 0,15, Fokus 0,1 → 0,05 je Rang, Nachhall 0,25 → 0,12, Brücke Leere 0,025 → 0,0125. Danach Grenz-Tiefe
+St. 20 T10 (vorher T11), St. 40 ~T19,5 (vorher T20+). Ein Viertel brachte kaum mehr (das Brett holt es über andere Knoten zurück).
+Fallen: auf T17 gemessen sah jeder Hebel wirkungslos aus (99 % → 95 %) – Gegner auf ~50 % eichen.

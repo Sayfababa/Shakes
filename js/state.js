@@ -1,7 +1,7 @@
 import { ASHCORE, RARITIES, TREE, SETS, SET, ACTS, ACT, CRYPT, DESCENT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, SELL, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, STASH_W, STASH_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, HERB_LOC, ALCH } from './data.js';
 import { affixPool, affixRoom, pickAffix, makeItem, itemValue, rollTier, tierOf, affixValue, renameMagic, adj, fixName, wpnDmg } from './loot.js';
 import { roll, pick, rand } from './rng.js';
-import { evadeShare, resMul, mixOf, armorRed } from './combat.js';
+import { evadeShare, resMul, mixOf, armorRed, evadeChance, critChance } from './combat.js';
 
 const KEY = 'aschenkrone_v1';
 export const SAVE_VERSION = 22;
@@ -213,10 +213,10 @@ export function power(A = stats()) {
   // gemittelt verschwindet die Kante – im Spiel wäscht die Monstervielfalt sie ebenso aus.
   const spread = f => (f(en * 0.72) + f(en) + f(en * 1.28)) / 3;
   // Ausweichen mit Serienbremse (höchstens CFG.evadeStreak in Folge, combat.js): evadeShare statt der rohen Chance
-  const hit = 1 - spread(e => evadeShare(Math.min(0.5, e / (e + A.dex * 3 + 40))));
-  const myEvade = spread(e => evadeShare(Math.min(0.5 + (A.evadeCap || 0), A.dex / (A.dex + e * 3 + 40) + (A.evade || 0))));   // eigenes Ausweichen inkl. angehobener Grenze
+  const hit = 1 - spread(e => evadeShare(evadeChance({ dex: e }, A.dex)));
+  const myEvade = spread(e => evadeShare(evadeChance(A, e)));   // eigenes Ausweichen inkl. angehobener Grenze
   // Ausbluten: keine Krits mehr, dafür blutet jeder Treffer (unten in onHit eingerechnet)
-  const crit = A.hemorrhage ? 0 : Math.min(0.6, CFG.critBase + A.lck / (A.lck + 100 + L * 5) + (A.crit || 0));
+  const crit = A.hemorrhage ? 0 : critChance(A, L);
   const strike = (A.dmg[0] + A.dmg[1]) / 2 * (1 + A[A.main] / CFG.mainDiv), physF = resMul(A.mix, FOE_RES);   // Hiebe gegen die mittlere Gegner-Resistenz
   // Bluten: sonst nur bei Krit, mit Ausbluten bei jedem Treffer (0,2 + eigener Bonus), dafür ohne Krit-Schaden
   const bleedT = A.hemorrhage ? (CFG.hemoBleed + (A.bleed || 0)) * 2.2 : crit * (A.bleed || 0);

@@ -19,6 +19,13 @@ export function evadeShare(p, k = CFG.evadeStreak) { let num = 0, t = 1; for (le
 export const resCapOf = k => k === 'phys' ? CFG.resCapPhys : CFG.resCap;
 export const resOf = (f, k, pen = 0) => Math.max(-1, Math.min(resCapOf(k), (f.res?.[k] || 0) - (k === 'elem' ? f.resPen || 0 : 0)) - (k === 'elem' ? pen : 0));
 // Rüstungs-Minderung (nur physisch): Rüstung des Ziels gegen die Stufe des Angreifers, Durchbohren zieht ab
+// Weicher Deckel (2026-11-22): bis zum Knie (CFG.softKnee × Grenze) zählt jeder Punkt voll, darüber immer weniger – nie gar nichts.
+// Vorher harter Deckel: eine Assassine stand auf Stufe 8 an der Grenze, danach war jeder Ausweich-/Krit-Bonus wertlos.
+export const softCap = (x, cap) => { const k = cap * CFG.softKnee; return x <= k ? x : k + (cap - k) * (1 - Math.exp(-(x - k) / (cap - k))); };
+// Ausweichchance von y gegen einen Angreifer mit Geschick atkDex; Krit-Chance von x gegen Stufe defLvl (extra: Zauber-Krit hebt auch die Grenze).
+// Kampf, power(), Gefahr-Anzeige und Werte-Ansicht rufen diese beiden – nie die Formel abtippen.
+export const evadeChance = (y, atkDex) => softCap(Math.max(0, y.dex / (y.dex + atkDex * 3 + 40) + (y.evade || 0)), 0.5 + (y.evadeCap || 0));
+export const critChance = (x, defLvl, extra = 0) => softCap(Math.max(0, CFG.critBase + x.lck / (x.lck + 100 + defLvl * 5) + (x.crit || 0) + extra), 0.6 + extra);
 export const armorRed = (armor, atkLvl, pen = 0) => Math.min(0.6, armor / (armor + 20 + atkLvl * 8)) * (1 - Math.min(0.9, pen));
 // Anteile eines Hiebs: mix = { fire, cold } (Rest physisch). Für Anzeige und power() dieselbe Regel wie im Kampf.
 export const mixOf = mix => { const fire = mix?.fire || 0, cold = mix?.cold || 0; return { phys: Math.max(0, 1 - fire - cold), fire, cold }; };
@@ -195,7 +202,7 @@ export function fight(A, B) {
     if (x.weakN > 0) d *= 1 - x.weak;                  // geschwächt: macht weniger Schaden
     if (y.vulnN > 0) d *= 1 + y.vuln;                  // verwundbar: nimmt mehr Schaden
     // Ausbluten (Schlüsselstein): nie ein kritischer Treffer – dafür blutet jeder Hieb (siehe onHit)
-    const crit = x.hemorrhage ? false : (o.force || chance(Math.min(0.6 + (o.crit || 0), CFG.critBase + x.lck / (x.lck + 100 + y.lvl * 5) + (x.crit || 0) + (o.crit || 0)) - (y.critRes || 0)));
+    const crit = x.hemorrhage ? false : (o.force || chance(critChance(x, y.lvl, o.crit || 0) - (y.critRes || 0)));
     if (crit) d *= x.critMult || 2;
     return { d: Math.max(1, Math.round(d)), crit };
   }
@@ -221,7 +228,7 @@ export function fight(A, B) {
   // für Hiebe und Zauber (sonst Fehlschlag-Serien bis 13 bei Klassen ohne Geschick, → E „Serienbremse beim Ausweichen“)
   function dodged(x, y) {
     if ((x.evN || 0) >= CFG.evadeStreak) { x.evN = 0; return false; }
-    const evade = Math.max(0, Math.min(0.5 + (y.evadeCap || 0), y.dex / (y.dex + x.dex * 3 + 40) + (y.evade || 0)) - (x.acc || 0));
+    const evade = Math.max(0, evadeChance(y, x.dex) - (x.acc || 0));
     if (chance(evade)) { x.evN = (x.evN || 0) + 1; return true; }
     x.evN = 0; return false;
   }

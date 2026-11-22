@@ -528,6 +528,7 @@ export const CFG = {
   cryptCdSec: 180, arenaCdSec: 300, arenaGlut: 4,                         // Pause nach jedem Krypta-Kampf (Prototyp)
   shopSize: 6, shopRefreshSec: 600, matChance: 0.7,
   lootChance: 0.55, critBase: 0.05,
+  softKnee: 0.7,                      // Ausweichen/Krit: bis 70 % der Grenze voll, darüber weicher Deckel (combat.js softCap)
   strArmor: 0.5,                      // Stärke gibt jeder Klasse Rüstung (je Punkt)
   spellK: 60,                         // Zauberkraft = 1 + Int / (Int + spellK)  (sättigt, max. ×2)
   monHp: 1.15, monDmg: 0.9,         // Welle 2a: 1,0 → 0,9 – Feuer/Eis gehen jetzt an der Rüstung vorbei (D2/PoE), sonst +~19 % Schaden ohne Resi
@@ -682,16 +683,16 @@ export const TREE = {
       ] },
       { name: 'Arkan', nodes: [
         N('sa1', 'Mana', 3, { spellPct: 0.06 }, 'Deine Zauber wiegen schwerer.'),
-        N('sa2', 'Manabrand', 1, { haste: 0.3 }, 'Deine Zauber laden 30 % schneller.', 'nt'),
-        N('sa3', 'Fokus', 3, { haste: 0.1 }, 'Zaubertempo.'),
+        N('sa2', 'Manabrand', 1, { haste: 0.15 }, 'Deine Zauber laden 15 % schneller.', 'nt'),
+        N('sa3', 'Fokus', 3, { haste: 0.05 }, 'Zaubertempo.'),
         N('sa4', 'Zuflucht', 1, { secondWind: 0.27 }, 'Heilt dich einmal, wenn du unter 30 % fällst.', 'nt'),
         N('sa5', 'Seelenzehrung', 2, { leech: 0.035 }, 'Lebensraub.'),
-        N('sa6', 'Nachhall', 1, { echo: 0.5, haste: 0.25, spellPct: 0.15, hpPct: -0.05 }, 'Jeder zweite Zauber wirkt ein zweites Mal, alle laden schneller und wiegen schwerer. Dafür hält dein Körper etwas weniger aus.', 'key'),
+        N('sa6', 'Nachhall', 1, { echo: 0.5, haste: 0.12, spellPct: 0.15, hpPct: -0.05 }, 'Jeder zweite Zauber wirkt ein zweites Mal, alle laden schneller und wiegen schwerer. Dafür hält dein Körper etwas weniger aus.', 'key'),
       ] },
     ],
     bridges: [
       { id: 'sb1', name: 'Dampf', a: 0, b: 1, row: 2, max: 4, eff: { spellPct: 0.025, hpPct: 0.022 }, text: 'Verbindet Feuer und Frost.' },
-      { id: 'sb2', name: 'Leere', a: 1, b: 2, row: 3, max: 4, eff: { hpPct: 0.02, haste: 0.025 }, text: 'Verbindet Frost und Arkan.' },
+      { id: 'sb2', name: 'Leere', a: 1, b: 2, row: 3, max: 4, eff: { hpPct: 0.02, haste: 0.0125 }, text: 'Verbindet Frost und Arkan.' },
     ],
   },
 };

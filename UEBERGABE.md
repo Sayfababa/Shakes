@@ -43,7 +43,8 @@ Zauberin/Assassine. Weitere Befunde (Rune-Siegel flach gratis, 7 klassenlose Abw
 Lebensraub 1,3) und 7 Ideen liegen ihm vor – **wartet auf seine Wahl**.
 **Entschieden 2026-11-22: Erstattung halb** (`sealBoss: 0.5` = Chance). Bot: Tag 1 St. 16–24 (14–37 Abstiege), Tag 30 St. 44–48, Rekord T24–30.
 Einzigartige: 7 klassenlose Abwehr-Stücke abgeschwächt (→ E beute.md). **Barbar geprüft:** St. 40/T17, je 1200 Abstiege: Zauberin 99 %, Assassine 51 %, Barbar 48 % –
-nicht der Barbar fällt ab, die Zauberin läuft davon (Int zählt doppelt: Hieb über `mainDiv` und Zauber über `amp`; Assassine/Barbar zaubern mit Neben-Int). **Offen:** seine Wahl.
+nicht der Barbar fällt ab, die Zauberin läuft davon (Ursache: Zaubertempo aus ihrem Brett, nicht Int – spellK gemessen wirkungslos). **Gebaut 2026-11-22** (er: „lös das Problem“): weicher Deckel Ausweichen/Krit + Werte-Anzeige-Fix, Zaubertempo der Zauberin halbiert (→ E kampf.md).
+**Offen:** Brett für den Barbaren (hat noch den alten Baum, 9 Knoten) – später, mit Mockup.
 Zauber-Ketten: er will sie „ganz später“.
 
 **Befunde 2026-11-19 (gemessen, nichts davon gebaut – Reihenfolge wählt er):**
