@@ -54,6 +54,11 @@ Kon-Optimum bleibt (nicht erfüllt) – nächster Hebel Zauber-Takt.
 bauen nach Neueichung: +0,2 Tempo → Kill −15 %, mit Ges→Tempo 0,3 % bekommt Geschick 49–67 % des Kon-Werts. Koloss bleibt in 7–9/9 Lagen vorn.
 Overkill ist klein (1–25 %), Schaden bremsen Züge ohne Schaden. **Nichts gebaut, auf sein „ja“ warten.**
 
+**Umsetzung Kampfsystem 2026-11-22** auf Branch **`claude/kampfsystem-dev`** (vom Besitzer erlaubt, NICHT veröffentlicht – Pages
+bleibt auf dem Arbeits-Branch, bis er prüft): B „Zauber nach Lage“ (an), Build-Paket (ein Schlüsselstein, B3/A5/Z3, Aldemar,
+Müllerin, Bindungen; an), Zeitachse C hinter `CFG.tempoMode` (**aus**, Entscheidung Phase 5). L5 nur gemessen. Zahlen, Kriterien
+und offene Fragen (L5 einschalten? power() unterschätzt Abwehr) in `berichte/umsetzung-kampfsystem.md`.
+
 **Befund 2026-11-22 (Balance-Gesamtschau, gemessen, nichts am Spiel geändert):** Bot spielt jetzt den Abgrund (`tests/bot.mjs`).
 Boss erstattet sein Grabsiegel (`DESCENT.sealBoss: 1`) → wer gewinnt, steigt endlos ab: Tag 1 40–47 Abstiege, St. 17–26; Tag 30 St. 50–55,
 Rekord T24–33. Gegenprobe ohne Erstattung: Tag 1 St. 15–19, Tag 30 St. 42–44, Rekord T24–29 (je 2 Läufe × 3 Klassen). Barbar ~6 Tiefen hinter

@@ -126,3 +126,10 @@ Ladung je Aktion 1 (`chargeStep`), Krit-Schwung +0,34 höchstens einmal je Aktio
 Gemessen (sys.mjs mit Paket, 3 Würfe × 400): +0,2 Tempo → Kill −7 bis −15 % (ohne C −2 bis −10 %); gegen heute geeichte
 Gegner +6 bis +24 Punkte (Barbar St. 20 48 → 72, Zauberin St. 40 51 → 71), Assassine St. 40 −3. Zauberin St. 40: Tempo
 bringt 0 Punkte (Kampf ist nach 4,5 Aktionen vorbei). **Einschalten nur mit Neueichung** (Gegner-Schaden/-Leben oder Tempo-Werte).
+
+### Zeitachse bleibt aus (Entscheidung Phase 5, 2026-11-22)
+Vergleich heute / nur B / Paket / B+Paket / Paket+C / alles (reg.mjs, 9 Lagen, robuste Zählung): C hebt die Build-Vielfalt
+nicht (Zauberin St. 40 3 → 2 Strategien), der Koloss bleibt in 7–9/9 Lagen vorn, Helden werden ohne Neueichung bis +24 Punkte
+stärker (Bot-Rekord T13–14 → T17–18). Damit gilt die Auftragsregel: `CFG.tempoMode` bleibt aus; vor einem neuen Anlauf erst
+Gegnermechaniken, defensive Synergien und Schaden/Leben (3–5 Gegnertreffer bis zum Tod) untersuchen.
+Volle Zahlen: `berichte/umsetzung-kampfsystem.md`.
