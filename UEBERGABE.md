@@ -40,7 +40,8 @@ Entschieden 2026-11-22 (Besitzer: „wie empfohlen“): flach + 3 Siegel darf me
 Boss erstattet sein Grabsiegel (`DESCENT.sealBoss: 1`) → wer gewinnt, steigt endlos ab: Tag 1 40–47 Abstiege, St. 17–26; Tag 30 St. 50–55,
 Rekord T24–33. Gegenprobe ohne Erstattung: Tag 1 St. 15–19, Tag 30 St. 42–44, Rekord T24–29 (je 2 Läufe × 3 Klassen). Barbar ~6 Tiefen hinter
 Zauberin/Assassine. Weitere Befunde (Rune-Siegel flach gratis, 7 klassenlose Abwehr-Einzigartige +19–28 für alle, Sets < 3 seltene, Grube ohne Lohn,
-Lebensraub 1,3) und 7 Ideen liegen ihm vor – **wartet auf seine Wahl**, v. a. ob die Siegel-Erstattung bleibt.
+Lebensraub 1,3) und 7 Ideen liegen ihm vor – **wartet auf seine Wahl**.
+**Entschieden 2026-11-22: Erstattung halb** (`sealBoss: 0.5` = Chance). Bot: Tag 1 St. 16–24 (14–37 Abstiege), Tag 30 St. 44–48, Rekord T24–30.
 
 **Befunde 2026-11-19 (gemessen, nichts davon gebaut – Reihenfolge wählt er):**
 1. ~~Siegchance mit < ohne Tränke~~ **erledigt 2026-11-19**: gekoppelter Zufall, 200 Probekämpfe, „etwa gleich“

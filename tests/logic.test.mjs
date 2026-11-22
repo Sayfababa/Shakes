@@ -826,6 +826,14 @@ test('Abgrund endlos: Tiefe statt Heldenstufe, Rekord öffnet die nächste, Woch
   // Abstieg aus einem alten Stand ohne Tiefe: läuft weiter, Boss stürzt nicht ab
   Game.descStart(1); delete G.S.desc.d; delete G.S.desc.df; const r2 = descToBoss(); assert.ok(r2.res); assert.equal(Game.descRec().best, 1);
 });
+test('Grabsiegel: der Boss erstattet sein Siegel nur mit Chance sealBoss, die Meldung sagt, was geschah', () => {
+  const S = descHero('paladin', 10); S.attrs.str += 900; S.attrs.con += 600; const sb = D.DESCENT.sealBoss;
+  assert.ok(sb > 0 && sb < 1, 'Erstattung ist eine Chance, kein festes Siegel (sonst endlose Kette)');
+  for (const [p, back] of [[1, 1], [0, 0]]) { D.DESCENT.sealBoss = p; S.seals = { day: G.today(), n: 3 }; S.desc = null;
+    Game.descStart(1); const r = descToBoss(); assert.ok(r.res.win);
+    assert.equal(S.seals.n, 2 + back, `Chance ${p}: Siegel ${back ? 'zurück' : 'weg'}`); assert.equal(r.res.desc.seal, back, 'Meldung lügt nicht'); }
+  D.DESCENT.sealBoss = sb;
+});
 test('Abgrund-Leiter (Welle 2B-1): jede Tiefe um denselben Anteil stärker, Lohn wächst mit, Abgrund-Stufen nur unten', async () => {
   descHero('sorceress', 30);
   for (let d = 1; d < 200; d++) { const a = Game.descAt(d), b = Game.descAt(d + 1);

@@ -985,7 +985,8 @@ export const DESCENT = {
   sealDay: 2, sealMax: 6,           // taegliche Gutschrift (auch rueckwirkend) und Vorrat
   sealCrypt: 0.25,                  // Krypta-Boss
   sealRank: 1,                      // neuer Rang in der Grube
-  sealBoss: 1,                      // Abgrund-Boss erstattet sein eigenes Siegel
+  sealBoss: 0.5,                    // Chance, dass der Abgrund-Boss sein Siegel erstattet (2026-11-22: 1 → 0,5; mit 1 stieg ein
+                                    // Sieger endlos ab – Bot Tag 1: 40–47 Abstiege, St. 17–26, die Geschichte wurde Beiwerk)
   widths: [2, 3, 3, 3, 2],          // Räume je Reihe (Eingang unten, Boss oben)
   rope: 2, well: 3,                 // Reihe (0-basiert) mit Seil / Brunnen
   unrestLoot: 0.4,                  // Beute × (1 + Unruhe × 0,4) → bis ×3

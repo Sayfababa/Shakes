@@ -863,7 +863,7 @@ function viewDescStart(st) {
       <p class="small sack">Beute liegt im <b>Beutesack</b>. Dir gehört sie erst an einem <span class="up">Ausgang</span>: Seil, Brunnen, Stiege oder hinter dem Boss.</p>
       <p class="small down">Fällst du, bleibt der Sack unten. Ausrüstung, Stufe und EP behältst du.</p>
       <p class="small opt">Keine letzte Tiefe: <b>Wer den Boss schlägt, öffnet die nächste.</b> Jede Tiefe ist um ein Zwanzigstel stärker – Gold, EP und Funde wachsen mit.</p>
-      <p class="small sealnote">Kostet ein <b>Grabsiegel</b> – <span class="up">der Boss erstattet seines</span>.</p>${descBusy() ? `<p class="small hot">${descBusy()}</p>` : ''}</section>
+      <p class="small sealnote">Kostet ein <b>Grabsiegel</b> – <span class="up">der Boss erstattet es mit ${Math.round(DESCENT.sealBoss * 100)} % Chance</span>.</p>${descBusy() ? `<p class="small hot">${descBusy()}</p>` : ''}</section>
     <section class="panel"><h2>Dein Gürtel <span class="gbtns"><button class="tiny" data-action="alch" data-b="desc">Tränke</button></span></h2><div class="beltrow">${[0, 1, 2].slice(0, beltSlots()).map(beltCell).join('')}</div></section>
     <div class="btns"><button data-action="go" data-v="crypt">Zurück</button><button class="red" data-action="descgo" data-d="${d}" ${descCanStart(d) ? '' : 'disabled'}>${left ? 'Hinabsteigen' : 'Kein Grabsiegel'}</button></div>
   </div>`;

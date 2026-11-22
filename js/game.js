@@ -666,13 +666,13 @@ function descFight(nd, u, exit = null) {
   const gb = 1 + rew.grade.bonus;   // Kampfbewertung: mehr Gold wie überall
   rew.sack = descLoot(m.lvl, u, boss ? { gold: 4 * gb, item: 2, minR: DESCENT.bossMinR, heart: 1, mat: m.mat, kron: DESCENT.kronBoss, sig: SIGILS.drop.boss, core: coreChance(D.d || 0) } : elite ? { gold: 1.8 * gb, item: 1 + sigFx().eliteItem, minR: Math.max(DESCENT.eliteMinR, sigFx().eliteR), heart: DESCENT.eliteHeart, mat: m.mat, kron: DESCENT.kronElite * sigFx().kronE, sig: SIGILS.drop.elite }
     : { gold: gb, item: DESCENT.item, heart: DESCENT.heart, mat: m.mat });
-  // Wer ganz durchkommt, bekommt sein Siegel zurueck – der Haken, der nach unten zieht.
-  if (boss) addSeal(DESCENT.sealBoss);
+  // Wer ganz durchkommt, bekommt sein Siegel mit Chance sealBoss zurueck – der Haken, der nach unten zieht, ohne endlose Kette.
+  const sealBack = boss && chance(DESCENT.sealBoss); if (sealBack) addSeal(1);
   // Nur der Boss zählt als geschafft: Seil, Brunnen und Stiege retten den Sack, nicht den Rekord.
   let rec = null;
   if (boss && D.d) { const R = descRec(); rec = { d: D.d, best: D.d > R.best, week: D.d > R.wBest };
     R.best = Math.max(R.best, D.d); R.wBest = Math.max(R.wBest, D.d); }
-  if (boss || exit) return { A, B: m, r, win, rew, desc: { out: { ...descExtract(boss ? c.boss.name : exit), rec }, seal: boss ? DESCENT.sealBoss : 0 } };
+  if (boss || exit) return { A, B: m, r, win, rew, desc: { out: { ...descExtract(boss ? c.boss.name : exit), rec }, seal: sealBack ? 1 : 0 } };
   return { A, B: m, r, win, rew, desc: { hpf: D.hpf } };
 }
 // Einen Raum betreten. Ergebnis: { kind: 'fight', res } | { kind: 'room', t, text, got? } | { kind: 'out', out }
