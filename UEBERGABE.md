@@ -42,6 +42,9 @@ Rekord T24–33. Gegenprobe ohne Erstattung: Tag 1 St. 15–19, Tag 30 St. 42–
 Zauberin/Assassine. Weitere Befunde (Rune-Siegel flach gratis, 7 klassenlose Abwehr-Einzigartige +19–28 für alle, Sets < 3 seltene, Grube ohne Lohn,
 Lebensraub 1,3) und 7 Ideen liegen ihm vor – **wartet auf seine Wahl**.
 **Entschieden 2026-11-22: Erstattung halb** (`sealBoss: 0.5` = Chance). Bot: Tag 1 St. 16–24 (14–37 Abstiege), Tag 30 St. 44–48, Rekord T24–30.
+Einzigartige: 7 klassenlose Abwehr-Stücke abgeschwächt (→ E beute.md). **Barbar geprüft:** St. 40/T17, je 1200 Abstiege: Zauberin 99 %, Assassine 51 %, Barbar 48 % –
+nicht der Barbar fällt ab, die Zauberin läuft davon (Int zählt doppelt: Hieb über `mainDiv` und Zauber über `amp`; Assassine/Barbar zaubern mit Neben-Int). **Offen:** seine Wahl.
+Zauber-Ketten: er will sie „ganz später“.
 
 **Befunde 2026-11-19 (gemessen, nichts davon gebaut – Reihenfolge wählt er):**
 1. ~~Siegchance mit < ohne Tränke~~ **erledigt 2026-11-19**: gekoppelter Zufall, 200 Probekämpfe, „etwa gleich“
