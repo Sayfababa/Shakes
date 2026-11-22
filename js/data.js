@@ -1022,6 +1022,7 @@ export const DESCENT = {
 //   foe     Gegner (auch Elite und Boss) × (1 + foe) stärker – Leben, Schaden, Werte (makeMonster-diff)
 //   loot    Gold und Zahl der Fundstücke × (1 + loot)
 //   eliteW  Gewicht der Elite-Räume × eliteW; eliteFoe: Elite zusätzlich × (1 + eliteFoe)
+//   eliteItem  Elite trägt so viele Fundstücke mehr
 //   eliteR  Elite-Funde mindestens diese Seltenheit (Index in RARITIES, 3 = selten); kronE: Kronsplitter bei Elite ×
 //   res     Elementar-Resi zusätzlich −res (zum Fluch der Tiefe, eigener Deckel nicht – die Gefahr steht vorher da)
 //   favor   Gewicht der Resistenz-Boni (Gruppe `favorStats`) × favor beim Würfeln; luck: Glück +luck
@@ -1032,8 +1033,8 @@ export const SIGILS = {
   drop: { boss: 1, elite: 0.15, treasure: 0.1 },
   favorStats: ['elemr', 'physr'],
   kinds: [
-    { id: 'blut', name: 'Blutsiegel', img: 'verderbtes_blut', foe: [0.15, 0.25, 0.35], loot: [0.4, 0.65, 1] },
-    { id: 'seele', name: 'Seelensiegel', img: 'seelenstein', eliteW: [2, 2.5, 3], eliteFoe: [0, 0.1, 0.2], eliteR: [3, 3, 3], kronE: [1.5, 2, 3] },
+    { id: 'blut', name: 'Blutsiegel', img: 'verderbtes_blut', foe: [0.1, 0.15, 0.2], loot: [0.3, 0.45, 0.6] },
+    { id: 'seele', name: 'Seelensiegel', img: 'seelenstein', eliteW: [2, 2.5, 3], eliteFoe: [0, 0.05, 0.1], eliteR: [3, 3, 3], eliteItem: [1, 1, 2], kronE: [1.5, 2, 3] },
     { id: 'rune', name: 'Runensiegel', img: 'runenfassung', res: [0.1, 0.15, 0.2], favor: [3, 4, 5], luck: [15, 25, 40] },
   ],
 };

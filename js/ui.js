@@ -834,7 +834,7 @@ const pc = v => Math.round(v * 100) + ' %', xf = v => '×' + String(Math.round(v
 export function sigLine(fx) {
   const RAR = ['', '', 'magisch', 'selten', 'legendär'];
   const bad = [fx.foe && `Gegner +${pc(fx.foe)}`, fx.eliteW > 1 && `Elite ${xf(fx.eliteW)}${fx.eliteFoe ? ` und +${pc(fx.eliteFoe)}` : ''}`, fx.res && `Elem.-Resi −${pc(fx.res)}`].filter(Boolean);
-  const good = [fx.loot && `Gold/Funde +${pc(fx.loot)}`, fx.eliteR && `Elite-Funde mind. ${RAR[fx.eliteR]}`, fx.kronE > 1 && `Kronsplitter ${xf(fx.kronE)}`,
+  const good = [fx.loot && `Gold/Funde +${pc(fx.loot)}`, fx.eliteR && `Elite-Funde mind. ${RAR[fx.eliteR]}${fx.eliteItem ? ` +${fx.eliteItem}` : ''}`, fx.kronE > 1 && `Kronsplitter ${xf(fx.kronE)}`,
     fx.favor > 1 && `Resi-Boni ${xf(fx.favor)}`, fx.luck && `Glück +${fx.luck}`].filter(Boolean);
   return `<b class="down">${bad.join(' · ')}</b> &rarr; <b class="up">${good.join(' · ')}</b>`;
 }

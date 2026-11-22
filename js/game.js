@@ -546,9 +546,9 @@ export function sigClean(list) {
   return out;
 }
 // Was die eingelegten Siegel zusammen tun – eine Stelle für Kampf, Karte, Beute und die Anzeige vorher
-const SIG_ADD = ['foe', 'loot', 'eliteFoe', 'res', 'luck'], SIG_MUL = ['eliteW', 'kronE', 'favor'];
+const SIG_ADD = ['foe', 'loot', 'eliteFoe', 'eliteItem', 'res', 'luck'], SIG_MUL = ['eliteW', 'kronE', 'favor'];
 export function sigFx(list = G.S.desc?.sig) {
-  const f = { foe: 0, loot: 0, eliteFoe: 0, res: 0, luck: 0, eliteW: 1, kronE: 1, favor: 1, eliteR: 0 };
+  const f = { foe: 0, loot: 0, eliteFoe: 0, eliteItem: 0, res: 0, luck: 0, eliteW: 1, kronE: 1, favor: 1, eliteR: 0 };
   for (const { id, t } of list || []) { const k = sigKind(id); if (!k) continue;
     for (const key of SIG_ADD) if (k[key]) f[key] += k[key][t - 1];
     for (const key of SIG_MUL) if (k[key]) f[key] *= k[key][t - 1];
@@ -664,7 +664,7 @@ function descFight(nd, u, exit = null) {
   rew.grade = gradeOf(r); if (rew.grade.id === 'dom') G.bountyEvent({ type: 'dom' });
   const xp = Math.round((25 + m.lvl * 14) * DESCENT.xp * descReward(D.d).xp * (boss ? 3 : elite ? 1.5 : 1)); rew.xp = xp; rew.up = G.gainXp(xp); D.xp += xp;
   const gb = 1 + rew.grade.bonus;   // Kampfbewertung: mehr Gold wie überall
-  rew.sack = descLoot(m.lvl, u, boss ? { gold: 4 * gb, item: 2, minR: DESCENT.bossMinR, heart: 1, mat: m.mat, kron: DESCENT.kronBoss, sig: SIGILS.drop.boss, core: coreChance(D.d || 0) } : elite ? { gold: 1.8 * gb, item: 1, minR: Math.max(DESCENT.eliteMinR, sigFx().eliteR), heart: DESCENT.eliteHeart, mat: m.mat, kron: DESCENT.kronElite * sigFx().kronE, sig: SIGILS.drop.elite }
+  rew.sack = descLoot(m.lvl, u, boss ? { gold: 4 * gb, item: 2, minR: DESCENT.bossMinR, heart: 1, mat: m.mat, kron: DESCENT.kronBoss, sig: SIGILS.drop.boss, core: coreChance(D.d || 0) } : elite ? { gold: 1.8 * gb, item: 1 + sigFx().eliteItem, minR: Math.max(DESCENT.eliteMinR, sigFx().eliteR), heart: DESCENT.eliteHeart, mat: m.mat, kron: DESCENT.kronElite * sigFx().kronE, sig: SIGILS.drop.elite }
     : { gold: gb, item: DESCENT.item, heart: DESCENT.heart, mat: m.mat });
   // Wer ganz durchkommt, bekommt sein Siegel zurueck – der Haken, der nach unten zieht.
   if (boss) addSeal(DESCENT.sealBoss);

@@ -6,7 +6,8 @@
 // Teil 3 (--deep): Rückkopplung – ein Held, der mit der Beute einer Tiefe ausgerüstet ist (Beutestufe dort,
 //   selten, Heldenstufe = Gegnerstufe − 1), gegen dieselbe Tiefe und tiefer. Die Siegchance muss mit der Tiefe
 //   fallen, sonst läuft die Beute der Gefahr davon.
-// Aufruf: node tests/descent.mjs [klasse|all] [stufe] [läufe] [--check] [--deep]
+// Teil 4 (--sig): Siegel – Gefahr gegen Lohn auf der Grenz-Tiefe und flacher (Welle 2B-2).
+// Aufruf: node tests/descent.mjs [klasse|all] [stufe] [läufe] [--check] [--deep] [--sig]
 globalThis.localStorage = { _d: {}, getItem(k) { return this._d[k] ?? null; }, setItem(k, v) { this._d[k] = String(v); }, removeItem(k) { delete this._d[k]; } };
 let seed = 0xd35c; Math.random = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
 const D = await import('../js/data.js');
@@ -96,6 +97,46 @@ if (DEEP) {
   // gemessen 2026-11-21: Ø gleiche Tiefe 67 %, +6 Tiefen 28 % – Schranke mit Abstand zum Rauschen
   const avgW = k => rows.reduce((a, r) => a + r.w[k], 0) / rows.length;
   if (CHECK && !(avgW(2) < avgW(0) - 0.15)) { bad++; console.log('  ⚠ sechs Tiefen tiefer ist nicht deutlich schwerer'); }
+  }
+}
+// --- Teil 4 (--sig, Welle 2B-2): Siegel – Gefahr gegen Lohn ---
+// Je Klasse auf ihrer Grenz-Tiefe (Stufe 30, tiefste Tiefe mit Boss-Sieg ≥ 50 % ohne Siegel) dieselben Abstiege
+// ohne Siegel, mit je einem (Stufe 2) und mit allen dreien (Stufe 2 / 3). Gemessen wird, was heimkommt (Tod = 0):
+// Gold, Fundstücke, davon selten+, Resistenz-Boni, Kronsplitter. Gekoppelter Zufall: jede Variante startet mit demselben Keim.
+if (process.argv.includes('--sig')) {
+  const VAR = [['ohne', []], ['Blut', [['blut', 2]]], ['Seele', [['seele', 2]]], ['Rune', [['rune', 2]]], ['alle 3', [['blut', 2], ['seele', 2], ['rune', 2]]]];
+  const M = 60, L = 30, out = {};
+  const run = (cls, d, sig) => { const tot = { boss: 0, gold: 0, items: 0, rare: 0, res: 0, kron: 0, elite: 0 };
+    for (let k = 0; k < M; k++) { seed = 0x51e6 + k * 7919; hero(cls, L);
+      for (const [id, t] of sig) Game.addSigil(id, t, 1);
+      G.S.seals = { day: G.today(), n: D.DESCENT.sealMax }; G.S.desc = null;
+      if (!Game.descStart(d, sig.map(([id, t]) => ({ id, t })))) throw new Error('Abstieg nicht startbar');
+      tot.elite += G.S.desc.rows.flat().filter(x => x.t === 'elite').length;
+      while (G.S.desc) { const nx = Game.descNext(), opts = nx.filter(j => j === 'boss' || !D.DESC_ROOMS[Game.descNodeAt(j).t].exit);
+        const j = opts.sort((a, b) => (a === 'boss' ? 9 : prio[Game.descNodeAt(a).t]) - (b === 'boss' ? 9 : prio[Game.descNodeAt(b).t]))[0];
+        const r = Game.descEnter(j); if (!r) break; const o = r.res?.desc?.out || r.out;
+        if (o) { if (j === 'boss') tot.boss++; tot.gold += o.gold; tot.items += o.items.length; tot.rare += o.items.filter(it => ['rare', 'legendary'].includes(it.rarity)).length;
+          tot.res += o.items.reduce((a, it) => a + D.SIGILS.favorStats.filter(x => x in (it.mods || {})).length, 0); tot.kron += (o.mats.find(([m]) => m === 'kronsplitter')?.[1] || 0); } } }
+    return Object.fromEntries(Object.entries(tot).map(([k, v]) => [k, v / M])); };
+  console.log(`\nSiegel: Gefahr gegen Lohn (Stufe ${L}, Grenz-Tiefe je Klasse, ${M} Abstiege je Zeile, gekoppelter Zufall; heim = am Ausgang, Tod = 0)`);
+  console.log('Klasse     Tiefe Siegel          Boss   Elite  Gold   Funde  selten+ Resi-Boni Kron');
+  for (const cls of (only.length > 1 ? ['sorceress', 'assassin', 'barbarian'] : only)) {
+    let d = 1; for (let x = depthFor(L) - 4; x <= depthFor(L) + 12; x++) if (bossRate(() => hero(cls, L), x, 40) >= 0.5) d = x;
+    out[cls] = { d, rows: [] };
+    for (const dd of [d, d - 3, d - 6]) { const base = run(cls, dd, []);
+    for (const [nm, sig] of VAR) { const r = nm === 'ohne' ? base : run(cls, dd, sig); out[cls].rows.push([dd, nm, r]);
+      const rel = k => base[k] ? ` ${r[k] >= base[k] ? '+' : '−'}${Math.abs(Math.round((r[k] / base[k] - 1) * 100))}%`.padEnd(6) : '      ';
+      console.log(`${cls.padEnd(10)} ${String(dd).padStart(5)} ${nm.padEnd(14)} ${(Math.round(r.boss * 100) + '%').padStart(5)} ${r.elite.toFixed(1).padStart(6)} ${String(Math.round(r.gold)).padStart(6)}${rel('gold')}${r.items.toFixed(2).padStart(5)}${rel('items')}${r.rare.toFixed(2).padStart(5)}${rel('rare')}${r.res.toFixed(2).padStart(5)}${rel('res')}${r.kron.toFixed(2).padStart(5)}`); } }
+  }
+  // Schranken nach Messung (2026-11-22, 60 Abstiege, Stufe 30; Bericht welle2b2-siegel.md). Gemessen: an der Grenz-Tiefe
+  // kosten alle drei Siegel 37–63 Punkte Boss-Sieg; sechs Tiefen flacher bringen sie +52–56 % Gold heim, das Runensiegel
+  // +56–73 % Resistenz-Boni, das Seelensiegel +59–69 % Seltene. Schranken mit Abstand zum Rauschen (±10 Punkte).
+  if (CHECK) for (const [cls, o] of Object.entries(out)) {
+    const at = (dd, nm) => o.rows.find(r => r[0] === dd && r[1] === nm)[2], d = o.d, lo = d - 6;
+    if (!(at(d, 'alle 3').boss < at(d, 'ohne').boss - 0.2)) { bad++; console.log(`  ⚠ ${cls}: drei Siegel machen die Grenz-Tiefe kaum gefährlicher`); }
+    if (!(at(lo, 'alle 3').gold > at(lo, 'ohne').gold * 1.25)) { bad++; console.log(`  ⚠ ${cls}: drei Siegel lohnen sich auch flach nicht`); }
+    if (!(at(lo, 'Rune').res > at(lo, 'ohne').res * 1.3)) { bad++; console.log(`  ⚠ ${cls}: Runensiegel bringt kaum mehr Resistenz-Boni`); }
+    if (!(at(lo, 'Seele').rare > at(lo, 'ohne').rare * 1.3)) { bad++; console.log(`  ⚠ ${cls}: Seelensiegel bringt kaum mehr Seltene`); }
   }
 }
 if (CHECK && bad) process.exit(1);
