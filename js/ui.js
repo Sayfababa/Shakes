@@ -6,12 +6,14 @@ import { sellPrice, sellMat, potion, beltSlots, brewCost, canBrew, potMax, unrea
 import { WIKI_CATS, wikiList, wikiEntry, upgradePaths, matBottleneck } from './wiki.js';
 import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, craftRaises, craftMat, baseMods, fusedMods, filterHits, filterOf, filterOn, setFilterMod, fuseMains, fuseFoods, fuseCheck, fuseFull, fusePromote, fuseReplaces, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
+// Stufen-Marke eines Bonus; Abgrund-Stufen (I+, I++) tragen zusätzlich .deep und einen Titel (CSS: .tier.t0 / .tier.t-1)
+export const tierTag = t => { const T = TIERS.find(x => x.t === t); return T ? `<i class="tier t${t}${T.deep ? ' deep' : ''}"${T.deep ? ' title="Abgrund-Stufe"' : ''}>${T.name}</i>` : ''; };
 // Name eines Item-Bonus: Attribute, Rüstung/Schaden, Prozent-Boni ("% Krit-Chance", "% Feuerball")
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
 import { weakAdvice, wanderMap, wanderAct, wanderBusy, wanderDone, actEnemy, actChance, actOdds, packSlot, actCan, actZoneGlut, actZoneMob, pitWeek, pitPlace, pitRank, pitFoes, pitChance, pitOdds, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, cryptChance, cryptOdds, threatLabel, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
-  descCrypts, descResPen, descLeft, descCanStart, descBusy, descLvl, descAt, descRec, descMaxDepth, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
+  descCrypts, descReward, descWeekReward, descWeekDue, descResPen, descLeft, descCanStart, descBusy, descLvl, descAt, descRec, descMaxDepth, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
 const P = cls => `assets/portraits/${CLASSES[cls].portrait}.jpg`;
@@ -92,7 +94,7 @@ export function itemTip(it, cmp) {
   const fus = fusedMods(it);
   for (const [k, v] of Object.entries(it.mods)) { const b = v - runeOf(k); if (b <= 0) continue; const t = tierOf(k, b);
     const mark = it.sealed === k ? '<i class="seal">versiegelt</i>' : fus.includes(k) ? '<i class="fus">fusioniert</i>' : '';
-    L.push(`<span class="m ${t && t <= 2 ? 'hi' : ''}">+${b} ${STAT_NAME(k)}${t ? ` <i class="tier t${t}">${TIERS[t - 1].name}</i>` : ''}${mark}</span>`); }
+    L.push(`<span class="m ${t != null && t <= 2 ? 'hi' : ''}">+${b} ${STAT_NAME(k)}${t != null ? ` ${tierTag(t)}` : ''}${mark}</span>`); }
   if (it.fx) L.push(`<span class="special">${it.unique ? '' : '✦ '}${effLine(it.fx)}</span>`);
   if (it.set) L.push(setBox(it.set, it));
   if (it.lore) L.push(`<span class="lore small">„${it.lore}“</span>`);
@@ -133,7 +135,7 @@ export function navBar(view) {
   const map = { wplan: 'trips', opts: 'hero', act: 'trips', zoneprep: 'trips', prep: 'crypt', desc: 'crypt', arena: 'crypt', pitprep: 'crypt', pitshop: 'crypt', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', exped: 'trips' };
   // Nur echte Handlungsaufforderungen markieren – ein Dauer-Punkt auf jedem Tab sagt nichts mehr
   const badge = { hero: S.points + talentPoints() + waysPending() > 0, traders: [...Object.keys(TRADERS), 'vargo'].some(canComplete), arena: false,
-    crypt: canComplete('ilse'), trips: canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) };
+    crypt: canComplete('ilse') || !!descWeekDue(), trips: canComplete('prophet') || bounties().some(b => !b.claimed && b.prog >= b.n) };
   // Grün: eine Wartezeit ist abgelaufen – wieder bereit (verschwindet, sobald man hinschaut)
   const ready = readyDots();
   const on = map[view] || view;
@@ -574,9 +576,9 @@ const forgeTabs = sel => `<nav class="subtabs"><a class="${!sel.mode || sel.mode
 function viewCraft(sel) {
   const list = craftItems(), it = list.find(x => x.id === sel.item) || null;
   const card = !it ? '<p class="dim small">Wähle ein magisches, seltenes oder legendäres Item. Einzigartiges lässt sich nicht umschmieden.</p>' : (() => {
-    const base = baseMods(it), rows = Object.entries(base).map(([k, v]) => { const t = tierOf(k, v) || 5, sealed = it.sealed === k, picked = sel.stat === k;
+    const base = baseMods(it), rows = Object.entries(base).map(([k, v]) => { const t = tierOf(k, v) ?? 5, sealed = it.sealed === k, picked = sel.stat === k;
       const fu = !sealed && fusedMods(it).includes(k);
-      return `<div class="caff ${sealed ? 'sealed' : ''} ${fu ? 'fus' : ''} ${picked ? 'on' : ''} ${sel.changed?.includes(k) ? 'new' : ''}" data-action="craftstat" data-k="${k}"><span>+${v} ${STAT_NAME(k)}</span><i class="tier t${t}">${TIERS[t - 1].name}</i>${sealed ? '<b class="seal">versiegelt</b>' : fu ? '<b class="fus">fusioniert</b>' : ''}</div>`; }).join('');
+      return `<div class="caff ${sealed ? 'sealed' : ''} ${fu ? 'fus' : ''} ${picked ? 'on' : ''} ${sel.changed?.includes(k) ? 'new' : ''}" data-action="craftstat" data-k="${k}"><span>+${v} ${STAT_NAME(k)}</span>${tierTag(t)}${sealed ? '<b class="seal">versiegelt</b>' : fu ? '<b class="fus">fusioniert</b>' : ''}</div>`; }).join('');
     return `<div class="ccard"><div class="cname r-${it.rarity}">${it.name}</div>
       <div class="caffs">${rows || '<span class="dim small">Keine eigenen Boni.</span>'}</div>
       ${it.fx ? `<div class="small special-l">✦ ${effLine(it.fx)} <i class="dim">(bleibt)</i></div>` : ''}${it.runes?.length ? `<div class="small rune">${it.runes.map(r => r.name + ' +' + r.v).join(', ')} <i class="dim">(bleibt)</i></div>` : ''}
@@ -612,13 +614,13 @@ function craftHint(it) {
 }
 function fuseRows(it, picked, side, dropped, blocked) {
   const base = baseMods(it);
-  return Object.entries(base).map(([k, v]) => { const t = tierOf(k, v) || 5, sealed = it.sealed === k;
+  return Object.entries(base).map(([k, v]) => { const t = tierOf(k, v) ?? 5, sealed = it.sealed === k;
     // Gesperrt: versiegelt (im Hauptteil) oder nicht übertragbar (im Futter) – gar nicht erst antippbar,
     // sonst tippt man drei Mal, bevor unten steht, warum es nicht geht.
     const no = side === 'main' ? sealed : blocked?.has(k);
     const fu = !sealed && fusedMods(it).includes(k);
     return `<div class="caff ${sealed ? 'sealed' : ''} ${fu ? 'fus' : ''} ${no ? 'no' : ''} ${picked === k ? (side === 'food' ? 'onf' : 'on') : ''} ${dropped === k ? 'gone' : ''}"
-      ${no ? '' : `data-action="fuse${side}" data-k="${k}"`}><span>+${v} ${STAT_NAME(k)}</span><i class="tier t${t}">${TIERS[t - 1].name}</i>${sealed ? '<b class="seal">versiegelt</b>' : fu ? '<b class="fus">fusioniert</b>' : ''}</div>`;
+      ${no ? '' : `data-action="fuse${side}" data-k="${k}"`}><span>+${v} ${STAT_NAME(k)}</span>${tierTag(t)}${sealed ? '<b class="seal">versiegelt</b>' : fu ? '<b class="fus">fusioniert</b>' : ''}</div>`;
   }).join('') || '<span class="dim small">Keine eigenen Boni.</span>';
 }
 function viewFuse(sel) {
@@ -781,6 +783,19 @@ export function viewDesc(st) {
   if (st.res) return viewDescRes(st.res);
   return S.desc ? viewDescRun(st) : viewDescStart(st);
 }
+// Was diese Tiefe mehr gibt (descReward) – ehrlich aus derselben Rechnung wie die Beute
+function descLohn(d) {
+  const R = descReward(d), x = v => v.toFixed(2).replace(/0$/, '').replace('.', ','), rar = { 2: 'magisch', 3: 'selten' }[R.minR];
+  const next = TIERS.filter(t => t.minDepth > d).sort((a, b) => a.minDepth - b.minDepth)[0];
+  const tiers = R.tiers.length ? `Boni bis ${R.tiers.map(t => tierTag(t.t)).join(' ')}` : next ? `${tierTag(next.t)} ab Tiefe ${next.minDepth}` : '';
+  return `Lohn: Gold/EP ×${x(R.gold)} · Funde ×${x(R.item)}${rar ? ` · mind. ${rar}` : ''}${tiers ? ` · ${tiers}` : ''}`;
+}
+// Wochenlohn: abholbar (wenn die Woche um ist) oder was es am Montag für die Wochenbest-Tiefe gibt
+function descWeekRow(R) {
+  const due = R.due, W = descWeekReward(due ? due.d : R.wBest), txt = W ? `${W.gold} Gold${W.kron ? ` · ${W.kron} Kronsplitter` : ''} · +${W.seals} Siegel (max. ${DESCENT.sealMax})${W.item ? ' · ein seltenes Teil' : ''}` : '';
+  if (due) return `<section class="panel dweek"><p class="small"><b class="hot">Wochenlohn für Tiefe ${due.d}:</b> ${txt}</p><button class="tiny red" data-action="descweek">Abholen</button></section>`;
+  return `<section class="panel dweek"><p class="small dim">${W ? `Wochenlohn am Montag für Tiefe ${W.d}: ${txt}` : 'Wochenlohn am Montag: schlage diese Woche einen Abgrund-Boss.'}</p></section>`;
+}
 function viewDescStart(st) {
   const list = descCrypts();
   if (!list.length) return `<div class="col desc">${cryptTabs('desc')}<section class="panel waiting"><h2>Der Abgrund</h2><p class="lore">Unter den Krypten liegt mehr als Knochen. Wer dort hinab will, muss erst einen Krypta-Boss bezwungen haben.</p>
@@ -790,13 +805,14 @@ function viewDescStart(st) {
     <section class="panel dhead">${monsterArt(c.boss.glyph)}<div><h2>Der Abgrund <span class="h2r seals" title="${DESCENT.sealDay} je Tag, Krypta-Bosse und neue Ränge"><img class="matimg" src="assets/forge/grabsiegel.webp" alt="">${left}/${DESCENT.sealMax}</span></h2>
       <div class="xhead"><button class="tiny" data-action="descc" data-d="-1" ${d <= 1 ? 'disabled' : ''}>‹</button><b>Tiefe ${d}</b><button class="tiny" data-action="descc" data-d="1" ${d >= max ? 'disabled' : ''}>›</button></div>
       <p class="small dim">${c.name} · Gegner Stufe ${at.lvl}${descResPen(d) ? ` · <b class="down">Elem.-Resi −${Math.round(descResPen(d) * 100)} %</b>` : ''} · oben wartet ${c.boss.name.split(',')[0]}: <i>${c.boss.mechText}</i></p>
-      <p class="small drec">Rekord <b>Tiefe ${R.best}</b> · diese Woche <b class="${R.wBest >= R.best && R.best ? 'up' : ''}">${R.wBest}</b></p></div></section>
+      <p class="small drec">Rekord <b>Tiefe ${R.best}</b> · diese Woche <b class="${R.wBest >= R.best && R.best ? 'up' : ''}">${R.wBest}</b></p>
+      <p class="small dlohn">${descLohn(d)}</p></div></section>${descWeekRow(R)}
     <section class="panel drules"><h2>Rausholen oder verlieren</h2>
       <p class="small">Jeder Raum ein Kampf. <b>Leben und Trank-Ladungen füllen sich unten nicht auf.</b></p>
       <p class="small">Mit jedem Raum steigt die <b>Unruhe</b>: Gegner stärker, Beute bis ×${descMult(5)}.</p>
       <p class="small">Beute liegt im <b>Beutesack</b>. Dir gehört sie erst an einem <span class="up">Ausgang</span>: Seil, Brunnen, Stiege oder hinter dem Boss.</p>
       <p class="small down">Fällst du, bleibt der Sack unten. Ausrüstung, Stufe und EP behältst du.</p>
-      <p class="small">Keine letzte Tiefe: <b>Wer den Boss schlägt, öffnet die nächste.</b> Jede Tiefe ist stärker – die Beute wächst mit.</p>
+      <p class="small">Keine letzte Tiefe: <b>Wer den Boss schlägt, öffnet die nächste.</b> Jede Tiefe ist um ein Zwanzigstel stärker – Gold, EP und Funde wachsen mit.</p>
       <p class="small sealnote">Kostet ein <b>Grabsiegel</b> – <span class="up">der Boss erstattet seines</span>.</p>${descBusy() ? `<p class="small hot">${descBusy()}</p>` : ''}</section>
     <section class="panel"><h2>Dein Gürtel <span class="gbtns"><button class="tiny" data-action="alch" data-b="desc">Tränke</button></span></h2><div class="beltrow">${[0, 1, 2].slice(0, beltSlots()).map(beltCell).join('')}</div></section>
     <div class="btns"><button data-action="go" data-v="crypt">Zurück</button><button class="red" data-action="descgo" data-d="${d}" ${descCanStart(d) ? '' : 'disabled'}>${left ? 'Hinabsteigen' : 'Kein Grabsiegel'}</button></div>
@@ -987,7 +1003,7 @@ export function viewFilter() {
   const f = filterOf(), stats = [...new Map(AFFIXES.filter(a => !a.cls || a.cls === S.cls).map(a => [a.stat, a])).values()];
   return `<div class="col filterv"><section class="panel"><h2>Beute-Filter <span class="h2r">${f.mods.length ? `${f.mods.length} gewählt` : 'aus'}</span></h2>
     ${filterSum(f, stats)}
-    <div class="optrow"><span>Mindestens Stufe</span><div class="optbtns">${TIERS.map(t =>
+    <div class="optrow"><span>Mindestens Stufe</span><div class="optbtns">${TIERS.filter(t => !t.deep).map(t =>
       `<button class="tiny ${f.tier === t.t ? 'on' : ''}" data-action="filtier" data-t="${t.t}">${t.name}</button>`).join('')}</div></div></section>
     <section class="panel fcol"><div class="fpick">${stats.map(a =>
       `<button class="tiny ${f.mods.includes(a.stat) ? 'on' : ''}" data-action="filmod" data-k="${a.stat}">${STAT_NAME(a.stat)}</button>`).join('')}</div></section>

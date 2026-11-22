@@ -89,10 +89,10 @@ export const AFFIXES = [
   { stat: 'thornsp', per: 5, pre: 'Dorniger', suf: 'der Dornen', pct: 1, label: 'Dornen', side: 'suf', slots: ['chest', 'offhand'] },
   // Resistenzen (Welle 2a): klein je Teil (Stufe I ≈ 9–10 %), Deckel CFG.resCap – beide auf 75 % zu bringen braucht fast jeden Platz.
   // Eigene Gruppen: ein Teil darf beide tragen. per geeicht gegen Konstitution (tests/calib.mjs).
-  { stat: 'physr', per: 1.5, pre: 'Eherner', suf: 'des Steins', pct: 1, label: 'Phys.-Resi', side: 'suf', slots: RES_SLOTS },
+  { stat: 'physr', per: 1.5, pre: 'Eherner', suf: 'des Steins', pct: 1, label: 'Phys.-Resi', side: 'suf', slots: RES_SLOTS, noDeep: 1 },   // noDeep: keine Abgrund-Stufen – sonst reichten zwei Teile für den Deckel
   // Elementar-Durchdringung (PoE): nur auf Stäben – wirkt nur auf Feuer/Eis, sonst toter Bonus für Hieb-Klassen
   { stat: 'elempenp', per: 1, pre: 'Glühender', suf: 'der Durchdringung', pct: 1, label: 'Elem.-Durchdringung', side: 'pre', slots: ['weapon'], kind: 'staff' },
-  { stat: 'elemr', per: 2, pre: 'Gebannter', suf: 'der Elemente', pct: 1, label: 'Elem.-Resi', side: 'suf', slots: RES_SLOTS },
+  { stat: 'elemr', per: 2, pre: 'Gebannter', suf: 'der Elemente', pct: 1, label: 'Elem.-Resi', side: 'suf', slots: RES_SLOTS, noDeep: 1 },
 ];
 // Zauber-Boni (nur auf Waffen der Klasse, die den Zauber hat): "+N % Feuerball" stärkt Schaden/Heilung/Schild/Wirkung des Zaubers.
 // Werden am Dateiende aus SPELLS erzeugt (stat 'sk_<id>', cls).
@@ -115,7 +115,11 @@ export const LEGEND_NAMES = ['Grabesruh', 'Aschenkuss', 'Der Letzte Psalm', 'Wit
 // --- Bonus-Stufen (PoE-Art, Welle 1a): I ist die beste. Jede Stufe hat einen FESTEN Wertebereich (flat: Attribute, Rüstung,
 // Schaden; pct: Prozent-Boni), jeweils × per des Bonus. Die Gegenstandsstufe schaltet höhere Stufen nur frei (minLvl),
 // der Wert hängt nicht mehr an ihr – Beute weit über der Heldenstufe sprengt nichts mehr. w = Würfelgewicht.
+// Abgrund-Stufen über I (Welle 2B-1, wie D4 „Greater Affixes“): t 0 = I+, t −1 = I++. Sie fallen nur im Abgrund ab
+// Tiefe minDepth (makeItem({ depth })), nie in Krypta/Akten/Schmiede; topTier() übergeht sie. Rot markiert (.tier.t0/.t-1).
 export const TIERS = [
+  { t: -1, name: 'I++', w: 4, minLvl: 1, minDepth: 22, deep: 1, flat: [34, 38], pct: [19, 21] },
+  { t: 0, name: 'I+', w: 8, minLvl: 1, minDepth: 15, deep: 1, flat: [29, 32], pct: [16, 18] },
   { t: 1, name: 'I', w: 15, minLvl: 35, flat: [22, 28], pct: [13, 15] },
   { t: 2, name: 'II', w: 25, minLvl: 22, flat: [14, 18], pct: [11, 12] },
   { t: 3, name: 'III', w: 25, minLvl: 12, flat: [8, 10], pct: [8, 10] },
@@ -671,7 +675,7 @@ export const TREE = {
         N('sk3', 'Klirrende Kälte', 3, { hpPct: 0.055 }, 'Mehr Leben.'),
         N('sk4', 'Kältestarre', 1, { toll: 1 }, 'Jeder dritte Treffer von dir betäubt den Gegner.', 'nt'),
         N('sk5', 'Reif', 2, { thorns: 0.055 }, 'Wer dich trifft, schneidet sich.'),
-        N('sk6', 'Eisgrab', 1, { ward: 0.35, hpPct: 0.18, block: 0.12, haste: -0.3 }, 'Du stehst wie ein Eisblock: ein Schild aus 35 % deines Lebens, mehr Leben, mehr Blocken. Dafür laden deine Zauber um ein Drittel langsamer.', 'key'),
+        N('sk6', 'Eisgrab', 1, { ward: 0.15, hpPct: 0.18, block: 0.12, haste: -0.3 }, 'Du stehst wie ein Eisblock: ein Schild aus 15 % deines Lebens, mehr Leben, mehr Blocken. Dafür laden deine Zauber um ein Drittel langsamer.', 'key'),
       ] },
       { name: 'Arkan', nodes: [
         N('sa1', 'Mana', 3, { spellPct: 0.06 }, 'Deine Zauber wiegen schwerer.'),
@@ -693,9 +697,9 @@ export const TIER_LVL = [2, 8, 16];
 const T = (id, name, max, eff, desc) => ({ id, name, max, eff, desc });
 export const TALENTS = {
   barbarian: [
-    { name: 'Blutrausch', nodes: [T('b1', 'Zorn', 5, { dmgPct: 0.05 }, 'Mehr Schaden.'), T('b2', 'Ungebändigt', 3, { rage: 0.08 }, 'Öfter Raserei.'), T('b3', 'Schlächter', 1, { execute: 0.5 }, '+50% gegen Feinde unter 30% Leben.')] },
-    { name: 'Fell & Narbe', nodes: [T('b4', 'Dickes Fell', 5, { hpPct: 0.06 }, 'Mehr Leben.'), T('b5', 'Narbengewebe', 3, { regen: 0.015 }, 'Heilt jede Runde.'), T('b6', 'Unsterblich', 1, { hpPct: 0.2, thorns: 0.15 }, 'Leben und Dornen.')] },
-    { name: 'Kriegsschrei', nodes: [T('b7', 'Brüllen', 5, { evade: 0.015 }, 'Feinde zögern.'), T('b8', 'Knochenbrecher', 3, { pen: 0.1 }, 'Zerschmettert Rüstung.'), T('b9', 'Ahnenruf', 1, { crit: 0.1, dmgPct: 0.1 }, 'Die Ahnen führen die Axt.')] },
+    { name: 'Blutrausch', nodes: [T('b1', 'Zorn', 10, { dmgPct: 0.05 }, 'Mehr Schaden.'), T('b2', 'Ungebändigt', 3, { rage: 0.08 }, 'Öfter Raserei.'), T('b3', 'Schlächter', 1, { execute: 0.5 }, '+50% gegen Feinde unter 30% Leben.')] },
+    { name: 'Fell & Narbe', nodes: [T('b4', 'Dickes Fell', 10, { hpPct: 0.06 }, 'Mehr Leben.'), T('b5', 'Narbengewebe', 3, { regen: 0.015 }, 'Heilt jede Runde.'), T('b6', 'Unsterblich', 1, { hpPct: 0.2, thorns: 0.15 }, 'Leben und Dornen.')] },
+    { name: 'Kriegsschrei', nodes: [T('b7', 'Brüllen', 9, { evade: 0.015 }, 'Feinde zögern.'), T('b8', 'Knochenbrecher', 3, { pen: 0.1 }, 'Zerschmettert Rüstung.'), T('b9', 'Ahnenruf', 1, { crit: 0.1, dmgPct: 0.1 }, 'Die Ahnen führen die Axt.')] },
   ],
   paladin: [
     { name: 'Bollwerk', nodes: [T('p1', 'Schildwall', 5, { armorPct: 0.08 }, 'Mehr Rüstung.'), T('p2', 'Standhaft', 3, { block: 0.04 }, 'Öfter blocken.'), T('p3', 'Eiserne Buße', 1, { thorns: 0.3 }, 'Wirft 30% des Schadens zurück.')] },
@@ -985,14 +989,22 @@ export const DESCENT = {
   unrestDiff: 0.08,                 // Gegner × (1 + Unruhe × 0,08)
   // Endlose Tiefe: keine letzte Tiefe. Gegner richten sich nach der Tiefe, nie nach der Heldenstufe
   // (vorher Heldenstufe + 1 → mit Krypta-Beute zwangsläufig zu leicht). Stufe = lvlBase + Tiefe × lvlPer,
-  // Stärke × (1 + (Tiefe − 1) × diffPer) obendrauf: jede Tiefe ist messbar schwerer, auch wenn die
+  // Stärke diff × diffGrow^(Tiefe − 1) obendrauf (Welle 2B-1, vorher linear +2 %/Tiefe: tief unten wurden die Schritte
+  // klein, +6 Tiefen bei Tiefe 30 kaum schwerer). Geometrisch ist jede Tiefe um denselben Anteil schwerer, auch wenn die
   // Beute (Stufe = Gegnerstufe, nie mehr) den Helden mitwachsen lässt. Wer den Boss einer Tiefe schlägt,
   // öffnet die nächste. Gruft (Aussehen, Gegner, Boss) wechselt reihum durch die offenen Grüfte.
   // `mods` je Tiefe: Platz für Siegel/Modifikatoren (Welle 2) – heute leer.
-  diff: 1, lvlBase: 3, lvlPer: 2, diffPer: 0.02,
+  diff: 1.15, lvlBase: 3, lvlPer: 2, diffGrow: 1.05,
   depthMods: [],                    // Welle 2: [{ from: Tiefe, id, … }] – descAt() hängt sie an
   resMalus: { per: 10, v: 0.1, max: 0.3 },   // Fluch der Tiefe: je `per` Tiefen −v Elementar-Resi (vor dem Deckel, wie D2 Hölle/PoE), höchstens −max
   gold: 1.1, xp: 0.6,               // gegenüber einem Krypta-Kampf
+  // Lohn wächst mit der Tiefe (Welle 2B-1), damit es sich unten lohnt: Gold/EP × (1 + (Tiefe − 1) × goldPer/xpPer),
+  // Fundstücke × (1 + (Tiefe − 1) × itemPer), Glück + Tiefe × luckPer, Mindest-Seltenheit ab Tiefe (rarAt: [Tiefe, Index
+  // in RARITIES]: 2 magisch, 3 selten). Abgrund-Stufen über I: TIERS.minDepth. Alles in descReward(d), eine Stelle.
+  goldPer: 0.05, xpPer: 0.05, itemPer: 0.03, luckPer: 3, rarAt: [[8, 2], [18, 3]],
+  // Wochenlohn (am Montag für die Wochenbest-Tiefe der Vorwoche, abholen im Abgrund): Gold = gold × Gegnerstufe dieser
+  // Tiefe, 1 Kronsplitter je `kron` Tiefen, `seals` Grabsiegel (bis sealMax), ab `itemFrom` ein seltenes Teil der Tiefe.
+  week: { gold: 60, kron: 5, seals: 2, itemFrom: 5 },
   item: 0.35, eliteMinR: 2, bossMinR: 3,
   heart: 0.1, eliteHeart: 0.35,
   kronBoss: 1, kronElite: 0.12,     // Kronsplitter: sicher beim Abgrund-Boss, selten bei Elite (× Unruhe)

@@ -13,9 +13,12 @@ const { makeItem, tierBand, topTier } = await import('../js/loot.js');
 const wantPer = process.argv.includes('--per');
 const perCls = process.argv.includes('--cls');   // flache Werte je Klasse zeigen – der Mittelwert versteckt den Entwurf
 
-const LV = [5, 10, 20, 30, 40], SLOTS = ['helm', 'chest', 'gloves', 'boots', 'belt', 'amulet', 'ring1', 'ring2', 'offhand'];
+const LV = [5, 10, 20, 30, 40, 'I++'], SLOTS = ['helm', 'chest', 'gloves', 'boots', 'belt', 'amulet', 'ring1', 'ring2', 'offhand'];
 const DEF = new Set(['con', 'lifep', 'evadep', 'blockp', 'thornsp', 'armor', 'physr', 'elemr']);   // Verteidigung (mit Resistenzen, Welle 2a): gegen Konstitution messen
-const tierVal = (a, L) => { const [lo, hi] = tierBand(a, topTier(L)); return (lo + hi) / 2; };   // beste freie Stufe, Mitte
+// beste freie Stufe, Mitte. Spalte „St.40 I++“ (Welle 2B-1): beide Seiten auf der besten Abgrund-Stufe (TIERS[0]) –
+// Bonus und Hauptattribut wachsen dort nicht gleich schnell (flach ×1,4, Prozent ×1,4 – gegen Deckel gemessen).
+const DEEP_T = D.TIERS[0].t, LCOL = L => L === 'I++' ? 40 : L;
+const tierVal = (a, L) => { const [lo, hi] = tierBand(a, L === 'I++' ? DEEP_T : topTier(L)); return (lo + hi) / 2; };
 
 function hero(cls, L) {
   G.newChar('Eich', cls); const S = G.S; S.lvl = L;
@@ -32,7 +35,7 @@ const gain = (slot, k, v) => { const S = G.S, it = S.equip[slot], old = it.mods;
 const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
 const rows = {}, clsRows = {};
 for (const cls of D.PLAYABLE) for (const L of LV) for (let rep = 0; rep < REPS; rep++) {
-  hero(cls, L); const p0 = G.power(), main = D.CLASSES[cls].main;
+  hero(cls, LCOL(L)); const p0 = G.power(), main = D.CLASSES[cls].main;
   const ref = { off: gain('ring1', main, tierVal(main, L)) - p0, def: gain('ring1', 'con', tierVal('con', L)) - p0 };
   for (const a of D.AFFIXES) {
     if (a.cls && a.cls !== cls) continue;
@@ -57,7 +60,7 @@ for (const cls of D.PLAYABLE) for (const L of LV) for (let rep = 0; rep < REPS; 
 if (perCls) {
   const FLACH = ['str', 'dex', 'int', 'con', 'lck', 'armor', 'dmg', 'haste'];
   for (const k of FLACH) {
-    console.log(`\n${k}`.padEnd(14) + LV.map(l => ('St.' + l).padStart(8)).join(''));
+    console.log(`\n${k}`.padEnd(14) + LV.map(l => (l === 'I++' ? 'St.40 I++' : 'St.' + l).padStart(l === 'I++' ? 10 : 8)).join(''));
     D.PLAYABLE.forEach((cls, i) => {
       console.log(('  ' + D.CLASSES[cls].name + (D.CLASSES[cls].main === k ? ' *' : '')).padEnd(14)
         + LV.map(L => avg(clsRows[k]?.[L]?.slice(i * REPS, (i + 1) * REPS) || [NaN]).toFixed(2).padStart(8)).join(''));
@@ -65,7 +68,7 @@ if (perCls) {
   }
   process.exit(0);
 }
-console.log((wantPer ? 'Vorschlag per (gleich viel wie Hauptattribut/Konstitution)' : 'Bonus ÷ Hauptattribut, gleiche Stufe (Abwehr ÷ Konst.)').padEnd(44) + LV.map(l => ('St.' + l).padStart(8)).join(''));
+console.log((wantPer ? 'Vorschlag per (gleich viel wie Hauptattribut/Konstitution)' : 'Bonus ÷ Hauptattribut, gleiche Stufe (Abwehr ÷ Konst.)').padEnd(44) + LV.map(l => (l === 'I++' ? 'St.40 I++' : 'St.' + l).padStart(l === 'I++' ? 10 : 8)).join(''));
 for (const [k, byL] of Object.entries(rows)) {
   const a = D.AFFIXES.find(x => x.stat === k) || {};
   console.log(k.padEnd(44) + LV.map(L => { const r = avg(byL[L]); return (wantPer ? (1 / r).toFixed(2) : r.toFixed(2)).padStart(8); }).join(''));

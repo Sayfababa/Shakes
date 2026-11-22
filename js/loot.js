@@ -6,9 +6,10 @@ export const affixPool = it => AFFIXES.filter(a => (!a.slots || a.slots.includes
 const affOf = k => AFFIXES.find(a => a.stat === k);
 const groupOf = a => a.group || a.stat;
 // Bonus-Stufe würfeln: hohe Stufen erst ab bestimmter Gegenstandsstufe (TIERS.minLvl)
-export function rollTier(ilvl) { return weighted(TIERS.filter(t => ilvl >= t.minLvl)); }
+// Abgrund-Stufen (minDepth) nur mit einer Tiefe ab minDepth – sonst nie (Krypta, Akte, Schmiede).
+export function rollTier(ilvl, depth = 0) { return weighted(TIERS.filter(t => ilvl >= t.minLvl && (t.minDepth || 0) <= depth)); }
 // Beste Stufe, die diese Gegenstandsstufe freischaltet (Einzigartige/Sets: ihre Stufe wird darauf gekürzt)
-export const topTier = ilvl => TIERS.find(t => ilvl >= t.minLvl)?.t ?? TIERS[TIERS.length - 1].t;
+export const topTier = ilvl => TIERS.find(t => !t.minDepth && ilvl >= t.minLvl)?.t ?? TIERS[TIERS.length - 1].t;
 // Fester Wertebereich eines Bonus auf Stufe t (Welle 1a, PoE-Art): TIERS.flat/pct × per, ganzzahlig. Von V aufwärts
 // beginnt jede Stufe über der vorigen – zwei Stufen teilen nie einen Wert, darum liest tierOf die Stufe eindeutig ab.
 const bands = {};
@@ -46,7 +47,7 @@ export function affixRoom(it, have = Object.keys(it.mods || {}), rarity = it.rar
 }
 
 // Erzeugt ein Item für Stufe `lvl`. luck verschiebt Seltenheiten nach oben.
-export function makeItem(lvl, { luck = 0, slot, slots, cls, kind, minRarity = 0 } = {}) {
+export function makeItem(lvl, { luck = 0, slot, slots, cls, kind, minRarity = 0, depth = 0 } = {}) {
   const okLvl = b => !b.minLvl || lvl >= b.minLvl;   // höhere Grundgegenstände erst ab ihrer Stufe
   let pool = (slot ? BASES.filter(b => b.slot === slot) : slots ? BASES.filter(b => slots.includes(b.slot)) : BASES).filter(okLvl);
   if (cls && rand() < 0.6) pool = pool.filter(b => b.slot !== 'weapon' || b.kind === cls.weapon);
@@ -72,7 +73,7 @@ export function makeItem(lvl, { luck = 0, slot, slots, cls, kind, minRarity = 0 
     it.fx = { ...uniq.eff }; it.unique = uniq.name; it.lore = uniq.lore; it.name = uniq.name;
   } else {
     for (let room = affixRoom(it); room.length; room = affixRoom(it)) {
-      const a = pickAffix(room), T = rollTier(ilvl); it.mods[a.stat] = affixValue(a, T); it.tiers[a.stat] = T.t; chosen.push(a); }
+      const a = pickAffix(room), T = rollTier(ilvl, a.noDeep ? 0 : depth); it.mods[a.stat] = affixValue(a, T); it.tiers[a.stat] = T.t; chosen.push(a); }
     const sc = SPECIAL_CHANCE[rar.id] || 0;
     if (sc && ilvl >= SPECIAL_MIN_LVL && rand() < sc) { const sp = pick(SPECIALS); it.fx = { ...sp.eff }; it.special = sp.id; }
     it.name = nameOf(it, base, chosen);

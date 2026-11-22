@@ -1,6 +1,6 @@
 // Spielzüge ohne DOM: Kampf ausführen, Belohnung anwenden, strukturiertes Ergebnis liefern.
 // main.js zeigt das Ergebnis an; tests/ spielen damit ganze Verläufe durch.
-import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS, DESCENT, DESC_ROOMS, ELITE, PIT, PIT_STYLES, PIT_RIVALS, PIT_RANKS, PIT_SHOP, PIT_RULES, DIFFICULTIES, SETS, SET, ACTS, ACT, CRYPT, WANDER, WANDER_ST } from './data.js';
+import { GRADES, TIERS, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS, DESCENT, DESC_ROOMS, ELITE, PIT, PIT_STYLES, PIT_RIVALS, PIT_RANKS, PIT_SHOP, PIT_RULES, DIFFICULTIES, SETS, SET, ACTS, ACT, CRYPT, WANDER, WANDER_ST } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import { fight, resMul, resOf, mixOf, armorRed } from './combat.js';
@@ -491,19 +491,40 @@ export function addSeal(n = 1) { descLeft(); G.S.seals.n = Math.min(DESCENT.seal
 export const descBusy = () => { const S = G.S; return S.exp ? 'Dein Held ist auf Expedition.' : S.wander ? 'Dein Held zieht umher.' : S.active ? 'Erst den Streifzug beenden.' : S.haul ? 'Erst die Beute des Streifzugs sichern.' : ''; };
 // Endlose Tiefe: Rekord je Held (best) und Bestwert dieser Woche (wBest, das Wochenziel).
 // Ein Stand ohne das Feld (alt oder neu) bekommt es beim ersten Hinsehen – nie ein Absturz.
+// Wochenwechsel: die Wochenbest-Tiefe der Vorwoche wird zum Wochenlohn (r.due), bis er abgeholt ist. Liegt noch einer
+// offen, bleibt der bessere – nie still einer weg.
 export function descRec() {
   const S = G.S, w = weekNo(), r = S.deep && typeof S.deep === 'object' ? S.deep : (S.deep = { best: 0, week: w, wBest: 0 });
   if (!(r.best >= 0)) r.best = 0;
-  if (r.week !== w) { r.week = w; r.wBest = 0; }
+  if (r.week !== w) { if (r.wBest > 0 && r.wBest > (r.due?.d || 0)) r.due = { d: r.wBest, week: r.week }; r.week = w; r.wBest = 0; }
   return r;
 }
+// Was der Wochenlohn für Tiefe d gibt (DESCENT.week) – dieselbe Rechnung für die Anzeige vorher und das Abholen
+export function descWeekReward(d) {
+  const W = DESCENT.week, at = descAt(d); if (!at || !(d >= 1)) return null;
+  return { d, gold: W.gold * at.lvl, kron: Math.floor(d / W.kron), seals: W.seals, item: d >= W.itemFrom, lvl: at.lvl };
+}
+export const descWeekDue = () => descRec().due || null;
+// Abholen: Gold, Kronsplitter, Siegel (bis sealMax), ab itemFrom ein seltenes Teil der Tiefe (braucht Platz im Beutel)
+export function descClaimWeek() {
+  const S = G.S, R = descRec(), due = R.due; if (!due) return null;
+  const W = descWeekReward(due.d); if (!W) { R.due = null; return null; }
+  let it = null;
+  if (W.item) { it = makeItem(W.lvl, { cls: CLASSES[S.cls], minRarity: 3, depth: due.d, luck: G.stats().lck });
+    if (!G.addToBag(it)) return { full: true }; }
+  S.gold += W.gold; if (W.kron) G.addMat('kronsplitter', W.kron); addSeal(W.seals); R.due = null;
+  G.journal(`Wochenlohn für Tiefe ${due.d}: ${W.gold} Gold${W.kron ? `, ${W.kron} Kronsplitter` : ''}.`);
+  return { ...W, it };
+}
 export const descMaxDepth = () => descRec().best + 1;   // tiefer als eine Tiefe unter dem Rekord geht es nicht
+// Stärke einer Tiefe: geometrisch (jede Tiefe × diffGrow) – ein fester Anteil schwerer, auch tief unten
+export const descDiffAt = d => DESCENT.diff * DESCENT.diffGrow ** (Math.max(1, d) - 1);
 // Alles, was eine Tiefe ausmacht – an einer Stelle, damit Welle 2 hier Modifikatoren anhängt.
 export function descAt(d) {
   const list = descCrypts(); d = Math.floor(+d);
   if (!list.length || !(d >= 1)) return null;
   return { d, c: list[(d - 1) % list.length], lvl: Math.round(DESCENT.lvlBase + d * DESCENT.lvlPer),
-    diff: DESCENT.diff * (1 + (d - 1) * DESCENT.diffPer), mods: DESCENT.depthMods.filter(m => d >= m.from) };
+    diff: descDiffAt(d), mods: DESCENT.depthMods.filter(m => d >= m.from) };
 }
 export const descCanStart = d => { const S = G.S; return !!descAt(d) && d <= descMaxDepth() && !S.desc && !descBusy() && descLeft() > 0; };
 export const descLvl = d => descAt(d)?.lvl ?? 0;
@@ -565,11 +586,17 @@ export function descChance(j) {
   let w = 0; for (let i = 0; i < 24; i++) if (fight(A, descEnemy(stair ? { t: 'fight', mob: pick(c.floors) } : nd, u)).winner === 'a') w++;
   const p = w / 24; if (threatCache.size > 200) threatCache.clear(); threatCache.set(key, p); return p;
 }
+// Was eine Tiefe mehr gibt als Tiefe 1 (DESCENT.goldPer/xpPer/itemPer/luckPer/rarAt) – an einer Stelle, auch für die Anzeige
+export function descReward(d) {
+  const x = Math.max(0, (d || 1) - 1), rar = DESCENT.rarAt.filter(([from]) => d >= from).reduce((a, [, r]) => Math.max(a, r), 0);
+  return { gold: 1 + x * DESCENT.goldPer, xp: 1 + x * DESCENT.xpPer, item: 1 + x * DESCENT.itemPer, luck: (d || 0) * DESCENT.luckPer, minR: rar,
+    tiers: TIERS.filter(t => t.minDepth && d >= t.minDepth) };
+}
 function descLoot(lvl, u, { gold = 1, item = 0, minR = 0, heart = 0, mat = null, kron = 0 }) {
-  const S = G.S, s = S.desc.sack, k = descMult(u), got = { gold: Math.round((10 + lvl * 5) * DESCENT.gold * gold * k), items: [], mats: [], herbs: [] };
+  const S = G.S, s = S.desc.sack, k = descMult(u), R = descReward(S.desc.d), got = { gold: Math.round((10 + lvl * 5) * DESCENT.gold * gold * k * R.gold), items: [], mats: [], herbs: [] };
   s.gold += got.gold;
-  for (let n = rollN(item * Math.sqrt(k)); n > 0; n--) {
-    const it = makeItem(lvl, { luck: G.stats().lck + u * 15, cls: CLASSES[S.cls], minRarity: Math.max(minR, u >= 5 ? 3 : u >= 3 ? 2 : 0) });
+  for (let n = rollN(item * Math.sqrt(k) * R.item); n > 0; n--) {
+    const it = makeItem(lvl, { luck: G.stats().lck + u * 15 + R.luck, cls: CLASSES[S.cls], depth: S.desc.d || 0, minRarity: Math.max(minR, R.minR, u >= 5 ? 3 : u >= 3 ? 2 : 0) });
     s.items.push(it); got.items.push(it); }
   if (mat && chance(Math.min(1, CFG.matChance * k))) { const n = Math.max(1, rollN(k / 2)); s.mats[mat] = (s.mats[mat] || 0) + n; got.mats.push([mat, n]); }
   if (heart && chance(Math.min(1, heart * k))) { s.herbs.herz = (s.herbs.herz || 0) + 1; got.herbs.push(['herz', 1]);
@@ -597,7 +624,7 @@ function descFight(nd, u, exit = null) {
     G.journal(`In ${c.name} gefallen. Der Sack bleibt unten.`); return { A, B: m, r, win, rew, desc: { lost } }; }
   S.wins++; Q.event({ type: 'kill', mob: boss ? c.boss.name : nd.mob }); if (boss) Q.event({ type: 'boss', crypt: c.id }); G.bountyEvent({ type: 'kill', mob: boss ? c.boss.name : nd.mob }); if (elite) G.bountyEvent({ type: 'elite' });
   rew.grade = gradeOf(r); if (rew.grade.id === 'dom') G.bountyEvent({ type: 'dom' });
-  const xp = Math.round((25 + m.lvl * 14) * DESCENT.xp * (boss ? 3 : elite ? 1.5 : 1)); rew.xp = xp; rew.up = G.gainXp(xp); D.xp += xp;
+  const xp = Math.round((25 + m.lvl * 14) * DESCENT.xp * descReward(D.d).xp * (boss ? 3 : elite ? 1.5 : 1)); rew.xp = xp; rew.up = G.gainXp(xp); D.xp += xp;
   const gb = 1 + rew.grade.bonus;   // Kampfbewertung: mehr Gold wie überall
   rew.sack = descLoot(m.lvl, u, boss ? { gold: 4 * gb, item: 2, minR: DESCENT.bossMinR, heart: 1, mat: m.mat, kron: DESCENT.kronBoss } : elite ? { gold: 1.8 * gb, item: 1, minR: DESCENT.eliteMinR, heart: DESCENT.eliteHeart, mat: m.mat, kron: DESCENT.kronElite }
     : { gold: gb, item: DESCENT.item, heart: DESCENT.heart, mat: m.mat });

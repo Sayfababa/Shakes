@@ -352,6 +352,8 @@ const actions = {
     if (slot) forgeSel.slot = slot; view = 'forge'; render(); },
   descc: d => { const max = Game.descMaxDepth(), cur = Math.max(1, Math.min(max, +descSt.d || max));
     descSt.d = Math.max(1, Math.min(max, cur + +d.d)); render(); },
+  descweek: () => { const r = Game.descClaimWeek(); if (r?.full) return note('Der Beutel ist voll – mach Platz für das seltene Teil, dann hole den Wochenlohn ab.');
+    if (r) note(`Wochenlohn für Tiefe ${r.d}: ${r.gold} Gold${r.kron ? `, ${r.kron} Kronsplitter` : ''}, +${r.seals} Grabsiegel${r.it ? `, ${r.it.name}` : ''}.`); render(); },
   descgo: d => { if (Game.descStart(+d.d)) { descSt = { d: +d.d, j: null, msg: '', res: null }; view = 'desc'; } render(); },
   descsel: d => { descSt.j = descSt.j === d.j ? null : d.j; descSt.msg = ''; descSt.ask = false; render(); },
   descgo2: d => { const r = Game.descEnter(d.j); descSt.j = null; descSt.msg = ''; descSt.ask = false; if (!r) return render(); descResult(r); },

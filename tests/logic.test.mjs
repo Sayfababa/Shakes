@@ -11,6 +11,7 @@ const { fight } = await import('../js/combat.js');
 const L = await import('../js/loot.js');
 const Ld = L;   // für Tests, die L lokal anders brauchen
 const { makeItem } = L;
+const UI = await import('../js/ui.js');
 
 const fresh = (cls = 'paladin') => { G.newChar('Test', cls); G.S.tut = 99; return G.S; };
 
@@ -825,6 +826,44 @@ test('Abgrund endlos: Tiefe statt Heldenstufe, Rekord öffnet die nächste, Woch
   // Abstieg aus einem alten Stand ohne Tiefe: läuft weiter, Boss stürzt nicht ab
   Game.descStart(1); delete G.S.desc.d; delete G.S.desc.df; const r2 = descToBoss(); assert.ok(r2.res); assert.equal(Game.descRec().best, 1);
 });
+test('Abgrund-Leiter (Welle 2B-1): jede Tiefe um denselben Anteil stärker, Lohn wächst mit, Abgrund-Stufen nur unten', async () => {
+  descHero('sorceress', 30);
+  for (let d = 1; d < 200; d++) { const a = Game.descAt(d), b = Game.descAt(d + 1);
+    assert.ok(Math.abs(b.diff / a.diff - D.DESCENT.diffGrow) < 1e-9, `Tiefe ${d + 1}: Stärke × diffGrow`); assert.ok(b.lvl > a.lvl); }
+  let prev = null; for (let d = 1; d <= 60; d++) { const R = Game.descReward(d);
+    if (prev) { assert.ok(R.gold > prev.gold && R.xp > prev.xp && R.item > prev.item && R.luck > prev.luck, `Lohn Tiefe ${d}`); assert.ok(R.minR >= prev.minR && R.tiers.length >= prev.tiers.length); }
+    prev = R; }
+  assert.equal(Game.descReward(1).gold, 1); assert.deepEqual(Game.descReward(1).tiers, []);
+  // Abgrund-Stufen: nur mit Tiefe ab minDepth, nie ohne Tiefe (Krypta/Akte/Schmiede), nie auf Resistenzen; topTier übergeht sie
+  const deep = D.TIERS.filter(t => t.minDepth).sort((a, b) => a.minDepth - b.minDepth);
+  assert.equal(deep.length, 2); assert.ok(deep.every(t => t.t < 1)); assert.equal(L.topTier(500), 1);
+  const roll = (depth, n = 400) => { const seen = new Set(); for (let i = 0; i < n; i++) { const it = makeItem(60, { slot: 'ring', minRarity: 4, depth });
+    for (const [k, t] of Object.entries(it.tiers)) { seen.add(t); if (t < 1) assert.ok(!D.AFFIXES.find(a => a.stat === k).noDeep, `${k} mit Abgrund-Stufe`);
+      if (!it.unique) assert.equal(L.tierOf(k, it.mods[k]), t, 'Stufe steht im Wert'); } } return seen; };
+  const s0 = roll(0), s1 = roll(deep[0].minDepth), s2 = roll(deep[1].minDepth);
+  assert.ok(![...s0].some(t => t < 1), 'ohne Tiefe keine Abgrund-Stufe'); assert.ok(s1.has(deep[0].t) && !s1.has(deep[1].t)); assert.ok(s2.has(deep[1].t));
+  for (const t of deep) for (const a of D.AFFIXES) { const [lo] = L.tierBand(a, t.t), [, hi1] = L.tierBand(a, 1); assert.ok(lo > hi1, `${a.stat} ${t.name} über I`); }
+  // Marke: eigene Klasse mit CSS-Regel (eine Marke ohne Regel ist unsichtbar)
+  const css = (await import('node:fs')).readFileSync(new URL('../css/style.css', import.meta.url), 'utf8');
+  for (const t of deep) { assert.match(UI.tierTag(t.t), new RegExp(`class="tier t${t.t} deep"`)); assert.match(css, new RegExp(`\\.tier\\.t${t.t} \\{[^}]*color:`), `CSS für ${t.name}`); }
+});
+test('Abgrund-Wochenlohn: Montag für die Wochenbest-Tiefe, ehrlich vorher berechnet, einmal abholbar, Beutel voll = nichts geht verloren', () => {
+  const S = descHero('barbarian', 30), w = Game.descRec().week;
+  S.deep = { best: 12, week: w - 1, wBest: 11 }; const r = Game.descRec();
+  assert.equal(r.wBest, 0); assert.deepEqual(r.due, { d: 11, week: w - 1 }); assert.deepEqual(Game.descWeekDue(), r.due);
+  const W = Game.descWeekReward(11); assert.equal(W.gold, D.DESCENT.week.gold * Game.descAt(11).lvl); assert.equal(W.kron, Math.floor(11 / D.DESCENT.week.kron)); assert.ok(W.item);
+  // Beutel voll: nichts abgebucht, Lohn bleibt offen
+  const fill = []; for (let i = 0; i < 200; i++) { const it = makeItem(5, { slot: 'ring' }); if (!G.addToBag(it)) break; fill.push(it); }
+  const g0 = S.gold; assert.deepEqual(Game.descClaimWeek(), { full: true }); assert.equal(S.gold, g0); assert.ok(Game.descWeekDue());
+  for (const it of fill) G.removeFromBag(it.id);
+  S.seals = { day: G.today(), n: 0 }; const k0 = S.mats.kronsplitter || 0, out = Game.descClaimWeek();
+  assert.equal(S.gold, g0 + W.gold); assert.equal(S.mats.kronsplitter, k0 + W.kron); assert.equal(S.seals.n, W.seals); assert.ok(out.it && S.bag.some(x => x.id === out.it.id));
+  assert.ok(D.RARITIES.findIndex(x => x.id === out.it.rarity) >= 3, 'seltenes Teil'); assert.equal(Game.descWeekDue(), null); assert.equal(Game.descClaimWeek(), null, 'nur einmal');
+  // ein offener, besserer Lohn wird nicht still von einer schwächeren Woche überschrieben
+  S.deep = { best: 20, week: w - 2, wBest: 3, due: { d: 9, week: w - 3 } }; assert.equal(Game.descRec().due.d, 9);
+  S.deep = { best: 20, week: w - 2, wBest: 14, due: { d: 9, week: w - 3 } }; assert.equal(Game.descRec().due.d, 14);
+  S.deep = { best: 20, week: w - 1, wBest: 0 }; assert.equal(Game.descRec().due, undefined, 'ohne Boss-Sieg kein Lohn');
+});
 test('Grube: Leiter, Platztausch, Rang, Laden, Herausforderung', () => {
   fresh(); const S = G.S; S.lvl = 30; S.attrs[D.CLASSES[S.cls].main] += 400; S.attrs.con += 300;
   assert.equal(Game.pitPlace(), D.PIT.size + 1); assert.equal(Game.pitFoes().length, D.PIT.look);
@@ -1163,9 +1202,9 @@ test('Fusionieren: die Regeln halten (Form, Seltenheit, Siegel, Platz, Einzigart
 
 test('Bonus-Stufe aus dem Wert: feste Bereiche überlappen nie, jeder Wert zeigt seine Stufe, höherer Wert nie schlechtere Stufe', () => {
   for (const a of D.AFFIXES) {
-    let below = 0; for (const t of [5, 4, 3, 2, 1]) { const [lo, hi] = L.tierBand(a, t); assert.ok(lo > below && hi >= lo, `${a.stat} Stufe ${t}: ${lo}–${hi}`); below = hi;
+    let below = 0; for (const t of D.TIERS.map(x => x.t).reverse()) { const [lo, hi] = L.tierBand(a, t); assert.ok(lo > below && hi >= lo, `${a.stat} Stufe ${t}: ${lo}–${hi}`); below = hi;
       for (let v = lo; v <= hi; v++) assert.equal(L.tierOf(a.stat, v), t, `${a.stat} ${v}`); }
-    let last = 5; for (let v = 1; v < 2000; v++) { const t = L.tierOf(a.stat, v); assert.ok(t <= last, a.stat); last = t; } assert.equal(last, 1, a.stat + ' erreicht nie I');
+    let last = 5; for (let v = 1; v < 4000; v++) { const t = L.tierOf(a.stat, v); assert.ok(t <= last, a.stat); last = t; } assert.equal(last, D.TIERS[0].t, a.stat + ' erreicht nie die beste Stufe');
   }
 });
 
@@ -1419,7 +1458,7 @@ test('Resistenzen: aus Teilen summiert, im Kampf bei 75 % gedeckelt, Malus vor d
   for (const d of [30, 50, 200, 5000]) assert.equal(Game.descResPen(d), D.DESCENT.resMalus.max); assert.ok(D.DESCENT.resMalus.max <= 0.3);
   // Affixe: nur Rüstungsteile und Schmuck, Werte wie D2 (Elementar Stufe I ≤ 30 %, Phys. ≤ 25 %): den Deckel erreicht man
   // erst mit mindestens drei Teilen der besten Stufe
-  for (const k of ['physr', 'elemr']) { const a = D.AFFIXES.find(x => x.stat === k), hi = L.tierBand(a, D.TIERS[0])[1], cap = k === 'physr' ? D.CFG.resCapPhys : D.CFG.resCap;
+  for (const k of ['physr', 'elemr']) { const a = D.AFFIXES.find(x => x.stat === k), hi = L.tierBand(a, 1)[1], cap = k === 'physr' ? D.CFG.resCapPhys : D.CFG.resCap;
     assert.ok(!a.slots.includes('weapon') && a.slots.includes('ring') && a.side === 'suf');
     assert.ok(hi <= (k === 'physr' ? 25 : 30) && hi * 2 < cap * 100, `${k} Stufe I: ${hi}`); }
   assert.ok(power0ok());

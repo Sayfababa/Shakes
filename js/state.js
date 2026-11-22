@@ -505,7 +505,7 @@ const runeSum = (it, k) => (it.runes || []).filter(r => r.stat === k).reduce((a,
 export function baseMods(it) { const b = {}; for (const [k, v] of Object.entries(it.mods)) { const x = v - runeSum(it, k); if (x > 0) b[k] = x; } return b; }
 function setBase(it, base) {
   const mods = { ...base }; for (const r of it.runes || []) mods[r.stat] = (mods[r.stat] || 0) + r.v;
-  it.mods = mods; it.tiers = Object.fromEntries(Object.keys(base).map(k => [k, it.tiers?.[k] || 3]));
+  it.mods = mods; it.tiers = Object.fromEntries(Object.keys(base).map(k => [k, it.tiers?.[k] ?? 3]));
 }
 // --- Beute-Filter (Einstellungen) ---
 // Vom Besitzer gewuenscht: einstellen, welche Boni und welche Stufe man sucht; jedes Teil zeigt

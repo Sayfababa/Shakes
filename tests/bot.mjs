@@ -14,9 +14,9 @@ const score = it => !it ? 0 : (it.dmg ? (it.dmg[0] + it.dmg[1]) * 1.5 : 0) + (it
 const slotOf = it => it.slot === 'ring' ? (!G.S.equip.ring1 ? 'ring1' : !G.S.equip.ring2 ? 'ring2' : (score(G.S.equip.ring1) < score(G.S.equip.ring2) ? 'ring1' : 'ring2')) : it.slot;
 const wrongWeapon = it => it.slot === 'weapon' && it.kind !== D.CLASSES[G.S.cls].weapon;
 
-function manage(log) {
-  const S = G.S, c = D.CLASSES[S.cls];
-  while (S.points > 0) G.addAttr(S.points % 5 < 2 ? 'con' : c.main);
+// Talente und Zauber-Wege wie ein Spieler, der auf Kampfkraft achtet (auch für tests/descent.mjs)
+export function learnAll() {
+  const S = G.S;
   // Talente: Klassen mit Brett brauchen die Brett-Schnittstelle. Ohne diesen Zweig landeten die
   // Punkte in alten Knoten-IDs, die das Brett nicht kennt – die Assassine spielte ohne jedes
   // wirkende Talent und sah im Tempo-Vergleich 2 Akte langsamer aus als alle anderen.
@@ -30,10 +30,16 @@ function manage(log) {
       (T.bridges || []).forEach((b, bi) => { const p = probe(() => G.learnBridge(bi)); if (p > bp) { bp = p; best = () => G.learnBridge(bi); } });
       if (!best || !best()) break;
     }
-  } else for (let i = 0; i < 9; i++) for (let b = 0; b < 3; b++) for (let t = 2; t >= 0; t--) if (G.learn(b, t)) break;
+  } else for (let more = true; more && G.talentPoints() > 0;) { more = false;   // Runde um Runde je Zweig einen Punkt, höchste offene Stufe zuerst
+    for (let b = 0; b < 3; b++) for (let t = 2; t >= 0; t--) if (G.learn(b, t)) { more = true; break; } }
     // Zauber-Wege: offene Stufen wählen (den Weg mit der höheren Kampfkraft)
     for (const sp of D.SPELLS[S.cls]) (D.SPELL_TREE[sp.id] || []).forEach((opts, t) => { if (!G.wayOpen(sp, t) || G.S.sp?.[sp.id]?.[t] != null) return;
       const pw = opts.map((o, i) => { (G.S.sp[sp.id] ||= [null, null, null])[t] = i; return G.power(); }); G.S.sp[sp.id][t] = pw[1] > pw[0] ? 1 : 0; });
+}
+function manage(log) {
+  const S = G.S, c = D.CLASSES[S.cls];
+  while (S.points > 0) G.addAttr(S.points % 5 < 2 ? 'con' : c.main);
+  learnAll();
   // bessere Items anlegen, Rest verkaufen
   for (const it of [...S.bag]) {
     const sl = slotOf(it);
