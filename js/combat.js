@@ -13,17 +13,19 @@ export function evadeShare(p, k = CFG.evadeStreak) { let num = 0, t = 1; for (le
 // Schadensarten (Welle 2a, nach Diablo 2 / PoE): Rüstung wirkt nur gegen den PHYSISCHEN Anteil, Feuer und Eis gehen an ihr
 // vorbei – dagegen hilft nur Elementar-Resi (Deckel CFG.resCap 75 %). Phys.-Resi ist „Schaden reduziert um“ (D2) mit eigenem,
 // kleinerem Deckel CFG.resCapPhys 50 %, weil sie mit der Rüstung stapelt.
-// resPen: Malus vor dem Deckel (Abgrund-Tiefe, DESCENT.resMalus). Unter 0 nimmt man mehr Schaden (bis doppelt).
+// resPen: Malus vor dem Deckel, nur Elementar (Abgrund-Tiefe, DESCENT.resMalus – wie D2 Hölle / PoE-Akte).
+// pen: Elementar-Durchdringung des Angreifers (PoE): zieht NACH dem Deckel feste Punkte ab, darf unter 0 gehen (mehr Schaden).
+// Untergrenze −100 % (doppelter Schaden).
 export const resCapOf = k => k === 'phys' ? CFG.resCapPhys : CFG.resCap;
-export const resOf = (f, k) => Math.max(-1, Math.min(resCapOf(k), (f.res?.[k] || 0) - (f.resPen || 0)));
+export const resOf = (f, k, pen = 0) => Math.max(-1, Math.min(resCapOf(k), (f.res?.[k] || 0) - (k === 'elem' ? f.resPen || 0 : 0)) - (k === 'elem' ? pen : 0));
 // Rüstungs-Minderung (nur physisch): Rüstung des Ziels gegen die Stufe des Angreifers, Durchbohren zieht ab
 export const armorRed = (armor, atkLvl, pen = 0) => Math.min(0.6, armor / (armor + 20 + atkLvl * 8)) * (1 - Math.min(0.9, pen));
 // Anteile eines Hiebs: mix = { fire, cold } (Rest physisch). Für Anzeige und power() dieselbe Regel wie im Kampf.
 export const mixOf = mix => { const fire = mix?.fire || 0, cold = mix?.cold || 0; return { phys: Math.max(0, 1 - fire - cold), fire, cold }; };
 // Schadensfaktor gegen y: el = Art eines Zaubers (fehlt bei Hieben → mix des Angreifers); arm = Rüstungs-Minderung,
-// wirkt nur auf den physischen Anteil
-export function resMul(mix, y, el, arm = 0) {
-  const ph = (1 - arm) * (1 - resOf(y, 'phys')), em = 1 - resOf(y, 'elem');
+// wirkt nur auf den physischen Anteil; pen = Elementar-Durchdringung des Angreifers
+export function resMul(mix, y, el, arm = 0, pen = 0) {
+  const ph = (1 - arm) * (1 - resOf(y, 'phys')), em = 1 - resOf(y, 'elem', pen);
   if (el) return ELEMENTS[el].res === 'phys' ? ph : em;
   const m = mixOf(mix); return m.phys * ph + (m.fire + m.cold) * em;
 }
@@ -188,7 +190,7 @@ export function fight(A, B) {
   // Henker und Krit auf rohen Schaden (für Hieb und Zauber); o: Zusatz-Krit/Henker eines Zauber-Wegs, force = sicherer Krit (Kombo),
   // o.el = Schadensart des Zaubers (sonst Hieb-Mischung des Angreifers) gegen die Resistenz des Ziels
   function finish(x, y, raw, o = {}) {
-    let d = raw * resMul(x.mix, y, o.el, o.arm || 0); const ex = (x.execute || 0) + (o.execute || 0); if (ex && y.cur < y.hp * (0.3 + (x.execHp || 0))) d *= 1 + ex;   // Set „Schürze des Metzgers“ hebt die Schwelle
+    let d = raw * resMul(x.mix, y, o.el, o.arm || 0, x.elemPen || 0); const ex = (x.execute || 0) + (o.execute || 0); if (ex && y.cur < y.hp * (0.3 + (x.execHp || 0))) d *= 1 + ex;   // Set „Schürze des Metzgers“ hebt die Schwelle
     if (x.vengeance) d *= 1 + x.vengeance * (1 - Math.max(0, x.cur) / x.hp);   // Vergeltung: je weniger eigenes Leben, desto härter
     if (x.weakN > 0) d *= 1 - x.weak;                  // geschwächt: macht weniger Schaden
     if (y.vulnN > 0) d *= 1 + y.vuln;                  // verwundbar: nimmt mehr Schaden

@@ -36,7 +36,7 @@ for (const cls of D.PLAYABLE) for (const L of LV) for (let rep = 0; rep < REPS; 
   const ref = { off: gain('ring1', main, tierVal(main, L)) - p0, def: gain('ring1', 'con', tierVal('con', L)) - p0 };
   for (const a of D.AFFIXES) {
     if (a.cls && a.cls !== cls) continue;
-    if (a.notKind?.includes(D.CLASSES[cls].weapon) && a.slots?.every(s => s === 'weapon')) continue;   // würfelt nie auf der Waffe dieser Klasse
+    if ((a.notKind?.includes(D.CLASSES[cls].weapon) || (a.kind && a.kind !== D.CLASSES[cls].weapon)) && a.slots?.every(s => s === 'weapon')) continue;   // würfelt nie auf der Waffe dieser Klasse
     const slot = !a.slots ? 'ring1' : a.slots.includes('ring') ? 'ring1' : a.slots[0] === 'weapon' ? 'weapon' : a.slots[0];
     const unit = 10;                                         // 10 Punkte bzw. 10 % messen (Grenzwert)
     const g = gain(slot, a.stat, unit) - p0, r = ref[DEF.has(a.stat) ? 'def' : 'off'];

@@ -552,8 +552,8 @@ export function descEnemy(nd, u = G.S.desc.unrest) {
     m.name = `${m.name} (Elite)`; }
   return m;
 }
-// Resistenz-Malus je Tiefe (DESCENT.resMalus, heute v: 0 = aus) – wirkt vor dem Deckel, wie im Kampf (resPen)
-export const descResPen = d => Math.floor((d || 0) / DESCENT.resMalus.per) * DESCENT.resMalus.v;
+// Fluch der Tiefe (DESCENT.resMalus): Elementar-Resi −v je `per` Tiefen, höchstens −max – wirkt vor dem Deckel (resPen im Kampf)
+export const descResPen = d => { const M = DESCENT.resMalus; return Math.min(M.max, Math.floor((d || 0) / M.per) * M.v); };
 const descHero = () => { const A = { ...G.stats(), belt: G.beltCombat() }; A.cur0 = Math.max(1, Math.round(A.hp * G.S.desc.hpf)); A.resPen = descResPen(G.S.desc.d); return A; };
 // Siegchance mit dem Leben, das du gerade hast (j = Raum-Index, 'boss' oder 'stair')
 export function descChance(j) {

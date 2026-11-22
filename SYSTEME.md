@@ -18,7 +18,9 @@ eines Systems seinen Block hier lesen** (`grep -n '^\*\*' SYSTEME.md` zeigt die 
   `resOf`/`resMul`/`mixOf`/`armorRed` in combat.js, angewandt in `finish()` (Hieb und Zauber). **Rüstung mindert nur den physischen
   Anteil**, Feuer/Eis gehen vorbei (auch Zauber der Zauberin → „Rüstung ignorieren“ ist für sie fast wertlos, `penp` nicht auf Stäben).
   Deckel Elementar `CFG.resCap` 75 %, Phys. `CFG.resCapPhys` 50 % (D2). `stats().res` ist roh (Werte-Ansicht zeigt beides).
-  Affixe `physr`/`elemr` (Suffix, Rüstung+Schmuck, Stufe I 20–23 / 26–30 %).
+  Affixe `physr`/`elemr` (Suffix, Rüstung+Schmuck, Stufe I 20–23 / 26–30 %). **Elementar-Durchdringung** `elemPen` (PoE):
+  zieht nach dem Deckel ab, darf unter 0 (Zauberin-Passiv 15 % + 25 % Elem.-Resi; Bonus `elempenp` nur auf Stäben).
+  **Fluch der Tiefe** `DESCENT.resMalus` −10 % Elem.-Resi je 10 Tiefen, höchstens −30 % (`descResPen`, Anzeige im Abgrund).
   `power()` rechnet gegen den gemittelten Gegner (`FOE_MIX`/`FOE_RES`, aus den Daten). Abgrund-Malus `DESCENT.resMalus` (heute v: 0).
 - **Waffen-Deckel** `wpnDmg(it, heldenstufe)` in loot.js: Grundschaden wirkt höchstens wie GS Heldenstufe + `CFG.wpnLvlAdd`;
   Tooltip zeigt „wirksam …“ + „voll ab Heldenstufe N“.

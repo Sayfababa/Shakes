@@ -4,7 +4,7 @@ export const CLASSES = {
   paladin:   { name: 'Paladin', main: 'str', portrait: 'paladin', hp: 5, desc: 'Heiliger Schild. Blockt 25% aller Angriffe.', weapon: 'sword', passive: { block: 0.25 } },
   assassin:  { name: 'Assassine', main: 'dex', portrait: 'assassin', hp: 5.5, desc: 'Klingen im Schatten. Erhöhte kritische Treffer, Bluten.', weapon: 'dagger', passive: { crit: 0.12, bleed: 0.25 } },
   huntress:  { name: 'Jägerin', main: 'dex', portrait: 'huntress', hp: 4.5, desc: 'Pfeil und Geduld. Erster Schuss immer vor dem Gegner.', weapon: 'bow', passive: { first: 1 } },
-  sorceress: { name: 'Zauberin', main: 'int', portrait: 'sorceress', hp: 4.6, desc: 'Arkanes Feuer. Ignoriert Rüstung zur Hälfte.', weapon: 'staff', passive: { pen: 0.5 } },
+  sorceress: { name: 'Zauberin', main: 'int', portrait: 'sorceress', hp: 4.6, desc: 'Arkanes Feuer. Selbst 25 % Elem.-Resi, durchdringt 15 % Elem.-Resi der Gegner.', weapon: 'staff', passive: { elemPen: 0.15, elemRes: 0.25 } },
   witch:     { name: 'Grabhexe', main: 'int', portrait: 'witch', hp: 4.6, desc: 'Totenmagie. Entzieht 20% des Schadens als Leben.', weapon: 'wand', passive: { leech: 0.2 } },
 };
 // Welle 1a (Besitzer 2026-11-21): nur diese drei sind wählbar. Paladin, Jägerin, Hexe bleiben im Code und kommen später wieder.
@@ -90,6 +90,8 @@ export const AFFIXES = [
   // Resistenzen (Welle 2a): klein je Teil (Stufe I ≈ 9–10 %), Deckel CFG.resCap – beide auf 75 % zu bringen braucht fast jeden Platz.
   // Eigene Gruppen: ein Teil darf beide tragen. per geeicht gegen Konstitution (tests/calib.mjs).
   { stat: 'physr', per: 1.5, pre: 'Eherner', suf: 'des Steins', pct: 1, label: 'Phys.-Resi', side: 'suf', slots: RES_SLOTS },
+  // Elementar-Durchdringung (PoE): nur auf Stäben – wirkt nur auf Feuer/Eis, sonst toter Bonus für Hieb-Klassen
+  { stat: 'elempenp', per: 1, pre: 'Glühender', suf: 'der Durchdringung', pct: 1, label: 'Elem.-Durchdringung', side: 'pre', slots: ['weapon'], kind: 'staff' },
   { stat: 'elemr', per: 2, pre: 'Gebannter', suf: 'der Elemente', pct: 1, label: 'Elem.-Resi', side: 'suf', slots: RES_SLOTS },
 ];
 // Zauber-Boni (nur auf Waffen der Klasse, die den Zauber hat): "+N % Feuerball" stärkt Schaden/Heilung/Schild/Wirkung des Zaubers.
@@ -290,12 +292,12 @@ export const SELL = { share: 0.5, legendMat: 1,
 
 // mix/res: Schadensart und Resistenz (siehe ELEMENTS) – vor dem Kampf sichtbar (Vorbereitung, enemyInfo)
 export const MONSTERS = [
-  { name: 'Verfaulter Ghul', glyph: 'ghul', mat: 'zahn' }, { name: 'Gefallener', glyph: 'fallen', mat: 'asche', mix: { fire: 0.5 } },
+  { name: 'Verfaulter Ghul', glyph: 'ghul', mat: 'zahn' }, { name: 'Gefallener', glyph: 'fallen', mat: 'asche', mix: { fire: 0.4 } },
   { name: 'Skelettkrieger', glyph: 'skelett', mat: 'staub', mix: { cold: 0.3 }, res: { phys: 0.1 } }, { name: 'Grabräuber', glyph: 'grabraeuber', mat: 'leinen' },
-  { name: 'Pestratte', glyph: 'pestratte', mat: 'schwanz' }, { name: 'Kultist der Glocke', glyph: 'kultist', mat: 'siegel', mix: { fire: 0.6 }, res: { elem: 0.1 } },
-  { name: 'Blutfürst', glyph: 'blutfuerst', mat: 'blutstein', mix: { fire: 0.4 } }, { name: 'Sumpfhexe', glyph: 'sumpfhexe', mat: 'haar', mix: { cold: 0.7 }, res: { elem: 0.15 } },
+  { name: 'Pestratte', glyph: 'pestratte', mat: 'schwanz' }, { name: 'Kultist der Glocke', glyph: 'kultist', mat: 'siegel', mix: { fire: 0.4 }, res: { elem: 0.1 } },
+  { name: 'Blutfürst', glyph: 'blutfuerst', mat: 'blutstein', mix: { fire: 0.4 } }, { name: 'Sumpfhexe', glyph: 'sumpfhexe', mat: 'haar', mix: { cold: 0.5 }, res: { elem: 0.15 } },
   { name: 'Knochenhund', glyph: 'knochenhund', mat: 'staub', mix: { cold: 0.3 } }, { name: 'Gehäuteter', glyph: 'gehaeuteter', mat: 'blutstein' },
-  { name: 'Höllenbrut', glyph: 'hoellenbrut', mat: 'asche', mix: { fire: 0.7 }, res: { elem: 0.2 } }, { name: 'Wiedergänger', glyph: 'wiedergaenger', mat: 'leinen', mix: { cold: 0.5 } },
+  { name: 'Höllenbrut', glyph: 'hoellenbrut', mat: 'asche', mix: { fire: 0.5 }, res: { elem: 0.2 } }, { name: 'Wiedergänger', glyph: 'wiedergaenger', mat: 'leinen', mix: { cold: 0.4 } },
 ];
 
 // Streifzüge: Orte mit eigenen Monstern. Freigeschaltet über Stufe.
@@ -601,7 +603,7 @@ export const EFFECT_NAMES = { dmgPct: 'Schaden', hpPct: 'Leben', armorPct: 'Rüs
   nohealSelf: 'Du kannst dich nicht heilen',
   hemorrhage: 'Bluten bei jedem Treffer – dafür nie kritisch', evadeCap: 'Ausweich-Grenze', critDmg: 'Krit-Schaden',
   tollback: 'Betäubung prallt zurück', firstEcho: 'Erster Zauber wirkt zweimal',
-  spellPct: 'Zauberschaden', ignite: 'Jeder Zauber setzt in Brand', physRes: 'Phys.-Resi', elemRes: 'Elem.-Resi' };
+  spellPct: 'Zauberschaden', ignite: 'Jeder Zauber setzt in Brand', physRes: 'Phys.-Resi', elemRes: 'Elem.-Resi', elemPen: 'Elementar-Durchdringung' };
 
 // --- Das Brett (neuer Talentbaum) ---
 // Drei Zweige, von unten nach oben: kleine Knoten, dazwischen zwei Notable (ändern eine Regel),
@@ -736,7 +738,7 @@ export const CRYPTS = [
   { id: 'c3', name: 'Das Schlachthaus', lvl: 12, glyph: 'ghoul', floors: ['Gehäuteter', 'Gefallener', 'Blutfürst', 'Höllenbrut'],
     boss: { name: 'Der Metzger von Vhal', glyph: 'butcher', mech: { execute: 0.6, rage: 0.4 }, mechText: 'Wird rasend und schlachtet Geschwächte', res: { phys: 0.2 } }, trophy: { crit: 0.03 } },
   { id: 'c4', name: 'Turm der Glocke', lvl: 20, glyph: 'horn', floors: ['Kultist der Glocke', 'Sumpfhexe', 'Blutfürst', 'Höllenbrut'],
-    boss: { name: 'Der Glöckner', glyph: 'bellringer', mech: { toll: 1 }, mechText: 'Jeder dritte Schlag betäubt dich', mix: { fire: 0.25, cold: 0.15 }, res: { phys: 0.1 } }, trophy: { armorPct: 0.1, hpPct: 0.05 } },
+    boss: { name: 'Der Glöckner', glyph: 'bellringer', mech: { toll: 1 }, mechText: 'Jeder dritte Schlag betäubt dich', mix: { fire: 0.25, cold: 0.15 } }, trophy: { armorPct: 0.1, hpPct: 0.05 } },
   { id: 'c5', name: 'Die Glocke', lvl: 26, shards: 4, floors: ['Kultist der Glocke', 'Wiedergänger', 'Blutfürst', 'Höllenbrut'],
     boss: { name: 'Der Kronenlose', glyph: 'self', mech: { mirror: 1 }, mechText: 'Kämpft mit deinen eigenen Talenten', mix: { fire: 0.25, cold: 0.25 }, res: { phys: 0.1, elem: 0.1 } }, trophy: { dmgPct: 0.1, hpPct: 0.1 } },
 ];
@@ -806,7 +808,7 @@ export const SPELL_TREE = {
   frost: [[W('frostruestung', 'Frostrüstung', '40 % des Schadens als Schild', { shieldGain: 0.4 }), W('raschekaelte', 'Rasche Kälte', 'Lädt 1 Zug schneller, +15 % Schaden', { every: -1, mult: 0.15 })],
     [W('sproede', 'Spröde', 'Gegner nimmt 4 Züge +35 % Schaden', { vuln: { v: 0.35, n: 4 } }), W('erfrierung', 'Erfrierung', 'Gegner macht 4 Züge 30 % weniger Schaden', { weaken: { v: 0.3, n: 4 } })],
     [W('ewigerwinter', 'Ewiger Winter', 'Betäubt 2 Züge', { stunTurns: 2 }), W('splittern', 'Splittern', '+100 % gegen unverwundete Gegner (über 70 % Leben)', { fresh: 1 })]],
-  meteor: [[W('sternenfall', 'Sternenfall', 'Wirkt sofort zu Kampfbeginn, 25 % weniger Schaden', { open: 1, mult: -0.25 }), W('einschlag', 'Einschlag', 'Betäubt immer, +15 % Schaden', { stun: 1, mult: 0.15 })],
+  meteor: [[W('sternenfall', 'Sternenfall', 'Wirkt sofort zu Kampfbeginn, 35 % weniger Schaden', { open: 1, mult: -0.35 }), W('einschlag', 'Einschlag', 'Betäubt immer, +15 % Schaden', { stun: 1, mult: 0.15 })],
     [W('glutfeld', 'Glutfeld', 'Brand: 25 % je Runde, 3 Runden', { burn: { v: 0.25, n: 3 } }), W('komet', 'Kometenschweif', 'Lädt 2 Züge schneller', { every: -2 })],
     [W('weltenbrand', 'Weltenbrand', '+20 % Schaden, +150 % gegen Gegner unter 30 % Leben', { execute: 1.5, mult: 0.2 }), W('gestirn', 'Gestirn', '+45 % Krit-Chance', { crit: 0.45 })]],
   // Grabhexe
@@ -989,7 +991,7 @@ export const DESCENT = {
   // `mods` je Tiefe: Platz für Siegel/Modifikatoren (Welle 2) – heute leer.
   diff: 1, lvlBase: 3, lvlPer: 2, diffPer: 0.02,
   depthMods: [],                    // Welle 2: [{ from: Tiefe, id, … }] – descAt() hängt sie an
-  resMalus: { per: 10, v: 0 },      // Resistenz-Malus: je `per` Tiefen −v auf beide Resistenzen (vor dem Deckel). Heute aus (v: 0).
+  resMalus: { per: 10, v: 0.1, max: 0.3 },   // Fluch der Tiefe: je `per` Tiefen −v Elementar-Resi (vor dem Deckel, wie D2 Hölle/PoE), höchstens −max
   gold: 1.1, xp: 0.6,               // gegenüber einem Krypta-Kampf
   item: 0.35, eliteMinR: 2, bossMinR: 3,
   heart: 0.1, eliteHeart: 0.35,

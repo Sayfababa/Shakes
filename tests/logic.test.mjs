@@ -1366,7 +1366,7 @@ const C = await import('../js/combat.js');
 const firstDmg = (r, who, pred) => r.log.find(l => l.who === who && l.dmg && pred(l))?.dmg;
 
 test('Schadensarten: Feuer/Eis gegen Elementar-Resi, Hiebe gegen Phys.-Resi, Gegner verteilen ihren Schaden', () => {
-  fresh('sorceress'); G.S.lvl = 20; const A = { ...G.stats() }; A.hp *= 200;   // zäh genug, dass er zum Zaubern kommt
+  fresh('sorceress'); G.S.lvl = 20; const A = { ...G.stats(), elemPen: 0 }; A.hp *= 200;   // zäh genug zum Zaubern; ohne Durchdringung (eigener Test)
   assert.equal(A.spells.find(s => s.id === 'feuerball').el, 'fire'); assert.equal(A.spells.find(s => s.id === 'frost').el, 'cold');
   const B = G.makeMonster(20, 1, D.MONSTERS[0]); B.hp *= 50;
   const run = res => seeded(7, () => fight(A, { ...B, res }));
@@ -1375,7 +1375,7 @@ test('Schadensarten: Feuer/Eis gegen Elementar-Resi, Hiebe gegen Phys.-Resi, Geg
   // gleicher Würfel: Feuerball halbiert sich gegen Elementar-Resi, nicht gegen Phys.-Resi; beim Hieb umgekehrt
   assert.ok(Math.abs(firstDmg(rE, 'a', fb) - firstDmg(r0, 'a', fb) * 0.5) <= 1, 'Feuer ignoriert Elementar-Resi');   // ±1: ganze Zahlen
   assert.equal(firstDmg(rP, 'a', fb), firstDmg(r0, 'a', fb), 'Feuer wird von Phys.-Resi gebremst');
-  assert.ok(Math.abs(firstDmg(rP, 'a', hb) / firstDmg(r0, 'a', hb) - 0.5) < 0.05, 'Hieb ignoriert Phys.-Resi');
+  assert.ok(Math.abs(firstDmg(rP, 'a', hb) - firstDmg(r0, 'a', hb) * 0.5) <= 1, 'Hieb ignoriert Phys.-Resi');
   // Gegner mit 60 % Feuer: gegen 50 % Elementar-Resi bleiben 1 − 0,6 × 0,5 = 70 % seines Hiebs
   assert.ok(Math.abs(C.resMul({ fire: 0.6 }, { res: { elem: 0.5 } }) - 0.7) < 1e-9);
   // Rüstung (D2/PoE) wirkt nur auf den physischen Anteil: 40 % phys. × (1 − 0,5 Rüstung) + 60 % Feuer
@@ -1392,10 +1392,10 @@ test('Schadensarten: Feuer/Eis gegen Elementar-Resi, Hiebe gegen Phys.-Resi, Geg
   for (const b of [...D.CRYPTS.map(c => c.boss), ...D.ACTS.map(a => a.boss)]) assert.ok(b.mix || b.res, `Boss ohne Schadensart/Resi: ${b.name}`);
   // Vor dem Kampf sichtbar: enemyInfo nennt Mischung und Resi, „Trifft dich“ rechnet deine Resi ein
   const H = G.makeMonster(20, 1, D.MONSTERS.find(m => m.name === 'Höllenbrut')), e0 = Game.enemyInfo(H, A), e1 = Game.enemyInfo(H, { ...A, res: { phys: 0, elem: 0.5 } });
-  assert.equal(e0.mix.fire, 0.7); assert.equal(e0.res.elem, 0.2); assert.ok(e1.hit[1] < e0.hit[1], 'Resi senkt „Trifft dich“ nicht');
+  assert.equal(e0.mix.fire, 0.5); assert.equal(e0.res.elem, 0.2); assert.ok(e1.hit[1] < e0.hit[1], 'Resi senkt „Trifft dich“ nicht');
 });
 
-test('Resistenzen: aus Teilen summiert, im Kampf bei 75 % gedeckelt, Malus wirkt vor dem Deckel', () => {
+test('Resistenzen: aus Teilen summiert, im Kampf bei 75 % gedeckelt, Malus vor dem Deckel (gedeckelt), Durchdringung danach', () => {
   fresh('barbarian'); G.S.lvl = 30;
   G.S.equip.helm = makeItem(30, { slot: 'helm' }); G.S.equip.helm.mods = { elemr: 50, physr: 10 };
   G.S.equip.ring1 = makeItem(30, { slot: 'ring' }); G.S.equip.ring1.mods = { elemr: 40 };
@@ -1404,12 +1404,19 @@ test('Resistenzen: aus Teilen summiert, im Kampf bei 75 % gedeckelt, Malus wirkt
   assert.equal(C.resOf({ res: { phys: 0.8 } }, 'phys'), D.CFG.resCapPhys, 'Phys.-Resi: Deckel 50 % (D2) greift nicht');
   assert.equal(C.resOf({ res: { elem: 0.9 }, resPen: 0.1 }, 'elem'), 0.75, 'Malus vor dem Deckel: 90 − 10 = 80 → 75');
   assert.ok(Math.abs(C.resOf({ res: { elem: 0.5 }, resPen: 0.2 }, 'elem') - 0.3) < 1e-9);
+  assert.equal(C.resOf({ res: { phys: 0.3 }, resPen: 0.2 }, 'phys'), 0.3, 'Malus trifft nur Elementar (D2/PoE)');
+  // Durchdringung (PoE): nach dem Deckel, darf unter 0 gehen – Gegner ohne Resi nimmt dann mehr
+  assert.ok(Math.abs(C.resOf({ res: { elem: 0.9 } }, 'elem', 0.1) - 0.65) < 1e-9, '75 − 10 = 65');
+  assert.ok(Math.abs(C.resMul(null, { res: {} }, 'fire', 0, 0.1) - 1.1) < 1e-9, 'Durchdringung gegen 0 % → +10 %');
+  assert.equal(C.resMul(null, { res: {} }, 'phys', 0, 0.5), 1, 'Durchdringung wirkt nicht auf Physisch');
   // Im Kampf: 90 % wirkt wie 75 % (gleicher Würfel, gleicher Schaden)
   const B = G.makeMonster(30, 1, D.MONSTERS.find(m => m.name === 'Höllenbrut')); A.hp *= 50;
   const hit = res => firstDmg(seeded(3, () => fight({ ...A, res }, B)), 'b', l => !l.spell);
   assert.equal(hit({ elem: 0.9 }), hit({ elem: 0.75 })); assert.ok(hit({ elem: 0.75 }) < hit({ elem: 0 }));
   // Abgrund: Malus je Tiefe ist ein Dateneintrag und heute aus
-  assert.ok(D.DESCENT.resMalus && D.DESCENT.resMalus.v === 0); for (const d of [1, 10, 50, 200]) assert.equal(Game.descResPen(d), 0);
+  // Fluch der Tiefe: −10 % je 10 Tiefen, aber gedeckelt (Ansage: höchstens −20/30, nie −200)
+  assert.equal(Game.descResPen(9), 0); assert.ok(Math.abs(Game.descResPen(10) - 0.1) < 1e-9); assert.ok(Math.abs(Game.descResPen(25) - 0.2) < 1e-9);
+  for (const d of [30, 50, 200, 5000]) assert.equal(Game.descResPen(d), D.DESCENT.resMalus.max); assert.ok(D.DESCENT.resMalus.max <= 0.3);
   // Affixe: nur Rüstungsteile und Schmuck, Werte wie D2 (Elementar Stufe I ≤ 30 %, Phys. ≤ 25 %): den Deckel erreicht man
   // erst mit mindestens drei Teilen der besten Stufe
   for (const k of ['physr', 'elemr']) { const a = D.AFFIXES.find(x => x.stat === k), hi = L.tierBand(a, D.TIERS[0])[1], cap = k === 'physr' ? D.CFG.resCapPhys : D.CFG.resCap;
@@ -1428,4 +1435,15 @@ test('Waffen-Deckel: Grundschaden wirkt höchstens wie Heldenstufe + 10, sichtba
   S.lvl = 49; assert.equal(L.wpnDmg(w, 49), w.dmg, 'ab Heldenstufe GS − 10 voll'); const b = G.stats().dmg;
   assert.ok(b[1] > a[1], 'höhere Heldenstufe hebt den Deckel nicht');
   S.lvl = 22; w.lvl = 20; assert.equal(L.wpnDmg(w, 22), w.dmg, 'Waffe unter dem Deckel wird gekürzt');
+});
+
+test('Zauberin: Passiv ist Elementar-Durchdringung, Stab-Bonus addiert sich, Kampf und Kampfkraft kennen sie', () => {
+  fresh('sorceress'); G.S.lvl = 20; const A = G.stats(); assert.ok(Math.abs(A.elemPen - 0.15) < 1e-9 && Math.abs(A.res.elem - 0.25) < 1e-9);
+  G.S.equip.weapon = makeItem(20, { slot: 'weapon', kind: 'staff' }); G.S.equip.weapon.mods = { elempenp: 10 }; const B = G.stats();
+  assert.ok(Math.abs(B.elemPen - 0.25) < 1e-9); assert.ok(G.power(B) > G.power({ ...B, elemPen: 0 }), 'power() kennt die Durchdringung nicht');
+  assert.ok(Ld.affixPool({ slot: 'weapon', kind: 'axe' }).every(a => a.stat !== 'elempenp'), 'Durchdringung würfelt auf Hieb-Waffen');
+  const M = G.makeMonster(20, 1, D.MONSTERS[0]); M.hp *= 50; const H = { ...B }; H.hp *= 200;
+  const fb = r => r.log.find(l => l.who === 'a' && l.spell === 'Feuerball' && l.dmg).dmg;
+  const with_ = fb(seeded(5, () => fight(H, M))), without = fb(seeded(5, () => fight({ ...H, elemPen: 0 }, M)));
+  assert.ok(Math.abs(with_ - without * 1.25) <= 1, `Feuerball +25 % gegen 0 % Resi: ${without} → ${with_}`);
 });

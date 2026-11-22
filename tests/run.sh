@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 
 ways() { node tests/ways.mjs all all 1500 --check > "$T/ways.full"; rc=$?; grep -E '^!!|Rahmen' "$T/ways.full"; return $rc; }
-pots() { for c in barbarian assassin sorceress; do node tests/potions.mjs $c all 300 --check > "$T/pot.$c" 2>&1 & done; wait
+pots() { for c in barbarian assassin sorceress; do node tests/potions.mjs $c all 600 --check > "$T/pot.$c" 2>&1 & done; wait
   grep -h '^!!' "$T"/pot.*; n=$(grep -l 'im Rahmen' "$T"/pot.* | wc -l); echo "Tränke im Rahmen: $n/3 Klassen"; [ "$n" -eq 3 ]; }
 acts() { node tests/acts.mjs all 3 --check > "$T/acts.full"; rc=$?; cat "$T/acts.full"; return $rc; }
 sets() { node tests/sets.mjs all all 400 --check > "$T/sets.full"; rc=$?; grep -E '^!!|Rahmen' "$T/sets.full"; return $rc; }

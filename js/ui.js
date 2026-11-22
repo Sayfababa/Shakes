@@ -11,7 +11,7 @@ export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'ar
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
 import { weakAdvice, wanderMap, wanderAct, wanderBusy, wanderDone, actEnemy, actChance, actOdds, packSlot, actCan, actZoneGlut, actZoneMob, pitWeek, pitPlace, pitRank, pitFoes, pitChance, pitOdds, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, cryptChance, cryptOdds, threatLabel, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
-  descCrypts, descLeft, descCanStart, descBusy, descLvl, descAt, descRec, descMaxDepth, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
+  descCrypts, descResPen, descLeft, descCanStart, descBusy, descLvl, descAt, descRec, descMaxDepth, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
 const P = cls => `assets/portraits/${CLASSES[cls].portrait}.jpg`;
@@ -789,7 +789,7 @@ function viewDescStart(st) {
   return `<div class="col desc">${cryptTabs('desc')}
     <section class="panel dhead">${monsterArt(c.boss.glyph)}<div><h2>Der Abgrund <span class="h2r seals" title="${DESCENT.sealDay} je Tag, Krypta-Bosse und neue Ränge"><img class="matimg" src="assets/forge/grabsiegel.webp" alt="">${left}/${DESCENT.sealMax}</span></h2>
       <div class="xhead"><button class="tiny" data-action="descc" data-d="-1" ${d <= 1 ? 'disabled' : ''}>‹</button><b>Tiefe ${d}</b><button class="tiny" data-action="descc" data-d="1" ${d >= max ? 'disabled' : ''}>›</button></div>
-      <p class="small dim">${c.name} · Gegner Stufe ${at.lvl} · oben wartet ${c.boss.name.split(',')[0]}: <i>${c.boss.mechText}</i></p>
+      <p class="small dim">${c.name} · Gegner Stufe ${at.lvl}${descResPen(d) ? ` · <b class="down">Elem.-Resi −${Math.round(descResPen(d) * 100)} %</b>` : ''} · oben wartet ${c.boss.name.split(',')[0]}: <i>${c.boss.mechText}</i></p>
       <p class="small drec">Rekord <b>Tiefe ${R.best}</b> · diese Woche <b class="${R.wBest >= R.best && R.best ? 'up' : ''}">${R.wBest}</b></p></div></section>
     <section class="panel drules"><h2>Rausholen oder verlieren</h2>
       <p class="small">Jeder Raum ein Kampf. <b>Leben und Trank-Ladungen füllen sich unten nicht auf.</b></p>

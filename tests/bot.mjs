@@ -130,6 +130,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.table(log.perDay);
     console.log('Quests:', log.quests.join(' '));
     console.log(`Akt-Bosse (Akt@Stufe): ${log.actBoss.join(' ')}`);
+    // BOTDIAG=1: wo steht er am Ende – Siegchance des nächsten Akt-Kampfs, der offenen Krypten, Kernwerte (für Hänger-Suche)
+    if (process.env.BOTDIAG) { const a = G.curAct(), z = G.actProg(a), st = G.stats(), pc = x => Math.round(x * 100);
+      console.log(`DIAG St.${S.lvl} Akt ${a.n} ${z}/9: ${G.actDone(a) ? '–' : pc(Game.actChance(a, z))} % · Krypten ${D.CRYPTS.filter(c => G.cryptOpen(c)).map(c => `${c.id}:${G.cryptTier(c)}@${pc(Game.cryptChance(c))}%`).join(' ')}`
+        + ` · Leben ${st.hp} Rüstung ${st.armor} Resi P${pc(st.res.phys)}/E${pc(st.res.elem)} Schaden ${st.dmg.join('–')} Int ${st.int}`); }
     console.log(`Kämpfe: Akte ${log.acts} neu + ${log.farm} gefarmt (−${log.actLoss}) · Grube ${log.pit} (−${log.pitLoss}) · Krypta ${log.crypt} (−${log.cryptLoss}) · Grube ${log.arena} (−${log.arenaLoss}) · gekauft ${log.bought} · Titel ${S.title || '-'}${pots ? ` · gebraut ${log.brewed} (${log.brewGold} Gold) · getrunken ${log.used} in ${log.potFights} Kämpfen` : ''}`);
     // Zutaten je Art: die Summe allein verbirgt, dass eine Zutat nur im letzten Akt fällt
     if (pots) { console.log('  Zutaten übrig: ' + Object.keys(D.HERBS).map(k => `${D.HERBS[k].name} ${S.herbs[k] || 0}`).join(' · '));

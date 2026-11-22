@@ -180,6 +180,7 @@ export function stats(p = S) {
     haste: (e.haste || 0) + (st.haste || 0) / 100,
     // Resistenzen roh (ungedeckelt): der Deckel CFG.resCap wirkt im Kampf (resOf), die Werte-Ansicht zeigt beides
     res: { phys: P('physr') + (e.physRes || 0), elem: P('elemr') + (e.elemRes || 0) },
+    elemPen: (e.elemPen || 0) + P('elempenp'),   // Elementar-Durchdringung: Klasse (Zauberin) + Stab-Bonus
     armor: Math.round((st.armor + st.str * CFG.strArmor) * (1 + (e.armorPct || 0))),
     dmg: [Math.round((base[0] + st.dmgBonus) * dm), Math.round((base[1] + st.dmgBonus) * dm)],
     hp: Math.round(st.con * c.hp * (CFG.hpBase + p.lvl * CFG.hpPerLvl) * (1 + (e.hpPct || 0) + P('lifep'))) };
@@ -227,7 +228,7 @@ export function power(A = stats()) {
   const stunner = (A.spells || []).some(s => s.kind === 'stun' || s.m?.stun), dotter = (A.spells || []).some(s => s.kind === 'dot' || s.m?.poison);
   for (const s of A.spells || []) {
     const m = s.m || {}, cm = (A.critMult || 2) - 1;
-    const elem = s.el && s.el !== 'phys', sd = strike * A.amp * (elem ? 1 : 1 - red) * hit * onHit * resMul(null, FOE_RES, s.el || 'phys');   // Feuer/Eis: an der Rüstung vorbei
+    const elem = s.el && s.el !== 'phys', sd = strike * A.amp * (elem ? 1 : 1 - red) * hit * onHit * resMul(null, FOE_RES, s.el || 'phys', 0, A.elemPen || 0);   // Feuer/Eis: an der Rüstung vorbei
     const b = s.boost || 1;   // Zauber-Bonus von der Waffe und Wege (mult)
     let v = b * (s.kind === 'multi' ? sd * s.mult * s.hits : s.kind === 'dot' ? sd * s.mult * 3 : s.kind === 'buff' ? dpt * s.v * 2
       : s.kind === 'heal' || s.kind === 'shield' ? 0 : sd * s.mult * (s.kind === 'mark' ? 1.4 : s.kind === 'stun' ? 1.5 : 1));
