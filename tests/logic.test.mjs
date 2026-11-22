@@ -1517,7 +1517,7 @@ test('Siegel des Abgrunds: einlegen, bereinigen, verbrauchen, wirken; alter Stan
   // Wirkung auf den Boss: gleicher Zufall, mit Blutsiegel stärker
   const boss = () => { const r = Math.random; let k = 1; Math.random = () => (k = (k * 16807) % 2147483647) / 2147483647; try { return Game.descEnemy('boss'); } finally { Math.random = r; } };
   const withS = boss(); const keep = D0.sig; D0.sig = []; const without = boss(); D0.sig = keep;
-  assert.ok(withS.hp > without.hp * 1.15 && withS.dmg[1] > without.dmg[1], `Blutsiegel: Boss ${withS.hp} gegen ${without.hp}`);
+  assert.ok(withS.hp > without.hp * (1 + fx.foe / 2) && withS.dmg[1] > without.dmg[1], `Blutsiegel: Boss ${withS.hp} gegen ${without.hp}`);
   // Seelensiegel: mehr Elite-Räume (Karte)
   const c = D.CRYPTS[0], el = f => { let n = 0; for (let i = 0; i < 300; i++) n += Game.descMap(c, f).flat().filter(x => x.t === 'elite').length; return n; };
   assert.ok(el(Game.sigFx([{ id: 'seele', t: 3 }])) > el(Game.sigFx([])) * 1.5, 'Elite häufiger');
