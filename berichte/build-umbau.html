@@ -1,0 +1,272 @@
+<title>Build-Umbau Aschenkrone</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@600&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+SC:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: eine Lesespalte wie die beiden Vorgänger-Berichte; Tabellen scrollen in sich. Bewusst nur dunkel – die Farbwelt des Spiels. */
+:root {
+  --bg: #0e0b08; --panel: #17120d; --line: #3a2d20; --fg: #e4d8c2; --dim: #a89676;
+  --gold: #c9a24e; --blood: #c2412f; --ok: #8fb36a; --cold: #8fbfe6;
+  --f-display: 'Grenze Gotisch', 'Alegreya', Georgia, serif;
+  --f-body: 'Alegreya', Georgia, 'Times New Roman', serif;
+  --f-label: 'Alegreya SC', 'Alegreya', Georgia, serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 17px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; }
+main { max-width: 48rem; margin: 0 auto; display: flex; flex-direction: column; gap: 1.1rem; }
+h1 { font-family: var(--f-display); color: var(--gold); font-size: clamp(2rem, 6vw, 2.8rem); line-height: 1.05; margin: 0; text-wrap: balance; font-weight: 600; }
+h2 { font-family: var(--f-display); color: var(--gold); font-size: 1.65rem; margin: 1.6rem 0 0; font-weight: 600; text-wrap: balance; border-bottom: 1px solid var(--line); padding-bottom: .25rem; }
+h3 { font-family: var(--f-label); color: var(--fg); font-size: 1.1rem; margin: .8rem 0 0; letter-spacing: .02em; }
+p, ul, ol { margin: 0; } ul, ol { padding-left: 1.3rem; display: flex; flex-direction: column; gap: .35rem; }
+.lede { color: var(--dim); font-size: 1.05rem; }
+.meta { font-family: var(--f-label); color: var(--dim); font-size: .85rem; letter-spacing: .04em; }
+b, strong { color: var(--gold); font-weight: 700; }
+code { font-family: var(--f-mono); font-size: .82em; color: var(--cold); }
+.src { font-family: var(--f-mono); font-size: .75rem; color: var(--dim); }
+.box { background: var(--panel); border: 1px solid var(--line); padding: .9rem 1rem; display: flex; flex-direction: column; gap: .5rem; }
+.box h3 { margin: 0; color: var(--gold); }
+.warn { border-color: #6b2a1f; }
+.tw { overflow-x: auto; border: 1px solid var(--line); }
+table { border-collapse: collapse; width: 100%; font-size: .86rem; font-variant-numeric: tabular-nums; }
+th, td { padding: .36rem .5rem; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-label); font-weight: 500; color: var(--dim); background: var(--panel); letter-spacing: .03em; white-space: nowrap; }
+td.n { text-align: right; white-space: nowrap; }
+tr.hl td { background: rgba(201,162,78,.08); }
+tr.sec td { font-family: var(--f-label); color: var(--gold); background: var(--panel); }
+.up { color: var(--ok); } .down { color: var(--blood); }
+.tag { font-family: var(--f-label); font-size: .78rem; padding: 0 .4rem; border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
+.tag.ok { color: var(--ok); border-color: #3f5a2c; } .tag.no { color: var(--blood); border-color: #6b2a1f; } .tag.hy { color: var(--cold); border-color: #2f4a63; }
+.keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .6rem; }
+.keys .box p { font-size: .95rem; }
+a { color: var(--gold); }
+a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+</style>
+
+<main>
+<p class="meta">Aschenkrone · Balancing-Bericht 3 · 22.11.2026 · isolierte Testumgebung, am Spiel nichts geändert</p>
+<h1>Build-Umbau, simuliert</h1>
+<p class="lede">Sechs Schritte: Ursache des Leben-Vorteils, exklusive Schlüsselsteine, Müllerin und Aldemar, Glück als Farm-Attribut, Attribut-Bindungen, Regression. Alle Zahlen stammen aus der echten Kampf-Engine (Kopie von <code>js/</code> mit schaltbaren Varianten), mit festem Zufallskeim, 3–4 Ausrüstungswürfen und Gegnern, die je Fall neu auf 50 % geeicht sind.</p>
+
+<div class="keys">
+  <div class="box warn"><h3>Ursache gefunden: der Zauber-Takt</h3><p>Der Kill fällt auf die Züge, in denen große Zauber kommen. <b>+20 % Schaden verkürzen die Zeit bis zum Kill nur um 4–8 %</b> statt der rechnerischen 17 %. +20 % Leben verlängern das Überleben um 17–20 %, beim Barbaren mit seinen Heilungen in Prozent vom Leben um 51 %. Ohne Zauber ist es fast ausgeglichen.</p></div>
+  <div class="box"><h3>Schlüsselsteine: drei Profile je Klasse möglich</h3><p>Mit drei gezielten Anpassungen (Barbar: alle drei Steine; Assassine: Ausbluten; Zauberin: Verbrennung) hat jeder Stein eine Lage, in der er vorn oder gleichauf liegt. Heute wäre Unsterblich ein Pflicht-Stein.</p></div>
+  <div class="box"><h3>Aldemar wird der Schadens-Boss</h3><p>Gift +1,5 % des maximalen Lebens je Treffer, stapelnd: Offensive Builds gewinnen hier in allen drei Klassen vor dem Koloss. Defensive Builds behalten mit Gegengift eine Antwort (Barbar-Koloss St. 20: 42 → 93 %).</p></div>
+  <div class="box warn"><h3>Das Kon-Optimum bleibt</h3><p>Innerhalb jedes Schlüsselsteins gewinnt die Verteilung mit 55 % Konstitution weiter fast jede Lage. Weder Tempo aus dem Hauptattribut noch abnehmender Ertrag (Kon<sup>0,6</sup>) schieben das Optimum unter 40–70 %. Die Verteilung ändert sich nur, wenn sich der Zauber-Takt ändert.</p></div>
+</div>
+
+<div class="box">
+  <h3>Empfehlung zur Umsetzung, in dieser Reihenfolge</h3>
+  <ol>
+    <li><b>Aldemar: Gift +1,5 % max. Leben je Treffer</b> und die Gefahr-Anzeige nennt es. Klein, gemessen wirksam, Gegenmittel vorhanden.</li>
+    <li><b>Ein Schlüsselstein je Brett</b> mit den Anpassungen B3, A5, Z3 (Abschnitt 2), Umstellung mit Erstattung und freier Neuwahl.</li>
+    <li><b>Müllerin: Zorn 10 % je Zug statt Raserei</b>, Stärke ×0,8. Nur Akt II, also Frühspiel, aber ihr Text wird damit wahr.</li>
+    <li><b>Drei Attribut-Bindungen</b>: Eisgrab Stärke→Wall, Schattenform Stärke→Leben, Ahnenruf Glück→Tempo. Nur diese drei haben gemessen gewirkt.</li>
+    <li><b>Glück-Beute</b> nach Variante L5, aber mit einem tieferen, stufenabhängigen Bezugswert. Diese Korrektur ist noch nicht gemessen (Abschnitt 4).</li>
+  </ol>
+  <p>Nicht umsetzen: Tempo aus dem Hauptattribut, Kon kürzen oder abflachen, „Schaden lädt Zauber“. Gemessen wirkungslos oder nur eine Schwächung aller Helden. Der nächste große Hebel ist der Zauber-Takt selbst, also der offene Vorschlag „Zauber-Bedingungen / Ladung behalten“. Dafür braucht es einen eigenen Prototyp.</p>
+</div>
+
+<h2>Schritt 1 · Warum Leben mehr wert ist als Schaden</h2>
+<p>Je Bedingung: Gegner neu geeicht, dann derselbe Kampfsatz dreimal mit <em>denselben Würfeln</em>: roh, +20 % Leben, +20 % Schaden. 4 Würfe × 1 000 Kämpfe. „Verh.“ = Siegpunkte für Leben ÷ Siegpunkte für Schaden.</p>
+<div class="tw"><table>
+<tr><th>Bedingung (Verh. Leben : Schaden)</th><th class="n">Barbar 20 / 40</th><th class="n">Assassine 20 / 40</th><th class="n">Zauberin 20 / 40</th><th>Urteil</th></tr>
+<tr><td>echt</td><td class="n">4,2 / 4,6</td><td class="n">2,3 / 3,5</td><td class="n">3,5 / 3,5</td><td>–</td></tr>
+<tr><td>Gegner-Krit aus</td><td class="n">4,5 / 4,6</td><td class="n">2,4 / 3,1</td><td class="n">3,9 / 4,6</td><td><span class="tag no">nicht die Ursache</span></td></tr>
+<tr><td>Serienbremse aus</td><td class="n">5,3 / 4,3</td><td class="n">2,1 / 2,2</td><td class="n">3,3 / 2,4</td><td><span class="tag hy">kleiner Anteil bei Ausweich-Klassen</span></td></tr>
+<tr><td>Held immer zuerst</td><td class="n">5,2 / 4,9</td><td class="n">2,2 / 2,2</td><td class="n">2,7 / 2,1</td><td><span class="tag hy">kleiner Anteil</span></td></tr>
+<tr><td>Gegner immer zuerst</td><td class="n">3,8 / 3,5</td><td class="n">2,2 / 3,1</td><td class="n">3,7 / 3,3</td><td><span class="tag no">nicht die Ursache</span></td></tr>
+<tr><td>Gegner-Schaden ohne Streuung</td><td class="n">4,9 / 5,7</td><td class="n">2,8 / 2,4</td><td class="n">3,0 / 6,1</td><td><span class="tag no">nicht die Ursache</span></td></tr>
+<tr><td>ohne Heilung in % des Lebens</td><td class="n">3,1 / 2,6</td><td class="n">2,2 / 1,8</td><td class="n">6,5 / 3,5</td><td><span class="tag ok">Teilursache</span> Barbar, Assassine</td></tr>
+<tr><td>Schaden lädt Zauber (Gegenprobe)</td><td class="n">5,4 / 4,8</td><td class="n">2,1 / 2,2</td><td class="n">6,5 / 4,2</td><td><span class="tag no">hilft nicht</span></td></tr>
+<tr class="hl"><td>ohne Zauber, Raserei, Heilung</td><td class="n">1,8 / 1,9</td><td class="n">1,3 / 1,1</td><td class="n">1,3 / 1,5</td><td><span class="tag ok">Hauptursache</span></td></tr>
+<tr><td>… dazu Krit, Streuung, Ausweichen aus</td><td class="n">1,5 / 1,7</td><td class="n">1,3 / 1,4</td><td class="n">1,1 / 1,4</td><td>Rest fast symmetrisch</td></tr>
+<tr><td>Held-Hiebe halbiert, doppelt so viele</td><td class="n">1,8 / 1,7</td><td class="n">1,3 / 1,1</td><td class="n">1,3 / 1,5</td><td><span class="tag no">Treffergröße egal</span></td></tr>
+<tr><td>Gegner-Hiebe halbiert, doppelt so viele</td><td class="n">2,0 / 1,8</td><td class="n">1,3 / 1,3</td><td class="n">1,3 / 1,5</td><td><span class="tag no">Treffergröße egal</span></td></tr>
+</table></div>
+<h3>Direkte Messung: Züge bis zum Kill und bis zum Tod</h3>
+<p>Gegen einen Gegner, der nicht zurückschlägt (Zeit bis zum Kill), und als wehrloser Held (Zeit bis zum Tod), St. 40, 600 Gegner mit wechselnden Würfeln.</p>
+<div class="tw"><table>
+<tr><th>Mittel der Züge</th><th class="n">Barbar</th><th class="n">Assassine</th><th class="n">Zauberin</th></tr>
+<tr><td>bis Kill, roh → +20 % Schaden</td><td class="n">7,21 → 6,92 (<span class="down">−4 %</span>)</td><td class="n">4,67 → 4,29 (−8 %)</td><td class="n">4,50 → 4,24 (−6 %)</td></tr>
+<tr><td>bis Kill, roh → +0,2 Zaubertempo</td><td class="n">7,21 → 6,31 (<span class="up">−12 %</span>)</td><td class="n">4,67 → 4,39 (−6 %)</td><td class="n">4,50 → 3,87 (<span class="up">−14 %</span>)</td></tr>
+<tr><td>bis Kill, roh → +20 % Zauberkraft</td><td class="n">7,21 → 7,02 (−3 %)</td><td class="n">4,67 → 4,45 (−5 %)</td><td class="n">4,50 → 4,25 (−6 %)</td></tr>
+<tr><td>bis Tod, roh → +20 % Leben</td><td class="n">7,34 → 11,06 (<span class="up">+51 %</span>)</td><td class="n">4,12 → 4,96 (+20 %)</td><td class="n">4,07 → 4,86 (+19 %)</td></tr>
+<tr><td colspan="4" class="src">ohne Zauber: Kill −14 / −12 / −14 %, Tod +18 / +15 / +19 %, also nahezu symmetrisch</td></tr>
+</table></div>
+<p><b>Gemessen:</b> Der Barbar tötet in 53 % der Kämpfe genau im 5. Zug (Wirbelwind) und in 28 % im 9. Zug. Mehr Schaden verschiebt diese Spitzen kaum. Leben dagegen verlängert das Überleben fast verhältnisgleich, und beim Barbaren überproportional, weil Blutdurst (15 %), Narbengewebe und Zuflucht in Prozent des Lebens heilen.</p>
+<p><b>Hypothese, nicht gemessen:</b> Weil Zauber 2- bis 3,5-fach zuschlagen und auf festen Zügen kommen, überschießt der Kill-Zauber meist. Zusätzlicher Schaden landet im Überschuss. Das deckt sich mit dem früheren Befund „40 % des Meteor-Schadens verschwendet“.</p>
+<p><b>Folge für den Umbau:</b> Jede Änderung, die nicht entweder Überleben kauft oder den Zauber-Takt beschleunigt, bleibt hinter Konstitution zurück. Das erklärt alle Ergebnisse in Schritt 5 und 6.</p>
+
+<h2>Schritt 2 · Ein Schlüsselstein je Brett</h2>
+<h3>Wie es technisch geht</h3>
+<ul>
+  <li><b>Regel:</b> In <code>nodeState()</code> (state.js:90) ist der letzte Knoten einer Spalte gesperrt, solange ein anderer Schlüsselstein Ränge hat. Beim Barbaren (alter Baum) dasselbe in <code>talentState()</code> für Stufe 2 jedes Zweigs. Die Steine sind schon am Ende jeder Spalte, eine Markierung <code>key: 1</code> in <code>data.js TREE</code> macht das ausdrücklich.</li>
+  <li><b>Bestehende Spielstände:</b> Talentpunkte sind <code>Stufe − 1 − ausgegeben</code> (state.js:67). Wer heute zwei oder drei Steine hat, verliert beim Laden <em>alle</em> Schlüsselstein-Ränge. Die Punkte stehen damit automatisch wieder zur Verfügung, ohne Rechenschritt. Dazu kommt ein einmaliger Hinweis („Schlüsselsteine sind jetzt einzeln – wähle einen“). Das Spielstand-Format ändert sich nicht, <code>SAVE_VERSION</code> bleibt.</li>
+  <li><b>Kostenloses Umlernen:</b> Die erste Neuwahl eines Steins kostet nichts (Feld <code>S.ksFree</code>, analog zur ersten freien Läuterung). Danach wie heute über die Läuterung.</li>
+  <li><b>Zu beachten:</b> Verbrennung teilt <code>nohealSelf</code> mit zwei Einzigartigen (Die Lange Stille, Haube des Pakts). Variante Z3 nimmt das Verbot nur aus dem Stein, die Einzigartigen bleiben unverändert.</li>
+</ul>
+<h3>Die neun Steine einzeln, heute</h3>
+<p>Andere Steine gesperrt, Spalte des Steins zuerst gefüllt, Rest gierig nach Kampfkraft. Standard-Verteilung (55 % Haupt, 30 % Kon). Gegner auf den Mittelwert der drei Steine geeicht. 3 Würfe × 300 Kämpfe normal, 150 je Boss, 100 je Elite-Art, 37 Abstiege je Tiefe.</p>
+<div class="tw"><table>
+<tr><th>St. 40, Sieg %</th><th class="n">normal</th><th class="n">Bosse min–max</th><th class="n">Elite Ø</th><th class="n">Abgrund T19/T21</th><th>Lage, in der er vorn liegt</th></tr>
+<tr class="sec"><td colspan="6">Barbar</td></tr>
+<tr><td>Schlächter</td><td class="n">43</td><td class="n">12–97</td><td class="n">33</td><td class="n">0/0</td><td><span class="tag no">keine</span></td></tr>
+<tr class="hl"><td>Unsterblich</td><td class="n">62</td><td class="n">20–99</td><td class="n">48</td><td class="n">0/0</td><td>alle (Pflicht-Stein)</td></tr>
+<tr><td>Ahnenruf</td><td class="n">43</td><td class="n">11–95</td><td class="n">35</td><td class="n">0/0</td><td><span class="tag no">keine</span></td></tr>
+<tr class="sec"><td colspan="6">Assassine</td></tr>
+<tr><td>Ausbluten</td><td class="n">32</td><td class="n">5–58</td><td class="n">24</td><td class="n">3/0</td><td><span class="tag no">keine</span></td></tr>
+<tr><td>Schattenform</td><td class="n">56</td><td class="n">15–86</td><td class="n">46</td><td class="n">18/6</td><td>normal, Elite, Abgrund (St. 20–30)</td></tr>
+<tr><td>Schwarzer Lotus</td><td class="n">59</td><td class="n">19–96</td><td class="n">57</td><td class="n">32/9</td><td>Bosse; St. 40 überall</td></tr>
+<tr class="sec"><td colspan="6">Zauberin</td></tr>
+<tr><td>Verbrennung</td><td class="n">49</td><td class="n">38–87</td><td class="n">43</td><td class="n">17/5</td><td><span class="tag no">keine</span></td></tr>
+<tr><td>Eisgrab</td><td class="n">56</td><td class="n">58–88</td><td class="n">49</td><td class="n">54/24</td><td>normal, Elite, Abgrund</td></tr>
+<tr><td>Nachhall</td><td class="n">48</td><td class="n">56–92</td><td class="n">47</td><td class="n">48/20</td><td>Bosse (St. 20 überall)</td></tr>
+</table></div>
+<p>Exklusivität heute einzuführen hieße: Unsterblich Pflicht, Ausbluten und Verbrennung tot. Deshalb die Anpassungen zuerst.</p>
+<h3>Getestete Anpassungen</h3>
+<div class="tw"><table>
+<tr><th>Variante</th><th>Änderung</th><th>Ergebnis</th></tr>
+<tr><td>B1</td><td>Unsterblich Leben 20 → 10 %</td><td>Unsterblich weiter vorn (St. 40: 61 gegen 47/51)</td></tr>
+<tr><td>B2</td><td>B1 + Dornen 25 %; Schlächter Henker 1,0, Schwelle +10 %; Ahnenruf Krit 0,15, Krit-Schaden +50 %</td><td>St. 40 Abstand 11–13 Punkte</td></tr>
+<tr class="hl"><td><b>B3</b></td><td>Unsterblich Leben 8 %, Dornen 30 %; Schlächter Henker 1,2, Schwelle +15 %, Leben +5 %; Ahnenruf Krit 0,15, Krit-Schaden +60 %, Schaden +15 %</td><td><span class="tag ok">St. 40 ausgeglichen</span> Schlächter normal 54 und Elite 44, Ahnenruf Aldemar 29 und Kronenloser 23, Unsterblich 50. Auf St. 20–30 bleibt Unsterblich vorn (80 gegen 36/41)</td></tr>
+<tr><td>A1 / A2</td><td>Ausbluten: Blutung stapelt bis 12 / 20 % des Gegnerlebens</td><td><span class="tag no">reicht nicht</span> 22–38 %</td></tr>
+<tr><td>A3 / A4</td><td>stapelnd + Blutung +0,6 / +1,0</td><td><span class="tag no">reicht nicht</span> 30–47 %</td></tr>
+<tr class="hl"><td><b>A5</b></td><td>Ausbluten: Blutung +1,2, Rüstung ignorieren 20 % (ohne Stapeln)</td><td><span class="tag ok">drei Profile</span> Ausbluten führt St. 20–30 normal (62/60) und Elite (53/43), Lotus die Bosse, Schattenform den Abgrund auf St. 20 (T11 28 %). St. 40: Lotus 54, Ausbluten 50, Schatten 48</td></tr>
+<tr><td>Z1</td><td>Verbrennung: Brand verhindert Heilung des Gegners (<span class="tag hy">neue Regel</span>)</td><td>Verbrennung gleichauf, noch nirgends vorn</td></tr>
+<tr><td>Z2</td><td>Z1 + Brand 1,0, Zauberkraft +15 %, Selbstheil-Verbot bleibt</td><td>Eisgrab überall leicht vorn</td></tr>
+<tr class="hl"><td><b>Z3</b></td><td>wie Z2, <b>ohne</b> Selbstheil-Verbot</td><td><span class="tag ok">drei Profile</span> St. 40: Verbrennung führt bei 5 von 6 Bossen (Gerlinde 87, Aldemar 79), Eisgrab normal (51) und Abgrund (T19 74 %), Nachhall auf St. 20 Bosse und Abgrund</td></tr>
+</table></div>
+<p class="src">Die Läufe sind mit festem Keim reproduzierbar; die gleiche Variante zweimal ergibt identische Zahlen. Zwischen Varianten verschiebt sich die Eichung, deshalb sind nur die Steine innerhalb einer Variante direkt vergleichbar.</p>
+
+<h2>Schritt 3 · Müllerin und Aldemar</h2>
+<p>Je Klasse ein Koloss (55 % Kon), dazu Berserker (Barbar, Ahnenruf), Giftmeister und Schatten (Assassine, Lotus/Schattenform), Feuer und Frostweber (Zauberin, Verbrennung/Eisgrab). Boss-Stärke aus der Eichung normaler Gegner. 3 Würfe × 300 Kämpfe.</p>
+<p><b>Wichtig:</b> Die Müllerin ist der Boss von <b>Akt II</b> (Zonenstufe 6–12). Sie kommt weder in Krypten noch im Abgrund vor, eine Änderung wirkt also nur im Frühspiel. Aldemar ist Krypta-Boss und kommt im Abgrund in der Grüfte-Folge wieder, mit der Stufe der Tiefe.</p>
+<div class="tw"><table>
+<tr><th>Müllerin, Sieg %</th><th class="n">heute (Raserei 60 %)</th><th class="n">Zorn 10 %/Zug</th><th class="n">Zorn 10 %, Stärke ×0,8</th><th class="n">Zorn 15 %, Stärke ×0,75</th></tr>
+<tr class="sec"><td colspan="5">Stufe 12</td></tr>
+<tr><td>Zauberin Koloss / Feuer / Frost</td><td class="n">61 / 59 / 68</td><td class="n">21 / 49 / 18</td><td class="n">81 / <b>87</b> / 75</td><td class="n">80 / <b>87</b> / 80</td></tr>
+<tr><td>Assassine Koloss / Gift / Schatten</td><td class="n">85 / 100 / 72</td><td class="n">30 / 81 / 18</td><td class="n">94 / 100 / 92</td><td class="n">96 / 100 / 92</td></tr>
+<tr><td>Barbar Koloss / Berserker</td><td class="n">92 / 1</td><td class="n">15 / 0</td><td class="n">90 / 8</td><td class="n">89 / 10</td></tr>
+<tr class="sec"><td colspan="5">Stufe 20</td></tr>
+<tr><td>Barbar Koloss / Berserker</td><td class="n">100 / 12</td><td class="n">98 / 2</td><td class="n">100 / <b>31</b></td><td class="n">100 / 33</td></tr>
+<tr><td>Zauberin Feuer</td><td class="n">46</td><td class="n">34</td><td class="n"><b>76</b></td><td class="n">79</td></tr>
+</table></div>
+<p>Zorn allein macht sie für alle zu schwer (Koloss-Barbar 92 → 15 %). Mit Stärke ×0,8 bleibt die Schwierigkeit für defensive Builds erhalten, und offensive holen auf. Auf St. 12 ist die Feuer-Zauberin dann besser als der Koloss. Der Kampf wird kürzer (Koloss-Barbar 49 → 38 Aktionen).</p>
+<div class="tw"><table>
+<tr><th>Aldemar, Sieg %</th><th class="n">heute (Deckel 8 % Leben)</th><th class="n">+1,5 % Leben je Treffer</th><th class="n">+2 %</th><th class="n">+3 %</th></tr>
+<tr class="sec"><td colspan="5">Stufe 20</td></tr>
+<tr><td>Barbar Koloss / mit Gegengift / Berserker</td><td class="n">97 / 100 / 7</td><td class="n">42 / <b>93</b> / 12</td><td class="n">17 / 81 / 6</td><td class="n">3 / 55 / 4</td></tr>
+<tr><td>Assassine Koloss / Gift / Schatten</td><td class="n">17 / 82 / 45</td><td class="n">15 / 86 / <b>62</b></td><td class="n">7 / 77 / 54</td><td class="n">2 / 56 / 33</td></tr>
+<tr><td>Zauberin Koloss / Feuer / Frost</td><td class="n">58 / 29 / 51</td><td class="n">64 / 36 / 64</td><td class="n">54 / 34 / 52</td><td class="n">39 / 31 / 38</td></tr>
+<tr class="sec"><td colspan="5">Stufe 40</td></tr>
+<tr><td>Barbar Koloss / mit Gegengift / Berserker</td><td class="n">97 / 100 / 6</td><td class="n">57 / 89 / 13</td><td class="n">40 / 77 / 9</td><td class="n">21 / 58 / 6</td></tr>
+<tr><td>Assassine Koloss / Gift / Schatten</td><td class="n">53 / 73 / 53</td><td class="n">69 / 79 / 69</td><td class="n">56 / 76 / 69</td><td class="n">44 / 72 / 60</td></tr>
+</table></div>
+<p>Gift in Prozent des Helden-Lebens macht Leben gegen diesen einen Boss wertlos: Die Zeit bis zum Tod hängt nicht mehr am Leben, nur noch an der Zahl der Treffer. Dagegen hilft schnell töten, ausweichen oder blocken, Gegengift (Trank, Auslöser „vergiftet“) und Ausbrennen (Blutdurst-Weg). <b>+1,5 %</b> ist die Stufe, bei der defensive Builds mit Gegenmittel spielbar bleiben (89–93 %). Ohne Gegenmittel ist der Koloss-Barbar damit ein schlechter Aldemar-Build, und das ist der gewollte Einsatzzweck für Schadens-Builds.</p>
+<h3>Erkennbarkeit vor dem Kampf</h3>
+<ul>
+  <li>Aldemar: <code>mechText</code> „Gift, das sich stapelt – kurze Kämpfe gewinnen“ stimmt dann. Die Gefahr-Anzeige ergänzt „+1,5 % deines Lebens je Treffer, Gegengift hilft“. Die Absicht über dem Bild (<code>intent()</code>) zeigt heute „Gift je Treffer“ und kann die aufgelaufene Stärke nennen.</li>
+  <li>Müllerin: <code>intent()</code> zeigt heute „Rasend“ erst unter 50 % Leben. Neu: „Zorn +X %“ ab dem ersten Zug, steigend. Der <code>mechText</code> „je länger der Kampf, desto härter“ wird damit erstmals wahr.</li>
+  <li>Die Siegchance vor dem Kampf rechnet beides automatisch mit, weil sie <code>fight()</code> selbst aufruft (z. B. <code>descChance</code>).</li>
+</ul>
+
+<h2>Schritt 4 · Glück als Farm-Attribut</h2>
+<p>Je Modus und Lage 100 000 Gegenstände über <code>makeItem</code> (Stufe 40). „Umfeld“ = Glück aus Tiefe, Unruhe, Ort (heute einfach zum eigenen Glück addiert).</p>
+<div class="tw"><table>
+<tr><th>Modus</th><th>Regel</th><th class="n">Krypta, legendär bei Gl 0 / 100 / 200</th><th class="n">Abgrund T20 U5 (mind. selten)</th><th>Urteil</th></tr>
+<tr><td>L0 heute</td><td>magisch, selten, legendär je × (1 + min(Gl+Umfeld, 200)/100)</td><td class="n">2,0 / 2,8 / 3,3 %</td><td class="n">16,4 / 16,6 / 16,6 %</td><td>Glück ab Mindest-Seltenheit wirkungslos</td></tr>
+<tr><td>L1</td><td>dasselbe mit Exponent 1,5 / 2 für selten / legendär</td><td class="n">2,0 / 5,3 / 8,4 %</td><td class="n"><span class="down">23,4</span> / 25,8 / 25,6 %</td><td><span class="tag no">Inflation</span> Tiefe allein hebt</td></tr>
+<tr><td>L2</td><td>Umfeld wie heute, eigenes Glück mit Exponent</td><td class="n">2,0 / 5,3 / 8,4 %</td><td class="n">16,4 / 22,1 / 25,7 %</td><td>wirkt, aber +90 % legendär bei üblichem Glück</td></tr>
+<tr><td>L3</td><td>wie L2, Exponent 1,25 / 1,5</td><td class="n">2,0 / 3,9 / 5,4 %</td><td class="n">16,5 / 19,2 / 20,8 %</td><td>milder, Inflation +39 %</td></tr>
+<tr class="hl"><td><b>L5</b></td><td>heute × (Gl/90)<sup>0,75</sup> für selten, (Gl/90)<sup>1,5</sup> für legendär</td><td class="n">0,8 / 3,0 / 6,1 %</td><td class="n">10,9 / 17,1 / 21,9 %</td><td><span class="tag ok">neutral bei Gl ≈ 90</span></td></tr>
+</table></div>
+<h3>Farm-Effizienz im Abgrund (St. 40, Tiefe 17)</h3>
+<p>Je Build 3 Würfe × 120 echte Abstiege. „Heim“ = legendäre Funde × Boss-Sieg (nur ein Sieger bringt den Sack sicher hoch).</p>
+<div class="tw"><table>
+<tr><th>Verteilung</th><th class="n">Glück</th><th class="n">Boss-Sieg T17</th><th class="n">legendär heim je Abstieg heute → L5</th></tr>
+<tr><td>Zauberin Standard</td><td class="n">82</td><td class="n">99 %</td><td class="n">0,207 → 0,186</td></tr>
+<tr class="hl"><td>Zauberin Glück 30 % statt Haupt</td><td class="n">153</td><td class="n">98 %</td><td class="n">0,209 → <b>0,271</b> (+46 % gegenüber Standard)</td></tr>
+<tr><td>Zauberin Glück 30 % statt Kon</td><td class="n">153</td><td class="n down">38 %</td><td class="n">0,056 → 0,081</td></tr>
+<tr><td>Barbar Standard</td><td class="n">84</td><td class="n">43 %</td><td class="n">0,069 → 0,064</td></tr>
+<tr class="hl"><td>Barbar Glück 30 % statt Haupt</td><td class="n">155</td><td class="n">44 %</td><td class="n">0,067 → <b>0,095</b> (+48 % gegenüber Standard)</td></tr>
+<tr><td>Assassine Glück 30 % statt Haupt</td><td class="n">148–184</td><td class="n down">fällt (Lauf 1: 16 → 2 %)</td><td class="n">0,048 → 0,064 (Standard: 0,108)</td></tr>
+</table></div>
+<ul>
+  <li><b>Heute</b> bringt Glück im Abgrund nichts (0,207 gegen 0,209). <b>Mit L5</b> wird „Glück statt Hauptattribut“ eine echte Farm-Wahl für Zauberin und Barbar, weil ihr Hauptattribut ohnehin wenig Sieg bringt. Für die Assassine kostet Glück ihr Geschick und damit das Ausweichen, für sie bleibt Glück keine Option.</li>
+  <li><b>Gold-Inflation:</b> keine. Keine Variante berührt Gold oder EP, und ich empfehle auch keinen Gold-Bonus aus Glück, weil der alle Spieler mit üblichem Glück (80–110) um 16–22 % reicher machen würde.</li>
+  <li><b>Item-Inflation:</b> bei Glück 80–100 unverändert (L5 ist dort neutral geeicht).</li>
+  <li><b>Gefundene Nebenwirkung:</b> Mit wenig Glück (Frühspiel, Glück 15–25) fallen unter L5 weniger seltene Teile als heute (Krypta selten 9,8 → 6,6 %). In der Regression bekam der Stufe-10-Held dadurch schwächere Ausrüstung. Der Bezugswert 90 muss deshalb mit der Stufe wachsen, z. B. <code>Gl_ref = 2 × Stufe + 10</code>. Das ist noch nicht gemessen.</li>
+</ul>
+
+<h2>Schritt 5 · Attribut-Bindungen an Schlüsselsteine</h2>
+<p>Je Stein (exklusiv) +30 in jedem Attribut, ohne und mit Bindung, Gegner: normale und Bosse gemischt. 3 Würfe × 400 + 330 Kämpfe. Ziel: Das gebundene Attribut erreicht mindestens 50 % des Werts von Konstitution.</p>
+<div class="tw"><table>
+<tr><th>Bindung (Wert je Punkt)</th><th class="n">Attribut ohne → mit, St. 30 / 40</th><th class="n">Kon (St. 40)</th><th>Urteil</th></tr>
+<tr class="sec"><td colspan="4">wirken</td></tr>
+<tr class="hl"><td>Eisgrab: Stärke → Wall (0,6 %)</td><td class="n">−1,0 → 7,8 / −3,3 → 7,9</td><td class="n">12,1</td><td><span class="tag ok">66 % von Kon</span></td></tr>
+<tr class="hl"><td>Schattenform: Stärke → Leben (0,4 %)</td><td class="n">1,5 → 5,9 / 1,0 → 10,3</td><td class="n">19,7</td><td><span class="tag ok">52 %</span></td></tr>
+<tr class="hl"><td>Ahnenruf: Glück → Zaubertempo (0,3 %)</td><td class="n">1,1 → 4,8 / 2,3 → 8,6</td><td class="n">20,5</td><td><span class="tag ok">42 %</span></td></tr>
+<tr><td>Unsterblich: Int → Regeneration (0,02 %)</td><td class="n">0,7 → 4,8 / 1,0 → 7,1</td><td class="n">22,9</td><td>31 %</td></tr>
+<tr><td>Lotus: Int → Zaubertempo (0,4 %)</td><td class="n">0,0 → 6,5 / 2,0 → 3,5</td><td class="n">14,2</td><td>nur St. 30</td></tr>
+<tr class="sec"><td colspan="4">wirken nicht (alle ≤ 4 Punkte, im Rauschen)</td></tr>
+<tr><td colspan="4">Unsterblich Stärke → Leben 0,1 % / Dornen 0,15 % · Schlächter Geschick → Schwelle / Henker · Ahnenruf Glück → Krit-Schaden 0,4–0,6 % · Ausbluten Glück → Blutung 0,4–0,8 % / → Tempo · Schattenform Geschick → Ausweich-Grenze · Lotus Int → Gift · Eisgrab Int → Wall · Verbrennung Glück → Brand / → Tempo · Nachhall Geschick → Tempo 0,1–0,4 %</td></tr>
+</table></div>
+<p>Es wirken genau die Bindungen, die Überleben kaufen (Wall, Leben) oder den Takt (Tempo), wie es Schritt 1 vorhersagt. Damit hat ein Punkt Stärke je nach Build einen anderen Wert: Für eine Eisgrab-Zauberin bringen +30 Stärke 7,9 Siegpunkte, für jede andere Zauberin −3 bis +2.</p>
+
+<h2>Schritt 6 · Regression des Pakets</h2>
+<p>Paket = Exklusivität + B3/A5/Z3 + Aldemar 1,5 % + Müllerin Zorn 10 %/×0,8 + L5 + die drei wirksamen Bindungen (dazu Unsterblich Int→Regeneration, Lotus Int→Tempo). Eichung jeweils am Bot-Build, der im Paket den Stein mit der höchsten Kampfkraft nimmt. 3 Würfe × 240 Kämpfe, 40 Abstiege je Tiefe. Gezeigt: St. 40, Sieg % normal / Elite / Aldemar / Abgrund T19.</p>
+<div class="tw"><table>
+<tr><th>Build (passende Verteilung)</th><th class="n">heute</th><th class="n">Paket</th><th>Profil im Paket</th></tr>
+<tr class="sec"><td colspan="4">Barbar</td></tr>
+<tr><td>Koloss (Kon 55 %, Unsterblich)</td><td class="n">99 / 95 / 81 / 3</td><td class="n">99 / 91 / 17 / 21</td><td>alles außer Aldemar</td></tr>
+<tr><td>Schlächter (Str 55 %)</td><td class="n">69 / 60 / 48 / 0</td><td class="n">53 / 46 / 11 / 0</td><td>–</td></tr>
+<tr class="hl"><td>Berserker (Gl 20 %, Ahnenruf)</td><td class="n">50 / 39 / 30 / 0</td><td class="n">56 / 54 / <b>39</b> / 0</td><td>bester Aldemar-Build (St. 20: 24 gegen 8)</td></tr>
+<tr class="sec"><td colspan="4">Assassine</td></tr>
+<tr><td>Koloss (Kon 55 %, Lotus)</td><td class="n">73 / 62 / 48 / 3</td><td class="n">73 / 67 / 81 / 40</td><td>meist vorn</td></tr>
+<tr class="hl"><td>Schatten (Str 20 %, Schattenform)</td><td class="n">50 / 35 / 23 / 0</td><td class="n">65 / 54 / 68 / 22</td><td>Zweiter, Stärke lohnt</td></tr>
+<tr><td>Giftmeister (Int 15 %, Lotus)</td><td class="n">41 / 35 / 37 / 1</td><td class="n">44 / 46 / 76 / 27</td><td>St. 20 bester Aldemar-Build (59 gegen 30)</td></tr>
+<tr><td>Ausbluter (Ausbluten)</td><td class="n">60 / 48 / 39 / 3</td><td class="n">54 / 47 / 66 / 12</td><td>St. 30 vor dem Koloss (normal 60 gegen 58, Aldemar 71 gegen 56)</td></tr>
+<tr class="sec"><td colspan="4">Zauberin</td></tr>
+<tr><td>Koloss (Kon 55 %, Eisgrab)</td><td class="n">91 / 90 / 94 / 94</td><td class="n">96 / 95 / 98 / 100</td><td>alles</td></tr>
+<tr class="hl"><td>Frostweber (Str 20 %, Eisgrab)</td><td class="n">59 / 57 / 74 / 63</td><td class="n">84 / 85 / 97 / 98</td><td>nah am Koloss, Stärke statt Kon</td></tr>
+<tr><td>Feuer (Verbrennung)</td><td class="n">55 / 48 / 65 / 30</td><td class="n">51 / 55 / 84 / 56</td><td>Bosse (Gerlinde 95)</td></tr>
+<tr><td>Arkan (Nachhall)</td><td class="n">54 / 55 / 84 / 68</td><td class="n">58 / 60 / 89 / 75</td><td>St. 20: Bosse und Abgrund</td></tr>
+</table></div>
+<div class="box warn"><h3>Erfolgskriterien</h3>
+<ul>
+  <li><span class="tag ok">erfüllt</span> <b>Drei Schlüsselsteine mit eigener Lage je Klasse</b> (Schritt 2, Standard-Verteilung).</li>
+  <li><span class="tag ok">erfüllt</span> <b>Ein Boss, gegen den Schaden-Builds den Koloss schlagen</b>, in allen drei Klassen (Aldemar).</li>
+  <li><span class="tag ok">erfüllt</span> <b>Ein Neben-Attribut hat je nach Build verschiedenen Wert</b> (Stärke bei Eisgrab und Schattenform, Glück bei Ahnenruf und als Farm-Wahl).</li>
+  <li><span class="tag no">nicht erfüllt</span> <b>Keine Verteilung dominiert fast alle Lagen.</b> Der Koloss (55 % Kon) ist in jeder Klasse in den meisten Lagen vorn. Das Paket verkleinert den Abstand (Frostweber 84 gegen 96, Schatten 65 gegen 73), schließt ihn aber nicht.</li>
+</ul></div>
+<h3>Weitere Regressionspunkte</h3>
+<ul>
+  <li><b>Kampfdauer:</b> Der Koloss-Barbar kämpft im Paket länger (St. 40: 23 statt 12 Aktionen) wegen Dornen 30 % und Regeneration. Andere Builds ±1 Aktion.</li>
+  <li><b>Abgrund-Tiefen:</b> Für passende Builds liegt der Boss-Sieg auf T19 meist höher (Assassine Koloss 3 → 40 %, Zauberin Feuer 30 → 56 %). Der Bot-Build bleibt gleich (Barbar 0 %, Zauberin 65 → 62 %). Achtung: Der Abgrund ist nicht geeicht, Unterschiede in der Ausrüstung durch L5 fließen hier mit ein.</li>
+  <li><b>Stufe 10:</b> Schlüsselsteine sind erst ab Stufe 12 erreichbar (11 Punkte). Auf St. 10 wirkt nur L5, und das schwächt die Ausrüstung bei wenig Glück (siehe Schritt 4).</li>
+  <li><b>Kampfkraft und Bot:</b> Im Paket wählt der Bot nach Kampfkraft Schlächter, Ausbluten und Verbrennung, also nicht die gemessen stärksten Steine. Die Kampfkraft (power()) muss die neuen Effekte kennen (Falle in CLAUDE.md: jeder neue Effekt in power() und calib.mjs).</li>
+  <li><b>Gegenstände:</b> Die Lange Stille und Haube des Pakts (nohealSelf) bleiben unverändert. Elite „Giftig“ und die Mutter der Stricke nutzen dieselbe Gift-Regel, die Variante gilt nur für Aldemar (Effekt am Boss). Die Henker-Schürze (execHp) stapelt mit Schlächter-Schwelle +15 %, das ist zu messen.</li>
+  <li><b>Spielstände:</b> keine Format-Änderung. Exklusivität entfernt beim Laden überzählige Steine und erstattet die Punkte (Schritt 2).</li>
+</ul>
+
+<h2>Priorisierter Umsetzungsplan</h2>
+<div class="tw"><table>
+<tr><th>#</th><th>Änderung</th><th>Dateien</th><th>Aufwand</th><th>Tests vor dem Push</th></tr>
+<tr><td class="n">1</td><td>Aldemar: <code>mech: { poison: 0.25, poisonPct: 0.015 }</code>, neue Gift-Regel in <code>onHit()</code>, Gefahr-Text</td><td>data.js, combat.js, game.js (Gefahr-Anzeige)</td><td>klein</td><td>logic (Regel), acts/descent, voller Lauf; Messung boss3.mjs</td></tr>
+<tr><td class="n">2</td><td>Ein Schlüsselstein je Brett + B3/A5/Z3 + Lade-Erstattung + freie Neuwahl + power()-Eichung der geänderten Steine</td><td>data.js, state.js (nodeState, talentState, Ladeprüfung), ui.js (Hinweis im Brett)</td><td>mittel</td><td>tree, calib, logic (Erstattung), ui + Screenshot Brett (iPhone 13), voller Lauf</td></tr>
+<tr><td class="n">3</td><td>Müllerin: Zorn 10 %/Zug, Stärke ×0,8, <code>intent()</code> „Zorn +X %“</td><td>data.js, combat.js (eine Zeile), Anzeige</td><td>klein</td><td>acts (Akt-II-Kurve), logic, ui</td></tr>
+<tr><td class="n">4</td><td>Bindungen: Eisgrab Str→Wall 0,6 %, Schattenform Str→Leben 0,4 %, Ahnenruf Gl→Tempo 0,3 %</td><td>data.js (Effekt-Schlüssel, EFFECT_NAMES), state.js stats(), power()</td><td>mittel</td><td>calib (neue Effekte), tree, uniques</td></tr>
+<tr><td class="n">5</td><td>Glück-Beute L5 mit stufenabhängigem Bezugswert (vorher eine Messrunde)</td><td>loot.js makeItem, Aufrufer übergeben eigenes Glück und Umfeld getrennt</td><td>klein</td><td>lohn, bot (30 Tage), loot4.mjs</td></tr>
+<tr><td class="n">6</td><td>Prototyp Zauber-Takt (Zauber-Bedingungen / Ladung behalten), um die Kon-Dominanz selbst anzugehen</td><td>erst Simulation, dann Mockup</td><td>groß</td><td>cause.mjs, ttk.mjs als Wächter: Kill-Zeit muss auf +20 % Schaden um ≥ 12 % fallen</td></tr>
+</table></div>
+
+<h2>Methode und Grenzen</h2>
+<ul>
+  <li>Isolierte Kopie von <code>js/</code> mit schaltbaren Varianten (<code>berichte/messung-umbau/varianten.patch</code>), Skripte in <code>berichte/messung-umbau/</code> mit Anleitung. Der produktive Code ist unverändert.</li>
+  <li>Testheld <code>tests/held.mjs</code> (magische und bessere Ausrüstung, keine Einzigartigen oder Sets), Talente gierig nach Kampfkraft, Spalte des Steins zuerst. Tränke nur dort, wo genannt (Gegengift).</li>
+  <li>Rauschen ±2–4 Punkte. Die Müllerin-Läufe schwankten zwischen zwei Keimen um bis zu ±9 Punkte, die Reihenfolge der Builds blieb gleich.</li>
+  <li>Nicht gemessen: Grube, Expedition, Einzigartige und Sets mit den neuen Steinen, L5 mit stufenabhängigem Bezugswert, Müllerin bei echter Akt-II-Ausrüstung über den Bot, Echtzeit je Kampf.</li>
+</ul>
+<p class="src">Code-Stand f854ec8, Branch claude/determined-mccarthy-vzvwfm.</p>
+</main>

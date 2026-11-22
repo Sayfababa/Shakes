@@ -43,7 +43,12 @@ Messung +30 Punkte je Attribut: `node tests/attribute.mjs <klasse>` (~1 Min.).
 **Build-Vielfalt 2026-11-22** (nur Analyse): `berichte/build-diversitaet.html` (Artifact https://claude.ai/artifact/Cg9Ej4RRBjENBDRZievacM),
 Skripte `berichte/messung-build/`. Kern: Kon-Optimum 60–70 % der Punkte (KK zeigt 50 %); 23 Formel-Varianten (weiche Deckel, Ausweichen
 gegen Stufe, Int, Glück, Kampflänge …) kippen es nicht. Wirksam: KK ehrlich, ein Schlüsselstein je Brett, Müllerin/Aldemar mit echtem Zorn,
-Glück-Beute (heute 0 ab Tiefe 8). **Plan liegt ihm vor – nichts gebaut, auf sein „ja“ warten.**
+Glück-Beute (heute 0 ab Tiefe 8).
+**Build-Umbau simuliert 2026-11-22** (nur Testumgebung): `berichte/build-umbau.html` (Artifact https://claude.ai/artifact/BChKdtx4kTkhBsxX1QtPVm),
+Skripte + Patch `berichte/messung-umbau/`. Ursache: Kill rastet am Zauber-Takt ein (+20 % Schaden → Kill nur −4–8 %, +20 % Leben → +17–51 %).
+Empfohlen in Reihenfolge: Aldemar Gift +1,5 % max. Leben/Treffer · ein Schlüsselstein je Brett mit B3/A5/Z3 · Müllerin Zorn 10 %/Zug ×0,8 ·
+Bindungen Eisgrab Str→Wall, Schattenform Str→Leben, Ahnenruf Gl→Tempo · Glück-Beute L5 (Bezugswert stufenabhängig, noch messen).
+Kon-Optimum bleibt (nicht erfüllt) – nächster Hebel Zauber-Takt. **Nichts gebaut, auf sein „ja“ warten.**
 
 **Befund 2026-11-22 (Balance-Gesamtschau, gemessen, nichts am Spiel geändert):** Bot spielt jetzt den Abgrund (`tests/bot.mjs`).
 Boss erstattet sein Grabsiegel (`DESCENT.sealBoss: 1`) → wer gewinnt, steigt endlos ab: Tag 1 40–47 Abstiege, St. 17–26; Tag 30 St. 50–55,
