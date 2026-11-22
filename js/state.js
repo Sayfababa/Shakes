@@ -561,7 +561,7 @@ export function craft(id, opId, stat) {
   const op = CRAFT.ops.find(o => o.id === opId), legend = it.rarity === 'legendary';
   const need = craftMat(it, opId), rise = craftRaises(it, opId);
   const gold = craftGold(it), base = baseMods(it), tiers = { ...(it.tiers || {}) };
-  const roll1 = k => { const T = rollTier(it.lvl); tiers[k] = T.t; base[k] = affixValue(AFFIXES.find(a => a.stat === k), T); };
+  const roll1 = k => { const a = AFFIXES.find(x => x.stat === k), T = rollTier(it.lvl, a.noDeep ? 0 : it.deep || 0); tiers[k] = T.t; base[k] = affixValue(AFFIXES.find(a => a.stat === k), T); };
   // Ein neuer Bonus kommt nur, wo Präfix/Suffix und Gruppe frei sind (affixRoom) – dieselbe Regel wie bei der Beute
   const add1 = (rar = it.rarity) => { const room = affixRoom(it, Object.keys(base), rar); if (room.length) roll1(pickAffix(room).stat); };
   const free = Object.keys(base).filter(k => k !== it.sealed);
