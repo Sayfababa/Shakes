@@ -100,3 +100,29 @@ Zauberkraft langsamer (spellK 150–600) wirkte kaum (−6 bis −14 Pkt.), Temp
 Gebaut: Manabrand 0,3 → 0,15, Fokus 0,1 → 0,05 je Rang, Nachhall 0,25 → 0,12, Brücke Leere 0,025 → 0,0125. Danach Grenz-Tiefe
 St. 20 T10 (vorher T11), St. 40 ~T19,5 (vorher T20+). Ein Viertel brachte kaum mehr (das Brett holt es über andere Knoten zurück).
 Fallen: auf T17 gemessen sah jeder Hebel wirkungslos aus (99 % → 95 %) – Gegner auf ~50 % eichen.
+
+### Aldemar und Müllerin (2026-11-22)
+**Gebaut** (Bericht 3). Aldemar `mech: { poison: 0.25, poisonPct: 0.015 }`: jeder Treffer legt 1,5 % des **maximalen** Lebens
+des Ziels als Gift drauf, ohne Deckel (andere Gift-Gegner, Elite „Giftig“, Mutter der Stricke, Lotus: unverändert, Deckel 8 %).
+Gefahr-Anzeige: „Gift +1,5 % Leben je Treffer“ mit Gegengift; Absicht zeigt das laufende Gift. Müllerin `mech: { ramp: 0.1 }`
+(Zorn: `buff += ramp` je eigenem Zug), `bossMult` 0,72 → 0,58 (×0,8), Absicht „Zorn +X %“.
+Gemessen (boss3.mjs, 3 Würfe × 300): Aldemar St. 20 Barbar-Koloss 97 → 38 % (mit Gegengift 82), Schatten-Assassine 64 → 79,
+Feuer-Zauberin 48 → 62. Müllerin St. 12: Feuer-Zauberin 55 → 80, Barbar-Koloss 92 → 72, Berserker 0 → 3 (bleibt schwer).
+
+### Zeitachse (System C, 2026-11-22) – gebaut, AUS
+`CFG.tempoMode` (false). Rate Held `max(0,5; 1 + Tempo)`, darüber `tempoCap` 1,6 nur halb; Gegner 1. Wer auf der Zeitachse
+vorn liegt, handelt; ohne Schalter ist das strenges Abwechseln **Wurf für Wurf wie vorher** (Hash über 2700 Kämpfe gleich).
+Ladung je Aktion 1 (`chargeStep`), Krit-Schwung +0,34 höchstens einmal je Aktion, 50 Aktionen je Kampf (beide Seiten).
+**Je Effekt entschieden (Zeit oder Aktion):**
+- **Je Zeit** (sonst tickt ein doppelt so schneller Held doppelt): Gift, Bluten, Brand auf dem Gegner (Tick × dt, Brand-Dauer
+  − dt), eigene Regeneration. Gegner-Zorn läuft im Gegnerzug (Rate 1) und ist damit schon zeitgleich.
+- **Je Aktion** (gewollt – das ist der Tempo-Gewinn): Hiebe, Zauberladung, Lebensraub, Kältestarre (jeder dritte Treffer),
+  Dornen (je erlittenem Treffer).
+- **Zustände** (`weakN`, `vulnN`, `noheal`, `stunImm`, `dazed`, `cureN`, Trank-Raserei) zählen weiter im eigenen Zug des
+  Trägers. Auf dem Gegner ist das Zeit; auf dem schnellen Helden laufen eigene Schutzwirkungen in Zeit gemessen schneller ab –
+  bewusst, sonst würde Tempo auch Abwehr kaufen.
+**Eisgrab**: `haste −0,3` → `slowCast 0,3` (bremst nur die Ladung; ohne Zeitachse rechnerisch identisch).
+**Geschick → Tempo**: `CFG.dexHaste` (0) nur zum Messen, nicht eingeschaltet.
+Gemessen (sys.mjs mit Paket, 3 Würfe × 400): +0,2 Tempo → Kill −7 bis −15 % (ohne C −2 bis −10 %); gegen heute geeichte
+Gegner +6 bis +24 Punkte (Barbar St. 20 48 → 72, Zauberin St. 40 51 → 71), Assassine St. 40 −3. Zauberin St. 40: Tempo
+bringt 0 Punkte (Kampf ist nach 4,5 Aktionen vorbei). **Einschalten nur mit Neueichung** (Gegner-Schaden/-Leben oder Tempo-Werte).

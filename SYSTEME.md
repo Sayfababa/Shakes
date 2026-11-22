@@ -34,7 +34,12 @@ eines Systems seinen Block hier lesen** (`grep -n '^\*\*' SYSTEME.md` zeigt die 
 **Zauber**
 - **Zauber** `SPELLS` in data.js, `spell()` in combat.js – 3 je Klasse (Stufe 1/8/18), wirken jeden
   n-ten eigenen Zug. Symbole `assets/spells/<id>.webp`. **Monster wirken keine Zauber.** → E
-- **Zauber im Kampf**: laden pro Zug (`ch` + `haste`), Log trägt `cA`/`cB`, `spellFx()` in main.js. → E
+- **Zauber im Kampf**: laden pro Zug (`ch` + `chargeStep()`), Log trägt `cA`/`cB`, `spellFx()` in main.js. → E
+- **Zauber nach Lage** (`CFG.spellPick`, an): der Held wählt unter vollen Zaubern (`pickSpell` in combat.js), gehaltene
+  behalten höchstens einen Zug Vorrat. Monster unverändert. Test: logic „Zauber nach Lage“. → E (zauber.md)
+- **Zeitachse** (`CFG.tempoMode`, **aus**): Tempo = Aktionsrate des Helden (`actionRate`, weicher Deckel `tempoCap` 1,6),
+  Ladung 1 je Aktion (`chargeStep`), Krit-Schwung `critCharge`. Ticks/Regeneration je Zeit (`dt`). Log-Feld `dbl` → „Zug ×2“.
+  **Nur über diese Funktionen rechnen** (Kampf, `power()`, Zauber-Ansicht). Erst nach Neueichung einschalten. → E (kampf.md)
 - **Zauber-Wege** `SPELL_TREE`/`TREE_LVL`, `chooseWay`/`wayOpen`/`wayCost`, `S.sp`, Save v7.
   Je Zauber 3 Stufen (ab 6/14/22), je 1 von 2 Wegen; erste Wahl gratis.
   Balance: `node tests/ways.mjs [klasse] [stufe] [kämpfe] --check`. → E
@@ -42,11 +47,14 @@ eines Systems seinen Block hier lesen** (`grep -n '^\*\*' SYSTEME.md` zeigt die 
 **Talente**
 - **Das Brett** `TREE` in data.js; `treeOf`/`nodeState`/`bridgeState`/`learnNode`/`learnBridge`,
   Save v18. Bisher **Assassine** und **Zauberin**; Klassen ohne Eintrag nutzen `TALENTS`.
-  3×6, zwei Notable, ein Schlüsselstein, 2 Brücken, 41 Ränge gegen ~24 Punkte.
+  3×6, zwei Notable, ein Schlüsselstein je Spalte, 2 Brücken, 41 Ränge gegen ~24 Punkte.
+  **Höchstens ein Schlüsselstein je Brett** (auch alter Baum: letzte Stufe): `keyNodes`/`keyLocked`, beim Laden
+  `fixKeystones` (überzählige weg, Punkte zurück, `S.ksNote` → einmaliger Hinweis). Bindungen am Stein: `wardPerStr`,
+  `lifePerStr`, `hastePerLck` (in `stats()`). → E (talente.md)
   Balance: `node tests/tree.mjs [klasse] [stufe] [kämpfe] --check` – **kein Knoten darf bei 0 stehen**.
   Rahmen: klein +1…+24, Notable +1…+28, Schlüsselstein +2…+52, Brücke +1…+22. → E
 - **Das Brett der Zauberin** `TREE.sorceress`, Save **v21**; `spellPct`, `haste`, `echo`, `ignite`
-  (`CFG.igniteTurns` 3, stapelt nicht). **Kein Leben als Preis** – Überleben ist bei ihr doppelt so
+  (`CFG.igniteTurns` 3, stapelt nicht; `igniteBan`: Brand bannt Heilung des Gegners). Eisgrab bremst mit `slowCast` nur die Ladung. **Kein Leben als Preis** – Überleben ist bei ihr doppelt so
   viel wert wie Schaden. → E
 - **Wer eine Klasse aufs Brett holt**, muss die Brett-Schnittstelle in `tests/bot.mjs` mitziehen. → E
 

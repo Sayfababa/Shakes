@@ -31,3 +31,24 @@ Neue Kampf-Schlüssel: `hemorrhage` (jeder Treffer lässt bluten mit `CFG.hemoBl
 (2) **Zaubertempo als Preis ist für einen Stab eine Falle.** Ein Stab würfelt `haste` als normalen Affix **bis über 50 %** (gemessen: `haste: 51` auf einem seltenen Stab Stufe 20). Ein Einzigartiges wirft den weg; ein zusätzliches −12 % kostete gemessene 7 Punkte. Der Glutzehrer hat seinen Preis deshalb verloren und gibt dafür weniger (`spellPct` 0,42 statt 0,35 mit Strafe).
 (3) **Ein einzelner Ausrüstungswurf entscheidet alles.** `tests/uniques.mjs` misst je Klasse und Stufe nur **einen** Wurf – derselbe Glutzehrer maß dort +15,3 und in meinem Aufbau −2,9, nur weil der eine Grund-Stab zufällig `haste: 51` getragen hatte. Wer einem Einzigartigen eine Zahl gibt, muss über mehrere Würfe mitteln (`tests/tree.mjs` nimmt 3, hier waren 8 nötig, um das Vorzeichen zu stabilisieren). **Das steht hier zum dritten Mal und ist zum dritten Mal passiert.**
 Alle drei liegen im Rahmen (`node tests/uniques.mjs all all 300 --check`). Neue Bilder brauchte es nicht – Einzigartige nutzen die Grafik ihres Grundgegenstands.
+
+### Ein Schlüsselstein je Brett (2026-11-22)
+**Gebaut** (Bericht 3, `berichte/build-umbau.html`, Paket B3/A5/Z3). Sperre in `nodeState`/`talentState` über
+`keyLocked`; alter Baum (Barbar): letzte Stufe jedes Zweigs. Alte Stände: `fixKeystones` beim Laden entfernt **alle**
+Stein-Ränge, wenn mehr als einer gesetzt ist – die Punkte sind über „Stufe − 1 − ausgegeben“ automatisch zurück, die
+Neuwahl kostet also nichts. Kein neues Format, nur der Merker `S.ksNote` für den einmaligen Hinweis (main.js).
+**Auslegung „erste Neuwahl kostenlos“:** die Erstattung *ist* die freie Neuwahl. Wer danach den Stein wechseln will, läutert
+(die erste Läuterung ist ohnehin gratis). Kein eigener „Stein ablegen“-Knopf – auf Zuruf nachrüstbar.
+Steine: Schlächter `{execute 1.2, execHp 0.15, hpPct 0.05}`, Unsterblich `{hpPct 0.08, thorns 0.3}`, Ahnenruf `{crit 0.15,
+critDmg 0.6, dmgPct 0.15}` + Glück→Tempo 0,3 %/Pkt; Ausbluten `+bleed 1.2, pen 0.2`; Verbrennung `{ignite 1.0, spellPct 0.15,
+igniteBan}` – das Selbstheil-Verbot ist **nur am Stein** weg, „Die Lange Stille“/„Haube des Pakts“ behalten es.
+Bindungen: Eisgrab Stärke→Schild 0,6 %/Pkt (`wardPerStr`), Schattenform Stärke→Leben 0,4 %/Pkt (`lifePerStr`).
+**Gemessen** (keys2.mjs, 3 Würfe × 200, Gegner je Lauf auf den Mittelwert der drei Steine geeicht), St. 40 normal heute → Paket:
+Barbar 45/60/47 → 47/53/52 (Schlächter/Unsterblich/Ahnenruf) · Assassine 32/58/69 → 45/49/55 (Ausbluten/Schatten/Lotus) ·
+Zauberin 41/63/48 → 50/61/46 (Verbrennung/Eisgrab/Nachhall). St. 20: Unsterblich bleibt vorn (68 gegen 50/36).
+**power()** schätzte Ausbluten doppelt so hoch wie die beiden anderen Steine (Faktor 2,2 aufs Bluten, das nicht stapelt) und
+kannte Kältestarre (`toll`) gar nicht. Nachgeeicht: Ausbluten 0,25, Brand 0,3, Henker als Zeitgewinn, Kältestarre
+`takenF × 0,75`, Brand-Bann × 0,985. Danach wählt die Assassine Schatten/Lotus wie gemessen. **Offen:** Zauberin (Verbrennung
+statt Eisgrab) und Barbar (Ahnenruf statt Unsterblich auf St. 20) – die Kampfkraft unterschätzt Abwehr allgemein (Bericht 2,
+Kon-Optimum 60–70 % gegen 50 % in der Kampfkraft). Ein anderer Exponent (Schaden^0,4 · Leben^0,6) half nur teilweise und
+hätte alle Item-Vergleiche verschoben – bewusst nicht gemacht.
