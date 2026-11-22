@@ -331,6 +331,17 @@ const actions = {
   fusepick: d => { forgeSel.item = d.id; forgeSel.food = forgeSel.stat = forgeSel.mstat = null; forgeSel.msg = ''; render(); },
   fusefood: d => { if (d.id) { forgeSel.food = d.id; forgeSel.stat = forgeSel.mstat = null; } else forgeSel.stat = forgeSel.stat === d.k ? null : d.k;
     forgeSel.msg = ''; render(); },
+  corepick: d => { forgeSel.cu = d.id; forgeSel.ck = forgeSel.ct = null; forgeSel.msg = ''; render(); },
+  corekey: d => { forgeSel.ck = d.k; forgeSel.msg = ''; render(); },
+  coretarget: d => { forgeSel.ct = d.id; forgeSel.msg = ''; render(); },
+  // Zwei Tipps: das Einzigartige zerfällt für immer (wie beim Verkaufsschutz)
+  corego: () => { const u = G.S.bag.find(x => x.id === forgeSel.cu); if (!u) return render();
+    const keys = G.coreKeys(u), key = keys.includes(forgeSel.ck) ? forgeSel.ck : keys.length === 1 ? keys[0] : null;
+    ask(`<b class="uniq-txt">${u.name}</b> zerfällt für immer. Ihr Kern brennt danach in einem anderen Teil – höchstens einer je Teil.`, 'Einbrennen', () => {
+      const pw = G.power(), r = G.coreApply(u.id, key, forgeSel.ct);
+      if (r.err) forgeSel.msg = `<span class="down">${r.err}</span>`;
+      else { forgeSel.cu = forgeSel.ck = forgeSel.ct = null; forgeSel.msg = `${r.u.name} zerfiel zu Asche · der Kern brennt jetzt in <b class="gold">${r.it.name}</b>`; }
+      render(); if (!r.err) toast(pw); }, true); },
   fusemain: d => { forgeSel.mstat = forgeSel.mstat === d.k ? null : d.k; forgeSel.msg = ''; render(); },
   fusego: () => { const pw = G.power();
     const r = G.fuse(forgeSel.item, forgeSel.food, forgeSel.stat, forgeSel.mstat);

@@ -1297,3 +1297,11 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .dsig .sigfx { margin: 4px 0 0; line-height: 1.25; } .sigfx b { font-weight: 500; } .sigfx .down { color: var(--blood-hi); }
 .dtop .dsigs { display: inline-flex; gap: 2px; margin-left: 6px; } .dsigs .matimg { width: 16px; height: 16px; object-fit: contain; }
 .desc.tightest .drules .sack { display: none; }   /* dritter Sparschritt: der Sack erklärt sich unten im Lauf selbst */
+
+/* Aschenkern (Welle 2B-2): Marke am Feld – ein glühender Splitter oben links, an jedem Feld über rarCls(). Die Wirkung
+   selbst steht im Tooltip in Glutrot (anders als das Orange der Sonderboni/Einzigartigen). */
+.item.kern::after, .eslot.kern::after, .cellitem.kern::after, .sitem.kern::after, .fslot.kern::after, .dit.kern::after {
+  content: ''; position: absolute; left: 2px; top: 2px; width: 7px; height: 7px; z-index: 2; pointer-events: none;
+  background: #e8572a; border: 1px solid #2a0d05; box-shadow: 0 0 5px rgba(255,110,40,.9); transform: rotate(45deg); }
+.core-l, .tip .core-l { color: #ff6a3a; }
+.corev .h2r { display: inline-flex; align-items: center; gap: 3px; } .corev .h2r .matimg { width: 16px; height: 16px; object-fit: contain; }

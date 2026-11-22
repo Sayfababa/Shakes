@@ -4,7 +4,7 @@ import { MAT_ART, SIGILS, ASHCORE, ELEMENTS, RES_NAMES, SPELL_TREE, TREE_LVL, PO
 import { affixPool, tierOf, wpnDmg, wpnCapLvl } from './loot.js';
 import { sellPrice, sellMat, potion, beltSlots, brewCost, canBrew, potMax, unreadable, restarted, herbPrice, canBuyHerb, herbLeft, herbSource } from './state.js';
 import { WIKI_CATS, wikiList, wikiEntry, upgradePaths, matBottleneck } from './wiki.js';
-import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, craftRaises, craftMat, baseMods, fusedMods, filterHits, filterOf, filterOn, setFilterMod, fuseMains, fuseFoods, fuseCheck, fuseFull, fusePromote, fuseReplaces, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
+import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, craftRaises, craftMat, baseMods, fusedMods, filterHits, filterOf, filterOn, setFilterMod, fuseMains, fuseFoods, fuseCheck, coreUniques, coreKeys, coreEff, coreTargets, coreCheck, fuseFull, fusePromote, fuseReplaces, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 // Stufen-Marke eines Bonus; Abgrund-Stufen (I+, I++) tragen zusätzlich .deep und einen Titel (CSS: .tier.t0 / .tier.t-1)
 export const tierTag = t => { const T = TIERS.find(x => x.t === t); return T ? `<i class="tier t${t}${T.deep ? ' deep' : ''}"${T.deep ? ' title="Abgrund-Stufe"' : ''}>${T.name}</i>` : ''; };
@@ -96,6 +96,7 @@ export function itemTip(it, cmp) {
     const mark = it.sealed === k ? '<i class="seal">versiegelt</i>' : fus.includes(k) ? '<i class="fus">fusioniert</i>' : '';
     L.push(`<span class="m ${t != null && t <= 2 ? 'hi' : ''}">+${b} ${STAT_NAME(k)}${t != null ? ` ${tierTag(t)}` : ''}${mark}</span>`); }
   if (it.fx) L.push(`<span class="special">${it.unique ? '' : '✦ '}${effLine(it.fx)}</span>`);
+  if (it.core) L.push(`<span class="core-l">Aschenkern: ${effLine(it.core.eff)} <i class="dim">(aus ${it.core.from})</i></span>`);
   if (it.set) L.push(setBox(it.set, it));
   if (it.lore) L.push(`<span class="lore small">„${it.lore}“</span>`);
   if (it.crafted) L.push(`<span class="gold small">Geschmiedet von ${it.crafted}</span>`);   // alte Teile aus der Zeit der Schmiedeglut
@@ -115,7 +116,7 @@ export function itemTip(it, cmp) {
 // Einzigartige tragen die Seltenheit „legendär" und sahen im Raster deshalb aus wie jedes andere
 // legendäre Teil (vom Besitzer gemeldet). `uq` kommt **zusätzlich** zur Seltenheitsklasse ans Feld,
 // nie an den Text – dort trägt `.uniq-txt` das Orange schon.
-const rarCls = it => `r-${it.rarity}${it.unique ? ' uq' : ''}`;
+const rarCls = it => `r-${it.rarity}${it.unique ? ' uq' : ''}${it.core ? ' kern' : ''}`;   // kern: Aschenkern-Marke (Welle 2B-2)
 const itemEl = (it, act) => `<div class="item ${rarCls(it)}" data-tip="${it.id}" ${act}>${itemArt(it)}${gainTag(it)}${hitDots(it)}</div>`;
 
 // --- Rahmen ---
@@ -558,6 +559,7 @@ export function viewForge(sel, res) {
     <div class="btns"><button data-action="forgeagain">Noch einmal</button><button class="red" data-action="trader" data-t="halvar">Zurück</button></div></div>`;
   if (sel.mode === 'craft') return viewCraft(sel);
   if (sel.mode === 'fuse') return viewFuse(sel);
+  if (sel.mode === 'core') return viewCore(sel);
   return `<div class="col forge">${forgeTabs(sel)}
     <section class="panel smithy" id="forgeplay"><div class="scene"><img src="assets/forge/scene.jpg" alt="">
       <div class="iron"><div class="fz z1"></div><div class="fz z2"></div><div class="fz z3"></div><div class="fmark"></div></div><div class="sparks"></div>
@@ -571,7 +573,7 @@ export function viewForge(sel, res) {
 }
 const npcSay = (id, line) => `<section class="panel speaker">${npcArt(TRADERS[id].glyph)}<div><b>${TRADERS[id].name}</b> <span class="h2r">Schmiede</span><p class="lore">„${line}“</p></div></section>`;
 
-const forgeTabs = sel => `<nav class="subtabs"><a class="${!sel.mode || sel.mode === 'rune' ? 'on' : ''}" data-action="forgemode" data-m="rune">Runen</a><a class="${sel.mode === 'craft' ? 'on' : ''}" data-action="forgemode" data-m="craft">Umschmieden</a><a class="${sel.mode === 'fuse' ? 'on' : ''}" data-action="forgemode" data-m="fuse">Fusionieren</a></nav>`;
+const forgeTabs = sel => `<nav class="subtabs"><a class="${!sel.mode || sel.mode === 'rune' ? 'on' : ''}" data-action="forgemode" data-m="rune">Runen</a><a class="${sel.mode === 'craft' ? 'on' : ''}" data-action="forgemode" data-m="craft">Umschmieden</a><a class="${sel.mode === 'fuse' ? 'on' : ''}" data-action="forgemode" data-m="fuse">Fusionieren</a>${coreTab() ? `<a class="${sel.mode === 'core' ? 'on' : ''}" data-action="forgemode" data-m="core">Kern</a>` : ''}</nav>`;
 // --- Umschmieden (Crafting) ---
 function viewCraft(sel) {
   const list = craftItems(), it = list.find(x => x.id === sel.item) || null;
@@ -581,7 +583,7 @@ function viewCraft(sel) {
       return `<div class="caff ${sealed ? 'sealed' : ''} ${fu ? 'fus' : ''} ${picked ? 'on' : ''} ${sel.changed?.includes(k) ? 'new' : ''}" data-action="craftstat" data-k="${k}"><span>+${v} ${STAT_NAME(k)}</span>${tierTag(t)}${sealed ? '<b class="seal">versiegelt</b>' : fu ? '<b class="fus">fusioniert</b>' : ''}</div>`; }).join('');
     return `<div class="ccard"><div class="cname r-${it.rarity}">${it.name}</div>
       <div class="caffs">${rows || '<span class="dim small">Keine eigenen Boni.</span>'}</div>
-      ${it.fx ? `<div class="small special-l">✦ ${effLine(it.fx)} <i class="dim">(bleibt)</i></div>` : ''}${it.runes?.length ? `<div class="small rune">${it.runes.map(r => r.name + ' +' + r.v).join(', ')} <i class="dim">(bleibt)</i></div>` : ''}
+      ${it.fx ? `<div class="small special-l">✦ ${effLine(it.fx)} <i class="dim">(bleibt)</i></div>` : ''}${it.core ? `<div class="small core-l">Aschenkern: ${effLine(it.core.eff)} <i class="dim">(bleibt)</i></div>` : ''}${it.runes?.length ? `<div class="small rune">${it.runes.map(r => r.name + ' +' + r.v).join(', ')} <i class="dim">(bleibt)</i></div>` : ''}
       ${it.crafted ? `<div class="small gold">Vollendet von ${it.crafted}</div>` : ''}</div>`; })();
   // Ist das Teil voll, kostet „Hinzufügen" einen Kronsplitter und hebt die Seltenheit – der Knopf
   // heißt dann anders und zeigt das andere Material, sonst verspricht er etwas, das er nicht tut.
@@ -664,6 +666,34 @@ function viewFuse(sel) {
       || '<span class="dim small">Kein passendes Futter im Beutel.</span>'}</div></section>` : ''}
     <section class="panel"><p class="small cmsg">${msg}</p>
       ${main && food && !err ? '<button class="red big-btn" data-action="fusego">Fusionieren</button>' : `<button disabled>Fusionieren</button>`}</section></div>`;
+}
+
+// --- Aschenkern (ASHCORE): eine Wirkung eines Einzigartigen wandert in ein anderes Teil, das Einzigartige zerfällt ---
+// Reiter erst, wenn man einen Kern hat oder schon ein Teil einen trägt (Gesperrtes klein halten).
+const coreTab = () => (S.mats.aschenkern || 0) > 0 || craftItems().some(it => it.core);
+function viewCore(sel) {
+  const us = coreUniques(), u = us.find(x => x.id === sel.cu) || null, keys = u ? coreKeys(u) : [], key = keys.includes(sel.ck) ? sel.ck : keys.length === 1 ? keys[0] : null;
+  const tg = coreTargets(u), it = tg.find(x => x.id === sel.ct) || null, eff = u && key ? coreEff(u, key) : null, err = coreCheck(u, key, it), have = S.mats.aschenkern || 0;
+  const cell = (x, on, act) => `<div class="fslot ${rarCls(x)} ${on ? 'on' : ''}" data-action="${act}" data-id="${x.id}">${itemArt(x)}${hitDots(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`;
+  const keyRow = k => `<div class="caff ${key === k ? 'onf' : ''}" data-action="corekey" data-k="${k}"><span>${effLine({ [k]: u.fx[k] })}</span></div>`;
+  const board = !u ? '<p class="dim small">Wähle oben ein Einzigartiges aus dem Beutel – es zerfällt, eine seiner Wirkungen bleibt als Kern.</p>'
+    : `<div class="fuse2">
+      <div class="fside main"><h5>Ziel – bleibt</h5>${it ? `<div class="fname r-${it.rarity}">${it.name}</div>
+        <div class="caffs">${Object.entries(baseMods(it)).map(([k, v]) => `<div class="caff"><span>+${v} ${STAT_NAME(k)}</span></div>`).join('') || '<span class="dim small">Keine eigenen Boni.</span>'}</div>
+        ${eff ? `<p class="small core-l">+ Aschenkern: ${effLine(eff)}</p>` : ''}` : `<p class="dim small">Ziel unten wählen: magisch, selten oder legendär, gleicher Platz, noch ohne Kern.</p>`}</div>
+      <div class="fgut">${it ? '<span class="far">&larr;</span>' : ''}</div>
+      <div class="fside food"><h5>Einzigartig – zerfällt</h5><div class="fname uniq-txt">${u.name}</div><div class="caffs">${keys.map(keyRow).join('')}</div>
+        ${eff && Object.keys(eff).length > 1 ? `<p class="small dim fwarn">Wandert mit: ${effLine(Object.fromEntries(Object.entries(eff).filter(([k]) => k !== key)))}</p>` : ''}</div></div>`;
+  const msg = sel.msg || (!us.length ? 'Kein Einzigartiges im Beutel. Nur was im Beutel liegt, kann zerfallen – nie, was du trägst.'
+    : err ? `<span class="${/Gold|Kein Asch/.test(err) ? 'down' : ''}">${err}</span>`
+    : `Positive Werte wandern zu ${Math.round(ASHCORE.mult * 100)} %, Nachteile ganz. <b>${u.name}</b> zerfällt · ${craftGold(it)} Gold`);
+  return `<div class="col forge craft fusev corev">${forgeTabs(sel)}
+    <section class="panel"><h2>Aschenkern <span class="h2r"><img class="matimg" src="assets/forge/${MAT_ART.aschenkern}.webp" alt="">${have} · einer je Teil</span></h2>
+      <div class="cpick">${us.map(x => cell(x, x.id === sel.cu, 'corepick')).join('') || '<span class="dim small">Kein Einzigartiges im Beutel.</span>'}</div></section>
+    <section class="panel grow">${board}</section>
+    ${u ? `<section class="panel"><div class="cpick">${tg.map(x => cell(x, x.id === sel.ct, 'coretarget')).join('') || '<span class="dim small">Kein passendes Ziel (gleicher Platz, magisch bis legendär, ohne Kern).</span>'}</div></section>` : ''}
+    <section class="panel"><p class="small cmsg">${msg}</p>
+      ${err ? '<button disabled>Einbrennen</button>' : '<button class="red big-btn" data-action="corego">Einbrennen</button>'}</section></div>`;
 }
 
 // --- Alchemie & Vorbereitung ---
