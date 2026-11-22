@@ -142,3 +142,15 @@ Gemessen (uniques.mjs, 300 Kämpfe × 3 Würfe, St. 14/24): sieben Stücke ohne 
 Reif der Zuflucht, Eisernes Gelübde, Knochenkrone) – die Antwort für alle, keine Wahl. Je Stück eine Bonus-Stufe schwächer und
 die Sonderwirkung um ~⅓ kleiner (Dornen, Schutz, Block, zweiter Atem). Danach schwächste Klasse +6 bis +16, im Feld der
 übrigen Einzigartigen; Test im Rahmen. Besitzer: „abschwächen“. Der Letzte Atem bleibt für eine Klasse bei +28 (Wirkung unverändert).
+
+### Glück-Beute
+**Aktiv seit 2026-11-22** (Besitzer: Freigabe 1, nur Dev-Branch). `CFG.lootLuck`: Gewichte wie bisher (Gesamtglück = eigenes +
+Umfeld) × (eigenes Glück / Bezug)^0,75 für selten, ^1,5 für legendär; Bezug = 2 × Heldenstufe + 10. Aufrufer geben `own`/`hl` mit
+(`myLuck()` in game.js); Händler-, Quest- und Bestell-Teile ohne `own` bleiben wie vorher.
+Gemessen (loot6.mjs, echtes makeItem, 100 000 Teile je Fall): bei typischem Glück neutral in jeder Phase (St. 10 Akt selten
+11,5 → 11,3 %; St. 20 Krypta identisch; St. 40 legendär 4,9 → 4,5 %), halbes Glück etwas weniger, doppeltes mehr (St. 40 Krypta
+legendär 7,1 %). Keine Inflation (Ø-Seltenheit ±0,01). Abstiege (farm6.mjs, 2 × 150 echte Abstiege je Fall): „Glück statt Haupt“
+bringt Zauberin/Barbar +21–25 % legendär heim ohne Siegverlust. **Assassine:** Glück-Build verliert den Boss (St. 40 T19 39 → 14 %),
+heim 0,14 statt 0,31 legendär je Abstieg. Ursache: Geschick ist bei ihr Hauptattribut **und** Ausweichen/Erstschlag; im Abstieg
+läuft das Leben von Raum zu Raum mit, verlorenes Ausweichen summiert sich. Bei Zauberin/Barbar kostet Glück nur Hieb-Schaden,
+der dort wenig zählt. Nicht gelöst (keine pauschale Änderung): die Assassine farmt mit dem Standard-Build.

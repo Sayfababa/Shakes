@@ -63,3 +63,54 @@ Schaden/Leben (ein Held stirbt in 3–5 Gegnertreffern) untersuchen.
 
 ![Brett: Eisgrab gesetzt, Verbrennung/Nachhall gesperrt („nur ein Schlüsselstein“)](umsetzung-brett.png)
 ![Einmaliger Hinweis nach dem Laden eines alten Stands mit drei Steinen](umsetzung-hinweis.png)
+
+---
+# Zweite Runde (2026-11-22): L5, Kampfkraft, Build-Vielfalt
+
+**Geändert:** `js/loot.js` (L5, `own`/`hl`), `js/game.js` (`myLuck`), `js/state.js` (Kampfkraft, Aufrufer L5), `js/combat.js`
+(`tickLeech`), `js/data.js` (`CFG.lootLuck`, `CFG.powerExp`, Steine Ausbluten/Verbrennung/Nachhall/Ahnenruf/Schlächter),
+`tests/logic.test.mjs` (+3: L5, Steinwechsel/Neuwahl), `tests/ways.mjs` (fester Keim). Voller `sh tests/run.sh` grün (Logik 124).
+
+## Glück-Beute L5 (aktiv)
+| Lage (typisches Glück) | selten aus → an | legendär aus → an |
+|---|---|---|
+| St. 10 Akt (Gl 27) | 11,5 → 11,3 % | 2,35 → 2,27 % |
+| St. 20 Krypta (Gl 50) | 24,7 → 24,7 % | 5,12 → 5,12 % |
+| St. 40 Krypta (Gl 78) | 25,2 → 24,4 % | 4,88 → 4,50 % |
+| St. 40 Krypta, doppeltes Glück (156) | 25,2 → 28,5 % | 4,88 → 7,08 % |
+
+Legendär heim je Abstieg (St. 40 T19 bzw. St. 20 T9, 2 × 150 echte Abstiege): Zauberin Glück statt Haupt 0,463 → 0,560,
+Barbar (St. 20) 0,173 → 0,217, Standard-Builds gleich. **Assassine Glück statt Haupt:** Boss-Sieg 39 → 14 %, 0,14 statt 0,31 legendär
+(Standard) – Geschick ist ihr Hauptattribut **und** Ausweichen; im Abstieg summiert sich der Verlust. Nicht pauschal behoben.
+
+## Assassine – Kontrollmessung (St. 40, Siegchance % je Begegnung, gleiche Gegner und Würfel)
+| Build | ohne Paket | nur B | nur Paket | B + Paket |
+|---|---|---|---|---|
+| Koloss·Lotus normal / Aldemar | 70 / 64 | 70 / 66 | 70 / 76 | 70 / 78 |
+| Koloss·Schatten normal / Flink | 58 / 45 | 57 / 45 | 73 / 65 | 74 / 66 |
+| Schatten (Str 20 %) normal | 28 | 29 | 52 | 52 |
+| Ausbluter normal | 44 | 42 | 52 | 53 |
+B wirkt in jeder Begegnung ±3, das Paket hilft. Das frühere „2 → 1“ war die Zählweise. Ursache der Enge: Konstitution (s. u.).
+
+## Kampfkraft
+Rangkorrelation Kampfkraft ↔ Siegchance 0,37 → 0,80 (Kontrollhälfte 0,79); stärkster Build laut Kampfkraft unter den echten
+Besten 44 % → 67–78 %. Bot wählt jetzt Ahnenruf (Barbar, im Kampf 12–13/14 Lagen vorn) und Ausbluten (Assassine, 14/15).
+**Abweichungen:** Zauberin – Kampfkraft wählt Verbrennung, im Kampf führt Koloss·Eisgrab (95 gegen 87 normal); Assassine St. 20
+Rangkorrelation nur 0,46–0,59.
+
+## Build-Vielfalt St. 40 (div.mjs, 3 Würfe; 15 Begegnungen + Abgrund; vorn = ≤ 3 Punkte, nur Lagen mit Bester ≥ 10 % und Schwächster < 90 %)
+| Klasse | Strategien vorn vorher → jetzt | Lagen nur Koloss-Verteilungen vorn |
+|---|---|---|
+| Barbar | 3 → 5 (Unsterblich 10, Ahnenruf 13, Schlächter 7, Schlächter-Verteilung 1, Berserker 1) | 13/13 → 13/14 |
+| Assassine | 3 → 4 (Lotus 5, Schatten 9, Ausbluten 14, Ausbluter-Verteilung 1) | 15/15 → 14/15 |
+| Zauberin | 4 → 4 (Eisgrab 15, Verbrennung 5, Nachhall 4, Frostweber 2) | 13/15 → 13/15 |
+St. 25: Barbar 3, Assassine 3, Zauberin 3 Strategien vorn. Konstitutions-Optimum: Barbar 60–70 %, Assassine 50 %, Zauberin 70 %.
+
+## Noch offen
+1. **Die Verteilung entscheidet weiter.** Schadens-Verteilungen sind jetzt in einzelnen Lagen dabei (Barbar, Assassine),
+   bei der Zauberin 30–40 Punkte zurück. Ziel „4 echte Builds“ ist über Steine erreicht, über Verteilungen nicht.
+2. **Zauberin:** Koloss·Eisgrab auf St. 40 in allen Lagen vorn; die Kampfkraft unterschätzt Eisgrab.
+3. **Assassine St. 25:** Koloss·Ausbluten führt 14/15 (Ursache A5 aus dem Paket, nicht die neue Heilung).
+4. **Assassine und Glück-Beute:** Glücks-Build lohnt für sie nicht.
+5. Nächster Hebel (nicht gebaut): Prozent-Heilungen der Klassen teilweise an Schaden statt an Leben koppeln (Blutdurst, Zuflucht),
+   oder das Verhältnis Gegner-Schaden/Helden-Leben – beides größere Eingriffe, nur mit Freigabe.

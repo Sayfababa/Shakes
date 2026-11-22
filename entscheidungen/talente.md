@@ -52,3 +52,20 @@ kannte Kältestarre (`toll`) gar nicht. Nachgeeicht: Ausbluten 0,25, Brand 0,3, 
 statt Eisgrab) und Barbar (Ahnenruf statt Unsterblich auf St. 20) – die Kampfkraft unterschätzt Abwehr allgemein (Bericht 2,
 Kon-Optimum 60–70 % gegen 50 % in der Kampfkraft). Ein anderer Exponent (Schaden^0,4 · Leben^0,6) half nur teilweise und
 hätte alle Item-Vergleiche verschoben – bewusst nicht gemacht.
+
+### Build-Vielfalt, zweite Runde (2026-11-22)
+**Befund Assassine** (assa.mjs: gleiche Ausrüstung, gleiche Gegner, gemeinsame Würfel, 3 Würfe × 300/150/100 + 30 Abstiege):
+B ändert jede Begegnung nur ±3; das Paket hebt Schatten (normal 28 → 52) und Ausbluten (44 → 52). Das „2 → 1“ aus Phase 4 war die
+Zählweise (jede Variante neu am Bot-Build geeicht = andere Gegner, Abgrund-Lagen bei 0 %). Das echte Problem: jede Verteilung
+unter ~50 % Konstitution liegt 15–25 Punkte zurück, mit allen drei Steinen.
+**Warum Konstitution:** Leben verlängert das Überleben fast 1 : 1, Schaden verkürzt den Kampf wegen des Zauber-Takts kaum, und
+Prozent-Heilungen (Blutdurst, Zuflucht, Regeneration) wachsen mit dem Leben. Darum: **Heilung, die mit dem Schaden wächst**, für die
+offensiven Steine – `tickLeech` (Bluten-/Brand-Ticks heilen): Ausbluten 0,2, Verbrennung 0,3 (+ Zauberschaden 0,25), Ahnenruf und
+Schlächter Lebensraub 0,1 (Schlächter Leben 0,1); Nachhall ohne Lebensmalus (+5 %, Brett-Regel „kein Leben als Preis“).
+**Verworfen:** Elite „Zornig“ (Zorn je Zug) – alle Builds verlieren dort gleich, der Koloss bleibt vorn. Ausbluten 0,3/0,5 –
+verdrängt Lotus und Schatten. Verbrennung mit 0,5 + mehr Leben – Frostweber fällt heraus.
+Gemessen (div.mjs, St. 40, robust gezählt): Strategien vorn Barbar 3 → 5, Assassine 3 → 4 (erstmals eine Schadens-Verteilung:
+Ausbluter), Zauberin 4 → 4 (Nachhall 2 → 4 Lagen). Koloss-Verteilungen allein vorn in 13–14 von 14–15 Lagen (vorher 13–15).
+Konstitutions-Optimum (marg.mjs) danach: Barbar 60–70 %, Assassine 50 %, Zauberin 70 %.
+**Offen:** Assassine St. 25 – Koloss·Ausbluten führt 14/15 Lagen, auch mit 10 % Heilung (Ursache A5: Blutung 1,2 + Durchbohren);
+Zauberin – Koloss·Eisgrab auf St. 40 überall vorn; Schadens-Verteilungen der Zauberin (Feuer/Arkan) 30–40 Punkte zurück.

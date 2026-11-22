@@ -133,3 +133,16 @@ nicht (Zauberin St. 40 3 → 2 Strategien), der Koloss bleibt in 7–9/9 Lagen v
 stärker (Bot-Rekord T13–14 → T17–18). Damit gilt die Auftragsregel: `CFG.tempoMode` bleibt aus; vor einem neuen Anlauf erst
 Gegnermechaniken, defensive Synergien und Schaden/Leben (3–5 Gegnertreffer bis zum Tod) untersuchen.
 Volle Zahlen: `berichte/umsetzung-kampfsystem.md`.
+
+### Kampfkraft geeicht (2026-11-22)
+Datensatz: 3 Klassen × St. 20/30/40 × 2 Würfe × 27 Builds (6 Kon-Anteile × 3 Steine + Nebenattribut-Verteilungen), Talente gierig,
+Siegchance gegen denselben Gegnersatz (normal + 5 Krypta-Bosse). Maß: Rangkorrelation Kampfkraft ↔ Siegchance je Gruppe und
+„Build mit höchster Kampfkraft ist unter den echten Besten (≤ 3 Punkte)“. Vorher 0,37 / 44 %.
+Gesucht über Exponent, Ausweichen, Blocken, Dornen, Zauber, Heilung, Kältestarre, Brand, Ausbluten; **übernommen nur, was auf
+der zurückgehaltenen Hälfte (Wurf 1) hält**: `CFG.powerExp` 0,35 (Schaden^0,35 × Haltbarkeit^0,65) – das ist fast der ganze
+Gewinn, keine frei gewählte Gewichtung, sondern das gemessene Verhältnis. Dazu Lebensraub ×0,45 (Item-Bonus im Kampf = 1,0–1,2 ×
+Hauptattribut; ungedämpft 2,4), Ausbluten 0,6, Brand 0,5, Kältestarre-Abschlag gestrichen (verschlechterte die Vorhersage).
+**Verworfen:** Ausweichen/Blocken ×0,6 (am Build-Datensatz besser, aber Item-Boni im Kampf = Konstitution, affsim.mjs) und
+Dornen ×2–3 (hält auf der Kontrollhälfte nicht). Ergebnis: Rangkorrelation 0,80 / 0,79, Bot-Wahl 67–78 % unter den Besten.
+**Offen:** Zauberin – die Kampfkraft wählt Verbrennung, im Kampf ist Koloss·Eisgrab überall vorn (Eisgrab unterschätzt);
+Assassine St. 20 Rangkorrelation 0,46–0,59 (Ausweichen streut stark). Eich-Test `calib.mjs` unverändert im Rahmen.

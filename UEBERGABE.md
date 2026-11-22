@@ -59,6 +59,10 @@ bleibt auf dem Arbeits-Branch, bis er prüft): B „Zauber nach Lage“ (an), Bu
 Müllerin, Bindungen; an), Zeitachse C hinter `CFG.tempoMode` (**aus**, Entscheidung Phase 5). L5 nur gemessen. Zahlen, Kriterien
 und offene Fragen (L5 einschalten? power() unterschätzt Abwehr) in `berichte/umsetzung-kampfsystem.md`.
 
+**Zweite Runde 2026-11-22** (gleicher Dev-Branch, Freigaben 1+2): Glück-Beute L5 aktiv, Kampfkraft an echten Siegchancen geeicht
+(`CFG.powerExp` 0,35), offensive Steine mit Heilung aus Schaden (`tickLeech`, Lebensraub), Tests für Steinwechsel, ways.mjs gekeimt.
+Zahlen und offene Punkte: `berichte/umsetzung-kampfsystem.md`, Abschnitt „Zweite Runde“. Arbeits-Branch/Pages **nicht** angefasst.
+
 **Befund 2026-11-22 (Balance-Gesamtschau, gemessen, nichts am Spiel geändert):** Bot spielt jetzt den Abgrund (`tests/bot.mjs`).
 Boss erstattet sein Grabsiegel (`DESCENT.sealBoss: 1`) → wer gewinnt, steigt endlos ab: Tag 1 40–47 Abstiege, St. 17–26; Tag 30 St. 50–55,
 Rekord T24–33. Gegenprobe ohne Erstattung: Tag 1 St. 15–19, Tag 30 St. 42–44, Rekord T24–29 (je 2 Läufe × 3 Klassen). Barbar ~6 Tiefen hinter
