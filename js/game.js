@@ -1,6 +1,6 @@
 // Spielzüge ohne DOM: Kampf ausführen, Belohnung anwenden, strukturiertes Ergebnis liefern.
 // main.js zeigt das Ergebnis an; tests/ spielen damit ganze Verläufe durch.
-import { GRADES, TIERS, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS, DESCENT, DESC_ROOMS, ELITE, PIT, PIT_STYLES, PIT_RIVALS, PIT_RANKS, PIT_SHOP, PIT_RULES, DIFFICULTIES, SETS, SET, ACTS, ACT, CRYPT, WANDER, WANDER_ST } from './data.js';
+import { GRADES, TIERS, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS, DESCENT, DESC_ROOMS, ELITE, SIGILS, ASHCORE, PIT, PIT_STYLES, PIT_RIVALS, PIT_RANKS, PIT_SHOP, PIT_RULES, DIFFICULTIES, SETS, SET, ACTS, ACT, CRYPT, WANDER, WANDER_ST } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
 import { fight, resMul, resOf, mixOf, armorRed } from './combat.js';
@@ -526,21 +526,52 @@ export function descAt(d) {
   return { d, c: list[(d - 1) % list.length], lvl: Math.round(DESCENT.lvlBase + d * DESCENT.lvlPer),
     diff: descDiffAt(d), mods: DESCENT.depthMods.filter(m => d >= m.from) };
 }
+// --- Siegel des Abgrunds (SIGILS, Welle 2B-2): vor dem Abstieg einlegen, beim Hinabsteigen verbraucht ---
+// Vorrat S.sigils = { art: [Stufe 1, 2, 3] }. Ein Stand ohne das Feld bekommt es beim ersten Hinsehen (kein Absturz, keine Save-Version).
+export const sigKind = id => SIGILS.kinds.find(k => k.id === id);
+export const sigTierAt = d => Math.max(1, SIGILS.tierAt.filter(t => d >= t).length);   // tiefer = bessere Siegel
+export function sigBag() {
+  const S = G.S; if (!S.sigils || typeof S.sigils !== 'object' || Array.isArray(S.sigils)) S.sigils = {};
+  for (const k of SIGILS.kinds) if (!Array.isArray(S.sigils[k.id])) S.sigils[k.id] = [0, 0, 0];
+  return S.sigils;
+}
+export const sigHave = (id, t) => sigBag()[id]?.[t - 1] || 0;
+export function addSigil(id, t, n = 1) { const b = sigBag(); if (!b[id] || !(t >= 1 && t <= 3)) return; b[id][t - 1] = Math.max(0, (b[id][t - 1] || 0) + n); }
+// Eine Auswahl bereinigen: höchstens SIGILS.max, eine je Art, nur was im Vorrat liegt → [{ id, t }]
+export function sigClean(list) {
+  const out = [], seen = new Set();
+  for (const x of Array.isArray(list) ? list : []) { const t = Math.floor(+x?.t);
+    if (out.length >= SIGILS.max || !sigKind(x?.id) || seen.has(x.id) || !(t >= 1 && t <= 3) || sigHave(x.id, t) < 1) continue;
+    seen.add(x.id); out.push({ id: x.id, t }); }
+  return out;
+}
+// Was die eingelegten Siegel zusammen tun – eine Stelle für Kampf, Karte, Beute und die Anzeige vorher
+const SIG_ADD = ['foe', 'loot', 'eliteFoe', 'res', 'luck'], SIG_MUL = ['eliteW', 'kronE', 'favor'];
+export function sigFx(list = G.S.desc?.sig) {
+  const f = { foe: 0, loot: 0, eliteFoe: 0, res: 0, luck: 0, eliteW: 1, kronE: 1, favor: 1, eliteR: 0 };
+  for (const { id, t } of list || []) { const k = sigKind(id); if (!k) continue;
+    for (const key of SIG_ADD) if (k[key]) f[key] += k[key][t - 1];
+    for (const key of SIG_MUL) if (k[key]) f[key] *= k[key][t - 1];
+    if (k.eliteR) f.eliteR = Math.max(f.eliteR, k.eliteR[t - 1]); }
+  return f;
+}
+// Aschenkern (ASHCORE): Chance beim Abgrund-Boss dieser Tiefe – 0 über `from`
+export const coreChance = d => d >= ASHCORE.from ? Math.min(ASHCORE.max, ASHCORE.base + ASHCORE.per * (d - ASHCORE.from)) : 0;
 export const descCanStart = d => { const S = G.S; return !!descAt(d) && d <= descMaxDepth() && !S.desc && !descBusy() && descLeft() > 0; };
 export const descLvl = d => descAt(d)?.lvl ?? 0;
 const descNowLvl = () => G.S.desc.lvl;   // fest für den ganzen Abstieg: wer unten aufsteigt, hat Glück
 export const descMult = (u = G.S.desc?.unrest || 0) => Math.round((1 + u * DESCENT.unrestLoot) * 10) / 10;
-const descDiff = u => (G.S.desc.df || DESCENT.diff) * (1 + u * DESCENT.unrestDiff);
+const descDiff = u => (G.S.desc.df || DESCENT.diff) * (1 + u * DESCENT.unrestDiff) * (1 + sigFx().foe);
 const descCrypt = () => CRYPTS.find(x => x.id === G.S.desc.c);
 function descNode(c, t, x) {
   const n = { t, x }; if (t === 'fight' || t === 'elite') n.mob = pick(c.floors);
   if (t === 'elite') n.mods = [...ELITE.mods].sort(() => rand() - 0.5).slice(0, 2).map(m => m.id);
   return n;
 }
-export function descMap(c) {
-  const used = {}, rows = [];
+export function descMap(c, fx = sigFx(null)) {
+  const used = {}, rows = [], wOf = (k, x) => x.w * (k === 'elite' ? fx.eliteW : 1);   // Seelensiegel: Elite häufiger
   const pickT = r => { const pool = Object.entries(DESC_ROOMS).filter(([k, x]) => x.w && r >= (x.minR || 0) && (!x.max || (used[k] || 0) < x.max));
-    let w = rand() * pool.reduce((a, [, x]) => a + x.w, 0); for (const [k, x] of pool) if ((w -= x.w) < 0) return k; return 'fight'; };
+    let w = rand() * pool.reduce((a, [k, x]) => a + wOf(k, x), 0); for (const [k, x] of pool) if ((w -= wOf(k, x)) < 0) return k; return 'fight'; };
   DESCENT.widths.forEach((wd, r) => {
     const row = []; for (let j = 0; j < wd; j++) { const t = r === 0 ? 'fight' : pickT(r); used[t] = (used[t] || 0) + 1; row.push(descNode(c, t, ROWX[wd][j])); }
     if (r === DESCENT.rope || r === DESCENT.well) { const j = chance(0.5) ? 0 : wd - 1; row[j] = { t: r === DESCENT.rope ? 'rope' : 'well', x: row[j].x }; }
@@ -548,12 +579,13 @@ export function descMap(c) {
   });
   return rows;
 }
-export function descStart(d) {
+export function descStart(d, sig = []) {
   const S = G.S; d = Math.floor(+d); if (!descCanStart(d)) return null;
-  const at = descAt(d), c = at.c;
+  const at = descAt(d), c = at.c, sg = sigClean(sig);
   descLeft(); S.seals.n--;
-  S.desc = { d, c: c.id, lvl: at.lvl, df: at.diff, rows: descMap(c), path: [], unrest: 0, hpf: 1, rooms: 0, xp: 0, sack: { gold: 0, items: [], mats: {}, herbs: {} } };
-  G.journal(`Abstieg in Tiefe ${d} (${c.name}).`); return S.desc;
+  for (const x of sg) addSigil(x.id, x.t, -1);   // verbraucht beim Hinabsteigen – auch wenn man fällt
+  S.desc = { d, c: c.id, lvl: at.lvl, df: at.diff, sig: sg, rows: descMap(c, sigFx(sg)), path: [], unrest: 0, hpf: 1, rooms: 0, xp: 0, sack: { gold: 0, items: [], mats: {}, herbs: {}, sig: {} } };
+  G.journal(`Abstieg in Tiefe ${d} (${c.name})${sg.length ? ` mit ${sg.map(x => sigKind(x.id).name).join(', ')}` : ''}.`); return S.desc;
 }
 // Erreichbare Räume der nächsten Reihe (Indizes), oben 'boss'
 export function descNext() {
@@ -566,8 +598,8 @@ export const descNodeAt = j => { const D = G.S.desc; return j === 'boss' ? 'boss
 export const descWellCost = () => DESCENT.wellGold * G.S.desc.lvl;
 export function descEnemy(nd, u = G.S.desc.unrest) {
   const D = G.S.desc, c = descCrypt();
-  if (nd === 'boss') return G.makeBoss(c, descNowLvl(), DESCENT.boss * (D.df || DESCENT.diff));   // Boss wächst nicht mit der Unruhe: er ist schon am Ende des Wegs
-  const elite = nd.t === 'elite', m = G.makeMonster(descNowLvl(), descDiff(u) * (elite ? ELITE.diff : 1), MONSTERS.find(x => x.name === nd.mob));
+  if (nd === 'boss') return G.makeBoss(c, descNowLvl(), DESCENT.boss * (D.df || DESCENT.diff) * (1 + sigFx().foe));   // Boss wächst nicht mit der Unruhe: er ist schon am Ende des Wegs
+  const elite = nd.t === 'elite', m = G.makeMonster(descNowLvl(), descDiff(u) * (elite ? ELITE.diff * (1 + sigFx().eliteFoe) : 1), MONSTERS.find(x => x.name === nd.mob));
   if (elite) { m.hp = Math.round(m.hp * ELITE.hp); m.elite = nd.mods.map(id => ELITE.mods.find(x => x.id === id).name);
     for (const id of nd.mods) { const e = ELITE.mods.find(x => x.id === id); Object.assign(m, e.eff || {}); for (const [k, v] of Object.entries(e.mult || {})) m[k] = Math.round(m[k] * v); }
     m.name = `${m.name} (Elite)`; }
@@ -575,13 +607,13 @@ export function descEnemy(nd, u = G.S.desc.unrest) {
 }
 // Fluch der Tiefe (DESCENT.resMalus): Elementar-Resi −v je `per` Tiefen, höchstens −max – wirkt vor dem Deckel (resPen im Kampf)
 export const descResPen = d => { const M = DESCENT.resMalus; return Math.min(M.max, Math.floor((d || 0) / M.per) * M.v); };
-const descHero = () => { const A = { ...G.stats(), belt: G.beltCombat() }; A.cur0 = Math.max(1, Math.round(A.hp * G.S.desc.hpf)); A.resPen = descResPen(G.S.desc.d); return A; };
+const descHero = () => { const A = { ...G.stats(), belt: G.beltCombat() }; A.cur0 = Math.max(1, Math.round(A.hp * G.S.desc.hpf)); A.resPen = descResPen(G.S.desc.d) + sigFx().res; return A; };   // Runensiegel: zum Fluch dazu
 // Siegchance mit dem Leben, das du gerade hast (j = Raum-Index, 'boss' oder 'stair')
 export function descChance(j) {
   const D = G.S.desc; if (!D) return null; const stair = j === 'stair', nd = stair ? null : descNodeAt(j);
   if (!stair && !(nd === 'boss' || nd?.t === 'fight' || nd?.t === 'elite')) return null;
   const A = descHero(), c = descCrypt(), u = D.unrest + (stair ? DESCENT.stairUnrest : 0);
-  const key = 'desc|' + JSON.stringify([D.c, D.path, j, u, A.cur0, A.hp, A.dmg, A.armor, A[A.main], A.res, A.resPen, A.belt.map(b => b.id + b.trig)]);
+  const key = 'desc|' + JSON.stringify([D.c, D.d, D.sig, D.path, j, u, A.cur0, A.hp, A.dmg, A.armor, A[A.main], A.res, A.resPen, A.belt.map(b => b.id + b.trig)]);
   if (threatCache.has(key)) return threatCache.get(key);
   let w = 0; for (let i = 0; i < 24; i++) if (fight(A, descEnemy(stair ? { t: 'fight', mob: pick(c.floors) } : nd, u)).winner === 'a') w++;
   const p = w / 24; if (threatCache.size > 200) threatCache.clear(); threatCache.set(key, p); return p;
@@ -592,11 +624,12 @@ export function descReward(d) {
   return { gold: 1 + x * DESCENT.goldPer, xp: 1 + x * DESCENT.xpPer, item: 1 + x * DESCENT.itemPer, luck: (d || 0) * DESCENT.luckPer, minR: rar,
     tiers: TIERS.filter(t => t.minDepth && d >= t.minDepth) };
 }
-function descLoot(lvl, u, { gold = 1, item = 0, minR = 0, heart = 0, mat = null, kron = 0 }) {
-  const S = G.S, s = S.desc.sack, k = descMult(u), R = descReward(S.desc.d), got = { gold: Math.round((10 + lvl * 5) * DESCENT.gold * gold * k * R.gold), items: [], mats: [], herbs: [] };
+function descLoot(lvl, u, { gold = 1, item = 0, minR = 0, heart = 0, mat = null, kron = 0, sig = 0, core = 0 }) {
+  const S = G.S, s = S.desc.sack, k = descMult(u), R = descReward(S.desc.d), F = sigFx(), got = { gold: Math.round((10 + lvl * 5) * DESCENT.gold * gold * k * R.gold * (1 + F.loot)), items: [], mats: [], herbs: [], sig: [] };
   s.gold += got.gold;
-  for (let n = rollN(item * Math.sqrt(k) * R.item); n > 0; n--) {
-    const it = makeItem(lvl, { luck: G.stats().lck + u * 15 + R.luck, cls: CLASSES[S.cls], depth: S.desc.d || 0, minRarity: Math.max(minR, R.minR, u >= 5 ? 3 : u >= 3 ? 2 : 0) });
+  const favor = F.favor > 1 ? Object.fromEntries(SIGILS.favorStats.map(x => [x, F.favor])) : null;   // Runensiegel: Resistenz-Boni häufiger
+  for (let n = rollN(item * Math.sqrt(k) * R.item * (1 + F.loot)); n > 0; n--) {
+    const it = makeItem(lvl, { luck: G.stats().lck + u * 15 + R.luck + F.luck, cls: CLASSES[S.cls], depth: S.desc.d || 0, favor, minRarity: Math.max(minR, R.minR, u >= 5 ? 3 : u >= 3 ? 2 : 0) });
     s.items.push(it); got.items.push(it); }
   if (mat && chance(Math.min(1, CFG.matChance * k))) { const n = Math.max(1, rollN(k / 2)); s.mats[mat] = (s.mats[mat] || 0) + n; got.mats.push([mat, n]); }
   if (heart && chance(Math.min(1, heart * k))) { s.herbs.herz = (s.herbs.herz || 0) + 1; got.herbs.push(['herz', 1]);
@@ -605,6 +638,10 @@ function descLoot(lvl, u, { gold = 1, item = 0, minR = 0, heart = 0, mat = null,
   // Kronsplitter: der einzige Weg, ein volles magisches Teil zu erheben. Er liegt tief und
   // zählt erst, wenn der Sack oben ankommt – stirbt man, ist er weg.
   if (kron && chance(Math.min(1, kron * k))) { s.mats.kronsplitter = (s.mats.kronsplitter || 0) + 1; got.mats.push(['kronsplitter', 1]); }
+  // Siegel (tiefer = bessere Stufe) und der Aschenkern liegen im Sack wie alles andere – fällt man, sind sie weg
+  if (sig && chance(sig)) { const x = { id: pick(SIGILS.kinds).id, t: sigTierAt(S.desc.d || 1) }, key = x.id + ':' + x.t;
+    s.sig = s.sig || {}; s.sig[key] = (s.sig[key] || 0) + 1; got.sig.push(x); }
+  if (core && chance(core)) { s.mats.aschenkern = (s.mats.aschenkern || 0) + 1; got.mats.push(['aschenkern', 1]); }
   return got;
 }
 function descExtract(how) {
@@ -613,6 +650,7 @@ function descExtract(how) {
   for (const it of s.items) { if (G.keep(it)) out.items.push(it); else { out.gold += G.sellOff(it).gold; out.items.push({ ...it, soldFull: true }); } }
   for (const [k, n] of Object.entries(s.mats)) if (n > 0) { G.addMat(k, n); out.mats.push([k, n]); }
   for (const [k, n] of Object.entries(s.herbs)) if (n > 0) { G.addHerb(k, n); out.herbs.push([k, n]); }
+  out.sig = []; for (const [key, n] of Object.entries(s.sig || {})) { const [id, t] = key.split(':'); if (n > 0 && sigKind(id)) { addSigil(id, +t, n); out.sig.push({ id, t: +t, n }); } }
   S.desc = null; G.journal(`Aus ${c.name} entkommen (${how}): ${out.gold} Gold, ${out.items.length} Fundstück(e).`);
   return out;
 }
@@ -626,7 +664,7 @@ function descFight(nd, u, exit = null) {
   rew.grade = gradeOf(r); if (rew.grade.id === 'dom') G.bountyEvent({ type: 'dom' });
   const xp = Math.round((25 + m.lvl * 14) * DESCENT.xp * descReward(D.d).xp * (boss ? 3 : elite ? 1.5 : 1)); rew.xp = xp; rew.up = G.gainXp(xp); D.xp += xp;
   const gb = 1 + rew.grade.bonus;   // Kampfbewertung: mehr Gold wie überall
-  rew.sack = descLoot(m.lvl, u, boss ? { gold: 4 * gb, item: 2, minR: DESCENT.bossMinR, heart: 1, mat: m.mat, kron: DESCENT.kronBoss } : elite ? { gold: 1.8 * gb, item: 1, minR: DESCENT.eliteMinR, heart: DESCENT.eliteHeart, mat: m.mat, kron: DESCENT.kronElite }
+  rew.sack = descLoot(m.lvl, u, boss ? { gold: 4 * gb, item: 2, minR: DESCENT.bossMinR, heart: 1, mat: m.mat, kron: DESCENT.kronBoss, sig: SIGILS.drop.boss, core: coreChance(D.d || 0) } : elite ? { gold: 1.8 * gb, item: 1, minR: Math.max(DESCENT.eliteMinR, sigFx().eliteR), heart: DESCENT.eliteHeart, mat: m.mat, kron: DESCENT.kronElite * sigFx().kronE, sig: SIGILS.drop.elite }
     : { gold: gb, item: DESCENT.item, heart: DESCENT.heart, mat: m.mat });
   // Wer ganz durchkommt, bekommt sein Siegel zurueck – der Haken, der nach unten zieht.
   if (boss) addSeal(DESCENT.sealBoss);
@@ -652,7 +690,7 @@ export function descEnter(j) {
   D.rooms++; D.unrest++;
   if (t === 'shrine') { const h = Math.min(1 - D.hpf, DESCENT.heal); D.hpf = Math.min(1, D.hpf + DESCENT.heal);
     return { kind: 'room', t, text: `Das Wasser im Becken ist kalt und klar. +${Math.round(h * 100)} % Leben.` }; }
-  if (t === 'treasure') { const got = descLoot(descNowLvl(), u, { gold: 1.5, item: 1, minR: 2 }), trap = chance(DESCENT.trap);
+  if (t === 'treasure') { const got = descLoot(descNowLvl(), u, { gold: 1.5, item: 1, minR: 2, sig: SIGILS.drop.treasure }), trap = chance(DESCENT.trap);
     if (trap) D.hpf = Math.max(0.05, D.hpf - DESCENT.trapDmg);
     return { kind: 'room', t, got, trap, text: trap ? `Eine Klinge schnellt aus der Wand. −${Math.round(DESCENT.trapDmg * 100)} % Leben.` : 'Niemand hat diese Kammer bewacht. Seltsam.' }; }
   return { kind: 'fight', res: descFight(nd, u) };

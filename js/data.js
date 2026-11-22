@@ -250,6 +250,7 @@ export const MATS = {
   zahn: 'Ghulzahn', staub: 'Knochenstaub', schwanz: 'Pestrattenschwanz', siegel: 'Kultistensiegel',
   blutstein: 'Blutstein', haar: 'Hexenhaar', asche: 'Höllenasche', leinen: 'Grableinen',
   kronsplitter: 'Kronsplitter',                       // nur aus dem Abgrund – siehe CRAFT.raise
+  aschenkern: 'Aschenkern',                           // sehr selten, tief im Abgrund – siehe ASHCORE
 };
 // --- Schmiede (Halvar): Minispiel für die Wartezeit. Material bestimmt die Rune, Treffer die Güte. ---
 export const RUNES = {
@@ -1013,6 +1014,34 @@ export const DESCENT = {
   stairUnrest: 1,                   // Rückweg über die Stiege: ein Kampf mit Unruhe +1
   boss: 0.8,                        // Boss-Stärke gegenüber der Krypta (er kommt nach 5 Räumen ohne Heilung)
 };
+// --- Siegel des Abgrunds (Welle 2B-2, wie Skarabäen in PoE) ---
+// Vor einem Abstieg legt man bis zu `max` Siegel ein, höchstens eines je Art. Jedes macht den Abstieg gefährlicher
+// und die Beute größer oder gezielter; verbraucht beim Hinabsteigen (auch wenn man fällt). Fallen nur im Abgrund, liegen
+// im Beutesack (Tod = weg) und werden mit der Tiefe besser: Stufe 1/2/3 (`tierAt`: ab Tiefe). Werte je Stufe [1, 2, 3].
+// Bilder: die drei gemalten Abgrund-Steine aus assets/forge/ (DESIGN.md „Die vier Abgrund-Materialien").
+//   foe     Gegner (auch Elite und Boss) × (1 + foe) stärker – Leben, Schaden, Werte (makeMonster-diff)
+//   loot    Gold und Zahl der Fundstücke × (1 + loot)
+//   eliteW  Gewicht der Elite-Räume × eliteW; eliteFoe: Elite zusätzlich × (1 + eliteFoe)
+//   eliteR  Elite-Funde mindestens diese Seltenheit (Index in RARITIES, 3 = selten); kronE: Kronsplitter bei Elite ×
+//   res     Elementar-Resi zusätzlich −res (zum Fluch der Tiefe, eigener Deckel nicht – die Gefahr steht vorher da)
+//   favor   Gewicht der Resistenz-Boni (Gruppe `favorStats`) × favor beim Würfeln; luck: Glück +luck
+export const SIGILS = {
+  max: 3, tierAt: [1, 8, 16], tierName: ['rissig', 'fest', 'makellos'],
+  drop: { boss: 1, elite: 0.15, treasure: 0.1 },
+  favorStats: ['elemr', 'physr'],
+  kinds: [
+    { id: 'blut', name: 'Blutsiegel', img: 'verderbtes_blut', foe: [0.15, 0.25, 0.35], loot: [0.4, 0.65, 1] },
+    { id: 'seele', name: 'Seelensiegel', img: 'seelenstein', eliteW: [2, 2.5, 3], eliteFoe: [0, 0.1, 0.2], eliteR: [3, 3, 3], kronE: [1.5, 2, 3] },
+    { id: 'rune', name: 'Runensiegel', img: 'runenfassung', res: [0.1, 0.15, 0.2], favor: [3, 4, 5], luck: [15, 25, 40] },
+  ],
+};
+// --- Aschenkern (Welle 2B-2, wie Aspekte in D4) ---
+// Sehr seltener Fund beim Abgrund-Boss ab Tiefe `from`: Chance base + per × (Tiefe − from), höchstens max.
+// Er zieht EINE Sonderwirkung aus einem Einzigartigen (das zerfällt) und brennt sie in ein magisches, seltenes oder
+// legendäres Teil desselben Platzes – höchstens ein Kern je Teil, für immer. Positive Werte × mult (ganzzahlige
+// Schalter wie „toll: 1" bleiben ganz); Nachteile (negative Werte, `curse`) und Begleiter (`tie`) wandern immer mit.
+export const ASHCORE = { from: 12, base: 0.03, per: 0.005, max: 0.15, mult: 0.75,
+  tie: { execute: ['execHp'] }, curse: ['nohealSelf'], helper: ['execHp'], gold: 40 };
 export const DESC_ROOMS = {
   fight:    { name: 'Kampf', w: 5, img: 'mon', text: 'Ein Gegner der Gruft.' },
   elite:    { name: 'Elite', w: 2, minR: 1, img: 'mon', text: 'Stärker, mit zwei Eigenschaften. Trägt sicher ein magisches Fundstück.' },

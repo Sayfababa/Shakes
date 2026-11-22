@@ -237,7 +237,7 @@ function combatFx(l) {
 
 let waySel = null;
 let talSel = null;   // angetippter Knoten im Talentbaum
-const precious = it => ['rare', 'legendary', 'set'].includes(it.rarity) || !!it.special || !!it.unique || !!it.set || !!it.runes?.length;
+const precious = it => ['rare', 'legendary', 'set'].includes(it.rarity) || !!it.special || !!it.core || !!it.unique || !!it.set || !!it.runes?.length;
 const actions = {
   ways: d => { waySel = d.s; view = 'ways'; render(); },
   way: d => { const cur = G.S.sp?.[d.s]?.[+d.t]; if (cur === +d.i) return;

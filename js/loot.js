@@ -29,7 +29,8 @@ export function tierOf(stat, v) {
   return TIERS[TIERS.length - 1].t;
 }
 // Einen Bonus aus dem Freien würfeln, nach Gewicht (AFFIXES.w, Standard 1) – Beute und Umschmieden
-export const pickAffix = room => weighted(room.map(a => ({ a, w: a.w ?? 1 }))).a;
+// favor: { stat: ×Gewicht } – Runensiegel macht Resistenz-Boni häufiger (SIGILS.favor), sonst leer
+export const pickAffix = (room, favor) => weighted(room.map(a => ({ a, w: (a.w ?? 1) * (favor?.[a.stat] || 1) }))).a;
 // Präfix/Suffix-Plätze eines Teils: aus der Seltenheit (RARITIES.sides), gekürzt auf das, was der Platz hergibt (eine je
 // Gruppe). Fehlt eine Seite (Stiefel: kein Angriff), rücken ihre Plätze auf die andere – das Teil bleibt gleich voll.
 export function sideLimits(it, rarity = it.rarity) {
@@ -47,7 +48,7 @@ export function affixRoom(it, have = Object.keys(it.mods || {}), rarity = it.rar
 }
 
 // Erzeugt ein Item für Stufe `lvl`. luck verschiebt Seltenheiten nach oben.
-export function makeItem(lvl, { luck = 0, slot, slots, cls, kind, minRarity = 0, depth = 0 } = {}) {
+export function makeItem(lvl, { luck = 0, slot, slots, cls, kind, minRarity = 0, depth = 0, favor = null } = {}) {
   const okLvl = b => !b.minLvl || lvl >= b.minLvl;   // höhere Grundgegenstände erst ab ihrer Stufe
   let pool = (slot ? BASES.filter(b => b.slot === slot) : slots ? BASES.filter(b => slots.includes(b.slot)) : BASES).filter(okLvl);
   if (cls && rand() < 0.6) pool = pool.filter(b => b.slot !== 'weapon' || b.kind === cls.weapon);
@@ -73,7 +74,7 @@ export function makeItem(lvl, { luck = 0, slot, slots, cls, kind, minRarity = 0,
     it.fx = { ...uniq.eff }; it.unique = uniq.name; it.lore = uniq.lore; it.name = uniq.name;
   } else {
     for (let room = affixRoom(it); room.length; room = affixRoom(it)) {
-      const a = pickAffix(room), T = rollTier(ilvl, a.noDeep ? 0 : depth); it.mods[a.stat] = affixValue(a, T); it.tiers[a.stat] = T.t; chosen.push(a); }
+      const a = pickAffix(room, favor), T = rollTier(ilvl, a.noDeep ? 0 : depth); it.mods[a.stat] = affixValue(a, T); it.tiers[a.stat] = T.t; chosen.push(a); }
     const sc = SPECIAL_CHANCE[rar.id] || 0;
     if (sc && ilvl >= SPECIAL_MIN_LVL && rand() < sc) { const sp = pick(SPECIALS); it.fx = { ...sp.eff }; it.special = sp.id; }
     it.name = nameOf(it, base, chosen);
@@ -131,7 +132,7 @@ function pickUnique(pool) {
 // Wert: Seltenheit, Anzahl und Stufe der Boni, Sonderbonus und Einzigartige zählen
 export function itemValue(it, rar = RARITIES.find(r => r.id === it.rarity)) {
   const tierBonus = Object.values(it.tiers || {}).reduce((s, t) => s + (6 - t) * 0.2, 0);   // 0,2: feste Stufen würfeln öfter hoch (Welle 1a), Wert bleibt im alten Mittel
-  return Math.round((4 + it.lvl * 3) * rar.mult ** 3 * (1 + Object.keys(it.mods).length * 0.4 + tierBonus) * (it.special ? 2 : 1) * (it.unique ? 3 : 1) * (it.set ? 2 : 1));
+  return Math.round((4 + it.lvl * 3) * rar.mult ** 3 * (1 + Object.keys(it.mods).length * 0.4 + tierBonus) * (it.special ? 2 : 1) * (it.core ? 2 : 1) * (it.unique ? 3 : 1) * (it.set ? 2 : 1));
 }
 
 // Eigenschaftswort an das Geschlecht des Grundgegenstands anpassen: „Starker“ + Kappe → „Starke Kappe“

@@ -1,4 +1,4 @@
-import { RARITIES, TREE, SETS, SET, ACTS, ACT, CRYPT, DESCENT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, SELL, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, STASH_W, STASH_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, HERB_LOC, ALCH } from './data.js';
+import { ASHCORE, RARITIES, TREE, SETS, SET, ACTS, ACT, CRYPT, DESCENT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, SELL, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, STASH_W, STASH_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, HERB_LOC, ALCH } from './data.js';
 import { affixPool, affixRoom, pickAffix, makeItem, itemValue, rollTier, tierOf, affixValue, renameMagic, adj, fixName, wpnDmg } from './loot.js';
 import { roll, pick, rand } from './rng.js';
 import { evadeShare, resMul, mixOf, armorRed } from './combat.js';
@@ -121,6 +121,7 @@ export function effects(p = S) {
   else for (const br of TALENTS[p.cls]) for (const n of br.nodes) { const r = p.tal?.[n.id] || 0; if (r) for (const [k, v] of Object.entries(n.eff)) add(k, v * r); }
   for (const t of p.trophies || []) for (const [k, v] of Object.entries(t.eff)) add(k, v);
   for (const it of Object.values(p.equip || {})) if (it?.fx) for (const [k, v] of Object.entries(it.fx)) add(k, v);   // Sonderboni und Einzigartige
+  for (const it of Object.values(p.equip || {})) if (it?.core?.eff) for (const [k, v] of Object.entries(it.core.eff)) add(k, v);   // Aschenkern
   for (const set of SETS) { const n = setCount(set.id, p);   // Grab-Sets: 2 Teile = Bonus, 3 Teile = Regeländerung
     if (n >= 2) for (const [k, v] of Object.entries(set.b2)) add(k, v);
     if (n >= SET.parts) for (const [k, v] of Object.entries(set.b3)) add(k, v); }
@@ -597,10 +598,11 @@ export const fuseCount = it => it?.fused || 0;
 export const fusedMods = it => it?.fmods || [];
 const keepFused = it => { const f = fusedMods(it).filter(k => k in baseMods(it)); if (f.length) it.fmods = f; else delete it.fmods; };
 const fusable = it => CRAFT.maxAff[it.rarity] && !it.unique && !it.set;
+const foodOk = it => fusable(it) && !it.core;   // ein Teil mit Aschenkern zerfällt nie still als Futter
 const nextRar = r => { const n = RARITIES[RARITIES.findIndex(x => x.id === r) + 1]; return n && CRAFT.maxAff[n.id] ? n.id : null; };
 export const fuseMains = () => craftItems().filter(it => fuseCount(it) < CRAFT.fuse.max);
 export const fuseFoods = main => !main ? [] : S.bag.filter(it =>
-  it.id !== main.id && fusable(it) && fuseForm(main, it) && it.rarity === main.rarity && Object.keys(baseMods(it)).length);
+  it.id !== main.id && foodOk(it) && fuseForm(main, it) && it.rarity === main.rarity && Object.keys(baseMods(it)).length);
 // Ist das Hauptteil voll, muss entweder ein Bonus weichen (mainStat) oder das Teil steigt auf.
 export const fuseFull = main => Object.keys(baseMods(main)).length >= CRAFT.maxAff[main.rarity];
 export const fusePromote = (main, mainStat) => fuseFull(main) && !mainStat && !main.risen ? nextRar(main.rarity) : null;
@@ -616,6 +618,7 @@ export function fuseCheck(main, food, foodStat, mainStat) {
   if (!main || !food) return 'Zwei Teile wählen.';
   if (main.id === food.id) return 'Nicht mit sich selbst.';
   if (!fusable(main) || !fusable(food)) return 'Einzigartige und Set-Teile bleiben, wie sie sind.';
+  if (food.core) return 'Ein Teil mit Aschenkern taugt nicht als Futter.';
   if (!fuseForm(main, food)) return 'Nur die gleiche Grundform.';
   if (main.rarity !== food.rarity) return 'Nur die gleiche Seltenheit.';
   if (fuseCount(main) >= CRAFT.fuse.max) return 'Dieses Teil ist schon fusioniert.';
@@ -658,6 +661,40 @@ export function fuse(mainId, foodId, foodStat, mainStat) {
   renameMagic(main); main.value = itemValue(main);
   journal(`${food.name} zerfiel. Was gut an ihm war, trägt jetzt ${main.name}.`);
   return { it: main, food, stat: foodStat, replaced, promote, gold };
+}
+
+// --- Aschenkern (ASHCORE, Welle 2B-2): eine Sonderwirkung eines Einzigartigen in ein anderes Teil brennen ---
+// Das Einzigartige kommt nur aus dem Beutel (es zerfällt – nie vom Körper), das Ziel ist magisch/selten/legendär,
+// gleicher Platz, noch ohne Kern. Höchstens ein Kern je Teil, für immer (`it.core`). Umschmieden/Fusion lassen ihn stehen.
+export const coreUniques = () => S.bag.filter(it => it.unique && it.fx && coreKeys(it).length);
+// Wählbar sind die positiven Wirkungen; Begleiter (execHp) und Flüche wandern ungefragt mit
+export const coreKeys = u => Object.keys(u?.fx || {}).filter(k => u.fx[k] > 0 && !ASHCORE.helper.includes(k) && !ASHCORE.curse.includes(k));
+export function coreEff(u, key) {
+  const fx = u?.fx || {}; if (!coreKeys(u).includes(key)) return null;
+  const e = { [key]: Number.isInteger(fx[key]) ? fx[key] : Math.round(fx[key] * ASHCORE.mult * 1000) / 1000 };
+  for (const t of ASHCORE.tie[key] || []) if (t in fx) e[t] = fx[t];
+  for (const [k, v] of Object.entries(fx)) if (v < 0 || ASHCORE.curse.includes(k)) e[k] = v;   // der Preis geht mit
+  return e;
+}
+export const coreTargets = u => !u ? [] : craftItems().filter(it => it.slot === u.slot && !it.core);
+export function coreCheck(u, key, it) {
+  if ((S.mats.aschenkern || 0) < 1) return 'Kein Aschenkern.';
+  if (!u || !u.unique || !S.bag.includes(u)) return 'Ein Einzigartiges aus dem Beutel wählen.';
+  if (!coreEff(u, key)) return 'Eine Wirkung des Einzigartigen antippen.';
+  if (!it) return 'Ziel wählen.';
+  if (it.unique || it.set || !CRAFT.maxAff[it.rarity]) return 'Nur magische, seltene oder legendäre Teile.';
+  if (it.slot !== u.slot) return 'Nur ein Teil desselben Platzes.';
+  if (it.core) return 'Dieses Teil trägt schon einen Aschenkern.';
+  if (S.gold < craftGold(it)) return 'Zu wenig Gold.';
+  return null;
+}
+export function coreApply(uId, key, itId) {
+  const u = S.bag.find(x => x.id === uId), it = findAny(itId), err = coreCheck(u, key, it); if (err) return { err };
+  const gold = craftGold(it); S.gold -= gold; S.mats.aschenkern--;
+  it.core = { from: u.unique, key, eff: coreEff(u, key) };
+  removeFromBag(u.id); it.value = itemValue(it);
+  journal(`${u.name} zerfiel zu Asche. Ihr Kern brennt jetzt in ${it.name}.`);
+  return { it, u, key, gold };
 }
 
 // --- Eilen: kostet mit Restzeit und Stufe ---
