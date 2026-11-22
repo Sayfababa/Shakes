@@ -97,11 +97,13 @@ export function fight(A, B) {
     if (atk.rage && def.cur > 0 && atk.cur < atk.hp / 2 && chance(atk.rage)) { say(atk.side, `${atk.name} rast vor Wut!`, { rage: true }); strike(atk, def); }
     // Ticks auf dem Ziel im Zug des Angreifers – auf der Zeitachse je verstrichener Zeit (dt), nicht je Aktion
     const tk = v => dt === 1 ? v : Math.max(1, Math.round(v * dt));
-    if (def.bleedDmg && def.cur > 0) { const v = tk(def.bleedDmg); def.cur -= v; say(atk.side, `${def.name} blutet (${v}).`, { tick: v, tk: 'bleed' }); }
+    // tickLeech (Ausbluten, Verbrennung): Bluten- und Brand-Ticks heilen den Angreifer – Heilung, die mit dem Schaden wächst, nicht mit dem Leben
+    const tl = v => { const h = atk.tickLeech && !(atk.noheal > 0) ? Math.round(v * atk.tickLeech) : 0; if (h) atk.cur = Math.min(atk.hp, atk.cur + h); return h || undefined; };
+    if (def.bleedDmg && def.cur > 0) { const v = tk(def.bleedDmg); def.cur -= v; const h = tl(v); say(atk.side, `${def.name} blutet (${v}).${h ? ` +${h} Leben.` : ''}`, { tick: v, tk: 'bleed', heal: h }); }
     if (def.poisonDmg && def.cur > 0) { const v = tk(def.poisonDmg); def.cur -= v;
       const h = atk.poisonLeech && !(atk.noheal > 0) ? Math.round(v * atk.poisonLeech) : 0; if (h) atk.cur = Math.min(atk.hp, atk.cur + h);
       say(atk.side, `Gift zerfrisst ${def.name} (${v}).${h ? ` +${h} Leben.` : ''}`, { tick: v, tk: 'poison', heal: h || undefined }); }
-    if (def.burn?.n > 0 && def.cur > 0) { const v = tk(def.burn.d); def.cur -= v; def.burn.n -= dt; say(atk.side, `${def.name} brennt (${v}).`, { tick: v, tk: 'burn' }); }
+    if (def.burn?.n > 0 && def.cur > 0) { const v = tk(def.burn.d); def.cur -= v; def.burn.n -= dt; const h = tl(v); say(atk.side, `${def.name} brennt (${v}).${h ? ` +${h} Leben.` : ''}`, { tick: v, tk: 'burn', heal: h }); }
     [atk, def] = next(atk, def);
   }
   const winner = a.cur > 0 && (b.cur <= 0 || a.cur / a.hp >= b.cur / b.hp) ? 'a' : 'b';

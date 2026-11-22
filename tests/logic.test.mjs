@@ -1748,3 +1748,24 @@ test('Glück-Beute L5: neutral beim Bezugswert (2 × Stufe + 10), mehr Glück �
   assert.ok(hi.legendary > lo.legendary * 1.8 && hi.rare > lo.rare * 1.2, `legendär ${lo.legendary} → ${hi.legendary}, selten ${lo.rare} → ${hi.rare}`);
   assert.ok(Math.abs((hi.magic || 0) - (lo.magic || 0)) < 0.25 * lo.magic, 'magisch bleibt (nur über das Gesamtglück)');
 });
+
+test('Schlüsselstein-Wechsel: freie Neuwahl nach dem Laden, Wechsel über die Läuterung (erste gratis), Zauber-Wege bleiben', () => {
+  for (const cls of D.PLAYABLE) {
+    const S = fresh(cls); S.lvl = 60; S.gold = 0; S.sp = { x: [1, 0, null] };
+    const keys = G.keyNodes(cls), T = G.treeOf(cls);
+    const fillBelow = () => { if (T) D.TREE[cls].cols.forEach(c => c.nodes.forEach(n => { if (n.kind !== 'key') S.tal[n.id] = n.max; })); else D.TALENTS[cls].forEach(b => b.nodes.slice(0, -1).forEach(n => { S.tal[n.id] = 1; })); };
+    const learnKey = i => T ? G.learnNode(i, D.TREE[cls].cols[i].nodes.length - 1) : G.learn(i, 2);
+    const keyIdx = k => T ? D.TREE[cls].cols.findIndex(c => c.nodes.includes(k)) : D.TALENTS[cls].findIndex(b => b.nodes.includes(k));
+    // alter Stand mit zwei Steinen: beim Laden bereinigt, danach einen ANDEREN wählen – ohne Gold
+    fillBelow(); S.tal[keys[0].id] = 1; S.tal[keys[1].id] = 1; G.save(); G.load(); const P = G.S;
+    assert.ok(!keys.some(k => P.tal[k.id]), `${cls}: Steine entfernt`); assert.ok(G.talentPoints() >= 2);
+    assert.ok(learnKey(keyIdx(keys[2])), `${cls}: freie Neuwahl (dritter Stein) möglich`); assert.equal(P.gold, 0);
+    assert.ok(!learnKey(keyIdx(keys[0])), `${cls}: zweiter Stein bleibt gesperrt`);
+    // Wechsel: erste Läuterung gratis, setzt Talente zurück, Zauber-Wege bleiben, dann ist ein anderer Stein lernbar
+    assert.equal(G.respecCost(), 0); assert.ok(G.respec()); assert.deepEqual(G.S.sp, { x: [1, 0, null] }, 'Zauber-Wege bleiben');
+    G.S.tal = {}; S.tal = G.S.tal; fillBelow.call(null); Object.assign(G.S.tal, S.tal);
+    assert.ok(learnKey(keyIdx(keys[0])), `${cls}: nach der Läuterung anderer Stein`);
+    // zweite Läuterung kostet Gold
+    assert.ok(G.respecCost() > 0); G.S.gold = 0; assert.equal(G.respec(), false, 'ohne Gold kein zweiter Wechsel');
+  }
+});

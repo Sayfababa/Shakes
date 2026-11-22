@@ -289,6 +289,8 @@ export function power(A = stats()) {
   // ungedämpft schätzte power() mit der Gewichtung 0,35/0,65 das 2,4-fache (Eichung 2026-11-22)
   heal += 0.45 * dpt * (A.leech || 0) * (A.lastStand ? 1 + (CFG.lastStandMul - 1) * 0.15 : 1);   // Lebensraub aus Hieben und Zaubern (Set: unter halbem Leben × CFG.lastStandMul)
   if (A.venom) heal += dpt * (A.poison || 0) * A.venom * 2;
+  // tickLeech: Anteil der Bluten-/Brand-Ticks am Schaden grob (Ausbluten: bleedT-Anteil, Brand ~ein Viertel), gedämpft wie Lebensraub
+  if (A.tickLeech) heal += 0.45 * A.tickLeech * dpt * (A.hemorrhage ? bleedT / (1 + bleedT) : 0) + 0.45 * A.tickLeech * dpt * (A.ignite ? 0.25 : 0);
   if (A.tollback) takenF *= 0.97;
   // Kältestarre (toll): ein eigener Abschlag verschlechterte die Vorhersage (Eichung 2026-11-22) – sie wirkt über die längeren Kämpfe schon mit
   if (A.igniteBan) takenF *= 0.985;  // Verbrennung: brennende Gegner heilen nicht (wie Läuterung/Bann)   // betäubte Gegner schlagen seltener – gegen die Glocke viel mehr

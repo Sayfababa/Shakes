@@ -624,7 +624,7 @@ export const EFFECT_NAMES = { dmgPct: 'Schaden', hpPct: 'Leben', armorPct: 'Rüs
   hemorrhage: 'Bluten bei jedem Treffer – dafür nie kritisch', evadeCap: 'Ausweich-Grenze', critDmg: 'Krit-Schaden',
   tollback: 'Betäubung prallt zurück', firstEcho: 'Erster Zauber wirkt zweimal',
   spellPct: 'Zauberschaden', ignite: 'Jeder Zauber setzt in Brand', physRes: 'Phys.-Resi', elemRes: 'Elem.-Resi', elemPen: 'Elementar-Durchdringung',
-  igniteBan: 'Brand verhindert Heilung', poisonPct: 'Gift: Anteil deines Lebens je Treffer', ramp: 'Zorn je Zug',
+  igniteBan: 'Brand verhindert Heilung', tickLeech: 'Bluten und Brand heilen dich', poisonPct: 'Gift: Anteil deines Lebens je Treffer', ramp: 'Zorn je Zug',
   wardPerStr: 'Schild je Punkt Stärke', slowCast: 'Zauberladung', lifePerStr: 'Leben je Punkt Stärke', hastePerLck: 'Zaubertempo je Punkt Glück' };
 
 // --- Das Brett (neuer Talentbaum) ---
@@ -649,7 +649,7 @@ export const TREE = {
         N('ak3', 'Ätzend', 3, { pen: 0.05 }, 'Zersetzt Rüstung.'),
         N('ak4', 'Todesstoß', 1, { execute: 0.6, execHp: 0.28 }, 'Gegen Sterbende +60 % Schaden – und der Henker schlägt schon bei 58 % Leben zu.', 'nt'),
         N('ak5', 'Schnitt', 2, { dmgPct: 0.05 }, 'Mehr Schaden.'),
-        N('ak6', 'Ausbluten', 1, { hemorrhage: 1, bleed: 1.2, pen: 0.2 }, 'Jeder Treffer lässt tief bluten – 85 % des Schadens plus dein Bluten-Bonus, und du gehst durch ein Fünftel der Rüstung. Dafür triffst du nie mehr kritisch.', 'key'),
+        N('ak6', 'Ausbluten', 1, { hemorrhage: 1, bleed: 1.2, pen: 0.2, tickLeech: 0.2 }, 'Jeder Treffer lässt tief bluten – 85 % des Schadens plus dein Bluten-Bonus, du gehst durch ein Fünftel der Rüstung, und das Blut nährt dich. Dafür triffst du nie mehr kritisch.', 'key'),
       ] },
       { name: 'Schatten', nodes: [
         N('as1', 'Nebelschritt', 3, { evade: 0.045 }, 'Ausweichen.'),
@@ -685,7 +685,7 @@ export const TREE = {
         N('sf3', 'Flammenzunge', 3, { crit: 0.024 }, 'Krit-Chance.'),
         N('sf4', 'Schmerzrausch', 1, { vengeance: 0.4 }, 'Je weniger Leben du hast, desto wilder brennt es – bis zu 40 % mehr Schaden.', 'nt'),
         N('sf5', 'Lohe', 2, { spellPct: 0.08 }, 'Deine Zauber brennen heißer.'),
-        N('sf6', 'Verbrennung', 1, { ignite: 1.0, spellPct: 0.15, igniteBan: 1 }, 'Jeder Zauber setzt den Gegner in Brand: 100 % des Schadens noch drei Runden lang – und solange es brennt, heilt er nicht.', 'key'),
+        N('sf6', 'Verbrennung', 1, { ignite: 1.0, spellPct: 0.25, igniteBan: 1, tickLeech: 0.3 }, 'Jeder Zauber setzt den Gegner in Brand: 100 % des Schadens noch drei Runden lang – solange es brennt, heilt er nicht, und das Feuer wärmt dich.', 'key'),
       ] },
       { name: 'Frost', nodes: [
         N('sk1', 'Eishaut', 3, { block: 0.045 }, 'Das Eis fängt Hiebe ab.'),
@@ -701,7 +701,7 @@ export const TREE = {
         N('sa3', 'Fokus', 3, { haste: 0.05 }, 'Zaubertempo.'),
         N('sa4', 'Zuflucht', 1, { secondWind: 0.27 }, 'Heilt dich einmal, wenn du unter 30 % fällst.', 'nt'),
         N('sa5', 'Seelenzehrung', 2, { leech: 0.035 }, 'Lebensraub.'),
-        N('sa6', 'Nachhall', 1, { echo: 0.5, haste: 0.12, spellPct: 0.15, hpPct: -0.05 }, 'Jeder zweite Zauber wirkt ein zweites Mal, alle laden schneller und wiegen schwerer. Dafür hält dein Körper etwas weniger aus.', 'key'),
+        N('sa6', 'Nachhall', 1, { echo: 0.5, haste: 0.12, spellPct: 0.15, hpPct: 0.05 }, 'Jeder zweite Zauber wirkt ein zweites Mal, alle laden schneller und wiegen schwerer, und der Hall stützt dich.', 'key'),
       ] },
     ],
     bridges: [
@@ -715,9 +715,9 @@ export const TIER_LVL = [2, 8, 16];
 const T = (id, name, max, eff, desc) => ({ id, name, max, eff, desc });
 export const TALENTS = {
   barbarian: [
-    { name: 'Blutrausch', nodes: [T('b1', 'Zorn', 10, { dmgPct: 0.05 }, 'Mehr Schaden.'), T('b2', 'Ungebändigt', 3, { rage: 0.08 }, 'Öfter Raserei.'), T('b3', 'Schlächter', 1, { execute: 1.2, execHp: 0.15, hpPct: 0.05 }, '+120 % gegen Feinde unter 45 % Leben, etwas mehr Leben.')] },
+    { name: 'Blutrausch', nodes: [T('b1', 'Zorn', 10, { dmgPct: 0.05 }, 'Mehr Schaden.'), T('b2', 'Ungebändigt', 3, { rage: 0.08 }, 'Öfter Raserei.'), T('b3', 'Schlächter', 1, { execute: 1.2, execHp: 0.15, hpPct: 0.1, leech: 0.1 }, '+120 % gegen Feinde unter 45 % Leben, mehr Leben, jeder Hieb nährt.')] },
     { name: 'Fell & Narbe', nodes: [T('b4', 'Dickes Fell', 10, { hpPct: 0.06 }, 'Mehr Leben.'), T('b5', 'Narbengewebe', 3, { regen: 0.015 }, 'Heilt jede Runde.'), T('b6', 'Unsterblich', 1, { hpPct: 0.08, thorns: 0.3 }, 'Leben und starke Dornen.')] },
-    { name: 'Kriegsschrei', nodes: [T('b7', 'Brüllen', 9, { evade: 0.015 }, 'Feinde zögern.'), T('b8', 'Knochenbrecher', 3, { pen: 0.1 }, 'Zerschmettert Rüstung.'), T('b9', 'Ahnenruf', 1, { crit: 0.15, critDmg: 0.6, dmgPct: 0.15, hastePerLck: 0.003 }, 'Die Ahnen führen die Axt – Glück treibt deine Zauber an.')] },
+    { name: 'Kriegsschrei', nodes: [T('b7', 'Brüllen', 9, { evade: 0.015 }, 'Feinde zögern.'), T('b8', 'Knochenbrecher', 3, { pen: 0.1 }, 'Zerschmettert Rüstung.'), T('b9', 'Ahnenruf', 1, { crit: 0.15, critDmg: 0.6, dmgPct: 0.15, leech: 0.1, hastePerLck: 0.003 }, 'Die Ahnen führen die Axt und trinken mit – Glück treibt deine Zauber an.')] },
   ],
   paladin: [
     { name: 'Bollwerk', nodes: [T('p1', 'Schildwall', 5, { armorPct: 0.08 }, 'Mehr Rüstung.'), T('p2', 'Standhaft', 3, { block: 0.04 }, 'Öfter blocken.'), T('p3', 'Eiserne Buße', 1, { thorns: 0.3 }, 'Wirft 30% des Schadens zurück.')] },
