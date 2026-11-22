@@ -1,7 +1,7 @@
 import { ASHCORE, RARITIES, TREE, SETS, SET, ACTS, ACT, CRYPT, DESCENT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, SELL, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, STASH_W, STASH_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, HERB_LOC, ALCH } from './data.js';
 import { affixPool, affixRoom, pickAffix, makeItem, itemValue, rollTier, tierOf, affixValue, renameMagic, adj, fixName, wpnDmg } from './loot.js';
 import { roll, pick, rand } from './rng.js';
-import { evadeShare, resMul, mixOf, armorRed, evadeChance, critChance } from './combat.js';
+import { evadeShare, resMul, mixOf, armorRed, evadeChance, critChance, actionRate, chargeStep } from './combat.js';
 
 const KEY = 'aschenkrone_v1';
 export const SAVE_VERSION = 22;
@@ -200,7 +200,7 @@ export function stats(p = S) {
     hp: Math.round(st.con * c.hp * (CFG.hpBase + p.lvl * CFG.hpPerLvl) * (1 + (e.hpPct || 0) + P('lifep')) * (1 + (e.lifePerStr || 0) * st.str)),
     // Attribut-Bindungen an Schlüsselsteine (Bericht 3): ein Nebenattribut bekommt je nach Stein einen eigenen Wert
     ward: (e.ward || 0) + (e.wardPerStr || 0) * st.str,
-    haste: (e.haste || 0) + (st.haste || 0) / 100 + (e.hastePerLck || 0) * st.lck };
+    haste: (e.haste || 0) + (st.haste || 0) / 100 + (e.hastePerLck || 0) * st.lck + CFG.dexHaste * st.dex };
 }
 
 // Monster skaliert auf Stufe; diff 0.8 .. 1.3
@@ -266,7 +266,7 @@ export function power(A = stats()) {
     if (m.detonate && dotter) v += sd * 0.35 * m.detonate;
     if (m.fresh) v *= 1 + m.fresh * 0.35;
     if (m.dotStack && s.kind === 'dot') v *= 1.6;
-    let ev = s.every / (1 + (A.haste || 0)); if (m.open) ev *= 0.82; if (m.desperate) ev *= 1 - m.desperate * 0.3;
+    let ev = s.every / (chargeStep(A) + (CFG.tempoMode ? crit * CFG.critCharge : 0)); if (m.open) ev *= 0.82; if (m.desperate) ev *= 1 - m.desperate * 0.3;
     // Verbrennung: jeder Zauber brennt nach. Der Brand stapelt NICHT – der naechste Zauber ueberschreibt ihn,
     // also tickt er hoechstens bis zum naechsten Wurf. Dazu ein Drittel Abzug fuer Ticks, die am toten Gegner verfallen.
     // Ohne diese Deckel schaetzte power() den Schluesselstein auf +75 %, gemessen sind es +11,6 Punkte Siegchance.
@@ -295,6 +295,8 @@ export function power(A = stats()) {
   if (A.secondWind) heal += A.hp * A.secondWind * 0.1;
   if (A.nohealSelf) heal = 0;
   if (A.firstEcho) dpt *= 1.04;
+  // Zeitachse: Hiebe, Zauber, Lebensraub kommen rate-mal so oft je Gegnerzug; Regeneration und Ticks laufen je Zeit (combat.js dt)
+  const rate = actionRate(A); if (rate !== 1) { const regenH = (A.regen || 0) * A.hp; dpt *= rate; heal = regenH + (heal - regenH) * rate; }
   const taken = eDmg * resMul(FOE_MIX, A, null, armorRed(A.armor, L))   // Rüstung nur gegen den physischen Anteil
      * (1 - myEvade) * (1 - Math.min(0.5, A.block || 0)) * takenF;
   dpt += taken * (A.thorns || 0);   // Dornen: Teil jedes erlittenen Treffers geht zurück

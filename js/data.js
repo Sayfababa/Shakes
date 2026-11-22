@@ -537,6 +537,10 @@ export const CFG = {
   // Zauber nach Lage (System B, → E „Zauber nach Lage“): der Held wählt unter seinen vollen Zaubern (combat.js pickSpell),
   // statt stur den mit dem höchsten Rang zu wirken. Gehaltene Zauber behalten ihre Ladung (höchstens ein Zug Vorrat über voll).
   spellPick: true,
+  // Zeitachse (System C, → E „Zeitachse“): Zaubertempo wird Aktionsrate des Helden statt Zauberladung. AUS, bis neu geeicht.
+  // tempoCap: über dieser Rate zählt Tempo nur halb · critCharge: ein Krit lädt alle Zauber (höchstens einmal je Aktion)
+  // dexHaste: Geschick → Zaubertempo je Punkt (nur zum Messen, 0 = aus)
+  tempoMode: false, tempoCap: 1.6, critCharge: 0.34, dexHaste: 0,
   igniteTurns: 3,                     // Brand (Schlüsselstein Verbrennung): wie viele Runden der Brand des Zaubers läuft
   resCap: 0.75, resCapPhys: 0.5,      // Deckel Elementar-Resi 75 % (D2/PoE), Phys.-Resi 50 % (D2 „Schaden reduziert“, stapelt mit Rüstung)
   wpnLvlAdd: 10,                      // Waffen-Grundschaden wirkt höchstens wie Gegenstandsstufe Heldenstufe + 10 (Tooltip zeigt „wirksam“)
@@ -616,7 +620,7 @@ export const EFFECT_NAMES = { dmgPct: 'Schaden', hpPct: 'Leben', armorPct: 'Rüs
   tollback: 'Betäubung prallt zurück', firstEcho: 'Erster Zauber wirkt zweimal',
   spellPct: 'Zauberschaden', ignite: 'Jeder Zauber setzt in Brand', physRes: 'Phys.-Resi', elemRes: 'Elem.-Resi', elemPen: 'Elementar-Durchdringung',
   igniteBan: 'Brand verhindert Heilung', poisonPct: 'Gift: Anteil deines Lebens je Treffer', ramp: 'Zorn je Zug',
-  wardPerStr: 'Schild je Punkt Stärke', lifePerStr: 'Leben je Punkt Stärke', hastePerLck: 'Zaubertempo je Punkt Glück' };
+  wardPerStr: 'Schild je Punkt Stärke', slowCast: 'Langsamere Zauberladung', lifePerStr: 'Leben je Punkt Stärke', hastePerLck: 'Zaubertempo je Punkt Glück' };
 
 // --- Das Brett (neuer Talentbaum) ---
 // Drei Zweige, von unten nach oben: kleine Knoten, dazwischen zwei Notable (ändern eine Regel),
@@ -684,7 +688,7 @@ export const TREE = {
         N('sk3', 'Klirrende Kälte', 3, { hpPct: 0.055 }, 'Mehr Leben.'),
         N('sk4', 'Kältestarre', 1, { toll: 1 }, 'Jeder dritte Treffer von dir betäubt den Gegner.', 'nt'),
         N('sk5', 'Reif', 2, { thorns: 0.055 }, 'Wer dich trifft, schneidet sich.'),
-        N('sk6', 'Eisgrab', 1, { ward: 0.15, hpPct: 0.18, block: 0.12, haste: -0.3, wardPerStr: 0.006 }, 'Du stehst wie ein Eisblock: ein Schild aus 15 % deines Lebens, mehr Leben, mehr Blocken. Dafür laden deine Zauber um ein Drittel langsamer. Jeder Punkt Stärke verdickt das Eis.', 'key'),
+        N('sk6', 'Eisgrab', 1, { ward: 0.15, hpPct: 0.18, block: 0.12, slowCast: 0.3, wardPerStr: 0.006 }, 'Du stehst wie ein Eisblock: ein Schild aus 15 % deines Lebens, mehr Leben, mehr Blocken. Dafür laden deine Zauber um ein Drittel langsamer. Jeder Punkt Stärke verdickt das Eis.', 'key'),
       ] },
       { name: 'Arkan', nodes: [
         N('sa1', 'Mana', 3, { spellPct: 0.06 }, 'Deine Zauber wiegen schwerer.'),

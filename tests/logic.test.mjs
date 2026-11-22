@@ -1709,3 +1709,33 @@ test('Attribut-Bindungen: Eisgrab Stärke → Schild, Schattenform Stärke → L
   // genaue Werte: Eisgrab 0,6 % je Punkt
   const S = fresh('sorceress'); S.lvl = 30; S.tal = { sk6: 1 }; S.attrs.str = 0; const w0 = G.stats().ward; S.attrs.str = 50; assert.ok(Math.abs(G.stats().ward - w0 - 0.3) < 1e-9);
 });
+
+// --- Zeitachse (System C, CFG.tempoMode – Standard aus) ---
+test('Zeitachse: Tempo wird Aktionsrate, Ticks laufen je Zeit, Krit-Schwung einmal je Aktion, nie mehr als 50 Aktionen', () => {
+  return import('../js/combat.js').then(C => {
+    assert.equal(D.CFG.tempoMode, false, 'Zeitachse ist ausgeschaltet, bis neu geeicht');
+    const H = (x = {}) => ({ name: 'H', cls: 'sorceress', lvl: 20, main: 'int', str: 0, dex: 0, int: 0, con: 10, lck: 0, armor: 0, dmg: [5, 5], hp: 1e6, first: 1, amp: 1, spells: [], belt: [], ...x });
+    const foe = (x = {}) => ({ name: 'G', lvl: 20, main: 'str', str: 0, dex: 0, int: 0, con: 10, lck: 0, armor: 0, dmg: [1, 1], hp: 1e6, ...x });
+    // aus: Rate 1, Ladung 1 + Tempo
+    assert.equal(C.actionRate(H({ haste: 1 })), 1); assert.equal(C.chargeStep(H({ haste: 0.5 })), 1.5);
+    D.CFG.tempoMode = true;
+    try {
+      assert.equal(C.actionRate(H({ haste: 0.4 })), 1.4); assert.equal(C.actionRate(H({ haste: 1 })), 1.6 + 0.4 / 2, 'über 1,6 halbe Wirkung');
+      assert.equal(C.actionRate(H({ haste: -0.9 })), 0.5, 'Untergrenze 0,5'); assert.equal(C.actionRate(foe({ haste: 1 })), 1, 'Gegner: Rate 1');
+      assert.equal(C.chargeStep(H({ haste: 0.5 })), 1, 'Ladung je Aktion 1'); assert.equal(C.chargeStep(H({ slowCast: 0.3 })), 0.7, 'Eisgrab bremst nur die Ladung');
+      // Rate 2 (Tempo 1,4: 1 + 1,4 = 2,4 → 1,6 + 0,8 / 2 = 2): Held handelt doppelt so oft, Doppelzüge markiert
+      const r = C.fight(H({ haste: 1.4 }), foe());
+      const na = r.log.filter(e => e.who === 'a' && e.dmg).length, nb = r.log.filter(e => e.who === 'b' && e.dmg).length;
+      assert.ok(na >= 2 * nb - 1 && na <= 2 * nb + 2, `Held ${na} : Gegner ${nb}`); assert.ok(r.log.some(e => e.dbl === 2));
+      assert.ok(na + nb <= 50, 'höchstens 50 Aktionen');
+      // Gift auf dem Gegner: gleich viel je Kampfzeit, egal wie schnell der Held ist
+      const tick = h => { const x = C.fight(H({ haste: h }), foe({ poisonDmg: 100 })); const t = x.log.filter(e => e.tk === 'poison').reduce((s, e) => s + e.tick, 0); return t / x.log.filter(e => e.who === 'b' && e.dmg).length; };
+      assert.ok(Math.abs(tick(1.4) / tick(0) - 1) < 0.1, `Gift je Gegnerzug gleich (${tick(0).toFixed(0)} / ${tick(1.4).toFixed(0)})`);
+      // Krit-Schwung: ein Krit-Hieb lädt den Zauber um 0,34, nie mehr je Aktion
+      const met = { id: 'm', name: 'm', every: 40, kind: 'hit', mult: 1 };
+      const c = C.fight(H({ crit: 1, critMult: 2, spells: [met] }), foe({ hp: 1e9 }));
+      const steps = c.log.filter(e => e.who === 'a' && e.cA).map(e => e.cA[0]);
+      assert.ok(steps.length > 3); for (let i = 1; i < steps.length; i++) assert.ok(steps[i] - steps[i - 1] <= (1 + 0.34) / 40 + 0.011, `Ladung je Aktion höchstens 1 + 0,34`); assert.ok(steps.some((v, i) => i && v - steps[i - 1] > 1 / 40 + 0.011), 'Krit lädt mit');
+    } finally { D.CFG.tempoMode = false; }
+  });
+});

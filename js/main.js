@@ -189,6 +189,7 @@ function spellFx(l) {
 function fightStep() {
   const l = F.log[F.step - 1], log = document.getElementById('log'); if (!l || !log) return render();
   const row = document.createElement('div'); row.className = `${l.who} ${l.crit ? 'crit' : ''} ${l.spell ? 'spell' : ''}`; row.textContent = l.t;
+  if (l.dbl) { const b = document.createElement('b'); b.className = 'dbl'; b.textContent = `Zug ×${l.dbl} `; row.prepend(b); }   // Zeitachse: dieselbe Seite handelt noch einmal
   log.appendChild(row); log.scrollTop = log.scrollHeight;
   // Ladebalken der Zauber
   for (const [id, ch] of [['fA', l.cA], ['fB', l.cB]]) (ch || []).forEach((v, i) => { const b = document.querySelector(`#${id} .sb[data-i="${i}"]`); if (b) b.style.setProperty('--c', v); });
@@ -231,6 +232,7 @@ function combatFx(l) {
   if (l.shield) pop(me, `<small>Schild</small>${l.shield}`, 'shield');
   if (l.buff) pop(me, `+${l.buff} %`, 'buff');
   if (l.rage) pop(me, 'Raserei', 'miss rage');
+  if (l.dbl) pop(me, `Zug ×${l.dbl}`, 'miss rage');
   if (l.thorns) { hit(me, false, delay + 60); pop(me, l.thorns, 'tick thorns', delay + 60); }
   if (l.combo) pop(foe, l.combo, 'combo', delay + 40, sp?.fx);                        // Zauber-Weg löst aus (Schmelzen, Detonation …)
   if (l.pot && l.who === 'a') { pop(me, l.potName, 'combo pot'); const b = me.querySelector(`.pbelt [data-p="${l.pot}"]`); if (b) b.classList.add('used'); }

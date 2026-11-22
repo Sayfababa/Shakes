@@ -5,7 +5,12 @@
 import { CFG, ELEMENTS } from './data.js';
 import { roll, chance, rand } from './rng.js';
 
-const MAX_ROUNDS = 50;
+const MAX_ROUNDS = 50;   // Aktionen je Kampf (beide Seiten zusammen) – auch auf der Zeitachse
+// Zeitachse (CFG.tempoMode): wie oft der Held handelt, verglichen mit dem Gegner (1). Über CFG.tempoCap zählt Tempo halb.
+// Kampf, power() und Zauber-Ansicht rufen diese beiden – nie abtippen.
+export const actionRate = f => { if (!CFG.tempoMode || !f.cls) return 1; const r = 1 + (f.haste || 0), k = CFG.tempoCap; return Math.max(0.5, r <= k ? r : k + (r - k) / 2); };
+// Zauberladung je eigener Aktion: heute 1 + Tempo; auf der Zeitachse 1 (das Tempo steckt in der Rate). slowCast (Eisgrab) bremst nur die Ladung.
+export const chargeStep = f => (CFG.tempoMode && f.cls ? 1 : 1 + (f.haste || 0)) - (f.slowCast || 0);
 // Anteil ausgewichener Angriffe auf Dauer bei Ausweichchance p mit Serienbremse (höchstens k in Folge):
 // Kette über die Serienlänge 0..k → (p + p² + … + p^k) / (1 + p + … + p^k). Für power(), damit die Schätzung die Regel kennt.
 export function evadeShare(p, k = CFG.evadeStreak) { let num = 0, t = 1; for (let i = 1; i <= k; i++) { t *= p; num += t; } return num / (1 + num); }
@@ -60,9 +65,16 @@ export function fight(A, B) {
     if (f.poisonPct) return o.poisonDmg ? `Gift ${o.poisonDmg} je Zug, steigt` : 'Gift stapelt ohne Ende'; if (f.poison) return 'Gift je Treffer'; if (f.leech) return 'Saugt Leben'; return null; };
   const ini = f => (f.first ? 1000 : 0) + f.dex + roll(0, 10);
   let atk = ini(a) >= ini(b) ? a : b, def = atk === a ? b : a;
+  // Zeitachse: wer vorn liegt, handelt. Ohne tempoMode ist die Rate 1 für beide → strenges Abwechseln wie bisher.
+  a.tm = 0; b.tm = 0; atk.tm = -1e-6; let last = null, run = 0;
+  const next = (x, y) => { x.tm += 1 / actionRate(x); return x.tm < y.tm ? [x, y] : [y, x]; };
   for (const [x, y] of [[a, b], [b, a]]) for (const p of x.belt) if (p.rare) potion(x, y, p);   // seltene Tränke: wirken den ganzen Kampf
 
   for (let r = 0; r < MAX_ROUNDS && a.cur > 0 && b.cur > 0; r++) {
+    // dt: Kampfzeit dieser Aktion (1 ohne Zeitachse). Was je ZEIT wirkt (Ticks, Regeneration), wird damit gewichtet,
+    // damit ein schneller Held nicht doppelt so oft tickt; was je AKTION wirkt (Hiebe, Ladung, Zustände), nicht.
+    const dt = 1 / actionRate(atk); atk._crit = 0;
+    run = last === atk ? run + 1 : 1; last = atk; if (run > 1) ev.dbl = run;   // Doppelzug: Anzeige „Zug ×2“
     for (const k of ['weakN', 'vulnN', 'noheal', 'stunImm', 'dazed', 'cureN']) if (atk[k] > 0) atk[k]--;   // Zustände laufen im eigenen Zug ab
     if (atk.rageN > 0) atk.rageN--;   // Berserkersud läuft ab (eigener Faktor, stört Zauber-Stärkung nicht)
     for (const p of atk.belt) if (!p.used && trig(atk, def, p.trig)) potion(atk, def, p);
@@ -71,24 +83,26 @@ export function fight(A, B) {
     if (atk.secondWind && !atk.swUsed && atk.cur > 0 && atk.cur < atk.hp * 0.3 && !(atk.noheal > 0)) {
       atk.swUsed = true; const h = healSelf(atk, Math.round(atk.hp * atk.secondWind));
       if (h) say(atk.side, `${atk.name} schöpft Atem (+${h}).`, { heal: h, status: 'Zuflucht' }); }
-    if (atk.regen && atk.cur < atk.hp && !(atk.noheal > 0)) { const h = Math.round(atk.hp * atk.regen * healMul(atk)); atk.cur = Math.min(atk.hp, atk.cur + h); atk.didHeal = true; say(atk.side, `${atk.name} regeneriert ${h}.`, { heal: h }); }
-    if (atk.stunned) { atk.stunned = atk.stunned === true ? 0 : atk.stunned - 1; say(def.side, `${atk.name} ist betäubt und taumelt.`); [atk, def] = [def, atk]; continue; }
+    if (atk.regen && atk.cur < atk.hp && !(atk.noheal > 0)) { const h = Math.round(atk.hp * atk.regen * healMul(atk) * dt); atk.cur = Math.min(atk.hp, atk.cur + h); atk.didHeal = true; say(atk.side, `${atk.name} regeneriert ${h}.`, { heal: h }); }
+    if (atk.stunned) { atk.stunned = atk.stunned === true ? 0 : atk.stunned - 1; say(def.side, `${atk.name} ist betäubt und taumelt.`); [atk, def] = next(atk, def); continue; }
     atk.turn++; if (atk.ramp) atk.buff += atk.ramp;   // Zorn (Müllerin): jeder eigene Zug macht sie härter
     // Zauber laden pro eigenem Zug um 1 (+ Zaubertempo); der stärkste geladene wird gewirkt
     const sps = atk.spells || []; let sp = null;
-    const inc = x => (1 + (atk.haste || 0)) * (x.m?.desperate && atk.cur < atk.hp * x.m.desperate ? 2 : 1);
+    const inc = x => chargeStep(atk) * (x.m?.desperate && atk.cur < atk.hp * x.m.desperate ? 2 : 1);
     sps.forEach((x, i) => { atk.ch[i] = (atk.ch[i] || 0) + inc(x); if (atk.ch[i] >= x.every) sp = i; });
     // Held (Seite mit Klasse): Zauber nach Lage statt nach Rang; -1 = halten und hauen. Gehaltenes behält höchstens einen Zug Vorrat über voll.
     if (CFG.spellPick && atk.cls && sp !== null) { sp = pickSpell(atk, def, sps);
       sps.forEach((x, i) => { if (i !== sp) atk.ch[i] = Math.min(atk.ch[i], x.every + inc(x)); }); }
     if (sp !== null && sp >= 0) { atk.ch[sp] -= sps[sp].every; spell(atk, def, sps[sp]); } else strike(atk, def);
     if (atk.rage && def.cur > 0 && atk.cur < atk.hp / 2 && chance(atk.rage)) { say(atk.side, `${atk.name} rast vor Wut!`, { rage: true }); strike(atk, def); }
-    if (def.bleedDmg && def.cur > 0) { def.cur -= def.bleedDmg; say(atk.side, `${def.name} blutet (${def.bleedDmg}).`, { tick: def.bleedDmg, tk: 'bleed' }); }
-    if (def.poisonDmg && def.cur > 0) { def.cur -= def.poisonDmg;
-      const h = atk.poisonLeech && !(atk.noheal > 0) ? Math.round(def.poisonDmg * atk.poisonLeech) : 0; if (h) atk.cur = Math.min(atk.hp, atk.cur + h);
-      say(atk.side, `Gift zerfrisst ${def.name} (${def.poisonDmg}).${h ? ` +${h} Leben.` : ''}`, { tick: def.poisonDmg, tk: 'poison', heal: h || undefined }); }
-    if (def.burn?.n > 0 && def.cur > 0) { def.cur -= def.burn.d; def.burn.n--; say(atk.side, `${def.name} brennt (${def.burn.d}).`, { tick: def.burn.d, tk: 'burn' }); }
-    [atk, def] = [def, atk];
+    // Ticks auf dem Ziel im Zug des Angreifers – auf der Zeitachse je verstrichener Zeit (dt), nicht je Aktion
+    const tk = v => dt === 1 ? v : Math.max(1, Math.round(v * dt));
+    if (def.bleedDmg && def.cur > 0) { const v = tk(def.bleedDmg); def.cur -= v; say(atk.side, `${def.name} blutet (${v}).`, { tick: v, tk: 'bleed' }); }
+    if (def.poisonDmg && def.cur > 0) { const v = tk(def.poisonDmg); def.cur -= v;
+      const h = atk.poisonLeech && !(atk.noheal > 0) ? Math.round(v * atk.poisonLeech) : 0; if (h) atk.cur = Math.min(atk.hp, atk.cur + h);
+      say(atk.side, `Gift zerfrisst ${def.name} (${v}).${h ? ` +${h} Leben.` : ''}`, { tick: v, tk: 'poison', heal: h || undefined }); }
+    if (def.burn?.n > 0 && def.cur > 0) { const v = tk(def.burn.d); def.cur -= v; def.burn.n -= dt; say(atk.side, `${def.name} brennt (${v}).`, { tick: v, tk: 'burn' }); }
+    [atk, def] = next(atk, def);
   }
   const winner = a.cur > 0 && (b.cur <= 0 || a.cur / a.hp >= b.cur / b.hp) ? 'a' : 'b';
   return { winner, log, hpA: A.hp, hpB: B.hp, left: Math.max(0, a.cur) / a.hp, curA0, endA: Math.max(0, Math.round(a.cur)), cast, used: a.belt.filter(p => p.used).map(p => p.id) };
@@ -264,6 +278,8 @@ export function fight(A, B) {
     // Ausbluten (Schlüsselstein): nie ein kritischer Treffer – dafür blutet jeder Hieb (siehe onHit)
     const crit = x.hemorrhage ? false : (o.force || chance(critChance(x, y.lvl, o.crit || 0) - (y.critRes || 0)));
     if (crit) d *= x.critMult || 2;
+    // Zeitachse: Krit-Schwung – ein Krit lädt alle Zauber des Helden, höchstens einmal je Aktion (keine Schleife: Zauber laden nicht selbst)
+    if (crit && CFG.tempoMode && x.cls && !x._crit && x.spells?.length) { x._crit = 1; x.spells.forEach((s, i) => { x.ch[i] = (x.ch[i] || 0) + CFG.critCharge; }); }
     return { d: Math.max(1, Math.round(d)), crit };
   }
   // Was ein Treffer zusätzlich auslöst (für Hieb und Zauber) – neue Effekte hier eintragen, dann gelten sie für beides

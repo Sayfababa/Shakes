@@ -12,7 +12,7 @@ export const tierTag = t => { const T = TIERS.find(x => x.t === t); return T ? `
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
-import { evadeChance, critChance } from './combat.js';
+import { evadeChance, critChance, chargeStep, actionRate } from './combat.js';
 import { weakAdvice, wanderMap, wanderAct, wanderBusy, wanderDone, actEnemy, actChance, actOdds, packSlot, actCan, actZoneGlut, actZoneMob, pitWeek, pitWinGold, pitWinXp, pitPlace, pitRank, pitFoes, pitChance, pitOdds, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, cryptChance, cryptOdds, threatLabel, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
   sigKind, sigHave, sigClean, sigFx, coreChance, descCrypts, descReward, descWeekReward, descWeekDue, descResPen, descLeft, descCanStart, descBusy, descLvl, descAt, descRec, descMaxDepth, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
@@ -221,12 +221,12 @@ export function viewStats() {
 // Zauber: wirken im Kampf von selbst
 export function viewSpells() {
   const st = stats();
-  return `<div class="col"><section class="panel"><h2>Zauber <span class="h2r">Zauberkraft ×${st.amp.toFixed(2).replace('.', ',')}${st.haste ? ` · Tempo +${Math.round(st.haste * 100)} %` : ''}</span><button class="tiny" data-action="go" data-v="hero">Zurück</button></h2>
+  return `<div class="col"><section class="panel"><h2>Zauber <span class="h2r">Zauberkraft ×${st.amp.toFixed(2).replace('.', ',')}${st.haste ? ` · Tempo +${Math.round(st.haste * 100)} %` : ''}${actionRate(st) > 1 ? ` · ×${actionRate(st).toFixed(2).replace('.', ',')} Aktionen` : ''}</span><button class="tiny" data-action="go" data-v="hero">Zurück</button></h2>
     <p class="small">Wirken von selbst und nutzen <b>alle deine Werte</b> wie ein Hieb. Stärker durch <b>Intelligenz</b>, schneller durch <b>Zaubertempo</b>.</p>${st.offWeapon ? '<p class="small down">Du trägst eine fremde Waffe – Zauber geschwächt.</p>' : ''}</section>
     ${SPELLS[S.cls].map(sp => { const on = S.lvl >= sp.lvl, cur = st.spells.find(x => x.id === sp.id), bo = Math.round(((st.spells.find(x => x.id === sp.id)?.boost || 1) / (1 + (cur?.m?.mult || 0)) - 1) * 100);
       const pend = on && waysPending(sp.id), ev = cur?.every || sp.every;
       return `<section class="panel spell ${on ? '' : 'locked'}" ${on ? `data-action="ways" data-s="${sp.id}"` : ''}><img class="sic" src="assets/spells/${sp.id}.webp" alt="">
-        <div><h3>${sp.name} <span class="h2r">${on ? `alle ${(ev / (1 + st.haste)).toFixed(1).replace('.0', '').replace('.', ',')} Züge` : `ab Stufe ${sp.lvl}`}</span></h3><p class="small">${sp.el && sp.el !== 'phys' ? `<b>${ELEMENTS[sp.el].name}</b> · ignoriert Rüstung · ` : ''}${sp.text}${bo ? ` · <b class="up">+${bo} % durch Waffe</b>` : ''}</p>
+        <div><h3>${sp.name} <span class="h2r">${on ? `alle ${(ev / chargeStep(st)).toFixed(1).replace('.0', '').replace('.', ',')} Züge` : `ab Stufe ${sp.lvl}`}</span></h3><p class="small">${sp.el && sp.el !== 'phys' ? `<b>${ELEMENTS[sp.el].name}</b> · ignoriert Rüstung · ` : ''}${sp.text}${bo ? ` · <b class="up">+${bo} % durch Waffe</b>` : ''}</p>
         ${on ? `<p class="wayline">${cur?.ways?.length ? cur.ways.map(n => `<b>${n}</b>`).join(' · ') : '<i class="dim">Noch kein Weg gewählt</i>'}${pend ? ` <span class="hot">· Weg wählen</span>` : ''}</p>` : ''}</div></section>`; }).join('')}
     <section class="panel grow gradesp"><h2>Kampfbewertung <span class="h2r">je stärker, desto mehr Lohn</span></h2>${GRADES_TXT()}</section></div>`;
 }
@@ -520,7 +520,7 @@ export function viewFight(F) {
 
   return `<div class="panel fightwrap${done ? ' done' : ''}"><div class="fight">
     ${side(F.A, hpA, F.hpA, last.who === 'b', 'fA', last.cA)}
-    <div><div class="log" id="log">${shown.map(l => `<div class="${l.who} ${l.crit ? 'crit' : ''} ${l.spell ? 'spell' : ''}">${l.t}</div>`).join('')}</div>
+    <div><div class="log" id="log">${shown.map(l => `<div class="${l.who} ${l.crit ? 'crit' : ''} ${l.spell ? 'spell' : ''}">${l.dbl ? `<b class="dbl">Zug ×${l.dbl}</b> ` : ''}${l.t}</div>`).join('')}</div>
       ${done ? `<div class="result ${F.winner === 'a' ? 'win' : 'lose'}">${F.winner === 'a' ? 'Sieg' : 'Gefallen'}</div>${fightSummary(F)}
         ${lootCards(F.loot)}<div class="loot-drop">${F.reward || ''}</div><button class="red" data-action="go" data-v="${F.back}">Weiter</button>`
         : `<button data-action="skip">Überspringen</button>`}</div>
