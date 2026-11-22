@@ -12,27 +12,12 @@ let seed = 0xd35c; Math.random = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0
 const D = await import('../js/data.js');
 const G = await import('../js/state.js');
 const Game = await import('../js/game.js');
-const { makeItem } = await import('../js/loot.js');
-const { learnAll } = await import('./bot.mjs');
 const args = process.argv.slice(2).filter(a => !a.startsWith('--'));
 const CHECK = process.argv.includes('--check'), DEEP = process.argv.includes('--deep'), CURVE = !process.argv.includes('--nocurve');
 const only = args[0] && args[0] !== 'all' ? [args[0]] : D.PLAYABLE;
 const LV = +args[1] ? [+args[1]] : [10, 20], N = +args[2] || 150;
 
-// gear = Gegenstandsstufe der Ausrüstung, minR = Mindest-Seltenheit
-function hero(cls, L, gear = L, minR = 2, depth = 0) {   // depth: Beute aus dieser Tiefe (Abgrund-Stufen über I)
-  G.newChar('Abstieg', cls); const S = G.S; S.lvl = L; S.tut = 99;
-  const pts = D.CFG.startPoints + (L - 1) * D.CFG.attrPerLevel, main = D.CLASSES[cls].main;
-  S.attrs[main] += Math.round(pts * 0.55); S.attrs.con += Math.round(pts * 0.3); S.attrs.int += Math.round(pts * 0.05); S.attrs.lck += Math.round(pts * 0.1);
-  // Waffe und Talente über die Regeln des Spiels (makeItem, Brett/Zauber-Wege wie der Bot) – vorher handgebaut,
-  // Zauberin/Assassine lernten dabei alte Knoten ohne Brett und sahen im Abgrund 5–7 Tiefen schwächer aus als der Barbar.
-  S.equip.weapon = makeItem(gear, { slot: 'weapon', kind: D.CLASSES[cls].weapon, cls: D.CLASSES[cls], minRarity: minR, depth });
-  for (const s of ['helm', 'chest', 'gloves', 'boots', 'belt', 'amulet', 'ring1', 'ring2', 'offhand']) S.equip[s] = makeItem(gear, { slot: s.startsWith('ring') ? 'ring' : s, minRarity: minR, depth });
-  learnAll();
-  // alle Grüfte offen (die Tiefe wählt die Gruft reihum), Rekord so, dass jede Tiefe startbar ist
-  for (const c of D.CRYPTS) S.trophies.push({ key: c.id + ':0', eff: c.trophy });
-  S.deep = { best: 9999, week: -1, wBest: 0 };
-}
+const { hero } = await import('./held.mjs');
 const prio = { shrine: 0, fight: 1, treasure: 2, elite: 3 };
 // Ein Abstieg bis zum Boss (oder Tod). Gibt die erreichten Räume, ob der Boss fiel, und das Gold beim Entkommen.
 function descend(d) {

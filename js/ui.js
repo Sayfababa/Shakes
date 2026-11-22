@@ -12,7 +12,7 @@ export const tierTag = t => { const T = TIERS.find(x => x.t === t); return T ? `
 export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'armor') return 'Rüstung'; if (ATTRS[k]) return ATTRS[k];
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
-import { weakAdvice, wanderMap, wanderAct, wanderBusy, wanderDone, actEnemy, actChance, actOdds, packSlot, actCan, actZoneGlut, actZoneMob, pitWeek, pitPlace, pitRank, pitFoes, pitChance, pitOdds, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, cryptChance, cryptOdds, threatLabel, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
+import { weakAdvice, wanderMap, wanderAct, wanderBusy, wanderDone, actEnemy, actChance, actOdds, packSlot, actCan, actZoneGlut, actZoneMob, pitWeek, pitWinGold, pitWinXp, pitPlace, pitRank, pitFoes, pitChance, pitOdds, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, cryptChance, cryptOdds, threatLabel, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
   descCrypts, descReward, descWeekReward, descWeekDue, descResPen, descLeft, descCanStart, descBusy, descLvl, descAt, descRec, descMaxDepth, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
@@ -729,7 +729,7 @@ const hon = n => `<i class="ico hon"></i>${n}`;
 export function viewPitPrep(sel, B) {
   const ch = sel.ch ? pitChallenge() : null, rule = ch ? PIT_RULES.find(r => r.id === ch.rule) : null, st = PIT_STYLES[B.style];
   const { pW, p0, same } = pitOdds(B, rule?.id), busy = pitBusy();
-  const win = ch ? `${hon(PIT.chHonor)} · Platz bleibt` : `Platz ${B.place} · ${hon(pitWinHonor(B.rid))}`;
+  const win = (ch ? `${hon(PIT.chHonor)} · Platz bleibt` : `Platz ${B.place} · ${hon(pitWinHonor(B.rid))}`) + ` · ${pitWinGold(B)} Gold · ${pitWinXp(B)} EP`;
   const head = `<img class="portrait" src="${P(B.cls)}" alt=""><div><h2>${B.name}</h2><p class="dim small">${CLASSES[B.cls].name} · Stufe ${B.lvl} · ${st.name}${ch ? ` · <b class="hot">${rule.name}</b>` : ''}</p>
     <p class="small pitwin">Sieg: ${win} · Niederlage: ${Math.round(PIT.cdLose / 60)} Min. Pause</p></div>`;
   const go = busy === 'Pause' ? `<button class="red" disabled><span data-until="${S.pit.ts}">${fmtT(Math.ceil((S.pit.ts - Date.now()) / 1000))}</span></button>`

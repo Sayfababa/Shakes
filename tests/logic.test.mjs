@@ -864,6 +864,20 @@ test('Abgrund-Wochenlohn: Montag für die Wochenbest-Tiefe, ehrlich vorher berec
   S.deep = { best: 20, week: w - 2, wBest: 14, due: { d: 9, week: w - 3 } }; assert.equal(Game.descRec().due.d, 14);
   S.deep = { best: 20, week: w - 1, wBest: 0 }; assert.equal(Game.descRec().due, undefined, 'ohne Boss-Sieg kein Lohn');
 });
+test('Grube wächst mit (Welle 2B-1): Stärke je Platz, Lohn je Sieg mit EP, kein unlösbarer Grube-Steckbrief auf Platz 1', () => {
+  fresh(); const S = G.S; S.lvl = 30; S.attrs[D.CLASSES[S.cls].main] += 2000; S.attrs.con += 1500;
+  for (let p = 1; p < D.PIT.size; p++) assert.ok(Math.abs(Game.pitGrowAt(p) / Game.pitGrowAt(p + 1) - (p < D.PIT.growFrom ? D.PIT.foeGrow : 1)) < 1e-9, `Platz ${p}`);
+  assert.equal(Game.pitGrowAt(D.PIT.size), 1, 'unten wie bisher (Geschichte, Vargos Aufträge)');
+  const P = Game.pitWeek(), id = P.lad[10], lo = Game.pitFoe(id, 40), hi = Game.pitFoe(id, 11);
+  assert.ok(Game.pitWinGold(hi) > Game.pitWinGold(lo) && Game.pitWinXp(hi) > Game.pitWinXp(lo) && Game.pitWinXp(lo) > 0, 'höherer Platz, mehr Lohn');
+  const f = Game.pitFoes()[0], g0 = S.gold, r = Game.pitFight(f.id); assert.ok(r.win, 'starker Held gewinnt');
+  assert.equal(r.rew.xp, Game.pitWinXp(f.B), 'EP wie angezeigt'); assert.ok(S.gold - g0 >= Game.pitWinGold(f.B), 'Gold mindestens wie angezeigt');
+  // Platz 1: niemand über dir – „Siege in der Grube“ wird nicht mehr angeboten
+  const real = Date.now, t = real(), days = top => { let n = 0; for (let d = 0; d < 30; d++) { Date.now = () => t + d * 864e5; S.bounty = null; if (G.bounties().some(b => b.id === 'arena')) n++; } Date.now = real; return n; };
+  assert.ok(days() > 0, 'sonst wird der Grube-Auftrag angeboten (Test greift)');
+  P.lad.splice(P.lad.indexOf('me'), 1); P.lad.unshift('me'); assert.equal(Game.pitPlace(), 1);
+  assert.equal(days(), 0, 'Grube-Auftrag auf Platz 1');
+});
 test('Grube: Leiter, Platztausch, Rang, Laden, Herausforderung', () => {
   fresh(); const S = G.S; S.lvl = 30; S.attrs[D.CLASSES[S.cls].main] += 400; S.attrs.con += 300;
   assert.equal(Game.pitPlace(), D.PIT.size + 1); assert.equal(Game.pitFoes().length, D.PIT.look);

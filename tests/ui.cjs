@@ -306,6 +306,20 @@ const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height:
       if (farbe.some(c => c === 'rgb(205, 189, 156)')) { failures++; console.log(`FEHLER ${tag}: Marke ist nicht eingefaerbt (${farbe.join(', ')})`); }
     }
     await tap('[data-action=noop]');
+    // Abgrund-Stufen über I (Welle 2B-1): I+ und I++ eigene Farbe, gerendert geprüft (nicht die Klasse) – und ein Screenshot
+    await p.evaluate(async () => { const G = await import('./js/state.js'); const L = await import('./js/loot.js'), D = await import('./js/data.js');
+      let it; for (let i = 0; i < 3000; i++) { it = L.makeItem(50, { slot: 'amulet', minRarity: 4, depth: 30 }); const t = Object.values(it.tiers); if (!it.unique && t.includes(-1) && t.includes(0)) break; }
+      G.S.stash = []; G.S.bag = [Object.assign(it, { x: 0, y: 0 })]; G.save(); });
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=hero]');
+    if (!(await tap('.cellitem'))) { failures++; console.log(`FEHLER ${tag}: Teil mit Abgrund-Stufe nicht antippbar`); }
+    else {
+      await chk('deeptip');
+      const c = await p.$$eval('#tip .tier', es => es.map(e => [e.textContent, getComputedStyle(e).color]));
+      const of = n => c.find(x => x[0] === n)?.[1], dim = c.find(x => !/^I/.test(x[0]))?.[1];
+      for (const n of ['I+', 'I++']) if (!of(n)) { failures++; console.log(`FEHLER ${tag}: Abgrund-Stufe ${n} fehlt im Tooltip`); }
+        else if (of(n) === 'rgb(205, 189, 156)' || of(n) === of('I') || of(n) === dim) { failures++; console.log(`FEHLER ${tag}: ${n} nicht eingefärbt (${of(n)})`); }
+    }
+    await tap('[data-action=noop]');
 
     // Beute-Filter (vom Besitzer gewuenscht): je getroffenem Bonus ein Punkt. Geprueft wird die
     // ZAHL der Punkte, ihre FARBE (eine Marke ohne CSS-Regel waere unsichtbar - so war die
@@ -411,7 +425,17 @@ const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height:
       S.attrs.int += 400; S.attrs.con += 300; S.active = null; S.haul = null; S.exp = null; S.desc = null; S.descDay = null; G.save(); });
     await p.reload(); await p.waitForTimeout(300); await tap('[data-v=crypt]');
     if (!(await tap('.ctabs [data-v=desc]'))) { failures++; console.log(`FEHLER ${tag}: kein Reiter „Abgrund“ in der Krypta`); }
-    await chk('descstart'); await tap('[data-action=descgo]'); await chk('descmap');
+    await chk('descstart');
+    // Wochenlohn (Welle 2B-1): offen → Knopf „Abholen“, danach weg; Lohn-Zeile mit Abgrund-Stufen auf einer tiefen Tiefe
+    await p.evaluate(async () => { const G = await import('./js/state.js'), Gm = await import('./js/game.js'); const r = Gm.descRec(); r.best = 25; r.due = { d: 22, week: r.week - 1 }; G.save(); });
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=crypt]'); await tap('.ctabs [data-v=desc]'); await chk('descweek');
+    if (!(await p.$('.dlohn .tier.t-1'))) { failures++; console.log(`FEHLER ${tag}: Lohn-Zeile ohne Abgrund-Stufe auf Tiefe 26`); }
+    if (!(await tap('[data-action=descweek]'))) { failures++; console.log(`FEHLER ${tag}: Wochenlohn nicht abholbar`); }
+    else { await p.waitForTimeout(300);
+      if (await p.$('[data-action=descweek]')) { failures++; console.log(`FEHLER ${tag}: Wochenlohn nach dem Abholen noch da`); } }
+    await p.evaluate(async () => { const Gm = await import('./js/game.js'), G = await import('./js/state.js'); const r = Gm.descRec(); r.best = 0; r.wBest = 0; G.save(); });
+    await p.reload(); await p.waitForTimeout(300); await tap('[data-v=crypt]'); await tap('.ctabs [data-v=desc]');
+    await tap('[data-action=descgo]'); await chk('descmap');
     if ((await p.$$('.node.next')).length < 2) { failures++; console.log(`FEHLER ${tag}: Abstieg ohne Wahl im ersten Raum`); }
     for (let k = 0; k < 2; k++) {
       const n = await p.$('[data-action=descsel]:not(.exit)'); if (!n) break;

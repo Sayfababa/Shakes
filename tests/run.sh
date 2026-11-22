@@ -15,6 +15,7 @@ caps() { node tests/caps.mjs all 24 250 --check > "$T/caps.full"; rc=$?; grep -E
 tree() { node tests/tree.mjs all all 600 --check > "$T/tree.full"; rc=$?; grep -E '^!!|Rahmen' "$T/tree.full"; return $rc; }
 uniq() { node tests/uniques.mjs all all 300 --check > "$T/uniq.full"; rc=$?; grep -E '^!!|Rahmen' "$T/uniq.full"; return $rc; }
 desc() { node tests/descent.mjs all 10 120 --check --deep > "$T/desc.full"; rc=$?; grep -E '⚠|Stufe 10' "$T/desc.full"; return $rc; }
+lohn() { node tests/lohn.mjs all 30 --check > "$T/lohn.full"; rc=$?; grep -E '⚠' "$T/lohn.full"; [ $rc -eq 0 ] && echo "Lohn neben dem Abgrund im Rahmen"; return $rc; }
 bot() { for c in barbarian assassin sorceress; do node tests/bot.mjs $c 3 1 | grep -E "Kämpfe" | sed "s/^/$c: /" & done; wait; }
 
 if [ "$1" = "quick" ]; then
@@ -22,7 +23,7 @@ if [ "$1" = "quick" ]; then
 elif [ -n "$1" ]; then
   :  # einzelne Teile, z. B. sh tests/run.sh logic ui
 else
-  set -- logic bot fuzz ways potions descent acts sets uniques tree caps ui trader prep uifuzz
+  set -- logic bot fuzz ways potions descent lohn acts sets uniques tree caps ui trader prep uifuzz
 fi
 for t in "$@"; do
   case $t in
@@ -35,6 +36,7 @@ for t in "$@"; do
     trader) node tests/trader.cjs ;;
     prep) node tests/prep.cjs ;;
     descent) desc ;;
+    lohn) lohn ;;
     acts) acts ;;
     sets) sets ;;
     uniques) uniq ;;

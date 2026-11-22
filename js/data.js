@@ -997,7 +997,7 @@ export const DESCENT = {
   diff: 1.15, lvlBase: 3, lvlPer: 2, diffGrow: 1.05,
   depthMods: [],                    // Welle 2: [{ from: Tiefe, id, … }] – descAt() hängt sie an
   resMalus: { per: 10, v: 0.1, max: 0.3 },   // Fluch der Tiefe: je `per` Tiefen −v Elementar-Resi (vor dem Deckel, wie D2 Hölle/PoE), höchstens −max
-  gold: 1.1, xp: 0.6,               // gegenüber einem Krypta-Kampf
+  gold: 1.1, xp: 0.8,               // gegenüber einem Krypta-Kampf (xp 0,6 → 0,8 in Welle 2B-1: ein Abstieg brachte auf St. 40 nur ~5 % einer Stufe)
   // Lohn wächst mit der Tiefe (Welle 2B-1), damit es sich unten lohnt: Gold/EP × (1 + (Tiefe − 1) × goldPer/xpPer),
   // Fundstücke × (1 + (Tiefe − 1) × itemPer), Glück + Tiefe × luckPer, Mindest-Seltenheit ab Tiefe (rarAt: [Tiefe, Index
   // in RARITIES]: 2 magisch, 3 selten). Abgrund-Stufen über I: TIERS.minDepth. Alles in descReward(d), eine Stelle.
@@ -1030,8 +1030,12 @@ export const ELITE = { diff: 1.2, hp: 1.3, mods: [
 
 // --- Die Grube: Rangleiter gegen feste Rivalen (keine Glut, nur Pause) ---
 // Platz 1 oben. Die Stufe eines Rivalen hängt an seinem Platz, nicht an deiner Stufe → hoch kommt nur, wer stärker wird.
+// foeGrow (Welle 2B-1): Rivalen über Platz growFrom je Platz × foeGrow an Leben und Schaden (darunter wie bisher: dort
+// trägt die Grube die Geschichte, Vargos Ehre-Aufträge). Nach Boni-Umbau und Brett schlug ein
+// Held St. 20 sonst Platz 6–12 und St. 30 Platz 1. Gemessen (tests/lohn.mjs): St. 20 ≈ Platz 14–21, St. 30 ≈ 4–10, St. 40 ≈ 4–6.
+// goldPerLvl/xp: Lohn je Sieg × √(Platz-Stärke), siehe pitWinGold/pitWinXp.
 export const PIT = { size: 50, cdWin: 300, cdLose: 900, lvlBottom: 3, lvlTop: 42, richFrom: 20, magicFrom: 35, rareFrom: 20, legFrom: 6,
-  honorBase: 6, honorPerPlace: 3, foeAfter: 2, foeMult: 2, goldPerLvl: 3, weekBuys: 3, chHonor: 40, chTries: 3, chAbove: 5, look: 3 };
+  honorBase: 6, honorPerPlace: 3, foeAfter: 2, foeMult: 2, goldPerLvl: 6, xp: 0.3, foeGrow: 1.06, growFrom: 30, weekBuys: 3, chHonor: 40, chTries: 3, chAbove: 5, look: 3 };
 // Stil = feste Eigenschaft (wie Elite-Eigenschaften im Abstieg) → man sieht vorher, was hilft
 export const PIT_STYLES = {
   flink: { name: 'Flink', text: 'Weicht oft aus.', eff: { evade: 0.12 } },

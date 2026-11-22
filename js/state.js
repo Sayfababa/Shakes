@@ -670,7 +670,8 @@ export function bounties() {
     const mobs = [...new Set(openLocs().flatMap(l => l.mobs))];
     let h = Math.imul(day, 2246822519) >>> 0; const next = m => { h = (Math.imul(h, 1103515245) + 12345) >>> 0; return (h >>> 8) % m; };
     // nur anbieten, was schon erreichbar ist
-    const can = { arena: S.lvl >= 3, crypt: CRYPTS.some(cryptOpen), elite: actProg(ACTS[0]) >= ACT.elites[0] };
+    const can = { arena: S.lvl >= 3 && S.pit?.lad?.indexOf('me') !== 0,   // Platz 1: niemand über dir – der Auftrag wäre unlösbar
+       crypt: CRYPTS.some(cryptOpen), elite: actProg(ACTS[0]) >= ACT.elites[0] };
     const types = BOUNTIES.filter(b => can[b.id] !== false);
     const pickT = []; while (pickT.length < 3 && types.length) pickT.push(types.splice(next(types.length), 1)[0]);   // ohne Wiederholung, endet sicher
     S.bounty = { day, list: pickT.map(t => ({ id: t.id, target: t.id === 'kill' ? mobs[next(mobs.length)] : null, n: t.n, prog: 0, claimed: false })) };

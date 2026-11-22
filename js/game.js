@@ -668,6 +668,8 @@ export function descStair() {
 const weekNo = () => Math.floor((now() - Date.UTC(2024, 0, 1)) / 6048e5);   // Montag-Woche (UTC)
 export const pitPlace = () => G.S.pit.lad.indexOf('me') + 1;
 export const pitLvlAt = p => Math.max(1, Math.round(PIT.lvlBottom + (PIT.size + 1 - p) / PIT.size * (PIT.lvlTop - PIT.lvlBottom)));
+// Je Platz nach oben × foeGrow an Leben und Schaden (Welle 2B-1): nach Boni-Umbau/Brett schlug ein Held St. 30 sonst Platz 1
+export const pitGrowAt = p => PIT.foeGrow ** Math.max(0, PIT.growFrom - p);   // erst ab Platz growFrom: unten trägt die Grube die Geschichte (Vargos Ehre-Aufträge)
 export const pitRank = (p = pitPlace()) => [...PIT_RANKS].reverse().find(r => p <= r.max);
 export const pitRival = id => PIT_RIVALS.find(r => r.id === id);
 export const pitBusy = () => G.S.exp ? 'Der Held ist auf Expedition.' : G.S.wander ? 'Der Held zieht umher.' : G.S.desc ? 'Der Held ist im Abgrund.' : now() < G.S.pit.ts ? 'Pause' : '';
@@ -678,7 +680,8 @@ export function pitFoe(id, place) {
   const rv = pitRival(id), st = PIT_STYLES[rv.style];
   const R = makeRival({ name: rv.name, cls: rv.cls, lvl: pitLvlAt(place), rich: place <= PIT.richFrom ? 1 : 0,
     minRarity: place <= PIT.legFrom ? 4 : place <= PIT.rareFrom ? 3 : place <= PIT.magicFrom ? 2 : 0 });
-  const B = G.stats(R); for (const [s, v] of Object.entries(st.eff || {})) B[s] = (B[s] || 0) + v;
+  const B = G.stats(R), grow = pitGrowAt(place); for (const [s, v] of Object.entries(st.eff || {})) B[s] = (B[s] || 0) + v;
+  B.hp = Math.round(B.hp * grow); B.dmg = B.dmg.map(v => Math.round(v * grow));   // Stärke je Platz (PIT.foeGrow), wie die Abgrund-Leiter
   for (const [s, v] of Object.entries(st.mult || {})) B[s] = Math.round(B[s] * v);
   Object.assign(B, { name: rv.name, rid: id, place, style: rv.style });
   if (foeCache.size > 120) foeCache.clear(); foeCache.set(k, B); return B;
@@ -720,6 +723,10 @@ export function pitTarget(id, ch = false) {
   if (ch) { const c = P.ch; return c && c.rid === id ? pitFoe(id, c.place) : null; }
   const i = P.lad.indexOf('me'), j = P.lad.indexOf(id); return j >= 0 && j < i && i - j <= PIT.look ? pitFoe(id, j + 1) : null;
 }
+// Lohn je Sieg (Welle 2B-1): wächst mit der Rivalen-Stufe und √ der Platz-Stärke – in der Größe eines Abgrund-Kampfs.
+// Vorher nur Stufe × 3 Gold, keine EP. Die Bewertung des Kampfs hebt das Gold wie überall.
+export const pitWinGold = B => Math.round(B.lvl * PIT.goldPerLvl * Math.sqrt(pitGrowAt(B.place)));
+export const pitWinXp = B => Math.round((25 + B.lvl * 14) * PIT.xp * Math.sqrt(pitGrowAt(B.place)));
 export const pitWinHonor = (id, ch) => ch ? PIT.chHonor : pitHonorFor(id, G.S.pit.lad.indexOf(id) + 1);
 export function pitFight(id, ch = false) {
   const S = G.S, P = pitWeek(); if (pitBusy()) return null;
@@ -728,7 +735,7 @@ export function pitFight(id, ch = false) {
   const [A, B] = pitSides(B0, c?.rule); if (c) c.tries--;
   const r = fight(A, B), win = r.winner === 'a', rew = newRew(); G.usePotions(r.used); rew.used = r.used;
   if (!win) { S.deaths++; if (!c) P.foes[id] = (P.foes[id] || 0) + 1; P.ts = now() + PIT.cdLose * 1000; return { A, B, r, win, rew, pit: true }; }
-  S.wins++; rew.grade = gradeOf(r); pay(rew, Math.round(B0.lvl * PIT.goldPerLvl * (1 + rew.grade.bonus)), 0);
+  S.wins++; rew.grade = gradeOf(r); pay(rew, Math.round(pitWinGold(B0) * (1 + rew.grade.bonus)), pitWinXp(B0));
   Q.event({ type: 'arena' }); G.bountyEvent({ type: 'arena' });
   const honor = ch ? PIT.chHonor : pitHonorFor(id, B0.place);
   if (c) c.won = true;

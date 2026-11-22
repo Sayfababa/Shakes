@@ -113,7 +113,7 @@ Die Blöcke je System (wo der Code liegt, harte Grenzen) stehen in **`SYSTEME.md
 - **Logik oder Zahlen** (`js/` über reine Texte hinaus, `data.js`): voller `sh tests/run.sh` (~2:45).
 - **Unsicher:** voll.
 - Einzelne Teile während der Arbeit: `sh tests/run.sh <name> …`
-  (logic bot fuzz ways potions descent acts sets uniques tree caps ui trader prep uifuzz).
+  (logic bot fuzz ways potions descent lohn acts sets uniques tree caps ui trader prep uifuzz).
 - Was jeder Test prüft (logic, fuzz, ui, uifuzz, trader, prep, Balance, bot, personas): **`SYSTEME.md`**,
   Abschnitt „Tests im Einzelnen". Browser-Tests: `deviceScaleFactor: 1`.
 - Neue Features: Logik in game.js/state.js (DOM-frei), dann Test ergänzen.
