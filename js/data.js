@@ -73,15 +73,15 @@ export const AFFIXES = [
   { stat: 'dex', per: 1, pre: 'Flinker', suf: 'des Fuchses', side: 'pre', group: 'attr', slots: ATTR_SLOTS },
   { stat: 'int', per: 1, pre: 'Kundiger', suf: 'des Gelehrten', side: 'pre', group: 'attr', slots: ATTR_SLOTS },
   { stat: 'dmg', per: 0.6, pre: 'Grausamer', suf: 'des Schlachters', side: 'pre', slots: HIT_SLOTS },
-  { stat: 'haste', per: 1.33, pre: 'Rascher', suf: 'der Beschwörung', pct: 1, label: 'Zaubertempo', side: 'pre', slots: ['weapon', 'gloves', 'offhand', 'amulet'] },
+  { stat: 'haste', per: 1.6, pre: 'Rascher', suf: 'der Beschwörung', pct: 1, label: 'Zaubertempo', side: 'pre', slots: ['weapon', 'gloves', 'offhand', 'amulet'] },
   { stat: 'critc', per: 0.8, pre: 'Scharfer', suf: 'der Schärfe', pct: 1, label: 'Krit-Chance', side: 'pre', slots: HIT_SLOTS },
   { stat: 'critd', per: 6, pre: 'Brutaler', suf: 'des Gemetzels', pct: 1, label: 'Krit-Schaden', side: 'pre', slots: ['weapon', 'gloves', 'amulet'] },
   { stat: 'dmgp', per: 0.9, pre: 'Wütender', suf: 'des Zorns', pct: 1, label: 'Schaden', side: 'pre', slots: HIT_SLOTS },
   { stat: 'spellp', per: 0.95, pre: 'Arkaner', suf: 'der Zauberei', pct: 1, label: 'Zauberkraft', side: 'pre', slots: HIT_SLOTS },
-  { stat: 'penp', per: 1.33, pre: 'Bohrender', suf: 'des Durchbohrens', pct: 1, label: 'Rüstung ignorieren', side: 'pre', slots: ['weapon'] },
+  { stat: 'penp', per: 1.33, pre: 'Bohrender', suf: 'des Durchbohrens', pct: 1, label: 'Rüstung ignorieren', side: 'pre', slots: ['weapon'], notKind: ['staff'] },   // nicht auf Stäben: Feuer/Eis der Zauberin gehen ohnehin an der Rüstung vorbei
   { stat: 'con', per: 1, pre: 'Zäher', suf: 'des Ochsen', side: 'suf', w: 0.6, slots: ['helm', 'chest', 'boots', 'belt', 'amulet', 'ring'] },   // w: seltener gewürfelt – die Suffix-Listen sind klein, sonst trüge fast jedes Teil Konstitution
   { stat: 'lck', per: 1.5, pre: 'Glücklicher', suf: 'der Fortuna', side: 'suf' },
-  { stat: 'armor', per: 8, pre: 'Gehärteter', suf: 'der Wacht', side: 'suf', slots: ARMOR_SLOTS },
+  { stat: 'armor', per: 16, pre: 'Gehärteter', suf: 'der Wacht', side: 'suf', slots: ARMOR_SLOTS },
   { stat: 'lifep', per: 1.33, pre: 'Lebendiger', suf: 'des Lebens', pct: 1, label: 'Leben', side: 'suf', slots: ['helm', 'chest', 'boots', 'belt'] },
   { stat: 'leechp', per: 0.25, pre: 'Saugender', suf: 'des Egels', pct: 1, label: 'Lebensraub', side: 'suf', slots: ['weapon', 'ring'] },
   { stat: 'blockp', per: 1.33, pre: 'Wehrhafter', suf: 'des Walls', pct: 1, label: 'Blocken', side: 'suf', slots: ['offhand'] },
@@ -89,15 +89,15 @@ export const AFFIXES = [
   { stat: 'thornsp', per: 5, pre: 'Dorniger', suf: 'der Dornen', pct: 1, label: 'Dornen', side: 'suf', slots: ['chest', 'offhand'] },
   // Resistenzen (Welle 2a): klein je Teil (Stufe I ≈ 9–10 %), Deckel CFG.resCap – beide auf 75 % zu bringen braucht fast jeden Platz.
   // Eigene Gruppen: ein Teil darf beide tragen. per geeicht gegen Konstitution (tests/calib.mjs).
-  { stat: 'physr', per: 0.7, pre: 'Eherner', suf: 'des Steins', pct: 1, label: 'Phys.-Resi', side: 'suf', slots: RES_SLOTS },
-  { stat: 'elemr', per: 0.7, pre: 'Gebannter', suf: 'der Elemente', pct: 1, label: 'Elem.-Resi', side: 'suf', slots: RES_SLOTS },
+  { stat: 'physr', per: 1.5, pre: 'Eherner', suf: 'des Steins', pct: 1, label: 'Phys.-Resi', side: 'suf', slots: RES_SLOTS },
+  { stat: 'elemr', per: 2, pre: 'Gebannter', suf: 'der Elemente', pct: 1, label: 'Elem.-Resi', side: 'suf', slots: RES_SLOTS },
 ];
 // Zauber-Boni (nur auf Waffen der Klasse, die den Zauber hat): "+N % Feuerball" stärkt Schaden/Heilung/Schild/Wirkung des Zaubers.
 // Werden am Dateiende aus SPELLS erzeugt (stat 'sk_<id>', cls).
 export const SKILL_PER = 2.7;
 // --- Schadensarten (Welle 2a): physisch, Feuer, Eis. Feuer und Eis zählen gegen dieselbe Resistenz (Elementar).
 // Gegner tragen `mix` (Anteil Feuer/Eis an ihren Hieben, Rest physisch) und `res` ({ phys, elem }, Anteil 0..1).
-// Zauber tragen `el` (fehlt = physisch). Helden-Hiebe sind physisch. Resistenzen gedeckelt bei CFG.resCap.
+// Zauber tragen `el` (fehlt = physisch). Helden-Hiebe sind physisch. Rüstung mindert nur den physischen Anteil (wie D2/PoE); Deckel CFG.resCap / resCapPhys.
 export const ELEMENTS = { phys: { name: 'Physisch', short: 'Phys', res: 'phys' }, fire: { name: 'Feuer', short: 'Feuer', res: 'elem' }, cold: { name: 'Eis', short: 'Eis', res: 'elem' } };
 export const RES_NAMES = { phys: 'Phys.-Resi', elem: 'Elem.-Resi' };
 // Obergrenzen für Prozent-Boni (Summe aus allem)
@@ -521,11 +521,11 @@ export const CFG = {
   lootChance: 0.55, critBase: 0.05,
   strArmor: 0.5,                      // Stärke gibt jeder Klasse Rüstung (je Punkt)
   spellK: 60,                         // Zauberkraft = 1 + Int / (Int + spellK)  (sättigt, max. ×2)
-  monHp: 1.15, monDmg: 1.0,
+  monHp: 1.15, monDmg: 0.9,         // Welle 2a: 1,0 → 0,9 – Feuer/Eis gehen jetzt an der Rüstung vorbei (D2/PoE), sonst +~19 % Schaden ohne Resi
   monGrow: 2.7,                       // Monster-Attribute je Stufe (3 + Stufe × monGrow); power() und die Werte-Ansicht rechnen mit demselben Wert
   hemoBleed: 0.85,                    // Ausbluten: Grundstärke des Blutens je Treffer (dafür nie kritisch)
   igniteTurns: 3,                     // Brand (Schlüsselstein Verbrennung): wie viele Runden der Brand des Zaubers läuft
-  resCap: 0.75,                       // Resistenzen (Physisch, Elementar) wirken höchstens bis 75 % (Welle 2a)
+  resCap: 0.75, resCapPhys: 0.5,      // Deckel Elementar-Resi 75 % (D2/PoE), Phys.-Resi 50 % (D2 „Schaden reduziert“, stapelt mit Rüstung)
   wpnLvlAdd: 10,                      // Waffen-Grundschaden wirkt höchstens wie Gegenstandsstufe Heldenstufe + 10 (Tooltip zeigt „wirksam“)
   offWeapon: 0.7, offWeaponSpell: 0.6,  // fremde Waffe (nicht die der Klasse): Schaden ×0,7, Zauberkraft ×0,6                // Ausgleich für Zauber (Monster-Leben/-Schaden)
 };
@@ -660,7 +660,7 @@ export const TREE = {
         N('sf2', 'Zündschnur', 1, { firstEcho: 1 }, 'Der erste Zauber eines Kampfs wirkt zweimal.', 'nt'),
         N('sf3', 'Flammenzunge', 3, { crit: 0.024 }, 'Krit-Chance.'),
         N('sf4', 'Schmerzrausch', 1, { vengeance: 0.4 }, 'Je weniger Leben du hast, desto wilder brennt es – bis zu 40 % mehr Schaden.', 'nt'),
-        N('sf5', 'Lohe', 2, { spellPct: 0.06 }, 'Deine Zauber brennen heißer.'),
+        N('sf5', 'Lohe', 2, { spellPct: 0.08 }, 'Deine Zauber brennen heißer.'),
         N('sf6', 'Verbrennung', 1, { ignite: 0.7, spellPct: 0.1, nohealSelf: 1 }, 'Jeder Zauber setzt den Gegner in Brand: 70 % des Schadens noch drei Runden lang. Dafür wächst keine Wunde mehr zu – kein Trank, kein Lebensraub, keine Zuflucht heilt dich noch.', 'key'),
       ] },
       { name: 'Frost', nodes: [
@@ -736,7 +736,7 @@ export const CRYPTS = [
   { id: 'c3', name: 'Das Schlachthaus', lvl: 12, glyph: 'ghoul', floors: ['Gehäuteter', 'Gefallener', 'Blutfürst', 'Höllenbrut'],
     boss: { name: 'Der Metzger von Vhal', glyph: 'butcher', mech: { execute: 0.6, rage: 0.4 }, mechText: 'Wird rasend und schlachtet Geschwächte', res: { phys: 0.2 } }, trophy: { crit: 0.03 } },
   { id: 'c4', name: 'Turm der Glocke', lvl: 20, glyph: 'horn', floors: ['Kultist der Glocke', 'Sumpfhexe', 'Blutfürst', 'Höllenbrut'],
-    boss: { name: 'Der Glöckner', glyph: 'bellringer', mech: { toll: 1 }, mechText: 'Jeder dritte Schlag betäubt dich', mix: { fire: 0.3, cold: 0.2 }, res: { elem: 0.1 } }, trophy: { armorPct: 0.1, hpPct: 0.05 } },
+    boss: { name: 'Der Glöckner', glyph: 'bellringer', mech: { toll: 1 }, mechText: 'Jeder dritte Schlag betäubt dich', mix: { fire: 0.25, cold: 0.15 }, res: { phys: 0.1 } }, trophy: { armorPct: 0.1, hpPct: 0.05 } },
   { id: 'c5', name: 'Die Glocke', lvl: 26, shards: 4, floors: ['Kultist der Glocke', 'Wiedergänger', 'Blutfürst', 'Höllenbrut'],
     boss: { name: 'Der Kronenlose', glyph: 'self', mech: { mirror: 1 }, mechText: 'Kämpft mit deinen eigenen Talenten', mix: { fire: 0.25, cold: 0.25 }, res: { phys: 0.1, elem: 0.1 } }, trophy: { dmgPct: 0.1, hpPct: 0.1 } },
 ];
@@ -1080,10 +1080,10 @@ export const ACTS = [
     boss: { name: 'Die Mutter der Stricke', glyph: 'strickmutter', mech: { poison: 0.22, regen: 0.015 }, mechText: 'Würgt: Gift, das sich stapelt – und das Moor heilt sie', mix: { cold: 0.4 }, res: { elem: 0.1 } } },
   { id: 'a5', n: 'V', intro: 'Sie haben den Altar umgedreht und beten zur Glocke. Die Glocke antwortet.', say: 'Ich habe sie als Erster gehört. Ich werde sie als Letzter hören.', outro: 'Der Erste Kultist verstummt mitten im Gebet. Unter dem Altar führt eine Treppe nach unten.',
     loc: 'kapelle', lvl: 24, top: 30, diff: 1.45, crypt: 'c5', zones: ['Der Kirchhof', 'Das Portal', 'Das Kirchenschiff', 'Die Sakristei', 'Der Glockenturm', 'Die Krypta der Äbte', 'Der Chor', 'Der Altar'],
-    boss: { name: 'Der Erste Kultist', glyph: 'kultist1', mech: { thorns: 0.3, regen: 0.02 }, mechText: 'Wer zuschlägt, trifft sich selbst – Dornen', mix: { fire: 0.5 }, res: { elem: 0.1 } } },
+    boss: { name: 'Der Erste Kultist', glyph: 'kultist1', mech: { thorns: 0.3, regen: 0.02 }, mechText: 'Wer zuschlägt, trifft sich selbst – Dornen', mix: { fire: 0.3 } } },
   { id: 'a6', n: 'VI', intro: 'Hier wurde deine Krone gegossen. Die Glut hat nicht vergessen, wem sie gehört.', say: 'Du trugst sie einen Sommer. Ich trage sie, seit die Welt brennt.', outro: 'Der Aschenthron ist leer. Die Asche ist noch warm – wie eine Einladung.',
     loc: 'gruben', lvl: 30, top: 36, diff: 1.65, crypt: null, zones: ['Der Schlackenhang', 'Die Aschefelder', 'Der Schwefelsee', 'Die Brücke aus Ketten', 'Die Esse', 'Der Thronweg', 'Die Glutgruben', 'Der Aschenthron'],
-    boss: { name: 'Der Aschenkönig', glyph: 'aschenkoenig', mech: { execute: 0.5, regen: 0.025, crit: 0.12 }, mechText: 'Glut: heilt sich in der Asche und schlachtet Geschwächte', mix: { fire: 0.6 }, res: { elem: 0.15 } } },
+    boss: { name: 'Der Aschenkönig', glyph: 'aschenkoenig', mech: { execute: 0.5, regen: 0.025, crit: 0.12 }, mechText: 'Glut: heilt sich in der Asche und schlachtet Geschwächte', mix: { fire: 0.5 }, res: { elem: 0.15 } } },
 ];
 // (intro = Einleitung im Akt-Kopf, say = Satz des Bosses, sobald er als Nächstes wartet, outro = Nachruf nach seinem Fall)
 // Krypten: nur noch der Boss, frei nach dem Akt-Boss. Jede besiegte Stufe → nächste ist schwerer, Beute besser.

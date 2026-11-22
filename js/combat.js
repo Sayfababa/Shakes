@@ -10,15 +10,22 @@ const MAX_ROUNDS = 50;
 // Kette über die Serienlänge 0..k → (p + p² + … + p^k) / (1 + p + … + p^k). Für power(), damit die Schätzung die Regel kennt.
 export function evadeShare(p, k = CFG.evadeStreak) { let num = 0, t = 1; for (let i = 1; i <= k; i++) { t *= p; num += t; } return num / (1 + num); }
 
-// Schadensarten (Welle 2a): Resistenz eines Kämpfers gegen eine Gruppe ('phys' | 'elem'), gedeckelt bei CFG.resCap.
+// Schadensarten (Welle 2a, nach Diablo 2 / PoE): Rüstung wirkt nur gegen den PHYSISCHEN Anteil, Feuer und Eis gehen an ihr
+// vorbei – dagegen hilft nur Elementar-Resi (Deckel CFG.resCap 75 %). Phys.-Resi ist „Schaden reduziert um“ (D2) mit eigenem,
+// kleinerem Deckel CFG.resCapPhys 50 %, weil sie mit der Rüstung stapelt.
 // resPen: Malus vor dem Deckel (Abgrund-Tiefe, DESCENT.resMalus). Unter 0 nimmt man mehr Schaden (bis doppelt).
-export const resOf = (f, k) => Math.max(-1, Math.min(CFG.resCap, (f.res?.[k] || 0) - (f.resPen || 0)));
+export const resCapOf = k => k === 'phys' ? CFG.resCapPhys : CFG.resCap;
+export const resOf = (f, k) => Math.max(-1, Math.min(resCapOf(k), (f.res?.[k] || 0) - (f.resPen || 0)));
+// Rüstungs-Minderung (nur physisch): Rüstung des Ziels gegen die Stufe des Angreifers, Durchbohren zieht ab
+export const armorRed = (armor, atkLvl, pen = 0) => Math.min(0.6, armor / (armor + 20 + atkLvl * 8)) * (1 - Math.min(0.9, pen));
 // Anteile eines Hiebs: mix = { fire, cold } (Rest physisch). Für Anzeige und power() dieselbe Regel wie im Kampf.
 export const mixOf = mix => { const fire = mix?.fire || 0, cold = mix?.cold || 0; return { phys: Math.max(0, 1 - fire - cold), fire, cold }; };
-// Schadensfaktor gegen y: el = Art eines Zaubers (fehlt bei Hieben → mix des Angreifers)
-export function resMul(mix, y, el) {
-  if (el) return 1 - resOf(y, ELEMENTS[el].res);
-  const m = mixOf(mix); return m.phys * (1 - resOf(y, 'phys')) + (m.fire + m.cold) * (1 - resOf(y, 'elem'));
+// Schadensfaktor gegen y: el = Art eines Zaubers (fehlt bei Hieben → mix des Angreifers); arm = Rüstungs-Minderung,
+// wirkt nur auf den physischen Anteil
+export function resMul(mix, y, el, arm = 0) {
+  const ph = (1 - arm) * (1 - resOf(y, 'phys')), em = 1 - resOf(y, 'elem');
+  if (el) return ELEMENTS[el].res === 'phys' ? ph : em;
+  const m = mixOf(mix); return m.phys * ph + (m.fire + m.cold) * em;
 }
 
 export function fight(A, B) {
@@ -108,7 +115,8 @@ export function fight(A, B) {
     if (y.cur <= 0 && y.lastBreath && !y.lbUsed) { y.lbUsed = true; y.cur = 1; ev.status = 'Letzter Atem'; } }
   function spell(x, y, s) {
     const m = s.m || {}, amp = (x.amp || 1) * (s.boost || 1);
-    const red = 1 - Math.min(0.6, y.armor / (y.armor + 20 + x.lvl * 8)) * (1 - Math.min(0.9, x.pen || 0)) * (1 - Math.min(1, m.pierce || 0));
+    // Rüstung nur gegen physische Zauber; Feuer/Eis gehen vorbei (Welle 2a)
+    const red = s.el && ELEMENTS[s.el].res !== 'phys' ? 1 : 1 - armorRed(y.armor, x.lvl, x.pen || 0) * (1 - Math.min(1, m.pierce || 0));
     const dmgKind = !['heal', 'shield', 'buff'].includes(s.kind);
     if (dmgKind && dodged(x, y)) return say(x.side, `${x.name} wirkt ${s.name} – ${y.name} weicht aus.`, { spell: s.name, sid: s.id, miss: 'Ausgewichen' });
     let t = `${x.name} wirkt ${s.name}`, d = 0, anyCrit = false, extra = '';
@@ -180,7 +188,7 @@ export function fight(A, B) {
   // Henker und Krit auf rohen Schaden (für Hieb und Zauber); o: Zusatz-Krit/Henker eines Zauber-Wegs, force = sicherer Krit (Kombo),
   // o.el = Schadensart des Zaubers (sonst Hieb-Mischung des Angreifers) gegen die Resistenz des Ziels
   function finish(x, y, raw, o = {}) {
-    let d = raw * resMul(x.mix, y, o.el); const ex = (x.execute || 0) + (o.execute || 0); if (ex && y.cur < y.hp * (0.3 + (x.execHp || 0))) d *= 1 + ex;   // Set „Schürze des Metzgers“ hebt die Schwelle
+    let d = raw * resMul(x.mix, y, o.el, o.arm || 0); const ex = (x.execute || 0) + (o.execute || 0); if (ex && y.cur < y.hp * (0.3 + (x.execHp || 0))) d *= 1 + ex;   // Set „Schürze des Metzgers“ hebt die Schwelle
     if (x.vengeance) d *= 1 + x.vengeance * (1 - Math.max(0, x.cur) / x.hp);   // Vergeltung: je weniger eigenes Leben, desto härter
     if (x.weakN > 0) d *= 1 - x.weak;                  // geschwächt: macht weniger Schaden
     if (y.vulnN > 0) d *= 1 + y.vuln;                  // verwundbar: nimmt mehr Schaden
@@ -220,15 +228,15 @@ export function fight(A, B) {
     if (y.block && chance(Math.min(0.5, y.block))) {
       if (y.bulwark) { const sh = Math.round(y.hp * y.bulwark); y.shield = (y.shield || 0) + sh; ev.shield = sh; }   // Bollwerk: Blocken baut einen Schild auf
       return say(x.side, `${y.name} blockt.`, { miss: 'Geblockt' }); }
-    const raw = roll(x.dmg[0], x.dmg[1]) * (1 + x[x.main] / CFG.mainDiv) * x.buff * pb(x)
-      * (1 - Math.min(0.6, y.armor / (y.armor + 20 + x.lvl * 8)) * (1 - Math.min(0.9, x.pen || 0)));
-    const { d, crit } = finish(x, y, raw);
+    // Rüstung wirkt in finish() nur auf den physischen Teil der Hieb-Mischung
+    const raw = roll(x.dmg[0], x.dmg[1]) * (1 + x[x.main] / CFG.mainDiv) * x.buff * pb(x), arm = armorRed(y.armor, x.lvl, x.pen || 0);
+    const { d, crit } = finish(x, y, raw, { arm });
     hurt(y, d);
     let t = `${x.name} trifft ${crit ? 'KRITISCH ' : ''}für ${d}.` + onHit(x, y, d, crit);
     // Eifer: jeder dritte eigene Hieb trifft ein zweites Mal
     const hits = [d];
     if (x.zeal && (x.zealN = (x.zealN || 0) + 1) % 3 === 0 && y.cur > 0) {
-      const z = finish(x, y, raw * x.zeal); hurt(y, z.d); hits.push(z.d);
+      const z = finish(x, y, raw * x.zeal, { arm }); hurt(y, z.d); hits.push(z.d);
       t += ` Und noch einmal${z.crit ? ' KRITISCH' : ''}: ${z.d}.` + onHit(x, y, z.d, z.crit); }
     say(x.side, t, { crit, dmg: hits.reduce((p, q) => p + q, 0), hits: hits.length > 1 ? hits : undefined });
   }

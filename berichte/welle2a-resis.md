@@ -1,40 +1,40 @@
 # Welle 2a – Resistenzen, Schadensarten, Waffen-Deckel (2026-11-22, Branch `claude/resistenzen`)
+Zweiter Schritt auf Zuruf „wie bei Diablo und PoE, sinnvoll fürs Spiel“ (beantwortet die offenen Fragen 1–3 der ersten Fassung).
 
 **Gebaut**
-- Schadensarten physisch/Feuer/Eis (`ELEMENTS`); Feuer+Eis zählen gegen **Elementar**. Eine Regel `resMul`/`resOf` (combat.js) in
-  `finish()` → gilt für Hieb und Zauber; Brand/Gift/Bluten rechnen vom schon gekürzten Treffer. Helden-Hiebe physisch, Zauber
-  mit `el` (Feuerball/Meteor Feuer, Frostnova Eis, Rest physisch). Deckel `CFG.resCap` 0,75 im Kampf; `stats().res` bleibt roh.
-- Gegner: `mix` (Anteil Feuer/Eis, Rest physisch) + `res` in MONSTERS (Ø 33 % Elementar; Resi nur bei Skelett, Kultist,
-  Sumpfhexe, Höllenbrut) und **jedem** Akt-/Krypta-Boss (z. B. Aschenkönig Feuer 60 % / Elem.-Resi 15 %).
-- Affixe `physr` „Phys.-Resi“ und `elemr` „Elem.-Resi“: Suffix, Rüstungsteile + Schmuck (9 Plätze), eigene Gruppen (beide auf
-  einem Teil möglich), Stufe I 9–10 %, V 3 %. 75 % auf beiden braucht ~8 Plätze mit Stufe I je Art.
-- Abgrund: `DESCENT.resMalus { per: 10, v: 0 }` + `descResPen()` → Malus wirkt vor dem Deckel, heute **aus**.
-- Waffen-Deckel `wpnDmg()` (loot.js): Grundschaden wirkt höchstens wie GS Heldenstufe + 10 (`CFG.wpnLvlAdd`). Tooltip:
-  „Schaden 40–90 · wirksam 23–52“ + „Wirkt wie Stufe 32 – voll ab Heldenstufe 49“.
-- Anzeige: Vorbereitung „Schaden Phys 60 · Eis 40 %“ und „Resi Elem 10 %“; „Trifft dich“ rechnet deine Resi ein. Werte-Ansicht
-  „Phys.-Resi 0 % / 75“ (über dem Deckel in Klammern). Screenshots: `welle2a-vorbereitung.png`, `welle2a-werte.png` (iPhone 13).
-- `power()` rechnet gegen den gemittelten Gegner (`FOE_MIX`/`FOE_RES`, aus den Daten abgeleitet); Siegchance-Caches kennen `res`.
-**Messwerte vorher → nachher**
-- Erster Treffer gewinnt (oneshot.mjs, St. 22, GS 59, 5 Würfe × 1500): Zauberin **18,3 → 1,1 %** (Bericht 1A: 23,7 % vor dem
-  Zusammenführen) · Assassine 7,7 → 0,0 · Barbar 8,9 → 1,2. ≤ 2 Treffer: Zauberin 47 → 17 %.
-- Akt VI Stufe (acts.mjs, 6 Läufe): Zauberin 21 → 22 · Assassine 21 → 22 · Barbar 21 → 23 (Glut +15–30 %). acts.mjs selbst
-  schwankt ±2 (vorher mit 3 Läufen 22/20/23).
-- Bots 3 Tage: Zauberin 6/6 Läufe wie vorher (120–139 gefarmt, Krypta 22–27), Assassine/Barbar je 3 Läufe wie vorher.
-- Abgrund `--deep` (St. 20/30/40): Zauberin T8/T12/T16 → T8/T11/T14 · Assassine T9/T14/T18 → T9/T13/T18 · Barbar T14/T19/T24
-  → T13/T19/T24; Barbar mit Glocken-Beute T21 → T19 (Waffen-Deckel). Stufe-10-Boss 38 → 31 %.
-- Eichung (calib, jetzt fester Keim + 4 Würfe – vorher schwankte Zaubertempo zwischen Läufen 0,61–0,88): alle alten Boni
-  unverändert (Zaubertempo 0,77 → 0,76). Neu, St. 20: Phys.-Resi **0,31** (bei schon 45 % Resi: 0,64), Elem.-Resi **0,15** (0,20).
+- Schadensarten physisch/Feuer/Eis; Feuer+Eis → **Elementar**. Eine Regel (`resMul`/`resOf`/`armorRed`, combat.js) in `finish()`.
+- **Wie D2/PoE: Rüstung mindert nur den physischen Anteil.** Feuer und Eis gehen an ihr vorbei – dagegen hilft nur Elem.-Resi.
+  Gilt in beide Richtungen: Feuerball/Frostnova/Meteor ignorieren die Rüstung des Gegners (Zauber-Ansicht: „Feuer · ignoriert Rüstung“).
+- Deckel: **Elementar 75 %** (D2/PoE), **Phys. 50 %** (D2 „Schaden reduziert um“ – stapelt mit Rüstung, darum niedriger).
+- Affixe (Suffix, Rüstungsteile + Schmuck, beide auf einem Teil möglich): Elem.-Resi Stufe I 26–30 % · V 8–10 % (wie D2-Einzelresi),
+  Phys.-Resi I 20–23 % · V 6–8 %. 75 % Elementar = drei Teile Stufe I oder sechs mittlere; der Druck kommt später mit dem Abgrund-Malus
+  (`DESCENT.resMalus`, Eintrag vorhanden, **aus**) – wie D2 Hölle / PoE Akt-Malus.
+- Gegner `mix`/`res`: Monster Ø 33 % Elementar, Resi nur bei wenigen; jeder Boss eine erkennbare Mischung (Gerlinde Eis 40 %,
+  Aschenkönig Feuer 50 % + Elem.-Resi 15 % …). Vorbereitung: „Schaden Phys 60 · Eis 40 %“, „Resi Elem 10 %“, „Trifft dich“ mit deiner Resi.
+- Werte-Ansicht „Phys.-Resi x % / 50“, „Elem.-Resi x % / 75“ (darüber in Klammern). Waffen-Deckel: Grundschaden wirkt höchstens wie
+  Heldenstufe + 10, Tooltip „wirksam …“ + „voll ab Heldenstufe N“. Screenshots (iPhone 13): `welle2a-vorbereitung/werte/zauber.png`.
 
-**Tests:** voller `sh tests/run.sh` grün. Neu in logic (105): Schadensarten (Feuer/Eis vs. Elementar, Hieb vs. Phys., Mischung,
-Daten, enemyInfo), Resi-Deckel 75 % + Malus vor Deckel + Malus aus, Waffen-Deckel (Wert, voll ab GS − 10, nie gekürzt darunter).
+**Folge-Ausgleich (gemessen, nicht geschätzt)**
+- Ohne Resi kommt laut Kampfkraft-Modell ~19 % mehr Schaden an → `monDmg` 1,0 → 0,9.
+- Rüstung schützt nur noch ~⅔ des Schadens: Bonus Rüstung `per` 8 → 16 (Eichung wieder 0,69/1,13/0,79 wie vorher).
+- Zaubertempo fiel 0,76 → 0,59 (Barbar) → `per` 1,33 → 1,6 (Stufe I 21–24 %, Ausnahme wie Krit-Schaden: wirkt nur auf Zauber).
+- „Rüstung ignorieren“ nicht mehr auf Stäben; „Lohe“ 6 → 8 % (fiel unter den Rahmen). Glöckner (Krypta 4) hielt die Zauberin in 2/8 Bot-Läufen
+  auf: jetzt Feuer 25 % + Eis 15 %, Phys.- statt Elem.-Resi. Erster Kultist Feuer 30 %, keine Resi. Bosse mit Elem.-Resi höchstens 15 % (die Zauberin hat nur Feuer/Eis).
 
-**Unterwegs gefunden und gelöst:** Phys.-Resi auf gewöhnlichen Monstern machte Barbar-Kämpfe länger → Heiltränke/Tracht über
-den Rahmen; Elem.-Resi 20 % am Ersten Kultisten ließ die Zauberin in 4 von 5 Bot-Läufen an Akt V hängen. Beides gesenkt.
+**Messwerte vor Welle 2a → jetzt**
+- Erster Treffer gewinnt (St. 22, GS 59): Zauberin 18,3 → 1,8 % · Assassine 7,7 → 0 · Barbar 8,9 → 0,3 %.
+- Akt VI Stufe (6 Läufe): 21/21/21 → 20–21 / 20–22 / 22–23 (Zauberin/Assassine/Barbar; acts.mjs schwankt ±2).
+- Bots 3 Tage: Zauberin 8/8, Barbar 4/4 wie vorher; Assassine 9/10 (einmal Krypta 4 nicht versucht, Geschichte trotzdem fertig).
+- Eichung St. 20: Elem.-Resi **0,67** erstes Teil, **1,13** gestapelt (vorher 0,15/0,20); Phys.-Resi 0,44 / 0,33 (Deckel 50 %).
+- Abgrund `--deep` St. 20/30/40: Zauberin T8/12/16 → T7/12/16 · Assassine T9/14/18 → T8/13/17 · Barbar T14/19/24 → T13/18/23.
+  Stufe-10-Boss 38 → 22 % (Rahmen 10–60): ohne Resi ist der Abgrund spürbar härter – gewollt, dort soll Resi zählen.
+
+**Tests:** voller `sh tests/run.sh` grün. Logic 105: Feuer/Eis vs. Elementar, Hieb vs. Phys., Feuerball ignoriert Rüstung, Hieb nicht,
+Rüstung nur auf phys. Anteil, Deckel 75/50, Malus vor Deckel (aus), Waffen-Deckel. calib.mjs: fester Keim + 4 Würfe, Klassen-Ansicht
+repariert; caps.mjs: „Rüstung ignorieren“ bei reinen Feuer/Eis-Klassen als Regel ausgewiesen (abgeleitet aus `SPELLS`).
 
 **Offene Fragen**
-1. **Klein je Teil vs. Eich-Regel:** Resi-Teile liegen bei 0,15–0,31 statt 0,85–1,2 – ein Teil zählt kaum, erst gestapelt.
-   Kampfkraft-Vergleiche (grüne Pfeile, Bots) bevorzugen darum fast immer Kon/Leben. Lassen (Resi zählt im Abgrund mit Malus),
-   größere Werte (Stufe I ~25 %), oder **Elementarschaden ignoriert Rüstung** (D2-Art – dann trägt Elem.-Resi von selbst)?
-2. Phys.-Resi stapelt mit Rüstung (max. 60 % + 75 %). Gewollt, oder Phys.-Resi niedriger deckeln (z. B. 50 %)?
-3. Zauberin hat nur Elementar-Zauber: jede Elem.-Resi eines Bosses kürzt ihren ganzen Schaden. Bosse deshalb ≤ 15 %.
-4. descent.mjs-Spalte „St. 22 + Glocken-Beute“ zeigt für Zauberin/Assassine T0 – auch schon vor dieser Welle; Messfehler?
+1. Passiv der Zauberin („Ignoriert Rüstung zur Hälfte“) hilft nur noch ihren Hieben. Etwas anderes geben (z. B. Elem.-Resi oder Brand)?
+2. Phys.-Resi bleibt unter dem Hauptattribut (0,44) – wie in D2 eine Nebensache neben Rüstung. Recht so?
+3. Malus je Abgrund-Tiefe einschalten (Vorschlag: −10 % je 10 Tiefen, wie PoE)? Erst dann wird 75 % zum Ziel.
+4. descent.mjs „Glocken-Beute“ zeigt für die Zauberin T0 – schon vor dieser Welle; vermutlich Messfehler im Test.

@@ -340,7 +340,8 @@ test('Bonus-Stufen: Gegenstandsstufe schaltet frei, Werte liegen im festen Berei
     if (['dmg', 'dmgp', 'critc', 'critd', 'spellp'].some(k => k in it.mods)) assert.ok(['weapon', 'gloves', 'ring', 'amulet'].includes(it.slot), `Schaden auf ${it.slot}`);
   }
   // Prozent-Boni klein: Stufe I höchstens 20 % je Teil (Krit-Chance höchstens 15) – außer den geeichten Sonder-Einheiten
-  for (const a of D.AFFIXES.filter(a => a.pct && !['critd', 'thornsp'].includes(a.stat) && !a.cls)) assert.ok(Ld.tierBand(a, 1)[1] <= (a.stat === 'critc' ? 15 : 20), a.stat);
+  // (Welle 2a: Zaubertempo wirkt nur auf Zauber; Resistenzen haben eigene Deckel 75/50 % und eigene Grenzen im Resi-Test)
+  for (const a of D.AFFIXES.filter(a => a.pct && !['critd', 'thornsp', 'haste', 'physr', 'elemr'].includes(a.stat) && !a.cls)) assert.ok(Ld.tierBand(a, 1)[1] <= (a.stat === 'critc' ? 15 : 20), a.stat);
 });
 
 test('Sonderboni und Einzigartige: selten, korrekt aufgebaut, wirken im Kampf', () => {
@@ -1372,11 +1373,16 @@ test('Schadensarten: Feuer/Eis gegen Elementar-Resi, Hiebe gegen Phys.-Resi, Geg
   const r0 = run({}), rE = run({ elem: 0.5 }), rP = run({ phys: 0.5 });
   const fb = l => l.spell === 'Feuerball', hb = l => !l.spell;
   // gleicher Würfel: Feuerball halbiert sich gegen Elementar-Resi, nicht gegen Phys.-Resi; beim Hieb umgekehrt
-  assert.ok(Math.abs(firstDmg(rE, 'a', fb) / firstDmg(r0, 'a', fb) - 0.5) < 0.02, 'Feuer ignoriert Elementar-Resi');
+  assert.ok(Math.abs(firstDmg(rE, 'a', fb) - firstDmg(r0, 'a', fb) * 0.5) <= 1, 'Feuer ignoriert Elementar-Resi');   // ±1: ganze Zahlen
   assert.equal(firstDmg(rP, 'a', fb), firstDmg(r0, 'a', fb), 'Feuer wird von Phys.-Resi gebremst');
   assert.ok(Math.abs(firstDmg(rP, 'a', hb) / firstDmg(r0, 'a', hb) - 0.5) < 0.05, 'Hieb ignoriert Phys.-Resi');
   // Gegner mit 60 % Feuer: gegen 50 % Elementar-Resi bleiben 1 − 0,6 × 0,5 = 70 % seines Hiebs
   assert.ok(Math.abs(C.resMul({ fire: 0.6 }, { res: { elem: 0.5 } }) - 0.7) < 1e-9);
+  // Rüstung (D2/PoE) wirkt nur auf den physischen Anteil: 40 % phys. × (1 − 0,5 Rüstung) + 60 % Feuer
+  assert.ok(Math.abs(C.resMul({ fire: 0.6 }, { res: {} }, null, 0.5) - (0.4 * 0.5 + 0.6)) < 1e-9);
+  // Feuerball geht an der Rüstung vorbei, der Hieb nicht (gleicher Würfel, Ziel mit viel mehr Rüstung)
+  const rA = seeded(7, () => fight(A, { ...B, armor: B.armor * 20 }));
+  assert.equal(firstDmg(rA, 'a', fb), firstDmg(r0, 'a', fb), 'Feuer wird von Rüstung gebremst'); assert.ok(firstDmg(rA, 'a', hb) < firstDmg(r0, 'a', hb));
   assert.ok(Math.abs(C.resMul({ cold: 0.3 }, { res: { phys: 0.2, elem: 0.4 } }) - (0.7 * 0.8 + 0.3 * 0.6)) < 1e-9);
   // Daten: jede Mischung ≤ 100 %, jede Resi 0..CFG.resCap; jeder Akt- und Krypta-Boss hat eine erkennbare Mischung oder Resi
   for (const m of [...D.MONSTERS, ...D.CRYPTS.map(c => c.boss), ...D.ACTS.map(a => a.boss)]) {
@@ -1395,6 +1401,7 @@ test('Resistenzen: aus Teilen summiert, im Kampf bei 75 % gedeckelt, Malus wirkt
   G.S.equip.ring1 = makeItem(30, { slot: 'ring' }); G.S.equip.ring1.mods = { elemr: 40 };
   const A = G.stats(); assert.ok(Math.abs(A.res.elem - 0.9) < 1e-9 && Math.abs(A.res.phys - 0.1) < 1e-9, JSON.stringify(A.res));
   assert.equal(C.resOf(A, 'elem'), D.CFG.resCap, 'Deckel 75 % greift nicht');
+  assert.equal(C.resOf({ res: { phys: 0.8 } }, 'phys'), D.CFG.resCapPhys, 'Phys.-Resi: Deckel 50 % (D2) greift nicht');
   assert.equal(C.resOf({ res: { elem: 0.9 }, resPen: 0.1 }, 'elem'), 0.75, 'Malus vor dem Deckel: 90 − 10 = 80 → 75');
   assert.ok(Math.abs(C.resOf({ res: { elem: 0.5 }, resPen: 0.2 }, 'elem') - 0.3) < 1e-9);
   // Im Kampf: 90 % wirkt wie 75 % (gleicher Würfel, gleicher Schaden)
@@ -1403,9 +1410,11 @@ test('Resistenzen: aus Teilen summiert, im Kampf bei 75 % gedeckelt, Malus wirkt
   assert.equal(hit({ elem: 0.9 }), hit({ elem: 0.75 })); assert.ok(hit({ elem: 0.75 }) < hit({ elem: 0 }));
   // Abgrund: Malus je Tiefe ist ein Dateneintrag und heute aus
   assert.ok(D.DESCENT.resMalus && D.DESCENT.resMalus.v === 0); for (const d of [1, 10, 50, 200]) assert.equal(Game.descResPen(d), 0);
-  // Affixe: nur Rüstungsteile und Schmuck, kleine Werte (Stufe I ≤ 11 %), beide auf einem Teil möglich
-  for (const k of ['physr', 'elemr']) { const a = D.AFFIXES.find(x => x.stat === k); assert.ok(!a.slots.includes('weapon') && a.slots.includes('ring') && a.side === 'suf');
-    assert.ok(L.tierBand(a, D.TIERS[0])[1] <= 11, `${k} Stufe I zu groß: ${L.tierBand(a, D.TIERS[0])}`); }
+  // Affixe: nur Rüstungsteile und Schmuck, Werte wie D2 (Elementar Stufe I ≤ 30 %, Phys. ≤ 25 %): den Deckel erreicht man
+  // erst mit mindestens drei Teilen der besten Stufe
+  for (const k of ['physr', 'elemr']) { const a = D.AFFIXES.find(x => x.stat === k), hi = L.tierBand(a, D.TIERS[0])[1], cap = k === 'physr' ? D.CFG.resCapPhys : D.CFG.resCap;
+    assert.ok(!a.slots.includes('weapon') && a.slots.includes('ring') && a.side === 'suf');
+    assert.ok(hi <= (k === 'physr' ? 25 : 30) && hi * 2 < cap * 100, `${k} Stufe I: ${hi}`); }
   assert.ok(power0ok());
   function power0ok() { const p0 = G.power(G.stats()); G.S.equip.helm.mods = {}; G.S.equip.ring1.mods = {}; return p0 > G.power(G.stats()); }   // power() kennt die Resi
 });

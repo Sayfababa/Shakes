@@ -75,9 +75,12 @@ for (const cls of only) for (const L of LV) {
     // Krit-Schaden hängt an der Krit-Chance: wer selten kritisch trifft, hat wenig zu vervielfachen.
     // Das ist der Entwurf, kein toter Wert – darum hier nicht als Fehler werten.
     const ohneKrit = w.k === 'critMult' && (roh.crit || 0) < 0.1;
-    const tot = Math.abs(d * 100) < TOT && !amDeckel && !ohneKrit;
+    // Welle 2a (D2/PoE): Feuer/Eis gehen an der Rüstung vorbei – wer nur solche Zauber hat, braucht „Rüstung ignorieren“ nur
+    // für Hiebe. Das ist die Regel, kein Fehler (offene Frage im Bericht: Passiv der Zauberin). Abgeleitet, nicht abgetippt.
+    const elemOnly = w.k === 'pen' && D.SPELLS[cls].every(s => s.el && D.ELEMENTS[s.el].res !== 'phys');
+    const tot = Math.abs(d * 100) < TOT && !amDeckel && !ohneKrit && !elemOnly;
     console.log(w.name.padEnd(20) + pad((roh[w.k] || 0).toFixed(2), 10) + pad(w.cap, 8)
-      + pad(`${amCap[w.k] || 0}/${WUERFE}`, 11) + pad(((d >= 0 ? '+' : '') + (d * 100).toFixed(1)), 13) + (tot ? '  TOT' : amDeckel ? '  am Deckel' : ohneKrit ? '  (wenig Krit-Chance)' : ''));
+      + pad(`${amCap[w.k] || 0}/${WUERFE}`, 11) + pad(((d >= 0 ? '+' : '') + (d * 100).toFixed(1)), 13) + (tot ? '  TOT' : amDeckel ? '  am Deckel' : ohneKrit ? '  (wenig Krit-Chance)' : elemOnly ? '  (Zauber ignorieren Rüstung)' : ''));
     if (CHECK && tot) { bad++; console.log(`!! ${D.CLASSES[cls].name} Stufe ${L}: „${w.name}“ bringt nichts (+${w.add} → ${(d * 100).toFixed(1)} Pkt)`); }
   }
 }

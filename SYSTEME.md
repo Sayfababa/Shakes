@@ -14,9 +14,11 @@ eines Systems seinen Block hier lesen** (`grep -n '^\*\*' SYSTEME.md` zeigt die 
   Eich-Tests.** Flache Werte bewusst ohne Wache. → E
 - **Treffer-Wirkungen** combat.js: `finish()` (Henker, Krit), `onHit()` (Leech, Bluten, Gift, Dornen).
   Zauber sind nur nicht blockbar. → E
-- **Schadensarten & Resistenzen** (Welle 2a) `ELEMENTS`/`RES_NAMES`, Gegner `mix`/`res` (MONSTERS, Bosse), Zauber `el`;
-  `resOf`/`resMul`/`mixOf` in combat.js, angewandt in `finish()` (Hieb und Zauber). Feuer+Eis → Elementar. Deckel `CFG.resCap`
-  0,75 wirkt im Kampf, `stats().res` ist roh (Werte-Ansicht zeigt beides). Affixe `physr`/`elemr` (Suffix, Rüstung+Schmuck).
+- **Schadensarten & Resistenzen** (Welle 2a, nach D2/PoE) `ELEMENTS`/`RES_NAMES`, Gegner `mix`/`res` (MONSTERS, Bosse), Zauber `el`;
+  `resOf`/`resMul`/`mixOf`/`armorRed` in combat.js, angewandt in `finish()` (Hieb und Zauber). **Rüstung mindert nur den physischen
+  Anteil**, Feuer/Eis gehen vorbei (auch Zauber der Zauberin → „Rüstung ignorieren“ ist für sie fast wertlos, `penp` nicht auf Stäben).
+  Deckel Elementar `CFG.resCap` 75 %, Phys. `CFG.resCapPhys` 50 % (D2). `stats().res` ist roh (Werte-Ansicht zeigt beides).
+  Affixe `physr`/`elemr` (Suffix, Rüstung+Schmuck, Stufe I 20–23 / 26–30 %).
   `power()` rechnet gegen den gemittelten Gegner (`FOE_MIX`/`FOE_RES`, aus den Daten). Abgrund-Malus `DESCENT.resMalus` (heute v: 0).
 - **Waffen-Deckel** `wpnDmg(it, heldenstufe)` in loot.js: Grundschaden wirkt höchstens wie GS Heldenstufe + `CFG.wpnLvlAdd`;
   Tooltip zeigt „wirksam …“ + „voll ab Heldenstufe N“.

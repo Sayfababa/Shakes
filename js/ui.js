@@ -203,8 +203,8 @@ export function viewStats() {
     </section>
     <section class="panel"><h2>Kampf</h2>
       <div class="grid2"><div class="stat"><span>Leben</span><b>${fmtN(st.hp)}</b></div><div class="stat"><span>Schaden</span><b>${st.dmg[0]}–${st.dmg[1]}</b></div>
-      ${['phys', 'elem'].map(k => { const v = st.res[k], on = Math.min(CFG.resCap, v);   // Resistenzen mit Deckel – was darüber liegt, steht in Klammern
-        return `<div class="stat"><span>${RES_NAMES[k]}</span><b>${Math.round(on * 100)} %<small class="dim"> / ${Math.round(CFG.resCap * 100)}${v > CFG.resCap ? ` (${Math.round(v * 100)})` : ''}</small></b></div>`; }).join('')}
+      ${['phys', 'elem'].map(k => { const v = st.res[k], cap = k === 'phys' ? CFG.resCapPhys : CFG.resCap, on = Math.min(cap, v);   // Resistenzen mit Deckel – was darüber liegt, steht in Klammern
+        return `<div class="stat"><span>${RES_NAMES[k]}</span><b>${Math.round(on * 100)} %<small class="dim"> / ${Math.round(cap * 100)}${v > cap ? ` (${Math.round(v * 100)})` : ''}</small></b></div>`; }).join('')}
       <div class="stat"><span>Rüstung</span><b>${st.armor}</b></div><div class="stat"><span>Krit</span><b>${Math.round(Math.min(0.6, CFG.critBase + st.lck / (st.lck + 100 + S.lvl * 5) + st.crit) * 100)} % · ×${st.critMult.toFixed(2).replace('.', ',').replace(/0$/, '')}</b></div></div>
       <p class="dim small">${effLine(Object.fromEntries(Object.entries(st).filter(([k, v]) => v && EFFECT_NAMES[k] && !['dmgPct', 'hpPct', 'armorPct', 'crit'].includes(k))))}</p>
       ${S.tampered ? '<p class="small down">Spielstand wurde von Hand verändert – für Handel gesperrt.</p>' : ''}</section>
@@ -222,7 +222,7 @@ export function viewSpells() {
     ${SPELLS[S.cls].map(sp => { const on = S.lvl >= sp.lvl, cur = st.spells.find(x => x.id === sp.id), bo = Math.round(((st.spells.find(x => x.id === sp.id)?.boost || 1) / (1 + (cur?.m?.mult || 0)) - 1) * 100);
       const pend = on && waysPending(sp.id), ev = cur?.every || sp.every;
       return `<section class="panel spell ${on ? '' : 'locked'}" ${on ? `data-action="ways" data-s="${sp.id}"` : ''}><img class="sic" src="assets/spells/${sp.id}.webp" alt="">
-        <div><h3>${sp.name} <span class="h2r">${on ? `alle ${(ev / (1 + st.haste)).toFixed(1).replace('.0', '').replace('.', ',')} Züge` : `ab Stufe ${sp.lvl}`}</span></h3><p class="small">${sp.text}${bo ? ` · <b class="up">+${bo} % durch Waffe</b>` : ''}</p>
+        <div><h3>${sp.name} <span class="h2r">${on ? `alle ${(ev / (1 + st.haste)).toFixed(1).replace('.0', '').replace('.', ',')} Züge` : `ab Stufe ${sp.lvl}`}</span></h3><p class="small">${sp.el && sp.el !== 'phys' ? `<b>${ELEMENTS[sp.el].name}</b> · ignoriert Rüstung · ` : ''}${sp.text}${bo ? ` · <b class="up">+${bo} % durch Waffe</b>` : ''}</p>
         ${on ? `<p class="wayline">${cur?.ways?.length ? cur.ways.map(n => `<b>${n}</b>`).join(' · ') : '<i class="dim">Noch kein Weg gewählt</i>'}${pend ? ` <span class="hot">· Weg wählen</span>` : ''}</p>` : ''}</div></section>`; }).join('')}
     <section class="panel grow gradesp"><h2>Kampfbewertung <span class="h2r">je stärker, desto mehr Lohn</span></h2>${GRADES_TXT()}</section></div>`;
 }

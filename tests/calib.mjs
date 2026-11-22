@@ -29,12 +29,14 @@ function hero(cls, L) {
 }
 const gain = (slot, k, v) => { const S = G.S, it = S.equip[slot], old = it.mods; it.mods = { [k]: v }; const p = G.power(); it.mods = old; return p; };
 
+const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
 const rows = {}, clsRows = {};
 for (const cls of D.PLAYABLE) for (const L of LV) for (let rep = 0; rep < REPS; rep++) {
   hero(cls, L); const p0 = G.power(), main = D.CLASSES[cls].main;
   const ref = { off: gain('ring1', main, tierVal(main, L)) - p0, def: gain('ring1', 'con', tierVal('con', L)) - p0 };
   for (const a of D.AFFIXES) {
     if (a.cls && a.cls !== cls) continue;
+    if (a.notKind?.includes(D.CLASSES[cls].weapon) && a.slots?.every(s => s === 'weapon')) continue;   // würfelt nie auf der Waffe dieser Klasse
     const slot = !a.slots ? 'ring1' : a.slots.includes('ring') ? 'ring1' : a.slots[0] === 'weapon' ? 'weapon' : a.slots[0];
     const unit = 10;                                         // 10 Punkte bzw. 10 % messen (Grenzwert)
     const g = gain(slot, a.stat, unit) - p0, r = ref[DEF.has(a.stat) ? 'def' : 'off'];
@@ -50,7 +52,6 @@ for (const cls of D.PLAYABLE) for (const L of LV) for (let rep = 0; rep < REPS; 
     }
   }
 }
-const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
 // --cls: je Klasse eine Zeile. Nötig, weil „+Stärke" für eine Zauberin gewollt wenig bringt –
 // der Schnitt über sechs Klassen sieht dann aus wie ein Fehler, ist aber der Entwurf.
 if (perCls) {
@@ -59,7 +60,7 @@ if (perCls) {
     console.log(`\n${k}`.padEnd(14) + LV.map(l => ('St.' + l).padStart(8)).join(''));
     D.PLAYABLE.forEach((cls, i) => {
       console.log(('  ' + D.CLASSES[cls].name + (D.CLASSES[cls].main === k ? ' *' : '')).padEnd(14)
-        + LV.map(L => (clsRows[k]?.[L]?.[i] ?? NaN).toFixed(2).padStart(8)).join(''));
+        + LV.map(L => avg(clsRows[k]?.[L]?.slice(i * REPS, (i + 1) * REPS) || [NaN]).toFixed(2).padStart(8)).join(''));
     });
   }
   process.exit(0);

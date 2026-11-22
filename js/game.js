@@ -3,7 +3,7 @@
 import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS, DESCENT, DESC_ROOMS, ELITE, PIT, PIT_STYLES, PIT_RIVALS, PIT_RANKS, PIT_SHOP, PIT_RULES, DIFFICULTIES, SETS, SET, ACTS, ACT, CRYPT, WANDER, WANDER_ST } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
-import { fight, resMul, resOf, mixOf } from './combat.js';
+import { fight, resMul, resOf, mixOf, armorRed } from './combat.js';
 import { makeItem, makeSetItem } from './loot.js';
 import { pick, roll, chance, rand, seeded } from './rng.js';
 
@@ -242,7 +242,7 @@ export const threatLabel = p => p >= 0.9 ? ['gering', 'low'] : p >= 0.65 ? ['mä
 // Werte eines Gegners aus Sicht des Helden (Vorbereitung): gleiche Formeln wie combat.js
 export function enemyInfo(m, A = G.stats()) {
   // Trifft dich: nach deiner Rüstung UND deinen Resistenzen gegen seine Schadensmischung (dieselbe Regel wie im Kampf)
-  const hitDmg = [0, 1].map(i => Math.round(m.dmg[i] * (1 + m[m.main] / CFG.mainDiv) * resMul(m.mix, A) * (1 - Math.min(0.6, A.armor / (A.armor + 20 + m.lvl * 8)))));
+  const hitDmg = [0, 1].map(i => Math.round(m.dmg[i] * (1 + m[m.main] / CFG.mainDiv) * resMul(m.mix, A, null, armorRed(A.armor, m.lvl))));
   const tags = [];
   if (m.poison) tags.push(['Gift, das sich stapelt', 'gegengift']); if (m.bleed) tags.push(['Lässt dich bluten', 'gegengift']);
   if (m.regen || m.leech) tags.push(['Heilt sich', 'weihwasser']); if (m.toll) tags.push(['Betäubt dich', 'wachsaft']);

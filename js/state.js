@@ -1,7 +1,7 @@
 import { RARITIES, TREE, SETS, SET, ACTS, ACT, CRYPT, DESCENT, PIT_RIVALS, SPELL_TREE, TREE_LVL, CAPS, AFFIXES, TIERS, SELL, CRAFT, RUNES, FORGE, SPELLS, BOUNTIES, TRACKS, BASES, CLASSES, CFG, MONSTERS, ATTRS, TALENTS, TIER_LVL, RANKS, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, INV_W, INV_H, STASH_W, STASH_H, GIVERS, OMENS, SERVICES, SHARD_CRYPTS, MATS, POTIONS, HERBS, HERB_LOC, ALCH } from './data.js';
 import { affixPool, affixRoom, pickAffix, makeItem, itemValue, rollTier, tierOf, affixValue, renameMagic, adj, fixName, wpnDmg } from './loot.js';
 import { roll, pick, rand } from './rng.js';
-import { evadeShare, resMul, mixOf } from './combat.js';
+import { evadeShare, resMul, mixOf, armorRed } from './combat.js';
 
 const KEY = 'aschenkrone_v1';
 export const SAVE_VERSION = 22;
@@ -227,7 +227,7 @@ export function power(A = stats()) {
   const stunner = (A.spells || []).some(s => s.kind === 'stun' || s.m?.stun), dotter = (A.spells || []).some(s => s.kind === 'dot' || s.m?.poison);
   for (const s of A.spells || []) {
     const m = s.m || {}, cm = (A.critMult || 2) - 1;
-    const sd = strike * A.amp * (1 - red) * hit * onHit * resMul(null, FOE_RES, s.el || 'phys');   // Zauber nach ihrer Art
+    const elem = s.el && s.el !== 'phys', sd = strike * A.amp * (elem ? 1 : 1 - red) * hit * onHit * resMul(null, FOE_RES, s.el || 'phys');   // Feuer/Eis: an der Rüstung vorbei
     const b = s.boost || 1;   // Zauber-Bonus von der Waffe und Wege (mult)
     let v = b * (s.kind === 'multi' ? sd * s.mult * s.hits : s.kind === 'dot' ? sd * s.mult * 3 : s.kind === 'buff' ? dpt * s.v * 2
       : s.kind === 'heal' || s.kind === 'shield' ? 0 : sd * s.mult * (s.kind === 'mark' ? 1.4 : s.kind === 'stun' ? 1.5 : 1));
@@ -236,7 +236,7 @@ export function power(A = stats()) {
     const raw = v;
     if (m.crit) v *= 1 + Math.min(m.crit, 0.6 + m.crit - crit) * cm / (1 + crit * cm);
     if (m.dazedCrit && stunner) v *= 1 + 0.35 * cm;
-    if (m.pierce && s.kind !== 'buff') v *= (1 - red * (1 - Math.min(1, m.pierce))) / (1 - red);
+    if (m.pierce && !elem && s.kind !== 'buff') v *= (1 - red * (1 - Math.min(1, m.pierce))) / (1 - red);
     if (m.execute) v *= 1 + m.execute * 0.2;
     if (m.burn) v += raw * m.burn.v * m.burn.n;
     if (m.bleed) v += raw * m.bleed * 3;
@@ -271,7 +271,8 @@ export function power(A = stats()) {
   if (A.secondWind) heal += A.hp * A.secondWind * 0.1;
   if (A.nohealSelf) heal = 0;
   if (A.firstEcho) dpt *= 1.04;
-  const taken = eDmg * resMul(FOE_MIX, A) * (1 - Math.min(0.6, A.armor / (A.armor + 20 + L * 8))) * (1 - myEvade) * (1 - Math.min(0.5, A.block || 0)) * takenF;
+  const taken = eDmg * resMul(FOE_MIX, A, null, armorRed(A.armor, L))   // Rüstung nur gegen den physischen Anteil
+     * (1 - myEvade) * (1 - Math.min(0.5, A.block || 0)) * takenF;
   dpt += taken * (A.thorns || 0);   // Dornen: Teil jedes erlittenen Treffers geht zurück
   const ehp = A.hp * (1 + (A.ward || 0)) * (A.lastBreath ? 1.12 : 1) / (taken * Math.max(0.3, 1 - heal * 0.6 / Math.max(1, taken))) * eDmg;   // Leben, umgerechnet in "wie viele Gegner-Hiebe halte ich aus"
   return Math.round(Math.sqrt(Math.max(1, dpt) * ehp) * 20);

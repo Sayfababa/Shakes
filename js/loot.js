@@ -2,7 +2,7 @@ import { GENUS, CRAFT, BASES, RARITIES, AFFIXES, LEGEND_NAMES, CFG, TIERS, SPECI
 import { roll, pick, weighted, uid, rand } from './rng.js';
 
 // Welche Boni kann dieses Teil tragen? Nur auf passenden Plätzen (`slots`), Zauber-Boni nur auf der Waffe der Klasse
-export const affixPool = it => AFFIXES.filter(a => (!a.slots || a.slots.includes(it.slot)) && (!a.kind || a.kind === it.kind));
+export const affixPool = it => AFFIXES.filter(a => (!a.slots || a.slots.includes(it.slot)) && (!a.kind || a.kind === it.kind) && !a.notKind?.includes(it.kind));
 const affOf = k => AFFIXES.find(a => a.stat === k);
 const groupOf = a => a.group || a.stat;
 // Bonus-Stufe würfeln: hohe Stufen erst ab bestimmter Gegenstandsstufe (TIERS.minLvl)
