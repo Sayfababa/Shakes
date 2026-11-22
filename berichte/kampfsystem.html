@@ -1,0 +1,196 @@
+<title>Kampfsystem-Prototyp Aschenkrone</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@600&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+SC:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: eine Lesespalte wie die drei Vorgänger-Berichte; Tabellen scrollen in sich. Bewusst nur dunkel – die Farbwelt des Spiels. */
+:root {
+  --bg: #0e0b08; --panel: #17120d; --line: #3a2d20; --fg: #e4d8c2; --dim: #a89676;
+  --gold: #c9a24e; --blood: #c2412f; --ok: #8fb36a; --cold: #8fbfe6;
+  --f-display: 'Grenze Gotisch', 'Alegreya', Georgia, serif;
+  --f-body: 'Alegreya', Georgia, 'Times New Roman', serif;
+  --f-label: 'Alegreya SC', 'Alegreya', Georgia, serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 17px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; }
+main { max-width: 48rem; margin: 0 auto; display: flex; flex-direction: column; gap: 1.1rem; }
+h1 { font-family: var(--f-display); color: var(--gold); font-size: clamp(2rem, 6vw, 2.8rem); line-height: 1.05; margin: 0; text-wrap: balance; font-weight: 600; }
+h2 { font-family: var(--f-display); color: var(--gold); font-size: 1.65rem; margin: 1.6rem 0 0; font-weight: 600; text-wrap: balance; border-bottom: 1px solid var(--line); padding-bottom: .25rem; }
+h3 { font-family: var(--f-label); color: var(--fg); font-size: 1.1rem; margin: .8rem 0 0; letter-spacing: .02em; }
+p, ul, ol { margin: 0; } ul, ol { padding-left: 1.3rem; display: flex; flex-direction: column; gap: .35rem; }
+.lede { color: var(--dim); font-size: 1.05rem; }
+.meta { font-family: var(--f-label); color: var(--dim); font-size: .85rem; letter-spacing: .04em; }
+b, strong { color: var(--gold); font-weight: 700; }
+code { font-family: var(--f-mono); font-size: .82em; color: var(--cold); }
+.formula { font-family: var(--f-mono); font-size: .82rem; background: var(--panel); border-left: 3px solid var(--gold); padding: .6rem .8rem; overflow-x: auto; white-space: pre; color: var(--fg); }
+.src { font-family: var(--f-mono); font-size: .75rem; color: var(--dim); }
+.box { background: var(--panel); border: 1px solid var(--line); padding: .9rem 1rem; display: flex; flex-direction: column; gap: .5rem; }
+.box h3 { margin: 0; color: var(--gold); }
+.warn { border-color: #6b2a1f; }
+.tw { overflow-x: auto; border: 1px solid var(--line); }
+table { border-collapse: collapse; width: 100%; font-size: .86rem; font-variant-numeric: tabular-nums; }
+th, td { padding: .36rem .5rem; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-label); font-weight: 500; color: var(--dim); background: var(--panel); letter-spacing: .03em; white-space: nowrap; }
+td.n { text-align: right; white-space: nowrap; }
+tr.hl td { background: rgba(201,162,78,.08); }
+tr.sec td { font-family: var(--f-label); color: var(--gold); background: var(--panel); }
+.up { color: var(--ok); } .down { color: var(--blood); }
+.tag { font-family: var(--f-label); font-size: .78rem; padding: 0 .4rem; border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
+.tag.ok { color: var(--ok); border-color: #3f5a2c; } .tag.no { color: var(--blood); border-color: #6b2a1f; } .tag.hy { color: var(--cold); border-color: #2f4a63; }
+.keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .6rem; }
+.keys .box p { font-size: .95rem; }
+a { color: var(--gold); }
+a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+</style>
+
+<main>
+<p class="meta">Aschenkrone · Balancing-Bericht 4 · 22.11.2026 · isolierte Testumgebung, am Spiel nichts geändert</p>
+<h1>Drei Kampfsysteme im Vergleich</h1>
+<p class="lede">Intelligente Zauberladung (A), bedingte Zauberauslösung (B) und dynamischer Kampftakt (C), einzeln und kombiniert, in der echten Kampf-Engine. Je Klasse und Stufe 10/20/40: 3 Ausrüstungswürfe × 500 Kämpfe mit gemeinsamen Würfeln, Gegner je System neu auf 50 % geeicht.</p>
+
+<div class="keys">
+  <div class="box"><h3>Overkill ist nicht das Problem</h3><p>Der Schaden über den Tod hinaus beträgt beim Barbaren 1–4 %, bei Assassine und Zauberin 1–25 % des Gegnerlebens. Mehr Schaden verkürzt den Kill heute um 7–13 % je +20 %. Was ihn bremst, sind Züge ohne Schaden (Buff, Heilung, Fehlschläge), nicht verpuffter Schaden.</p></div>
+  <div class="box"><h3>C macht Zaubertempo zum Offensivwert</h3><p>Tempo als Aktionsrate statt Ladung: +0,2 Tempo verkürzen den Kill um 14–17 % statt 3–10 %. Mit der Bindung Geschick → Tempo bekommt Geschick für Barbar und Zauberin 49–67 % des Werts von Konstitution (heute auf Stufe 40: 1–5 %).</p></div>
+  <div class="box warn"><h3>A schadet, B verändert die Zahlen kaum</h3><p>A (Überladung, Schaden lädt) treibt den Overkill der Zauberin von 25 auf 63 % und macht Helden spürbar stärker, ohne die Schadenswirkung zu heben. B ändert die Siegpunkte um höchstens ±3, verbessert aber die Taktik: Heilung wird für die Not gehalten, der kleinste tötende Zauber gewählt.</p></div>
+  <div class="box warn"><h3>Die Kon-Dominanz bleibt in allen Systemen</h3><p>Das beste Konstitutions-Verhältnis liegt in jedem System bei 50–70 %. Der Koloss ist in 7–9 von 9 Lagen vorn (heute 9 von 9). Keine Variante erfüllt das Kriterium „keine dominante Verteilung“.</p></div>
+</div>
+
+<div class="box">
+  <h3>Empfehlung</h3>
+  <p><b>Kombination C + B</b>, zusammen mit dem Paket aus Bericht 3 und der Bindung <b>Geschick → Zaubertempo (0,3 % je Punkt)</b>. Variante A wird verworfen.</p>
+  <ul>
+    <li><b>C</b> ist das einzige System, das einem offensiven Wert eine Wirkung auf die Kill-Zeit gibt, die der von Leben auf das Überleben nahekommt (−15 % gegen +17–20 %). Es eröffnet einen eigenen Tempo-Build und braucht eine Neueichung, weil Helden stärker werden.</li>
+    <li><b>B</b> kostet keine Balance und bringt, was Aufgabe 3 verlangt: Zauberprioritäten je Build ohne Echtzeitsteuerung. Es ist die technische Grundlage für den offenen Vorschlag „Zauber-Bedingungen“.</li>
+    <li><b>Ehrliche Grenze:</b> Auch C + B + Paket lassen die konstitutionslastige Verteilung in 7–9 von 9 Lagen vorn. Sie ist dann nicht mehr die <em>einzige</em> sinnvolle Strategie, aber weiter die beste Allround-Wahl. Das entspricht „bessere Allround-Builds sind erlaubt“, verfehlt aber Kriterium 4.</li>
+  </ul>
+</div>
+
+<h2>Die drei Systeme</h2>
+<h3>Heute (combat.js:79–80)</h3>
+<div class="formula">je eigenem Zug:   Ladung_i += (1 + Tempo) × (Verzweiflung ? 2 : 1)
+wird gewirkt:     der Zauber mit dem höchsten Index, dessen Ladung ≥ Takt ist
+danach:           Ladung -= Takt          (Überschuss bleibt erhalten)
+sonst:            normaler Hieb</div>
+<p><b>Vorbefund zu A:</b> Überschüssige Ladung bleibt heute schon erhalten (<code>ch -= every</code>), und volle Zauber, die nicht drankommen, laden weiter. Variante A in ihrer wörtlichen Form ist also bereits gebaut. Getestet wurde deshalb die nächste Ausbaustufe.</p>
+<h3>A · Intelligente Zauberladung (Überladung + Schaden lädt)</h3>
+<div class="formula">Ladung_i += 0,8 × min(1, Treffer / Gegnerleben_max) × Takt_i     (eigene Treffer laden alle Zauber)
+Überschuss ü = min(1, (Ladung − Takt) / Takt)  beim Wirken
+Zauberkraft × (1 + 0,6 × ü), danach Ladung −= ü × Takt            (Überschuss wird verbraucht)</div>
+<h3>B · Bedingte Auslösung (Auswahl nach Lage)</h3>
+<div class="formula">unter allen vollen Zaubern, in dieser Reihenfolge:
+1  Heilung/Schild, wenn eigenes Leben &lt; 50 %          (sonst halten)
+2  normaler Hieb, wenn er sicher tötet                (alle Zauber halten)
+3  der kleinste Schadenszauber, der tötet             (Schätzung ohne Krit, mit Rüstung/Resi)
+4  Betäubung, wenn der Gegner weder betäubt noch immun ist
+5  Gift, wenn das laufende Gift schwächer als 80 % des neuen wäre
+6  Buff, wenn er noch wachsen kann
+7  der Schadenszauber mit dem höchsten erwarteten Schaden
+gehaltene Zauber behalten ihre Ladung</div>
+<h3>C · Dynamischer Kampftakt (Zeitachse)</h3>
+<div class="formula">Aktionsrate Held = max(0,5; 1 + Tempo), Gegner = 1
+nächste Aktion: wer auf der Zeitachse vorne liegt   (t += 1 / Rate)
+Ladung je Aktion = 1                                  (Tempo steckt nicht mehr in der Ladung)
+Krit-Schwung: ein Krit gibt allen Zaubern +0,34 Ladung, höchstens einmal je Aktion
+Schutz vor Schleifen: Ladung nur aus Aktionen und Krits, kein Zauber löst Ladung aus, 50 Aktionen je Kampf</div>
+
+<h2>Aufgabe 2 · Messung</h2>
+<p>„Kill“ = Zeit bis zum Tod eines Gegners, der nicht zurückschlägt (in C: Aktionen ÷ Rate). „Überleben“ = Zeit bis zum Tod als wehrloser Held. „Sieg“ = Siegpunkte gegen dieselben Gegner. „Tempo“ = +0,2 Zaubertempo (heute haben die Testhelden 0–0,4).</p>
+<div class="tw"><table>
+<tr><th>St. 40</th><th>System</th><th class="n">+20 % Leben<br>Überleben / Sieg</th><th class="n">+20 % Schaden<br>Kill / Sieg</th><th class="n">+0,2 Tempo<br>Kill / Sieg</th><th class="n">+20 % Zauberkraft<br>Kill / Sieg</th><th class="n">Aktionen</th><th class="n">Overkill</th></tr>
+<tr class="sec"><td colspan="8">Barbar</td></tr>
+<tr><td></td><td>heute</td><td class="n">+41 % / +23,8</td><td class="n">−10 % / +4,1</td><td class="n">−6 % / +5,1</td><td class="n">−7 % / +3,7</td><td class="n">13,3</td><td class="n">2 %</td></tr>
+<tr><td></td><td>A</td><td class="n">+39 % / +21,2</td><td class="n">−9 % / +5,0</td><td class="n">−10 % / +8,7</td><td class="n">−7 % / +4,3</td><td class="n">13,0</td><td class="n">3 %</td></tr>
+<tr><td></td><td>B</td><td class="n">+43 % / +22,1</td><td class="n">−11 % / +4,6</td><td class="n">−6 % / +4,9</td><td class="n">−6 % / +2,9</td><td class="n">13,3</td><td class="n">2 %</td></tr>
+<tr class="hl"><td></td><td>C</td><td class="n">+42 % / +20,4</td><td class="n">−10 % / +3,9</td><td class="n up">−16 % / +12,1</td><td class="n">−7 % / +3,6</td><td class="n">13,2</td><td class="n">3 %</td></tr>
+<tr class="hl"><td></td><td>BC</td><td class="n">+40 % / +23,7</td><td class="n">−11 % / +5,1</td><td class="n up">−16 % / +12,0</td><td class="n">−7 % / +3,4</td><td class="n">13,2</td><td class="n">3 %</td></tr>
+<tr class="sec"><td colspan="8">Assassine</td></tr>
+<tr><td></td><td>heute</td><td class="n">+21 % / +14,7</td><td class="n">−7 % / +5,0</td><td class="n">−4 % / +4,7</td><td class="n">−5 % / +2,4</td><td class="n">8,0</td><td class="n">13 %</td></tr>
+<tr><td></td><td>A</td><td class="n">+20 % / +13,9</td><td class="n">−8 % / +5,1</td><td class="n">−7 % / +6,3</td><td class="n">−6 % / +3,9</td><td class="n">7,7</td><td class="n">14 %</td></tr>
+<tr><td></td><td>B</td><td class="n">+19 % / +15,0</td><td class="n">−8 % / +6,7</td><td class="n">−5 % / +3,3</td><td class="n">−5 % / +3,9</td><td class="n">8,6</td><td class="n">16 %</td></tr>
+<tr class="hl"><td></td><td>C</td><td class="n">+20 % / +13,7</td><td class="n">−7 % / +5,7</td><td class="n up">−16 % / +9,0</td><td class="n">−5 % / +3,1</td><td class="n">8,2</td><td class="n">14 %</td></tr>
+<tr class="hl"><td></td><td>BC</td><td class="n">+20 % / +16,0</td><td class="n">−8 % / +6,5</td><td class="n up">−16 % / +7,0</td><td class="n">−5 % / +3,7</td><td class="n">8,6</td><td class="n">16 %</td></tr>
+<tr class="sec"><td colspan="8">Zauberin</td></tr>
+<tr><td></td><td>heute</td><td class="n">+19 % / +12,4</td><td class="n">−10 % / +2,1</td><td class="n">−7 % / +3,2</td><td class="n">−9 % / +1,9</td><td class="n">6,6</td><td class="n">25 %</td></tr>
+<tr><td></td><td>A</td><td class="n">+18 % / +12,1</td><td class="n">−7 % / +2,1</td><td class="n">−8 % / +5,0</td><td class="n">−6 % / +1,7</td><td class="n">6,4</td><td class="n down">63 %</td></tr>
+<tr><td></td><td>B</td><td class="n">+19 % / +12,9</td><td class="n">−9 % / +1,7</td><td class="n">−7 % / +3,8</td><td class="n">−9 % / +1,4</td><td class="n">6,5</td><td class="n">20 %</td></tr>
+<tr class="hl"><td></td><td>C</td><td class="n">+17 % / +11,3</td><td class="n">−10 % / +3,6</td><td class="n up">−15 % / +2,2</td><td class="n">−10 % / +3,6</td><td class="n">6,4</td><td class="n">23 %</td></tr>
+<tr class="hl"><td></td><td>BC</td><td class="n">+16 % / +12,6</td><td class="n">−10 % / +3,5</td><td class="n up">−15 % / +2,3</td><td class="n">−10 % / +3,4</td><td class="n">6,4</td><td class="n">23 %</td></tr>
+</table></div>
+<p class="src">AB und ABC lagen jeweils zwischen ihren Bestandteilen, ABC erhöhte den Overkill der Zauberin auf 36 %. Volle Tabellen für St. 10 und 20: berichte/messung-kampf/ (sys.mjs). Rauschen ±2–3 Siegpunkte.</p>
+<p><b>Gemessen:</b> Auf Stufe 10 und 20 ist das Bild gleich. Tempo in C: Kill −14 bis −17 % in allen Klassen und Stufen, Sieg +7 bis +19 Punkte, auf St. 10 so viel wie +20 % Leben (Barbar 17,1 gegen 21,4; Zauberin 18,5 gegen 15,3). Auf St. 40 bei der Zauberin trotz −15 % Kill nur +2,2 Siegpunkte. Ihre Kämpfe sind dort so kurz (6,4 Aktionen), dass die gewonnene Zeit selten entscheidet.</p>
+<p><b>Hypothese, nicht gemessen:</b> Dass +20 % Schaden den Kill nur um 7–13 % statt 17 % verkürzen, liegt an Aktionen ohne Schaden. Dazu gehören Kriegsschrei, Blutdurst, Fehlschläge gegen das Ausweichen des Gegners und gehaltene Zauber. Der Overkill ist dafür zu klein.</p>
+<h3>Verteilungen und Attributwert (St. 20/40, +30 Punkte, Siegpunkte normal / Bosse)</h3>
+<div class="tw"><table>
+<tr><th>System</th><th class="n">Kon-Optimum B / A / Z</th><th class="n">Barbar +30 Ges</th><th class="n">Zauberin +30 Ges</th><th class="n">Barbar +30 Kon</th></tr>
+<tr><td>heute</td><td class="n">70 / 60 / 70 %</td><td class="n">9,4 / 0,3</td><td class="n">3,2 / 0,8</td><td class="n">45,3 / 24,0</td></tr>
+<tr><td>C</td><td class="n">70 / 60 / 60–70 %</td><td class="n">4,1 / 2,6</td><td class="n">3,7 / 1,2</td><td class="n">41,8 / 21,8</td></tr>
+<tr><td>BC</td><td class="n">60–70 / 50–60 / 70 %</td><td class="n">12,0 / 1,4</td><td class="n">5,3 / −1,1</td><td class="n">44,4 / 17,7</td></tr>
+<tr><td>heute + Ges→Tempo 0,3 %</td><td class="n">70 / 50 / 60–70 %</td><td class="n">6,3 / 7,8</td><td class="n">7,1 / 2,3</td><td class="n">45,9 / 23,3</td></tr>
+<tr class="hl"><td>C + Ges→Tempo 0,4 %</td><td class="n">70 / 40–50 / 60–70 %</td><td class="n up">10,6 / 16,8</td><td class="n">3,0 / 2,3</td><td class="n">42,8 / 34,1</td></tr>
+<tr class="hl"><td>BC + Ges→Tempo 0,3 %</td><td class="n">70 / 50 / 70 %</td><td class="n">8,1 / 1,8 (Boss 16,3 / 8,8)</td><td class="n up">8,8 / 4,7 (Boss 11,7 / 9,6)</td><td class="n">42,3 / 25,0</td></tr>
+<tr><td>C + Haupt→Tempo 0,2 %</td><td class="n">60–70 / 40–60 / 60 %</td><td class="n">4,7 / −1,2</td><td class="n">1,6 / −2,3</td><td class="n">41,5 / 17,1</td></tr>
+</table></div>
+<p>Tempo aus Geschick wirkt unter C etwa doppelt so stark wie heute. Das Konstitutions-Optimum bewegt sich nur bei der Assassine (60 → 40–50 %), deren Hauptattribut Geschick ist.</p>
+
+<h2>Aufgabe 4 · Erfolgskriterien</h2>
+<p>Lagen = normal, Elite, 5 Krypta-Bosse, Abgrund T0 und T+2 (9 Lagen). „Vorn“ = bester oder höchstens 3 Punkte dahinter. Builds je Klasse: Koloss, 3–4 Spezialisten (Schlüsselstein + passende Verteilung), Tempo-Build (30 % Geschick) bei Barbar und Zauberin.</p>
+<div class="tw"><table>
+<tr><th>Kriterium</th><th>Messgröße</th><th class="n">heute</th><th class="n">heute + BC</th><th class="n">Paket (Bericht 3)</th><th class="n">Paket + BC + Ges→Tempo</th></tr>
+<tr><td>1 · ≥ 3 Strategien je Klasse</td><td>Builds mit ≥ 1 Lage vorn (St. 20 / 40), B · A · Z</td><td class="n">1·1·3 / 4·4·1</td><td class="n">1·2·5 / 4·2·3</td><td class="n"><b>4·4·5 / 4·4·4</b></td><td class="n"><b>4·4·4 / 4·4·2</b></td></tr>
+<tr><td>2 · defensive und offensive Spezialisten</td><td>ein Schadens-Build vorn in ≥ 2 Lagen</td><td class="n">nein</td><td class="n">teils</td><td class="n">ja (Berserker 4/9, Gift 3/9)</td><td class="n">ja (Tempo 4/9, Gift 4/9)</td></tr>
+<tr><td>3 · Schaden wirkt auf die Kill-Zeit</td><td>+20 % Schaden → Kill ≤ −10 %</td><td class="n">−7 bis −12 %</td><td class="n">−8 bis −13 %</td><td class="n">wie heute</td><td class="n">wie BC</td></tr>
+<tr><td>3b · Offensiv-Wert mit voller Wirkung</td><td>ein Offensiv-Wert mit Kill ≤ −14 % je Schritt</td><td class="n">keiner</td><td class="n"><b>Tempo −14 bis −17 %</b></td><td class="n">keiner</td><td class="n"><b>Tempo</b></td></tr>
+<tr><td>4 · keine dominante Verteilung</td><td>Koloss vorn in ≤ 6/9 Lagen</td><td class="n down">9 · 9 · 9 (St. 40)</td><td class="n down">9 · 9 · 9</td><td class="n down">8 · 8 · 9</td><td class="n down">7 · 8 · 9</td></tr>
+<tr><td>5 · Frühspiel nicht schlechter</td><td>Sieg gegen heute geeichte Gegner, St. 10</td><td class="n">50–55 %</td><td class="n up">49–61 %</td><td class="n">Bericht 3: Ausrüstung schwächer durch L5</td><td class="n">neu eichen</td></tr>
+<tr><td>6 · kurze, lesbare Kämpfe</td><td>Ø Aktionen St. 40 ≤ heute + 20 %</td><td class="n">8,1–18,1</td><td class="n up">7,7–14,0</td><td class="n">7,4–19,7</td><td class="n">7,3–15,2</td></tr>
+</table></div>
+<p>Kein System erfüllt Kriterium 4. Kriterien 1, 2, 3b und 6 erfüllt am besten die Kombination aus Paket und BC. Kriterium 5: Unter C und BC gewinnen Helden gegen die heutigen Gegner meist mehr (bis +23 Punkte). Einzige Ausnahme ist die Zauberin auf St. 10 unter C mit −4 Punkten, das liegt knapp über dem Rauschen. Das ist keine Verschlechterung, verlangt aber eine Neueichung von Gegnern oder Tempo-Werten, damit das Spiel nicht leichter wird.</p>
+
+<h2>Aufgabe 3 · Auswirkungen auf das Bestehende</h2>
+<div class="tw"><table>
+<tr><th>Bereich</th><th>Unter B</th><th>Unter C</th></tr>
+<tr><td>Barbar</td><td>Blutdurst wird für die Not gehalten; Kriegsschrei nur, solange er wächst</td><td>Tempo-Build über Geschick neu; Kampf kürzer (St. 40: 18 → 14 Aktionen)</td></tr>
+<tr><td>Assassine</td><td>Giftklinge erneuert nur schwächeres Gift; Todesmal als Finisher</td><td>Geschick ist Hauptattribut und Tempo zugleich: stärkste Wirkung, Kon-Optimum sinkt auf 40–50 %</td></tr>
+<tr><td>Zauberin</td><td>Frostnova nicht auf betäubte Gegner; Meteor gehalten, wenn ein Hieb reicht</td><td>Brett-Tempo (Manabrand +0,15, Fokus 3×0,05, Nachhall +0,12) wirkt auf alle Aktionen. Gegen heutige Gegner +15–19 Punkte. Eisgrab (−0,3 Tempo) bremst dann auch die Hiebe, muss also umgestellt werden auf „−30 % Zauberladung“</td></tr>
+<tr><td>Zauber-Wege</td><td>„sofort zu Kampfbeginn“, Verzweiflung, Kometenschweif unverändert; „Rasche Kälte“ etc. gewinnen, weil nichts mehr verfällt</td><td>Takt-Wege (−1 Takt) bleiben Ladungs-Boni; Tempo-Affix „Rascher“ wird wertvoller</td></tr>
+<tr><td>Gegenstände</td><td>keine</td><td>Zaubertempo auf Waffe, Handschuh, Nebenhand, Amulett: braucht weichen Deckel (Vorschlag: Rate höchstens 1,6, darüber halbe Wirkung)</td></tr>
+<tr><td>Gift, Bluten, Brand</td><td>keine</td><td>Ticks laufen im Zug des Angreifers, schnellere Helden ticken öfter: Bonus für DoT-Builds, in power() abbilden</td></tr>
+<tr><td>Kampfkraft, Gefahr-Anzeige</td><td>Schätzung unverändert brauchbar</td><td>power() muss Aktionsrate kennen; die Siegchance vor dem Kampf stimmt automatisch (ruft fight())</td></tr>
+<tr><td>Kampfanzeige (Mobile)</td><td>Log-Zeile „hält Blutdurst zurück“ optional</td><td>Doppelzüge möglich: Anzeige „Zug ×2“ nötig, sonst verwirrend. fightStep() bleibt, nur die Reihenfolge ändert sich</td></tr>
+<tr><td>Spielstände</td><td>keine Änderung</td><td>keine Änderung (keine neuen Felder)</td></tr>
+</table></div>
+
+<h2>Aufgabe 5 · Vergleich und Empfehlung</h2>
+<div class="tw"><table>
+<tr><th></th><th>A · Ladung</th><th>B · Bedingungen</th><th>C · Zeitachse</th></tr>
+<tr><td>Wirkung auf Schaden</td><td>keine (−7 bis −9 % wie heute)</td><td>keine</td><td>keine auf Schaden, <b>Tempo −15 %</b></td></tr>
+<tr><td>Neue Build-Achse</td><td>nein</td><td>Prioritäten je Build (taktisch)</td><td>Tempo-Build</td></tr>
+<tr><td>Overkill</td><td class="down">Zauberin 25 → 63 %</td><td>25 → 20 %</td><td>25 → 23 %</td></tr>
+<tr><td>Stärke gegen heutige Gegner</td><td>0 bis +7</td><td>−4 bis +1</td><td>−4 bis +23 (Neueichung)</td></tr>
+<tr><td>Kampflänge</td><td>leicht kürzer</td><td>gleich</td><td>gleich bis kürzer</td></tr>
+<tr><td>Risiko Balance</td><td>mittel</td><td>gering</td><td>hoch (Zauberin-Tempo war schon einmal zu stark, Tempo-Deckel nötig)</td></tr>
+<tr><td>Risiko Spielstände</td><td>keins</td><td>keins</td><td>keins</td></tr>
+<tr><td>Aufwand</td><td>klein (~15 Zeilen)</td><td>mittel (~40 Zeilen combat.js, power() unverändert, Tests)</td><td>mittel bis groß (Kampfschleife, power(), Anzeige Doppelzug, Neueichung aller Kurven)</td></tr>
+<tr><td>Urteil</td><td><span class="tag no">verwerfen</span></td><td><span class="tag ok">bauen</span></td><td><span class="tag ok">bauen, nach Neueichung</span></td></tr>
+</table></div>
+<div class="box">
+<h3>Vorgeschlagene Reihenfolge</h3>
+<ol>
+  <li><b>B zuerst:</b> klein, ohne Balance-Risiko, Grundlage für Zauberprioritäten. Test: logic (Auswahlregeln), ways, voller Lauf.</li>
+  <li><b>Paket aus Bericht 3</b> (Aldemar, Schlüsselsteine, Müllerin, Bindungen).</li>
+  <li><b>C hinter einem Datenschalter</b> (<code>CFG.tempoMode</code>), mit Tempo-Deckel, Eisgrab umgestellt, power() mit Aktionsrate, Anzeige „Zug ×2“. Danach Neueichung (<code>monDmg</code> oder Tempo-Werte), bis der Bot-Fortschritt (tests/bot.mjs) dem heutigen entspricht. Erst dann einschalten.</li>
+  <li><b>Geschick → Tempo 0,3 %</b> für alle Klassen, nachdem C eingeschaltet ist.</li>
+</ol>
+<p>Kriterium 4 erreicht auch diese Reihenfolge nicht. Der nächste Schritt dorthin wäre, das Verhältnis von Gegner-Schaden zu Helden-Leben anzufassen: Heute stirbt ein Held in 3–5 Gegnertreffern, und jede zusätzliche Runde ist darum viel wert. Das ist ein Eingriff in alle Kurven und gehört in eine eigene Untersuchung.</p>
+</div>
+
+<h2>Methode und Grenzen</h2>
+<ul>
+  <li>Isolierte Kopie von <code>js/</code> (Patch: <code>berichte/messung-kampf/varianten.patch</code>), produktiver Code unverändert. Systeme über <code>V.sys</code> schaltbar.</li>
+  <li>Testheld <code>tests/held.mjs</code>, Talente nach Kampfkraft. In der Lagen-Auswertung Builds wie in Bericht 3, Paket-Werte von dort.</li>
+  <li>Die B-Schätzung ignoriert Krit und Ausweichen, ist also vorsichtig.</li>
+  <li>Nicht gemessen: Abgrund mit den Systemen in echten Abstiegen über mehrere Tage (Bot), die Zauberin mit Tempo-Deckel, Kampfanzeige.</li>
+</ul>
+<p class="src">Code-Stand 416ab95, Branch claude/determined-mccarthy-vzvwfm.</p>
+</main>

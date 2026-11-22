@@ -1,0 +1,221 @@
+--- /home/user/Shakes/js/combat.js	2026-11-22 17:53:28.183570372 +0000
++++ js/combat.js	2026-11-22 18:59:44.546971824 +0000
+@@ -26,7 +26,7 @@
+ // Kampf, power(), Gefahr-Anzeige und Werte-Ansicht rufen diese beiden – nie die Formel abtippen.
+ export const evadeChance = (y, atkDex) => softCap(Math.max(0, y.dex / (y.dex + atkDex * 3 + 40) + (y.evade || 0)), 0.5 + (y.evadeCap || 0));
+ export const critChance = (x, defLvl, extra = 0) => softCap(Math.max(0, CFG.critBase + x.lck / (x.lck + 100 + defLvl * 5) + (x.crit || 0) + extra), 0.6 + extra);
+-export const armorRed = (armor, atkLvl, pen = 0) => Math.min(0.6, armor / (armor + 20 + atkLvl * 8)) * (1 - Math.min(0.9, pen));
++export const armorRed = (armor, atkLvl, pen = 0) => (globalThis.V?.arm ? softCap(armor / (armor + 20 + atkLvl * globalThis.V.arm), 0.6) : Math.min(0.6, armor / (armor + 20 + atkLvl * 8))) * (1 - Math.min(0.9, pen));
+ // Anteile eines Hiebs: mix = { fire, cold } (Rest physisch). Für Anzeige und power() dieselbe Regel wie im Kampf.
+ export const mixOf = mix => { const fire = mix?.fire || 0, cold = mix?.cold || 0; return { phys: Math.max(0, 1 - fire - cold), fire, cold }; };
+ // Schadensfaktor gegen y: el = Art eines Zaubers (fehlt bei Hieben → mix des Angreifers); arm = Rüstungs-Minderung,
+@@ -59,7 +59,11 @@
+     if (f.noheal > 0 && (f.regen || f.leech)) return 'Gebannt'; if (f.regen) return `Heilt ${Math.round(f.regen * 100)} %/Zug`;
+     if (f.poison) return 'Gift je Treffer'; if (f.leech) return 'Saugt Leben'; return null; };
+   const ini = f => (f.first ? 1000 : 0) + f.dex + roll(0, 10);
+-  let atk = ini(a) >= ini(b) ? a : b, def = atk === a ? b : a;
++  let atk = globalThis.V?.ini === 'a' ? a : globalThis.V?.ini === 'b' ? b : ini(a) >= ini(b) ? a : b, def = atk === a ? b : a;
++  const SY = globalThis.V?.sys || '', CK = globalThis.V?.cK ?? 1;
++  const spd = f => f.cls && SY.includes('C') ? Math.max(0.5, 1 + (f.haste || 0) * CK) : 1;
++  a.tm = 0; b.tm = 0; atk.tm = -0.001;
++  const nextPair = (x, y) => { if (!SY.includes('C')) return [y, x]; x.tm += 1 / spd(x); return x.tm < y.tm ? [x, y] : [y, x]; };
+   for (const [x, y] of [[a, b], [b, a]]) for (const p of x.belt) if (p.rare) potion(x, y, p);   // seltene Tränke: wirken den ganzen Kampf
+ 
+   for (let r = 0; r < MAX_ROUNDS && a.cur > 0 && b.cur > 0; r++) {
+@@ -72,19 +76,20 @@
+       atk.swUsed = true; const h = healSelf(atk, Math.round(atk.hp * atk.secondWind));
+       if (h) say(atk.side, `${atk.name} schöpft Atem (+${h}).`, { heal: h, status: 'Zuflucht' }); }
+     if (atk.regen && atk.cur < atk.hp && !(atk.noheal > 0)) { const h = Math.round(atk.hp * atk.regen * healMul(atk)); atk.cur = Math.min(atk.hp, atk.cur + h); atk.didHeal = true; say(atk.side, `${atk.name} regeneriert ${h}.`, { heal: h }); }
+-    if (atk.stunned) { atk.stunned = atk.stunned === true ? 0 : atk.stunned - 1; say(def.side, `${atk.name} ist betäubt und taumelt.`); [atk, def] = [def, atk]; continue; }
+-    atk.turn++;
++    if (atk.stunned) { atk.stunned = atk.stunned === true ? 0 : atk.stunned - 1; say(def.side, `${atk.name} ist betäubt und taumelt.`); [atk, def] = nextPair(atk, def); continue; }
++    atk.turn++; if (atk.ramp) atk.buff += atk.ramp;
+     // Zauber laden pro eigenem Zug um 1 (+ Zaubertempo); der stärkste geladene wird gewirkt
+     const sps = atk.spells || []; let sp = null;
+-    sps.forEach((x, i) => { atk.ch[i] = (atk.ch[i] || 0) + (1 + (atk.haste || 0)) * (x.m?.desperate && atk.cur < atk.hp * x.m.desperate ? 2 : 1); if (atk.ch[i] >= x.every) sp = i; });
+-    if (sp !== null) { atk.ch[sp] -= sps[sp].every; spell(atk, def, sps[sp]); } else strike(atk, def);
++    atk._crit = 0; sps.forEach((x, i) => { atk.ch[i] = (atk.ch[i] || 0) + (SY.includes('C') && atk.cls ? 1 : 1 + (atk.haste || 0)) * (x.m?.desperate && atk.cur < atk.hp * x.m.desperate ? 2 : 1); if (atk.ch[i] >= x.every) sp = i; });
++    if (SY.includes('B') && atk.cls && sps.length) sp = pick(atk, def, sps);
++    if (sp !== null && sp >= 0) { const ov = SY.includes('A') && atk.cls ? Math.min(1, Math.max(0, (atk.ch[sp] - sps[sp].every) / sps[sp].every)) : 0; atk.ch[sp] -= sps[sp].every; if (ov) atk.ch[sp] = Math.max(0, atk.ch[sp] - ov * sps[sp].every); atk.ov = ov; spell(atk, def, sps[sp]); atk.ov = 0; } else if (globalThis.V?.split && globalThis.V.split.includes(atk.cls ? 'a' : 'b')) { strike(atk, def, 0.5); if (def.cur > 0) strike(atk, def, 0.5); } else strike(atk, def);
+     if (atk.rage && def.cur > 0 && atk.cur < atk.hp / 2 && chance(atk.rage)) { say(atk.side, `${atk.name} rast vor Wut!`, { rage: true }); strike(atk, def); }
+     if (def.bleedDmg && def.cur > 0) { def.cur -= def.bleedDmg; say(atk.side, `${def.name} blutet (${def.bleedDmg}).`, { tick: def.bleedDmg, tk: 'bleed' }); }
+     if (def.poisonDmg && def.cur > 0) { def.cur -= def.poisonDmg;
+       const h = atk.poisonLeech && !(atk.noheal > 0) ? Math.round(def.poisonDmg * atk.poisonLeech) : 0; if (h) atk.cur = Math.min(atk.hp, atk.cur + h);
+       say(atk.side, `Gift zerfrisst ${def.name} (${def.poisonDmg}).${h ? ` +${h} Leben.` : ''}`, { tick: def.poisonDmg, tk: 'poison', heal: h || undefined }); }
+     if (def.burn?.n > 0 && def.cur > 0) { def.cur -= def.burn.d; def.burn.n--; say(atk.side, `${def.name} brennt (${def.burn.d}).`, { tick: def.burn.d, tk: 'burn' }); }
+-    [atk, def] = [def, atk];
++    [atk, def] = nextPair(atk, def);
+   }
+   const winner = a.cur > 0 && (b.cur <= 0 || a.cur / a.hp >= b.cur / b.hp) ? 'a' : 'b';
+   return { winner, log, hpA: A.hp, hpB: B.hp, left: Math.max(0, a.cur) / a.hp, curA0, endA: Math.max(0, Math.round(a.cur)), cast, used: a.belt.filter(p => p.used).map(p => p.id) };
+@@ -108,6 +113,24 @@
+   }
+ 
+   // Normaler Hieb ohne Zufall (Grundlage für Zauber)
++  // Variante B: bedingte Auslösung – volle Zauber nach Lage statt nach Index; Ladung bleibt beim Halten
++  function estS(x, y, s) { const el = s.el || 'phys', arm = el === 'phys' ? armorRed(y.armor, x.lvl, x.pen || 0) : 0;
++    return base(x) * (s.mult || 0) * (s.kind === 'multi' ? s.hits : 1) * (s.kind === 'mark' && y.cur < y.hp / 2 ? 2 : 1) * (x.amp || 1) * (s.boost || 1) * resMul(null, y, el, arm, x.elemPen || 0); }
++  function pick(x, y, sps) {
++    const full = sps.map((s, i) => [s, i]).filter(([s, i]) => (x.ch[i] || 0) >= s.every); if (!full.length) return null;
++    const dmgK = s => ['hit', 'multi', 'mark', 'stun'].includes(s.kind);
++    const strikeEst = (x.dmg[0] + x.dmg[1]) / 2 * (1 + x[x.main] / CFG.mainDiv) * x.buff * pb(x) * resMul(x.mix, y, null, armorRed(y.armor, x.lvl, x.pen || 0));
++    const heal = full.filter(([s]) => s.kind === 'heal' || s.kind === 'shield');
++    if (heal.length && x.cur < x.hp * 0.5) return heal[0][1];                                   // Notlage
++    if (strikeEst >= y.cur) return -1;                                                            // Hieb reicht: Ladung halten
++    const kill = full.filter(([s]) => dmgK(s) && estS(x, y, s) >= y.cur).sort((p, q) => p[0].every - q[0].every);
++    if (kill.length) return kill[0][1];                                                           // kleinster Zauber, der tötet
++    const st = full.find(([s]) => s.kind === 'stun' && !y.stunned && !(y.stunImm > 0)); if (st) return st[1];   // Kontrolle
++    const dot = full.find(([s]) => s.kind === 'dot' && (y.poisonDmg || 0) < estS(x, y, { ...s, kind: 'hit' }) * 0.8); if (dot) return dot[1];
++    const bf = full.find(([s]) => s.kind === 'buff' && x.buff < 1 + (s.max || 9) * (s.boost || 1) - 1e-6); if (bf) return bf[1];
++    const dm = full.filter(([s]) => dmgK(s) || s.kind === 'dot').sort((p, q) => estS(x, y, q[0]) - estS(x, y, p[0]));
++    if (dm.length) return dm[0][1];
++    return -1; }                                                                                  // nur Heilung voll, nicht nötig: halten
+   function base(x) { return (x.dmg[0] + x.dmg[1]) / 2 * (1 + x[x.main] / CFG.mainDiv) * x.buff * pb(x); }
+   function pb(x) { return x.rageN > 0 ? 1 + x.potRage : 1; }
+   // Betäuben (Glocke, Zauber): nicht wenn unbetäubbar; danach ist der Gegner kurz „erschüttert“ (für Kombos)
+@@ -123,7 +146,7 @@
+     // Einzigartig „Letzter Atem“: der erste tödliche Treffer lässt 1 Leben übrig (einmal je Kampf)
+     if (y.cur <= 0 && y.lastBreath && !y.lbUsed) { y.lbUsed = true; y.cur = 1; ev.status = 'Letzter Atem'; } }
+   function spell(x, y, s) {
+-    const m = s.m || {}, amp = (x.amp || 1) * (s.boost || 1);
++    const m = s.m || {}, amp = (x.amp || 1) * (s.boost || 1) * (1 + 0.6 * (x.ov || 0));
+     // Rüstung nur gegen physische Zauber; Feuer/Eis gehen vorbei (Welle 2a)
+     const red = s.el && ELEMENTS[s.el].res !== 'phys' ? 1 : 1 - armorRed(y.armor, x.lvl, x.pen || 0) * (1 - Math.min(1, m.pierce || 0));
+     const dmgKind = !['heal', 'shield', 'buff'].includes(s.kind);
+@@ -159,6 +182,7 @@
+     if (x.ignite && d > 0 && !(y.cureN > 0)) {
+       const bd = Math.max(1, Math.round(d * x.ignite / (s.hits || 1)));
+       if (!(y.burn?.n > 0) || bd >= y.burn.d) { y.burn = { d: bd, n: CFG.igniteTurns }; t += ` ${y.name} brennt.`; }
++      if (x.igniteBan) y.noheal = Math.max(y.noheal || 0, CFG.igniteTurns + 1);
+     }
+     if (x.side === 'a') cast.push(s.name);
+     say(x.side, t + extra, { spell: s.name, sid: s.id, dmg: d || undefined, crit: anyCrit, hits: hits.length > 1 ? hits : undefined, stun: s.kind === 'stun' || undefined });
+@@ -202,8 +226,12 @@
+     if (x.weakN > 0) d *= 1 - x.weak;                  // geschwächt: macht weniger Schaden
+     if (y.vulnN > 0) d *= 1 + y.vuln;                  // verwundbar: nimmt mehr Schaden
+     // Ausbluten (Schlüsselstein): nie ein kritischer Treffer – dafür blutet jeder Hieb (siehe onHit)
+-    const crit = x.hemorrhage ? false : (o.force || chance(critChance(x, y.lvl, o.crit || 0) - (y.critRes || 0)));
++    const crit = x.hemorrhage || (globalThis.V?.noFoeCrit && !x.cls) ? false : (o.force || chance(critChance(x, y.lvl, o.crit || 0) - (y.critRes || 0)));
+     if (crit) d *= x.critMult || 2;
++    if (x.cls && x.spells?.length && y.hp) { const SYx = globalThis.V?.sys || '';
++      if (SYx.includes('A')) x.spells.forEach((s, i) => { x.ch[i] = (x.ch[i] || 0) + 0.8 * Math.min(1, d / y.hp) * s.every; });
++      if (SYx.includes('C') && crit && !x._crit) { x._crit = 1; x.spells.forEach((s, i) => { x.ch[i] = (x.ch[i] || 0) + 0.34; }); } }
++    if (globalThis.V?.chg && x.cls && x.spells?.length) x.spells.forEach((s, i) => { x.ch[i] = (x.ch[i] || 0) + globalThis.V.chg * Math.min(1, d / y.hp) * s.every; });
+     return { d: Math.max(1, Math.round(d)), crit };
+   }
+   // Was ein Treffer zusätzlich auslöst (für Hieb und Zauber) – neue Effekte hier eintragen, dann gelten sie für beides
+@@ -216,8 +244,8 @@
+     if (crit && x.siphon) { const h = healSelf(x, Math.round(x.hp * x.siphon)); if (h) { t += ` +${h} Leben.`; ev.heal = (ev.heal || 0) + h; } }
+     // Bluten: sonst nur bei Krit, mit Ausbluten bei jedem Treffer und mit 20 % Grundstärke obendrauf
+     const bl = x.hemorrhage ? CFG.hemoBleed + (x.bleed || 0) : (crit ? x.bleed || 0 : 0);
+-    if (bl && !(y.cureN > 0)) y.bleedDmg = Math.max(y.bleedDmg || 0, Math.round(d * bl));
+-    if (x.poison && !(y.cureN > 0)) y.poisonDmg = Math.min(Math.round(y.hp * 0.08), (y.poisonDmg || 0) + Math.max(1, Math.round(d * x.poison)));
++    if (bl && !(y.cureN > 0)) y.bleedDmg = x.hemoStack && x.hemorrhage ? Math.min(Math.round(y.hp * x.hemoStack), (y.bleedDmg || 0) + Math.round(d * bl * 0.4)) : Math.max(y.bleedDmg || 0, Math.round(d * bl));
++    if (x.poison && !(y.cureN > 0)) y.poisonDmg = x.poisonPct ? (y.poisonDmg || 0) + Math.round(y.hp * x.poisonPct) : x.poisonNoCap ? (y.poisonDmg || 0) + Math.max(1, Math.round(d * x.poison)) : Math.min(Math.round(y.hp * 0.08), (y.poisonDmg || 0) + Math.max(1, Math.round(d * x.poison)));
+     if (x.toll && (x.hits = (x.hits || 0) + 1) % 3 === 0) { if (stun(y, 1, x)) { t += ' Die Glocke dröhnt!'; ev.stun = true; } else t += ` ${y.name} widersteht der Glocke.`; }
+     if (y.thorns && y.cur > 0) { const r = Math.round(d * y.thorns); hurt(x, r); if (r) { t += ` Dornen: ${r}.`; ev.thorns = (ev.thorns || 0) + r; } }
+     return t;
+@@ -228,18 +256,19 @@
+   // für Hiebe und Zauber (sonst Fehlschlag-Serien bis 13 bei Klassen ohne Geschick, → E „Serienbremse beim Ausweichen“)
+   function dodged(x, y) {
+     if ((x.evN || 0) >= CFG.evadeStreak) { x.evN = 0; return false; }
+-    const evade = Math.max(0, evadeChance(y, x.dex) - (x.acc || 0));
++    const evade = Math.max(0, evadeChance(y, globalThis.V?.ev && !x.cls ? 3 + x.lvl * CFG.monGrow : x.dex) - (x.acc || 0));
+     if (chance(evade)) { x.evN = (x.evN || 0) + 1; return true; }
+     x.evN = 0; return false;
+   }
+-  function strike(x, y) {
++  function strike(x, y, k = 1) {
+     if (dodged(x, y)) return say(x.side, `${y.name} weicht aus.`, { miss: 'Ausgewichen' });
+     if (y.block && chance(Math.min(0.5, y.block))) {
+       if (y.bulwark) { const sh = Math.round(y.hp * y.bulwark); y.shield = (y.shield || 0) + sh; ev.shield = sh; }   // Bollwerk: Blocken baut einen Schild auf
+       return say(x.side, `${y.name} blockt.`, { miss: 'Geblockt' }); }
+     // Rüstung wirkt in finish() nur auf den physischen Teil der Hieb-Mischung
+-    const raw = roll(x.dmg[0], x.dmg[1]) * (1 + x[x.main] / CFG.mainDiv) * x.buff * pb(x), arm = armorRed(y.armor, x.lvl, x.pen || 0);
+-    const { d, crit } = finish(x, y, raw, { arm });
++    const raw = k * roll(x.dmg[0], x.dmg[1]) * (1 + x[x.main] / CFG.mainDiv) * x.buff * pb(x), arm = armorRed(y.armor, x.lvl, x.pen || 0);
++    let { d, crit } = finish(x, y, raw, { arm });
++    if (x.pctHp) d += Math.round(y.hp * x.pctHp * (1 - arm));
+     hurt(y, d);
+     let t = `${x.name} trifft ${crit ? 'KRITISCH ' : ''}für ${d}.` + onHit(x, y, d, crit);
+     // Eifer: jeder dritte eigene Hieb trifft ein zweites Mal
+--- /home/user/Shakes/js/state.js	2026-11-22 17:53:28.187570373 +0000
++++ js/state.js	2026-11-22 18:48:16.914375995 +0000
+@@ -160,7 +160,11 @@
+ export function tempered(v, slot, p = S) { const sv = TEMPER[slot]; if (!sv || !v) return v; for (let i = slotUp(slot, p); i > 0; i--) v = Math.round(v * (1 + sv.per)) + 1; return v; }
+ // Abgeleitete Kampfwerte
+ const cap = (base = 0, add, max) => Math.max(base, Math.min(max, base + add));
+-export function stats(p = S) {
++export function stats(p = S) { const st = statsRaw(p);
++  for (const [kid, sy] of Object.entries(globalThis.SYN || {})) if ((p.tal?.[kid] || 0) > 0) for (const x of [].concat(sy)) { const v = (st[x.attr] || 0) * x.per;
++    if (x.key === 'hpMul') st.hp = Math.round(st.hp * (1 + v)); else st[x.key] = (st[x.key] || 0) + v; }
++  return st; }
++function statsRaw(p = S) {
+   const st = { ...p.attrs, armor: 0, dmgBonus: 0 };
+   for (const it of Object.values(p.equip)) {
+     if (!it) continue;
+@@ -173,18 +177,18 @@
+   const base = w ? wpnDmg(w, p.lvl).map(v => tempered(v, 'weapon', p)) : [1, 3], dm = (1 + (e.dmgPct || 0) + P('dmgp')) * (fit ? 1 : CFG.offWeapon);
+   return { ...e, ...st, name: p.name, cls: p.cls, lvl: p.lvl, main: c.main,
+     spells: SPELLS[p.cls].filter(s => p.lvl >= s.lvl).map(s => withWays({ ...s, boost: 1 + P('sk_' + s.id) }, p)),
+-    amp: (1 + st.int / (st.int + CFG.spellK)) * (1 + P('spellp') + (e.spellPct || 0)) * (fit ? 1 : CFG.offWeaponSpell), offWeapon: !fit,
++    amp: (1 + st.int / (st.int + CFG.spellK + (globalThis.V?.intK || 0) * p.lvl)) * (1 + P('spellp') + (e.spellPct || 0)) * (fit ? 1 : CFG.offWeaponSpell), offWeapon: !fit,
+     // Item-Prozente stapeln nur bis zur Obergrenze; was Klasse/Talente schon geben, wird nie gekürzt
+-    crit: cap(e.crit, P('critc'), CAPS.crit), critMult: cap(2 + (e.critDmg || 0), P('critd'), CAPS.critMult),
++    crit: cap(e.crit, P('critc'), CAPS.crit), critMult: cap(2 + (e.critDmg || 0) + (globalThis.V?.lckCd || 0) * st.lck, P('critd'), CAPS.critMult + (globalThis.V?.lckCd ? 1 : 0)),
+     pen: cap(e.pen, P('penp'), CAPS.pen), leech: cap(e.leech, P('leechp'), CAPS.leech),
+     evade: cap(e.evade, P('evadep'), CAPS.evade + (e.evadeCap || 0)), block: cap(e.block, P('blockp'), CAPS.block), thorns: cap(e.thorns, P('thornsp'), CAPS.thorns),
+-    haste: (e.haste || 0) + (st.haste || 0) / 100,
++    haste: (e.haste || 0) + (st.haste || 0) / 100 + (globalThis.V?.intH || 0) * st.int + (globalThis.V?.dexH || 0) * st.dex + (globalThis.V?.mainH || 0) * st[c.main],
+     // Resistenzen roh (ungedeckelt): der Deckel CFG.resCap wirkt im Kampf (resOf), die Werte-Ansicht zeigt beides
+     res: { phys: P('physr') + (e.physRes || 0), elem: P('elemr') + (e.elemRes || 0) },
+     elemPen: (e.elemPen || 0) + P('elempenp'),   // Elementar-Durchdringung: Klasse (Zauberin) + Stab-Bonus
+-    armor: Math.round((st.armor + st.str * CFG.strArmor) * (1 + (e.armorPct || 0))),
++    armor: Math.round((st.armor + st.str * CFG.strArmor) * (1 + (e.armorPct || 0) + (globalThis.V?.strA || 0) * st.str)),
+     dmg: [Math.round((base[0] + st.dmgBonus) * dm), Math.round((base[1] + st.dmgBonus) * dm)],
+-    hp: Math.round(st.con * c.hp * (CFG.hpBase + p.lvl * CFG.hpPerLvl) * (1 + (e.hpPct || 0) + P('lifep'))) };
++    hp: Math.round((globalThis.V?.conExp ? 100 * (Math.max(1, st.con) / 100) ** globalThis.V.conExp : st.con) * c.hp * (CFG.hpBase + p.lvl * CFG.hpPerLvl) * (1 + (e.hpPct || 0) + P('lifep')) * (globalThis.V?.hpx || 1)) };
+ }
+ 
+ // Monster skaliert auf Stufe; diff 0.8 .. 1.3
+@@ -194,7 +198,7 @@
+   const mo = { name: m.name, glyph: m.glyph, mat: m.mat, mix: m.mix, res: m.res, lvl, main, str: a(), dex: a(), int: a(), con: a(), lck: a() * 0.5, armor: Math.round(lvl * 5 * diff) };
+   mo[main] = a('main');
+   mo.dmg = [Math.round((2 + lvl * 1.7) * diff * CFG.monDmg), Math.round((5 + lvl * 3) * diff * CFG.monDmg)];
+-  mo.hp = Math.round(mo.con * 3.6 * (CFG.hpBase + lvl * CFG.hpPerLvl) * CFG.monHp);
++  mo.hp = Math.round(mo.con * 3.6 * (CFG.hpBase + lvl * CFG.hpPerLvl) * CFG.monHp * (globalThis.V?.hpx || 1) * (globalThis.V?.mh || 1)); if (globalThis.V?.md) mo.dmg = mo.dmg.map(v => Math.round(v * globalThis.V.md)); if (globalThis.V?.pct) mo.pctHp = globalThis.V.pct;
+   return mo;
+ }
+ 
+@@ -434,7 +438,7 @@
+ // Boss einer Krypta/eines Akts (auch im Abstieg): mehr Leben + eigenes Muster statt nur größerer Zahlen
+ export function makeBoss(c, lvl, mult = 1) {
+   const mo = makeMonster(lvl, CFG.bossDiff * mult, c.boss);
+-  mo.hp = Math.round(mo.hp * CFG.bossHp); mo.boss = true; mo.rage = 0.2; mo.crit = 0.05;
++  mo.hp = Math.round(mo.hp * CFG.bossHp); mo.boss = true; if (globalThis.V?.ramp) mo.ramp = globalThis.V.ramp; mo.rage = 0.2; mo.crit = 0.05;
+   const { mirror, armorMult, ...mech } = c.boss.mech || {};
+   Object.assign(mo, mech); if (armorMult) mo.armor = Math.round(mo.armor * armorMult);
+   if (mirror) { const me = effects(); for (const k of ['crit', 'evade', 'block', 'leech', 'bleed', 'rage', 'pen', 'regen', 'thorns', 'execute']) if (me[k]) mo[k] = me[k]; }
+--- /home/user/Shakes/js/loot.js	2026-11-22 17:53:28.187570373 +0000
++++ js/loot.js	2026-11-22 18:43:34.193430810 +0000
+@@ -48,7 +48,7 @@
+ }
+ 
+ // Erzeugt ein Item für Stufe `lvl`. luck verschiebt Seltenheiten nach oben.
+-export function makeItem(lvl, { luck = 0, slot, slots, cls, kind, minRarity = 0, depth = 0, favor = null } = {}) {
++export function makeItem(lvl, { luck = 0, ctx = 0, slot, slots, cls, kind, minRarity = 0, depth = 0, favor = null } = {}) {
+   const okLvl = b => !b.minLvl || lvl >= b.minLvl;   // höhere Grundgegenstände erst ab ihrer Stufe
+   let pool = (slot ? BASES.filter(b => b.slot === slot) : slots ? BASES.filter(b => slots.includes(b.slot)) : BASES).filter(okLvl);
+   if (cls && rand() < 0.6) pool = pool.filter(b => b.slot !== 'weapon' || b.kind === cls.weapon);
+@@ -57,7 +57,10 @@
+   const boost = 1 + Math.min(luck, 200) / 100;
+   // Seltenes/Legendäres erst ab bestimmter Gegenstandsstufe (wie Stufen-Anforderungen bei Uniques)
+   const gate = r => r.id === 'legendary' ? (lvl >= CFG.legendaryMinLvl ? 1 : 0) : r.id === 'rare' ? (lvl >= CFG.rareMinLvl ? 1 : 0.15) : 1;
+-  let ws = RARITIES.map((r, i) => ({ ...r, w: i < minRarity ? 0 : (r.id === 'normal' || r.id === 'broken' ? r.w : r.w * boost) * gate(r) }));
++  const LM = globalThis.V?.loot || 0, bo = 1 + Math.min(luck, 200) / 100, bc = 1 + ctx / 100, bt = 1 + Math.min(luck + ctx, 200) / 100;
++  const ex = { magic: 1, rare: LM === 3 ? 1.25 : 1.5, legendary: LM === 3 ? 1.5 : 2 };
++  const fac = r => { const e = ex[r.id] ?? 1; return LM === 0 ? bt : LM === 1 ? bt ** e : LM === 5 ? bt * (r.id === "rare" ? (bo / 1.9) ** 0.75 : r.id === "legendary" ? (bo / 1.9) ** 1.5 : 1) : bc * bo ** e; };
++  let ws = RARITIES.map((r, i) => ({ ...r, w: i < minRarity ? 0 : (r.id === 'normal' || r.id === 'broken' ? r.w : r.w * fac(r)) * gate(r) }));
+   if (!ws.some(r => r.w > 0)) ws = RARITIES.map((r, i) => ({ ...r, w: i === Math.min(minRarity, 3) ? 1 : 0 }));   // Mindest-Seltenheit gewinnt
+   const rar = weighted(ws);
+   const ilvl = Math.max(1, lvl + roll(-1, 1));

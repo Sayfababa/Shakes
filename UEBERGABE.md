@@ -48,7 +48,11 @@ Glück-Beute (heute 0 ab Tiefe 8).
 Skripte + Patch `berichte/messung-umbau/`. Ursache: Kill rastet am Zauber-Takt ein (+20 % Schaden → Kill nur −4–8 %, +20 % Leben → +17–51 %).
 Empfohlen in Reihenfolge: Aldemar Gift +1,5 % max. Leben/Treffer · ein Schlüsselstein je Brett mit B3/A5/Z3 · Müllerin Zorn 10 %/Zug ×0,8 ·
 Bindungen Eisgrab Str→Wall, Schattenform Str→Leben, Ahnenruf Gl→Tempo · Glück-Beute L5 (Bezugswert stufenabhängig, noch messen).
-Kon-Optimum bleibt (nicht erfüllt) – nächster Hebel Zauber-Takt. **Nichts gebaut, auf sein „ja“ warten.**
+Kon-Optimum bleibt (nicht erfüllt) – nächster Hebel Zauber-Takt.
+**Kampfsystem-Prototyp 2026-11-22** (nur Testumgebung): `berichte/kampfsystem.html` (Artifact https://claude.ai/artifact/9YvGhN4Ve7MKr6h9V9BSoY),
+`berichte/messung-kampf/`. A (Überladung) verwerfen: Overkill Zauberin 25→63 %. B (Auswahl nach Lage) bauen: kein Balance-Risiko. C (Tempo = Aktionsrate)
+bauen nach Neueichung: +0,2 Tempo → Kill −15 %, mit Ges→Tempo 0,3 % bekommt Geschick 49–67 % des Kon-Werts. Koloss bleibt in 7–9/9 Lagen vorn.
+Overkill ist klein (1–25 %), Schaden bremsen Züge ohne Schaden. **Nichts gebaut, auf sein „ja“ warten.**
 
 **Befund 2026-11-22 (Balance-Gesamtschau, gemessen, nichts am Spiel geändert):** Bot spielt jetzt den Abgrund (`tests/bot.mjs`).
 Boss erstattet sein Grabsiegel (`DESCENT.sealBoss: 1`) → wer gewinnt, steigt endlos ab: Tag 1 40–47 Abstiege, St. 17–26; Tag 30 St. 50–55,
