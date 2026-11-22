@@ -107,8 +107,23 @@ eines Systems seinen Block hier lesen** (`grep -n '^\*\*' SYSTEME.md` zeigt die 
   `makeItem({ depth })`, nie auf `noDeep`-Boni (Resistenzen), `topTier()` übergeht sie. **Wochenlohn** `S.deep.due` beim
   Wochenwechsel (`descWeekReward`/`descClaimWeek`, roter Punkt am Krypta-Tab). Beutestufe = Gegnerstufe. Boss schlagen
   hebt `S.deep.best` (Rekord) und `wBest` (Woche, Wochenziel); Ausgänge nicht. Start bis `best + 1`.
-  `node tests/descent.mjs … --check [--deep]` (--deep: Tiefe je Stufe 20/30/40, Kurve Gefahr vs. Beute). **Die vier Abgrund-Materialien stehen in DESIGN.md und sind
-  vom Besitzer zurückgestellt – nicht ohne seinen Zuruf anfangen.** → E
+  `node tests/descent.mjs … --check [--deep] [--sig]` (--deep: Tiefe je Stufe 20/30/40, Kurve Gefahr vs. Beute; --sig: Siegel).
+- **Siegel des Abgrunds** (Welle 2B-2, wie Skarabäen) `SIGILS` in data.js; `sigBag`/`sigHave`/`addSigil`/`sigClean`/`sigFx`/
+  `sigTierAt` in game.js. Vorrat `S.sigils = { art: [St.1, St.2, St.3] }` (ohne Feld: beim ersten Hinsehen angelegt, keine
+  Save-Version). `descStart(d, sig)`: bis `SIGILS.max`, eine je Art, verbraucht beim Hinabsteigen (Umkehren vor Raum 1 gibt sie
+  zurück). **Wirkung nur über `sigFx()`** – Gegner (`descDiff`, Boss), Elite (Karte `descMap(c, fx)`, Funde), Resi (`descHero`),
+  Beute (`descLoot`: Gold/Funde, Glück, `favor` → `makeItem({ favor })`), und die Anzeige vorher (`sigLine`). Fallen im Abgrund in
+  den Sack (Boss sicher, Elite/Schatz selten), Stufe nach Tiefe (`tierAt`), Tod = weg. Bilder: die gemalten Abgrund-Steine.
+  Platz auf dem Abgrund-Bildschirm (`.dsig`); dritter Sparschritt `.tightest` in `fitPrep()` blendet die Sack-Zeile aus.
+- **Aschenkern** `ASHCORE`, Material `aschenkern` (Bild `MAT_ART` → glutstein) – nur beim Abgrund-Boss ab Tiefe `from`
+  (`coreChance`). Schmiede-Reiter „Kern“ (erst mit Kern): `coreUniques`/`coreKeys`/`coreEff`/`coreTargets`/`coreCheck`/
+  `coreApply` in state.js. Eine Wirkung (`fx`-Schlüssel) eines Einzigartigen **aus dem Beutel** (zerfällt, Rückfrage `ask()`)
+  in ein magisches/seltenes/legendäres Teil **desselben Platzes**; positive Werte × `mult`, Begleiter (`tie`) und Nachteile
+  (negativ, `curse`) wandern ganz mit. **Höchstens ein Kern je Teil** (`it.core`), nie Futter, Umschmieden lässt ihn stehen.
+  `effects()` zählt `it.core.eff` → `power()`. Marke: `rarCls()` → `.kern` (CSS `::after`), Tooltip `.core-l`.
+  `node tests/kern.mjs 40 --check` (Kampfkraft je Einzigartigem, Schranke ≤ +30 %).
+- **Die vier Abgrund-Materialien** (DESIGN.md): ihre Bilder tragen jetzt Siegel und Aschenkern; die Regel-brechenden
+  Schmiede-Ideen dazu sind weiter vom Besitzer zurückgestellt – nicht ohne seinen Zuruf anfangen. → E
 - **Expedition** `EXPED`/`EXP_NODES`/`EXP_EVENTS`; `expedMap`/`startExped`/`expAdvance`/`claimExped`,
   Save v10. Kostet keine Glut, 1/2/4/8 Std., Weg mit Gabelungen. Ø EP < 50 % der Glut derselben Zeit. → E
 - **Umherziehen** `WANDER`; `wanderStart`/`wanderTick`/`wanderClaim`, Save v14. Idle nur bei offener
@@ -160,7 +175,7 @@ eines Systems seinen Block hier lesen** (`grep -n '^\*\*' SYSTEME.md` zeigt die 
   „Kämpfen" sichtbar, der zweite Sparschritt (`.tighter`) muss mindestens einmal greifen.
 - Balance (alle mit gekoppeltem Zufall, `--check` in run.sh): `caps.mjs` (laufen Boni ins Leere?),
   `calib.mjs` (Eichung), `tree.mjs`, `ways.mjs`, `uniques.mjs`, `sets.mjs`, `potions.mjs`,
-  `descent.mjs` (Held aus `tests/held.mjs`: echte Talente/Brett wie der Bot), `lohn.mjs`, `acts.mjs`.
+  `descent.mjs` (Held aus `tests/held.mjs`: echte Talente/Brett wie der Bot; `--sig`: Siegel Gefahr vs. Lohn), `kern.mjs` (Aschenkern), `lohn.mjs`, `acts.mjs`.
 - `tests/oneshot.mjs [klasse] [heldenstufe] [GS]` – Anteil Krypta-Boss-Siege mit dem ersten Treffer (Welle 1a).
 - `tests/bot.mjs [klasse] [tage] [läufe] [risiko] [--pots]` – Bot mit simulierter Uhr, für
   Balance-Fragen. **Deckt den Spieler *nach* der Geschichte kaum ab.** → E
