@@ -95,13 +95,17 @@ eines Systems seinen Block hier lesen** (`grep -n '^\*\*' SYSTEME.md` zeigt die 
 - **Krypten** nur der Boss (`cryptEnemy` = `makeBoss`), frei nach dem Boss ihres Akts; Stufen
   `S.crypt.prog`. Jeder Versuch kostet Glut. → E
 - **Die Grube** `PIT`/`PIT_RIVALS`/`PIT_RANKS`/`PIT_SHOP`/`PIT_RULES`; `pitFoes`/`pitFight`/`pitShop`,
-  Save v12. Keine Glut, nur Pause. Rivale hängt am **Platz**, nicht an der Heldenstufe.
+  Save v12. Keine Glut, nur Pause. Rivale hängt am **Platz**, nicht an der Heldenstufe. Über Platz `growFrom` je Platz
+  ×`foeGrow` (`pitGrowAt`); Lohn je Sieg `pitWinGold`/`pitWinXp`. `node tests/lohn.mjs` vergleicht Abgrund/Grube/Steckbriefe.
   **Vargo steht bei den Händlern** (vierter Reiter); zwei Türen → `pitBack`, `titleBack`. → E
 - **Der Abstieg / Der Abgrund** `DESCENT`/`DESC_ROOMS`/`ELITE`; `descStart`/`descNext`/`descEnter`/
   `descStair`, Save v11. Leben und Trank-Ladungen laufen mit, Unruhe +1 je Raum, Beute zählt erst am
   Ausgang, Tod = Sack weg. Kostet ein **Grabsiegel** (`S.seals`, Save v19; 2/Tag, max 6).
   **Endlos:** Tiefe 1…∞ (`descAt(d)`: Gruft reihum aus den offenen, Gegnerstufe `lvlBase + d·lvlPer`, Stärke
-  `1 + (d−1)·diffPer`, `mods` für Welle 2) – **nie nach Heldenstufe**. Beutestufe = Gegnerstufe. Boss schlagen
+  `diff · diffGrow^(d−1)` (geometrisch, Welle 2B-1), `mods` für Welle 2) – **nie nach Heldenstufe**. Lohn je Tiefe nur über
+  `descReward(d)` (Gold/EP/Funde/Glück/Mindest-Seltenheit); **Abgrund-Stufen I+/I++** (`TIERS.minDepth`, t 0/−1) nur über
+  `makeItem({ depth })`, nie auf `noDeep`-Boni (Resistenzen), `topTier()` übergeht sie. **Wochenlohn** `S.deep.due` beim
+  Wochenwechsel (`descWeekReward`/`descClaimWeek`, roter Punkt am Krypta-Tab). Beutestufe = Gegnerstufe. Boss schlagen
   hebt `S.deep.best` (Rekord) und `wBest` (Woche, Wochenziel); Ausgänge nicht. Start bis `best + 1`.
   `node tests/descent.mjs … --check [--deep]` (--deep: Tiefe je Stufe 20/30/40, Kurve Gefahr vs. Beute). **Die vier Abgrund-Materialien stehen in DESIGN.md und sind
   vom Besitzer zurückgestellt – nicht ohne seinen Zuruf anfangen.** → E
@@ -156,7 +160,7 @@ eines Systems seinen Block hier lesen** (`grep -n '^\*\*' SYSTEME.md` zeigt die 
   „Kämpfen" sichtbar, der zweite Sparschritt (`.tighter`) muss mindestens einmal greifen.
 - Balance (alle mit gekoppeltem Zufall, `--check` in run.sh): `caps.mjs` (laufen Boni ins Leere?),
   `calib.mjs` (Eichung), `tree.mjs`, `ways.mjs`, `uniques.mjs`, `sets.mjs`, `potions.mjs`,
-  `descent.mjs`, `acts.mjs`.
+  `descent.mjs` (Held aus `tests/held.mjs`: echte Talente/Brett wie der Bot), `lohn.mjs`, `acts.mjs`.
 - `tests/oneshot.mjs [klasse] [heldenstufe] [GS]` – Anteil Krypta-Boss-Siege mit dem ersten Treffer (Welle 1a).
 - `tests/bot.mjs [klasse] [tage] [läufe] [risiko] [--pots]` – Bot mit simulierter Uhr, für
   Balance-Fragen. **Deckt den Spieler *nach* der Geschichte kaum ab.** → E
