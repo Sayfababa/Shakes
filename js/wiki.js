@@ -11,7 +11,7 @@
 // auf etwas Unentdecktes zeigt, verschweigt nur diesen Verweis („faellt an einem Ort, den du noch
 // nicht kennst"), nicht sich selbst. Dadurch braucht das Verzeichnis **keinen eigenen Spielstand**:
 // es gibt nichts zu merken, was nicht schon im Fortschritt steht.
-import { HERBS, HERB_LOC, POTIONS, MATS, RUNES, FORGE, CRAFT, SERVICES, MONSTERS, LOCATIONS, ACTS, ACT, ALCH, TRIGGERS } from './data.js';
+import { MAT_ART, ASHCORE, HERBS, HERB_LOC, POTIONS, MATS, RUNES, FORGE, CRAFT, SERVICES, MONSTERS, LOCATIONS, ACTS, ACT, ALCH, TRIGGERS } from './data.js';
 import { S, actProg, actOpen, actDone, herbSource, herbPrice } from './state.js';
 
 const pct = x => `${Math.round(x * 100)} %`;
@@ -36,6 +36,7 @@ export function herbWhere(k) {
 // Welche Monster ein Material fallen lassen – und wo die stehen.
 export function matWhere(k) {
   if (k === 'kronsplitter') return 'Nur im Abgrund: sicher beim Boss, sonst bei Elite-Räumen.';
+  if (k === 'aschenkern') return `Sehr selten, nur beim Abgrund-Boss ab Tiefe ${ASHCORE.from}. Brennt eine Wirkung eines Einzigartigen in ein anderes Teil (Schmiede).`;
   const mo = MONSTERS.filter(m => m.mat === k);
   const bek = mo.filter(m => mobKnown(m.name));
   if (!bek.length) return 'Von Gegnern, die du noch nicht getroffen hast.';
@@ -105,7 +106,7 @@ export function wikiList(cat) {
     sub: `${herbWhere(k)} · ${zahl(POTIONS.filter(p => p.cost?.[k]).length, 'Rezept', 'Rezepte')}`, right: S.herbs?.[k] || 0 }));
   if (cat === 'pots') return POTIONS.map(p => ({ id: p.id, img: `assets/potions/${p.id}.webp`, name: p.name,
     sub: `${p.rare ? 'selten' : 'gewöhnlich'} · ${p.text}`, right: S.pots?.[p.id] || 0, rare: p.rare }));
-  if (cat === 'mats') return Object.keys(MATS).map(k => ({ id: k, img: `assets/forge/${k}.webp`, name: MATS[k],
+  if (cat === 'mats') return Object.keys(MATS).map(k => ({ id: k, img: `assets/forge/${MAT_ART[k] || k}.webp`, name: MATS[k],
     sub: matWhere(k), right: S.mats?.[k] || 0 }));
   if (cat === 'locs') return ACTS.map(a => { const l = locOf(a.loc), auf = actOpen(a);
     return { id: a.loc, img: `assets/places/${a.loc}.webp`, name: auf ? `Akt ${a.n} · ${l.name}` : '',
@@ -144,7 +145,7 @@ export function wikiEntry(cat, id) {
 
   if (cat === 'mats') { const n = MATS[id]; if (!n) return null;
     const r = RUNES[id];
-    return { name: n, kind: 'Material', img: `assets/forge/${id}.webp`,
+    return { name: n, kind: 'Material', img: `assets/forge/${MAT_ART[id] || id}.webp`,
       lines: [{ b: 'Fällt bei:', t: matWhere(id) },
         ...(r ? [{ b: r.name + ':', t: `beim Schmieden einer Rune · +${r.per} je Punkt` }] : [])],
       tagLabel: 'Verlangt von:', tags: matNeeds(id),

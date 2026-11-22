@@ -1,6 +1,6 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
 import { PLAYABLE, TREE, AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, STASH_W, STASH_H, SERVICES, SHARD_CRYPTS, TUTORIAL, BOUNTIES, SETS, SET } from './data.js';
-import { ELEMENTS, RES_NAMES, SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
+import { MAT_ART, SIGILS, ASHCORE, ELEMENTS, RES_NAMES, SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
 import { affixPool, tierOf, wpnDmg, wpnCapLvl } from './loot.js';
 import { sellPrice, sellMat, potion, beltSlots, brewCost, canBrew, potMax, unreadable, restarted, herbPrice, canBuyHerb, herbLeft, herbSource } from './state.js';
 import { WIKI_CATS, wikiList, wikiEntry, upgradePaths, matBottleneck } from './wiki.js';
@@ -13,7 +13,7 @@ export const STAT_NAME = k => { if (k === 'dmg') return 'Schaden'; if (k === 'ar
   const a = AFFIXES.find(x => x.stat === k); return a ? (a.pct ? '% ' : '') + a.label : k; };
 import { itemArt, ghost, NPC_ART, MON } from './art.js';
 import { weakAdvice, wanderMap, wanderAct, wanderBusy, wanderDone, actEnemy, actChance, actOdds, packSlot, actCan, actZoneGlut, actZoneMob, pitWeek, pitWinGold, pitWinXp, pitPlace, pitRank, pitFoes, pitChance, pitOdds, pitBusy, pitRival, pitChallenge, pitWinHonor, pitShop, pitTierOpen, gradeOf, cryptChance, cryptOdds, threatLabel, enemyInfo, potOffer, fightReport, expedPreview, expedMap, expLinked, expDoneCount, expEvent, expChoiceOk, expPayCost,
-  descCrypts, descReward, descWeekReward, descWeekDue, descResPen, descLeft, descCanStart, descBusy, descLvl, descAt, descRec, descMaxDepth, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
+  sigKind, sigHave, sigClean, sigFx, coreChance, descCrypts, descReward, descWeekReward, descWeekDue, descResPen, descLeft, descCanStart, descBusy, descLvl, descAt, descRec, descMaxDepth, descMult, descNext, descNodeAt, descWellCost, descEnemy, descChance } from './game.js';
 const threat = p => { const [t, c] = threatLabel(p); return `<span class="threat t-${c}">Gefahr: ${t}</span>`; };
 
 const P = cls => `assets/portraits/${CLASSES[cls].portrait}.jpg`;
@@ -547,7 +547,7 @@ export function tutorial(step) {
 // --- Schmiede: Runen einschmieden (Minispiel) ---
 // Enge Kacheln (8 nebeneinander): lange Wörter kürzen statt abschneiden – „Konstitution“ → „Kons.“
 const short5 = n => n.length > 5 ? n.slice(0, 4) + '.' : n;
-const matImg = k => `<img class="matimg" src="assets/forge/${k}.webp" alt="">`;
+const matImg = k => `<img class="matimg" src="assets/forge/${MAT_ART[k] || k}.webp" alt="">`;
 export function viewForge(sel, res) {
   const tg = forgeTargets(), err = canForge(sel.slot, sel.mat), r = RUNES[sel.mat];
   const range = r ? [0.5, 2.2].map(q => Math.max(1, Math.round(r.per * (CFG.affixBase + S.lvl * CFG.affixPerLvl) * q))) : null;
@@ -796,6 +796,26 @@ function descWeekRow(R) {
   if (due) return `<section class="panel dweek"><p class="small"><b class="hot">Wochenlohn für Tiefe ${due.d}:</b> ${txt}</p><button class="tiny red" data-action="descweek">Abholen</button></section>`;
   return `<section class="panel dweek"><p class="small dim">${W ? `Wochenlohn am Montag für Tiefe ${W.d}: ${txt}` : 'Wochenlohn am Montag: schlage diese Woche einen Abgrund-Boss.'}</p></section>`;
 }
+// --- Siegel des Abgrunds (SIGILS): Platz auf dem Start-Bildschirm, Gefahr und Lohn vorher sichtbar ---
+const sigImg = id => `<img class="matimg" src="assets/forge/${sigKind(id).img}.webp" alt="">`;
+export const sigName = x => `${sigKind(x.id).name} (${SIGILS.tierName[x.t - 1]})`;
+const pc = v => Math.round(v * 100) + ' %', xf = v => '×' + String(Math.round(v * 10) / 10).replace('.', ',');
+// Was die Auswahl tut – aus sigFx, derselben Rechnung wie im Kampf und bei der Beute
+export function sigLine(fx) {
+  const RAR = ['', '', 'magisch', 'selten', 'legendär'];
+  const bad = [fx.foe && `Gegner +${pc(fx.foe)}`, fx.eliteW > 1 && `Elite ${xf(fx.eliteW)}${fx.eliteFoe ? ` und +${pc(fx.eliteFoe)}` : ''}`, fx.res && `Elem.-Resi −${pc(fx.res)}`].filter(Boolean);
+  const good = [fx.loot && `Gold/Funde +${pc(fx.loot)}`, fx.eliteR && `Elite-Funde mind. ${RAR[fx.eliteR]}`, fx.kronE > 1 && `Kronsplitter ${xf(fx.kronE)}`,
+    fx.favor > 1 && `Resi-Boni ${xf(fx.favor)}`, fx.luck && `Glück +${fx.luck}`].filter(Boolean);
+  return `<b class="down">${bad.join(' · ')}</b> &rarr; <b class="up">${good.join(' · ')}</b>`;
+}
+function descSigs(sel) {
+  const any = SIGILS.kinds.some(k => [1, 2, 3].some(t => sigHave(k.id, t)));
+  if (!any && !sel.length) return `<section class="panel dsig"><p class="small dim">Siegel: keine. Sie fallen im Abgrund (der Boss trägt sicher eines) – eingelegt machen sie den Abstieg gefährlicher und die Beute größer.</p></section>`;
+  const cell = k => { const on = sel.find(x => x.id === k.id), n = [1, 2, 3].reduce((a, t) => a + sigHave(k.id, t), 0);
+    return `<button class="sigc ${on ? 'on' : ''}" data-action="descsig" data-k="${k.id}" title="${k.name}" ${n ? '' : 'disabled'}>${sigImg(k.id)}<span><b>${k.name.replace('siegel', '')}</b><small>${on ? SIGILS.tierName[on.t - 1] : n ? `${n} im Vorrat` : 'keins'}</small></span></button>`; };
+  return `<section class="panel dsig"><div class="sigrow">${SIGILS.kinds.map(cell).join('')}</div>
+    <p class="small sigfx">${sel.length ? sigLine(sigFx(sel)) : `<span class="dim">Bis zu ${SIGILS.max} Siegel einlegen (antippen) – werden beim Hinabsteigen verbraucht.</span>`}</p></section>`;
+}
 function viewDescStart(st) {
   const list = descCrypts();
   if (!list.length) return `<div class="col desc">${cryptTabs('desc')}<section class="panel waiting"><h2>Der Abgrund</h2><p class="lore">Unter den Krypten liegt mehr als Knochen. Wer dort hinab will, muss erst einen Krypta-Boss bezwungen haben.</p>
@@ -806,11 +826,11 @@ function viewDescStart(st) {
       <div class="xhead"><button class="tiny" data-action="descc" data-d="-1" ${d <= 1 ? 'disabled' : ''}>‹</button><b>Tiefe ${d}</b><button class="tiny" data-action="descc" data-d="1" ${d >= max ? 'disabled' : ''}>›</button></div>
       <p class="small dim">${c.name} · Gegner Stufe ${at.lvl}${descResPen(d) ? ` · <b class="down">Elem.-Resi −${Math.round(descResPen(d) * 100)} %</b>` : ''} · oben wartet ${c.boss.name.split(',')[0]}: <i>${c.boss.mechText}</i></p>
       <p class="small drec">Rekord <b>Tiefe ${R.best}</b> · diese Woche <b class="${R.wBest >= R.best && R.best ? 'up' : ''}">${R.wBest}</b></p>
-      <p class="small dlohn">${descLohn(d)}</p></div></section>${descWeekRow(R)}
+      <p class="small dlohn">${descLohn(d)}</p></div></section>${descWeekRow(R)}${descSigs(sigClean(st.sig))}
     <section class="panel drules"><h2>Rausholen oder verlieren</h2>
       <p class="small">Jeder Raum ein Kampf. <b>Leben und Trank-Ladungen füllen sich unten nicht auf.</b></p>
       <p class="small opt">Mit jedem Raum steigt die <b>Unruhe</b>: Gegner stärker, Beute bis ×${descMult(5)}.</p>
-      <p class="small">Beute liegt im <b>Beutesack</b>. Dir gehört sie erst an einem <span class="up">Ausgang</span>: Seil, Brunnen, Stiege oder hinter dem Boss.</p>
+      <p class="small sack">Beute liegt im <b>Beutesack</b>. Dir gehört sie erst an einem <span class="up">Ausgang</span>: Seil, Brunnen, Stiege oder hinter dem Boss.</p>
       <p class="small down">Fällst du, bleibt der Sack unten. Ausrüstung, Stufe und EP behältst du.</p>
       <p class="small opt">Keine letzte Tiefe: <b>Wer den Boss schlägt, öffnet die nächste.</b> Jede Tiefe ist um ein Zwanzigstel stärker – Gold, EP und Funde wachsen mit.</p>
       <p class="small sealnote">Kostet ein <b>Grabsiegel</b> – <span class="up">der Boss erstattet seines</span>.</p>${descBusy() ? `<p class="small hot">${descBusy()}</p>` : ''}</section>
@@ -822,7 +842,8 @@ function sackRow(s) {
   const its = s.items.slice(0, 7).map(it => `<span class="dit ${rarCls(it)}" data-tip="${it.id}" data-action="noop">${itemArt(it)}${hitDots(it)}</span>`).join('');
   const more = s.items.length > 7 ? `<span class="dmore">+${s.items.length - 7}</span>` : '';
   const chips = [...Object.entries(s.herbs).filter(([, n]) => n > 0).map(([k, n]) => `<span title="${HERBS[k].name}">${herbImg(k)}×${n}</span>`),
-    ...Object.entries(s.mats).filter(([, n]) => n > 0).map(([k, n]) => `<span title="${MATS[k]}">${matImg(k)}×${n}</span>`)].join('');
+    ...Object.entries(s.mats).filter(([, n]) => n > 0).map(([k, n]) => `<span title="${MATS[k]}">${matImg(k)}×${n}</span>`),
+    ...Object.entries(s.sig || {}).filter(([, n]) => n > 0).map(([key, n]) => { const [id, t] = key.split(':'); return `<span title="${sigName({ id, t: +t })}">${sigImg(id)}×${n}</span>`; })].join('');
   return `<div class="dsack">${its}${more}${chips ? `<span class="xrow">${chips}</span>` : ''}${!its && !chips ? '<span class="dim small">noch leer</span>' : ''}</div>`;
 }
 function viewDescRun(st) {
@@ -866,7 +887,7 @@ function viewDescRun(st) {
   return `<div class="col descv">
     <section class="panel dtop">
       <div class="dbars"><span>Leben</span><div class="bar"><i style="width:${D.hpf * 100}%"></i></div><b>${hp}/${A.hp}</b>
-        <span>Unruhe</span><div class="bar xp"><i style="width:${Math.min(100, D.unrest / 6 * 100)}%"></i></div><b class="up">Beute ×${descMult()}</b></div><div class="dsackh"><span>${D.d ? `Tiefe ${D.d} · ` : ''}Raum ${D.rooms + 1} · ${c.name}</span></div></section>
+        <span>Unruhe</span><div class="bar xp"><i style="width:${Math.min(100, D.unrest / 6 * 100)}%"></i></div><b class="up">Beute ×${descMult()}</b></div><div class="dsackh"><span>${D.d ? `Tiefe ${D.d} · ` : ''}Raum ${D.rooms + 1} · ${c.name}</span>${D.sig?.length ? `<span class="dsigs" title="${D.sig.map(sigName).join(', ')}">${D.sig.map(x => sigImg(x.id)).join('')}</span>` : ''}</div></section>
     <section class="panel dmap"><div class="map" style="--rows:${nR}"><svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none"><g class="l0">${lines}</g><g class="l1">${gold}</g></svg>${nodes}</div></section>
     <section class="panel dinfo">${info}</section>
     <section class="panel dsackp"><div class="dsackl"><b>Sack</b><span>${D.sack.gold} Gold</span></div>${sackRow(D.sack)}</section>
@@ -877,11 +898,12 @@ function viewDescRes(res) {
   if (res.lost) { const l = res.lost;
     return `<div class="col descres">${cryptTabs('desc')}<section class="panel"><h2 class="hot">Gefallen · ${l.crypt}</h2>
       <p class="lore">Die Gruft behält, was du getragen hast.</p>
-      <p class="small">Verloren: <b class="down">${l.gold} Gold</b>${l.items.length ? ` · <b class="down">${l.items.length} Fundstück${l.items.length > 1 ? 'e' : ''}</b>` : ''}</p>
+      <p class="small">Verloren: <b class="down">${l.gold} Gold</b>${l.items.length ? ` · <b class="down">${l.items.length} Fundstück${l.items.length > 1 ? 'e' : ''}</b>` : ''}${Object.values(l.sig || {}).reduce((a, n) => a + n, 0) ? ` · <b class="down">${Object.values(l.sig).reduce((a, n) => a + n, 0)} Siegel</b>` : ''}${l.mats?.aschenkern ? ' · <b class="down">Aschenkern</b>' : ''}</p>
       ${l.items.length ? `<p class="small">${l.items.map(it => `<span class="r-${it.rarity}">${it.name}</span>`).join(' · ')}</p>` : ''}
       <p class="small">Behalten: <b class="up">${l.xp} EP</b>, Ausrüstung, Stufe · ${l.rooms} Räume geschafft</p></section>
       <div class="btns"><button class="red" data-action="descok">Weiter</button></div></div>`; }
-  const o = res.out, chips = [...o.herbs.map(([k, n]) => `<span title="${HERBS[k].name}">${herbImg(k)}<i class="nm">${HERBS[k].name} </i>×${n}</span>`), ...o.mats.map(([k, n]) => `<span title="${MATS[k]}">${matImg(k)}<i class="nm">${MATS[k]} </i>×${n}</span>`)];
+  const o = res.out, chips = [...o.herbs.map(([k, n]) => `<span title="${HERBS[k].name}">${herbImg(k)}<i class="nm">${HERBS[k].name} </i>×${n}</span>`), ...o.mats.map(([k, n]) => `<span title="${MATS[k]}">${matImg(k)}<i class="nm">${MATS[k]} </i>×${n}</span>`),
+    ...(o.sig || []).map(x => `<span title="${sigName(x)}">${sigImg(x.id)}<i class="nm">${sigKind(x.id).name} </i>×${x.n}</span>`)];
   return `<div class="col descres">${cryptTabs('desc')}<section class="panel"><h2>Entkommen · ${o.how}</h2>${o.rec ? `<p class="small ${o.rec.best ? 'up' : ''}">${o.rec.best ? `Neuer Rekord: <b>Tiefe ${o.rec.d}</b>` : `Tiefe ${o.rec.d} geschafft`} – Tiefe ${o.rec.d + 1} ist offen.</p>` : ''}
     <div class="drows"><p><span>Räume</span><b>${o.rooms} · Unruhe ×${descMult(o.unrest)}</b></p><p><span>Erfahrung</span><b>${o.xp} EP</b></p><p><span>Gold</span><b class="up">+${o.gold}</b></p></div></section>
     <section class="panel"><h2>Gesichert</h2><div class="xloot">

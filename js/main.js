@@ -56,7 +56,7 @@ function render() {
 // Vorbereitung: Gürtel als Liste; reicht die Höhe nicht (kleine Handys, iOS-App), als Reihe nebeneinander
 function fitPrep() {
   const pr = document.querySelector('.prep, .pit, .pitshopv, .acts, .actv, .wander, .exped, .expev, .expresv, .desc, .descv, .descres, .craft, .crypts'), m = pr?.parentElement; if (!pr) return;
-  pr.classList.remove('tight', 'tighter');
+  pr.classList.remove('tight', 'tighter', 'tightest');
   // zu hoch – oder (Umschmieden) Boni im Kasten abgeschnitten
   const low = () => pr.lastElementChild.getBoundingClientRect().bottom > m.getBoundingClientRect().bottom + 1
     || [...pr.querySelectorAll('.caff')].some(e => e.getBoundingClientRect().bottom > e.closest('.panel').getBoundingClientRect().bottom - 2);
@@ -66,6 +66,8 @@ function fitPrep() {
   // also nicht, sondern laufen unten aus dem Bild – dann ist die Siegchance samt „Kämpfen“ weg.
   // Zweiter Schritt: lieber zwei Hinweise ganz zeigen als vier halbe.
   if (low()) pr.classList.add('tighter');
+  // Dritter Schritt (Abgrund mit Siegel-Platz, Welle 2B-2): nur Erklärtes weg, die Warnung vor dem Verlust bleibt.
+  if (low()) pr.classList.add('tightest');
 }
 // Tutorial: nächster Schritt, sobald die Bedingung erfüllt ist
 function tutCheck() {
@@ -82,7 +84,7 @@ function tutCheck() {
 function descResult(r) {
   view = 'desc';
   if (r.kind === 'out') { descSt.res = { out: r.out }; return render(); }
-  if (r.kind === 'room') { const g = r.got; descSt.msg = `<b>${DESC_ROOMS[r.t].name}:</b> ${r.text}${g ? ` Im Sack: ${g.gold} Gold${g.items.map(it => ` · <span class="r-${it.rarity}">${it.name}</span>`).join('')}` : ''}`; return render(); }
+  if (r.kind === 'room') { const g = r.got; descSt.msg = `<b>${DESC_ROOMS[r.t].name}:</b> ${r.text}${g ? ` Im Sack: ${g.gold} Gold${g.items.map(it => ` · <span class="r-${it.rarity}">${it.name}</span>`).join('')}${(g.sig || []).map(x => ` · ${UI.sigName(x)}`).join('')}` : ''}`; return render(); }
   const res = r.res; if (res.desc.lost) descSt.res = { lost: res.desc.lost }; else if (res.desc.out) descSt.res = { out: res.desc.out };
   showFight(res, 'desc');
 }
@@ -101,7 +103,7 @@ function showFight(res, back, extra = '') {
 // Abstieg: EP sofort, alles andere liegt im Sack
 function descRewText(res) {
   const w = res.rew, g = w.sack, L = [`+${w.xp} EP${w.up ? ` · <b class="hot">Stufe ${G.S.lvl}!</b>` : ''}`];
-  const bits = [`${g.gold} Gold`, ...g.mats.map(([k, n]) => `${MATS[k]} ×${n}`), ...g.herbs.map(([k, n]) => `${HERBS[k].name} ×${n}`), ...g.items.map(it => `<span class="r-${it.rarity}">${it.name}</span>${betterTxt(it)}`)];
+  const bits = [`${g.gold} Gold`, ...g.mats.map(([k, n]) => `${MATS[k]} ×${n}`), ...(g.sig || []).map(x => UI.sigName(x)), ...g.herbs.map(([k, n]) => `${HERBS[k].name} ×${n}`), ...g.items.map(it => `<span class="r-${it.rarity}">${it.name}</span>${betterTxt(it)}`)];
   L.push(`Im Sack: ${bits.join(' · ')}`);
   if (res.desc.out) L.push(`<b class="gold">Entkommen! Alles gesichert.</b>${res.desc.seal ? ' Das Grabsiegel bekommst du zurück.' : ''}`);
   else L.push(`<i class="dim">Leben ${Math.round(res.desc.hpf * 100)} % – es füllt sich unten nicht auf.</i>`);
@@ -354,7 +356,10 @@ const actions = {
     descSt.d = Math.max(1, Math.min(max, cur + +d.d)); render(); },
   descweek: () => { const r = Game.descClaimWeek(); if (r?.full) return note('Der Beutel ist voll – mach Platz für das seltene Teil, dann hole den Wochenlohn ab.');
     if (r) note(`Wochenlohn für Tiefe ${r.d}: ${r.gold} Gold${r.kron ? `, ${r.kron} Kronsplitter` : ''}, +${r.seals} Grabsiegel${r.it ? `, ${r.it.name}` : ''}.`); render(); },
-  descgo: d => { if (Game.descStart(+d.d)) { descSt = { d: +d.d, j: null, msg: '', res: null }; view = 'desc'; } render(); },
+  descgo: d => { if (Game.descStart(+d.d, descSt.sig)) { descSt = { d: +d.d, j: null, msg: '', res: null, sig: Game.sigClean(descSt.sig) }; view = 'desc'; } render(); },
+  // Siegel antippen: aus → beste vorhandene Stufe → nächst niedrigere → aus (höchstens eines je Art)
+  descsig: d => { const cur = Game.sigClean(descSt.sig), have = [3, 2, 1].filter(t => Game.sigHave(d.k, t) > 0), x = cur.find(s => s.id === d.k);
+    const nt = !x ? have[0] : have[have.indexOf(x.t) + 1]; descSt.sig = [...cur.filter(s => s.id !== d.k), ...(nt ? [{ id: d.k, t: nt }] : [])]; render(); },
   descsel: d => { descSt.j = descSt.j === d.j ? null : d.j; descSt.msg = ''; descSt.ask = false; render(); },
   descgo2: d => { const r = Game.descEnter(d.j); descSt.j = null; descSt.msg = ''; descSt.ask = false; if (!r) return render(); descResult(r); },
   descstair: () => { if (G.S.desc?.rooms && !descSt.ask) { descSt.ask = true; descSt.j = null; return render(); }   // zwei Tipps: erst fragen

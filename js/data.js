@@ -1025,6 +1025,8 @@ export const DESCENT = {
 //   eliteR  Elite-Funde mindestens diese Seltenheit (Index in RARITIES, 3 = selten); kronE: Kronsplitter bei Elite ×
 //   res     Elementar-Resi zusätzlich −res (zum Fluch der Tiefe, eigener Deckel nicht – die Gefahr steht vorher da)
 //   favor   Gewicht der Resistenz-Boni (Gruppe `favorStats`) × favor beim Würfeln; luck: Glück +luck
+// Bilder der Abgrund-Funde ohne eigenes Bild: Aschenkern = der gemalte Glutstein (Stein mit glühenden Rissen)
+export const MAT_ART = { aschenkern: 'glutstein' };
 export const SIGILS = {
   max: 3, tierAt: [1, 8, 16], tierName: ['rissig', 'fest', 'makellos'],
   drop: { boss: 1, elite: 0.15, treasure: 0.1 },
