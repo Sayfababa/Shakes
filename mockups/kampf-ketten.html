@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup – Zauber-Ketten</title>
+<link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+SC:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  html, body { overflow: auto; height: auto; }
+  .wrap { display: flex; gap: 28px; padding: 24px; align-items: flex-start; width: max-content; }
+  .cap { font-family: 'Alegreya SC'; color: var(--gold); text-align: center; margin-bottom: 8px; font-size: 1rem; }
+  .note2 { width: 390px; color: var(--dim); font-size: .85rem; margin-top: 10px; line-height: 1.35; } .note2 b { color: var(--gold); font-weight: 500; }
+  .phone { width: 390px; height: 844px; position: relative; display: flex; flex-direction: column; padding: 8px 10px 10px; gap: 6px; overflow: hidden;
+    border: 1px solid #2a2118; box-shadow: 0 0 0 6px #0b0907, 0 0 40px #000; background: var(--noise), var(--stonetex), radial-gradient(ellipse at 50% 20%, #241a12, #070504 70%); }
+  .phone > * { flex: none; }
+  .shot { width: 390px; height: 844px; display: block; box-shadow: 0 0 0 6px #0b0907, 0 0 40px #000; }
+
+  /* Kopf + Tabs (vereinfacht wie im Spiel) */
+  .hud2 { display: flex; align-items: center; gap: 10px; height: 44px; }
+  .hud2 h1 { font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.6rem; margin: 0; flex: 1; }
+  .hud2 .lv { font-family: 'Alegreya SC'; color: var(--gold); font-size: .9rem; }
+  .tabs2 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; height: 40px; }
+  .tabs2 a { display: grid; place-items: center; font-family: 'Alegreya SC'; font-size: 11px; color: var(--dim);
+    border-image: url('../assets/ui/tab.webp') 16 fill / 8px stretch; }
+  .tabs2 a.on { color: var(--gold); border-image: url('../assets/ui/tab_on.webp') 16 fill / 8px stretch; }
+
+  /* Kampffenster neu: vier Bänder, jedes hat eine Aufgabe */
+  .fw { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 10px !important; }
+  .duel { display: grid; grid-template-columns: 1fr 54px 1fr; gap: 6px; align-items: start; }
+  .fg { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .fg img.pt { width: 104px; height: 104px; object-fit: cover; box-shadow: 0 0 0 2px #4a3a26, 0 0 0 3px #0b0907; }
+  .fg.foe img.pt { box-shadow: 0 0 0 2px #4a3a26, 0 0 0 3px #0b0907, 0 0 14px rgba(160,200,255,.35); }
+  .fg .nm { font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1rem; line-height: 1.1; }
+  .fg .bar { width: 100%; } .fg .hp { font-family: 'Alegreya SC'; font-size: 11px; color: var(--dim); }
+  .chips { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; min-height: 18px; }
+  .chip { font-family: 'Alegreya SC'; font-size: 11px; padding: 0 5px; line-height: 16px; color: #d8c9a8; background: #15110c; box-shadow: inset 0 0 0 1px #4a3a26; }
+  .chip.cold { color: #a9d6ff; box-shadow: inset 0 0 0 1px #3b5f7d; } .chip.fire { color: #ff9a4a; box-shadow: inset 0 0 0 1px #7a3a12; }
+  .chip.buff { color: var(--gold); }
+  .pots { display: flex; gap: 3px; } .pots img { width: 20px; height: 20px; } .pots img.used { opacity: .25; filter: grayscale(1); }
+  .mid { display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 20px; }
+  .mid .turn { font-family: 'Alegreya SC'; font-size: 11px; color: var(--dim); }
+  .mid .vs { font-family: 'Grenze Gotisch'; color: #6d5a3e; font-size: 1.4rem; line-height: 1; }
+  .intent2 { font-family: 'Alegreya SC'; font-size: 11px; color: var(--blood-hi); text-align: center; line-height: 1.2; }
+
+  /* Kettenleiste: drei Glieder über die volle Breite */
+  .chain { position: relative; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; padding: 6px 4px 4px;
+    border-image: url('../assets/ui/panel_s.webp') 22 fill / 10px stretch; }
+  .chain .hd { grid-column: 1 / -1; display: flex; justify-content: space-between; font-family: 'Alegreya SC'; font-size: 11px; color: var(--dim); padding: 0 6px 4px; }
+  .chain .hd b { color: var(--gold); font-weight: 500; }
+  .lk { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .lk + .lk::before { content: ''; position: absolute; top: 25px; right: calc(50% + 28px); width: calc(100% - 56px); height: 4px;
+    background: #2b2219; box-shadow: inset 0 1px 0 #4a3a26, 0 1px 0 #000; }
+  .lk.lit::before { background: linear-gradient(90deg, #6b4a1a, #e0b050); box-shadow: 0 0 8px rgba(224,176,80,.8); }
+  .sl { position: relative; width: 52px; height: 52px; border-image: url('../assets/ui/slot.webp') 12 fill / 6px stretch; padding: 4px; }
+  .sl img { width: 100%; height: 100%; display: block; }
+  .sl .ch { position: absolute; inset: 4px; background: rgba(0,0,0,.62); clip-path: inset(0 0 var(--c) 0); }   /* noch nicht geladen = dunkel von oben */
+  .lk.go .sl { box-shadow: 0 0 0 1px #e0b050, 0 0 14px rgba(224,176,80,.7); }
+  .lk.hold .sl::after { content: 'hält'; position: absolute; left: 50%; transform: translateX(-50%); bottom: -4px; font-family: 'Alegreya SC'; font-size: 11px; color: #a9d6ff;
+    background: #0b0907; padding: 0 3px; box-shadow: inset 0 0 0 1px #3b5f7d; line-height: 14px; }
+  .lk .n { font-family: 'Alegreya SC'; font-size: 11px; color: var(--text); line-height: 1.1; }
+  .lk .f { font-size: 11px; color: var(--dim); line-height: 1.1; font-style: italic; }
+  .lk.go .f { color: var(--gold); }
+
+  /* Bilanz: vier Kacheln, laufen mit */
+  .tiles { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; }
+  .tl { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 6px; font-size: 11px; color: var(--dim);
+    font-family: 'Alegreya SC'; border-image: url('../assets/ui/cell.webp') 8 fill / 4px stretch; }
+  .tl b { font-family: 'Alegreya'; font-weight: 700; color: var(--text); font-size: .85rem; } .tl.k b { color: var(--gold); }
+
+  .log2 { flex: 1 1 auto; min-height: 0; overflow: hidden; font-size: .82rem; background: #07080b; box-shadow: inset 0 0 0 1px #2a2620; padding: 6px 8px; line-height: 1.3; }
+  .log2 div { padding: 1px 0; } .log2 .b { color: #b08070; } .log2 .s { color: #9fb4ff; } .log2 .c { color: var(--blood-hi); font-weight: 700; }
+  .log2 .k { color: var(--gold); } .log2 .k i { font-style: normal; font-family: 'Alegreya SC'; font-size: 11px; color: #e0b050; margin-right: 3px; }
+  .fw button { width: 100%; height: 38px; }
+
+  /* Vorbereitung: Kette legen */
+  .prep2 { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 10px !important; }
+  .foeh { display: grid; grid-template-columns: 64px 1fr; gap: 8px; align-items: center; }
+  .foeh img { width: 64px; height: 64px; object-fit: cover; box-shadow: 0 0 0 2px #4a3a26; }
+  .foeh .nm { font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.15rem; }
+  .foeh .t { font-size: 11px; color: var(--dim); line-height: 1.3; } .foeh .t b { color: var(--blood-hi); font-weight: 700; }
+  h3.sec { margin: 2px 0 0; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.1rem; display: flex; justify-content: space-between; align-items: baseline; }
+  h3.sec span { font-family: 'Alegreya SC'; font-size: 11px; color: var(--dim); }
+  .row3 { display: grid; grid-template-columns: 30px 52px 1fr 92px; gap: 8px; align-items: center; padding: 8px 8px;
+    border-image: url('../assets/ui/cell.webp') 8 fill / 4px stretch; }
+  .row3 .no { font-family: 'Grenze Gotisch'; color: #6d5a3e; font-size: 1.4rem; text-align: center; }
+  .row3 .tx .n { font-family: 'Alegreya SC'; color: var(--text); font-size: .85rem; }
+  .row3 .tx .f { font-size: 11px; color: var(--dim); line-height: 1.25; } .row3 .tx .f b { color: var(--gold); font-weight: 500; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; }
+  .seg a { display: grid; place-items: center; height: 30px; font-family: 'Alegreya SC'; font-size: 11px; color: var(--dim); border-image: url('../assets/ui/btn_iron.webp') 14 fill / 7px stretch; }
+  .seg a.on { color: var(--gold); border-image: url('../assets/ui/tab_on.webp') 16 fill / 8px stretch; }
+  .arrow { text-align: center; color: #6d5a3e; font-size: 11px; font-family: 'Alegreya SC'; line-height: 1; margin: -3px 0; }
+  .sum { padding: 8px 10px; font-size: .8rem; line-height: 1.35; color: #cdbd9c; border-image: url('../assets/ui/parchment.webp') 24 fill / 10px stretch; }
+  .sum b { color: #f0d79a; font-weight: 700; }
+  .odds { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+  .belt2 { display: flex; gap: 6px; align-items: center; } .belt2 img { width: 34px; height: 34px; border-image: url('../assets/ui/slot.webp') 12 fill / 6px stretch; padding: 3px; }
+  .belt2 span { font-size: 11px; color: var(--dim); }
+  .brow { display: grid; grid-template-columns: 40px 1fr 22px; gap: 8px; align-items: center; padding: 4px 8px; border-image: url('../assets/ui/cell.webp') 8 fill / 4px stretch; }
+  .brow img, .brow .sl0 { width: 38px; height: 38px; border-image: url('../assets/ui/slot.webp') 12 fill / 6px stretch; padding: 3px; display: block; }
+  .brow .n { font-family: 'Alegreya SC'; font-size: .85rem; color: var(--text); } .brow .f { font-size: 11px; color: var(--gold); font-family: 'Alegreya SC'; }
+  .brow.free .f { color: var(--dim); font-family: 'Alegreya'; font-style: italic; } .brow .x { color: var(--dim); text-align: center; }
+  .btn2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 6px; margin-top: auto; } .btn2 button { height: 42px; }
+</style></head><body>
+<div class="wrap">
+
+  <!-- 1 Heute -->
+  <div><div class="cap">1 · Heute</div><img class="shot" src="kampf-ketten-heute.png" alt="">
+    <div class="note2"><b>Alles klebt oben.</b> Bilder und Namen nehmen das obere Viertel, die drei Zauber sind ein 30-px-Kästchen
+      unter dem Helden, darunter ist das Log zu zwei Dritteln leer. Ob ein Zauber gleich kommt, sieht man nicht.</div></div>
+
+  <!-- 2 Kampf mit Kette -->
+  <div><div class="cap">2 · Kampf mit Kette</div>
+  <div class="phone">
+    <div class="hud2"><h1>Sayfa</h1><span class="coin"></span><span class="lv">958</span><span class="lv">Stufe 24</span></div>
+    <section class="panel fw">
+      <div class="duel">
+        <div class="fg">
+          <img class="pt" src="../assets/portraits/sorceress.jpg" alt="">
+          <div class="nm">Sayfa</div><div class="bar"><i style="width:68%"></i></div><div class="hp">1.840 / 2.710</div>
+          <div class="pots"><img src="../assets/potions/bollwerk.webp" alt=""><img class="used" src="../assets/potions/berserker.webp" alt=""></div>
+          <div class="chips"><span class="chip buff">Nachhall</span></div>
+        </div>
+        <div class="mid"><span class="turn">Zug 7</span><span class="vs">gg.</span><span class="intent2">holt aus<br>in 2</span></div>
+        <div class="fg foe">
+          <img class="pt" src="../assets/monsters/butcher.jpg" alt="">
+          <div class="nm">Der Metzger</div><div class="bar"><i style="width:41%"></i></div><div class="hp">3.120 / 7.600</div>
+          <div class="chips"><span class="chip cold">Betäubt 1</span><span class="chip fire">Brennt 3</span></div>
+        </div>
+      </div>
+
+      <div class="chain">
+        <div class="hd"><span>Deine Kette</span><span>Kette <b>2 / 3</b> · diesen Kampf <b>1× ganz</b></span></div>
+        <div class="lk"><div class="sl"><img src="../assets/spells/frost.webp" alt=""><i class="ch" style="--c:100%"></i></div>
+          <span class="n">Frostnova</span><span class="f">betäubt</span></div>
+        <div class="lk lit go"><div class="sl"><img src="../assets/spells/meteor.webp" alt=""><i class="ch" style="--c:0%"></i></div>
+          <span class="n">Meteor</span><span class="f">gezündet – Betäubter</span></div>
+        <div class="lk hold"><div class="sl"><img src="../assets/spells/feuerball.webp" alt=""><i class="ch" style="--c:30%"></i></div>
+          <span class="n">Feuerball</span><span class="f">wartet auf Krit</span></div>
+      </div>
+
+      <div class="tiles">
+        <div class="tl k">Ketten <b>3</b></div><div class="tl k">ganz <b>1</b></div><div class="tl">Krit <b>4</b></div><div class="tl">Brand <b>112</b></div>
+      </div>
+
+      <div class="log2">
+        <div>Sayfa trifft für 41.</div>
+        <div class="b">Der Metzger trifft für 96.</div>
+        <div class="s">Feuerball trifft für 188. Er brennt.</div>
+        <div class="b">Der Metzger trifft für 104.</div>
+        <div class="s">Frostnova trifft für 132 und betäubt.</div>
+        <div class="k"><i>Kette</i>Frostnova betäubt → Meteor lädt sofort.</div>
+        <div class="b">Der Metzger ist betäubt.</div>
+        <div class="c">Meteor trifft KRITISCH für 1.214.</div>
+        <div class="k"><i>Kette</i>Meteor-Krit → Feuerball lädt sofort.</div>
+        <div class="s">Feuerball trifft für 201.</div>
+        <div class="k"><i>Kette ganz</i>Drei Glieder in drei Zügen.</div>
+        <div class="b">Der Metzger trifft für 99.</div>
+        <div>Sayfa trifft für 44.</div>
+        <div class="s">Frostnova trifft für 128 und betäubt.</div>
+        <div class="k"><i>Kette</i>Frostnova betäubt → Meteor lädt sofort.</div>
+      </div>
+      <button>Überspringen</button>
+    </section>
+    <nav class="tabs2"><a>Held</a><a class="on">Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></nav>
+  </div>
+  <div class="note2"><b>Vier Bänder, jedes mit einer Aufgabe.</b> Oben das Duell (größere Bilder, Zustände als Marken darunter, die
+    Absicht des Gegners in der Mitte). Darunter die <b>Kettenleiste über die volle Breite</b>: drei Glieder, Ladung füllt das Bild
+    von unten, die Eisenlinie glüht, wenn ein Glied das nächste zündet, „hält“ zeigt ein Glied, das auf seine Bedingung wartet.
+    Dann die Bilanz in einer Zeile, und das Log nimmt den Rest – jetzt mit <b>Ketten-Zeilen in Gold</b>. Nichts ist leer, nichts
+    stapelt sich in einer Ecke.</div></div>
+
+  <!-- 3 Kette legen (Vorbereitung) -->
+  <div><div class="cap">3 · Vorbereitung: Kette legen</div>
+  <div class="phone">
+    <div class="hud2"><h1>Sayfa</h1><span class="coin"></span><span class="lv">958</span><span class="lv">Stufe 24</span></div>
+    <section class="panel prep2">
+      <div class="foeh"><img src="../assets/monsters/butcher.jpg" alt="">
+        <div><div class="nm">Der Metzger</div><div class="t">Stufe 26 · Gefahr: <b>hoch</b> · Sieg ~52 %<br>Besonderheit: holt alle 4 Züge zum Schlachten aus.</div></div></div>
+
+      <h3 class="sec">Deine Kette <span>antippen zum Tauschen</span></h3>
+      <div class="row3"><span class="no">1</span><div class="sl"><img src="../assets/spells/frost.webp" alt=""></div>
+        <div class="tx"><div class="n">Frostnova</div><div class="f">Folge: <b>betäubt</b></div></div>
+        <div class="seg"><a class="on">werfen</a><a>halten</a></div></div>
+      <div class="arrow">betäubt ↓ lädt sofort</div>
+      <div class="row3"><span class="no">2</span><div class="sl"><img src="../assets/spells/meteor.webp" alt=""></div>
+        <div class="tx"><div class="n">Meteor</div><div class="f">Auf Betäubte <b>+50 %</b> · Folge: <b>Krit</b></div></div>
+        <div class="seg"><a>werfen</a><a class="on">halten</a></div></div>
+      <div class="arrow">Krit ↓ lädt sofort</div>
+      <div class="row3"><span class="no">3</span><div class="sl"><img src="../assets/spells/feuerball.webp" alt=""></div>
+        <div class="tx"><div class="n">Feuerball</div><div class="f">Letztes Glied · <b>entzündet</b></div></div>
+        <div class="seg"><a class="on">werfen</a><a>halten</a></div></div>
+
+      <div class="sum"><b>Meteor hält</b>, bis der Metzger betäubt ist: stärker, aber in manchen Kämpfen fällt er nie.
+        Probekämpfe gegen diesen Gegner:</div>
+      <div class="odds"><div class="tl k">Sieg <b>52 %</b></div><div class="tl">Kette ganz <b>61 %</b></div><div class="tl">Meteor nie <b>9 %</b></div></div>
+
+      <h3 class="sec">Dein Gürtel <span>2 / 3 · wie heute</span></h3>
+      <div class="brow"><img src="../assets/potions/bollwerk.webp" alt=""><div><div class="n">Bollwerk-Sud</div><div class="f">Leben unter 30 %</div></div><span class="x">×</span></div>
+      <div class="brow"><img src="../assets/potions/berserker.webp" alt=""><div><div class="n">Berserkersud</div><div class="f">zu Kampfbeginn</div></div><span class="x">×</span></div>
+      <div class="brow free"><span class="sl0"></span><div><div class="f">freier Platz – antippen</div></div></div>
+
+      <div class="btn2"><button>Zurück</button><button class="red">Kämpfen</button></div>
+    </section>
+    <nav class="tabs2"><a>Held</a><a class="on">Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></nav>
+  </div>
+  <div class="note2"><b>Die Entscheidung fällt hier, nicht im Kampf.</b> Reihenfolge durch Antippen tauschen, je Glied „werfen“
+    oder „halten“. Die Pfeile sagen, welche Folge das nächste Glied zündet. Unten drei Zahlen aus Probekämpfen (wie heute die
+    Siegchance): wie oft die Kette ganz läuft und wie oft das gehaltene Glied nie fällt – so ist „halten“ ein Preis, kein Raten.</div></div>
+
+</div>
+</body></html>
