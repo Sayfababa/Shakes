@@ -842,6 +842,15 @@ test('Abgrund-Leiter (Welle 2B-1): jede Tiefe um denselben Anteil stärker, Lohn
       if (!it.unique) assert.equal(L.tierOf(k, it.mods[k]), t, 'Stufe steht im Wert'); } } return seen; };
   const s0 = roll(0), s1 = roll(deep[0].minDepth), s2 = roll(deep[1].minDepth);
   assert.ok(![...s0].some(t => t < 1), 'ohne Tiefe keine Abgrund-Stufe'); assert.ok(s1.has(deep[0].t) && !s1.has(deep[1].t)); assert.ok(s2.has(deep[1].t));
+  // Umschmieden würfelt die Stufen der Herkunftstiefe (wie die Gegenstandsstufe bei PoE), ohne Tiefe nie Abgrund-Stufen
+  { const S = G.S; S.gold = 1e7; S.mats = Object.fromEntries(Object.keys(D.MATS).map(k => [k, 999]));
+    const mk = depth => { for (let i = 0; i < 500; i++) { const it = makeItem(60, { slot: 'amulet', minRarity: 3, depth }); if (!it.unique && !it.set && it.rarity === 'rare') return it; } };
+    const seen = depth => { const it = mk(depth); G.S.bag = [Object.assign(it, { x: 0, y: 0 })]; const out = new Set();
+      for (let i = 0; i < 300; i++) { const r = G.craft(it.id, 'values'); if (r?.err) break; delete it.craftN; delete it.risen; Object.values(it.tiers).forEach(t => out.add(t)); } return [it, out]; };
+    const [a, sa] = seen(deep[1].minDepth), [b, sb] = seen(0);
+    assert.equal(a.deep, deep[1].minDepth); assert.equal(b.deep, undefined);
+    assert.ok(sa.has(deep[0].t) && sa.has(deep[1].t), 'Umschmieden aus der Tiefe würfelt Abgrund-Stufen');
+    assert.ok(![...sb].some(t => t < 1), 'Umschmieden ohne Tiefe nie Abgrund-Stufen'); }
   for (const t of deep) for (const a of D.AFFIXES) { const [lo] = L.tierBand(a, t.t), [, hi1] = L.tierBand(a, 1); assert.ok(lo > hi1, `${a.stat} ${t.name} über I`); }
   // Marke: eigene Klasse mit CSS-Regel (eine Marke ohne Regel ist unsichtbar)
   const css = (await import('node:fs')).readFileSync(new URL('../css/style.css', import.meta.url), 'utf8');

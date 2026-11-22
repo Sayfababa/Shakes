@@ -28,9 +28,9 @@ Neu `tests/lohn.mjs` (in run.sh), descent.mjs mit Klassen-Band, calib-Spalte I++
 Bots 3 Tage: Zauberin 0/8, Assassine 0/8 hängen, Barbar 4/12 (vorher 2–3/12, siehe Frage 1). Screenshots: `welle2b1-abgrund.png`,
 `welle2b1-abgrund-stufe.png` (iPhone 13). Platz für Welle 2B-2: `DESCENT.depthMods` unangetastet.
 
-**Offene Fragen**
-1. Barbar-Bots hängen am Kultisten (Akt V, Dornen 30 %) mit St. 16–17 und < 6.000 Leben. Gemessen ist das keine Klassenfrage
-   (Testhelden St. 17: Zauberin 3 %, Barbar 0 %; St. 19 alle 7–18 %) – eine Stufen-Hürde, ehrlich angezeigt. Lassen oder entschärfen?
-2. Bei T25–30 steht eine Wand (St. 62 mit eigener Beute schafft T30 zu 1 %). Gewollt (Leiter mit Ende durch Kraft) oder 1,04?
-3. Umschmieden würfelt nie Abgrund-Stufen (ein I++-Bonus geht dabei verloren). Recht so?
-4. Akte: Zauberin bleibt die schnellste (3216 Glut gegen 4178 Barbar) – nicht in dieser Welle angefasst.
+**Entschieden nach PoE/Diablo (Besitzer: „mach das beste draus“)**
+1. Kultist bleibt (D2: Akt-Bosse sind Stufen-Hürden; Dornen und Siegchance stehen vorher da, Farmen hilft – kein Softlock).
+2. Leiter bleibt bei 1,05 je Tiefe: wie D4-Grube und PoE-Delve wächst die Gefahr geometrisch, die Wand ist das Wochenziel.
+3. **Umschmieden gebaut wie PoE:** ein Fund merkt sich seine Tiefe (`it.deep`, wie die Gegenstandsstufe), Umschmieden würfelt
+   wieder deren Stufen – I+/I++ gehen nicht verloren, normale Teile bekommen nie welche. Tooltip zeigt „Tiefe N“. Test in logic.
+4. Akte-Tempo der Klassen bleibt (D2/PoE: Klassen spielen sich verschieden schnell; Abgrund ist jetzt im Band).

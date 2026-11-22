@@ -65,6 +65,8 @@ export function makeItem(lvl, { luck = 0, slot, slots, cls, kind, minRarity = 0,
   if (uniq) base = [...BASES].reverse().find(b => b.slot === uniq.slot && (!uniq.kind || b.kind === uniq.kind) && okLvl(b)) || base;
   const scale = lvlScale(ilvl) * rar.mult;
   const it = { id: uid(), slot: base.slot, kind: base.kind, base: base.name, art: artOf(base, rar), w: base.w, h: base.h, rarity: rar.id, lvl: ilvl, mods: {}, tiers: {} };
+  // Herkunftstiefe (Welle 2B-1, wie die Gegenstandsstufe bei PoE): Umschmieden würfelt dieselben Stufen wie der Fund
+  if (TIERS.some(t => t.minDepth && depth >= t.minDepth)) it.deep = depth;
   if (base.armor) it.armor = Math.round(base.armor * scale);
   if (base.dmg) it.dmg = [Math.round(base.dmg[0] * scale), Math.round(base.dmg[1] * scale)];
   let chosen = [];

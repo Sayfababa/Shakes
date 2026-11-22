@@ -82,7 +82,7 @@ export function viewSets() {
 
 // --- Items ---
 export function itemTip(it, cmp) {
-  const L = [`<div class="n r-${it.rarity}">${it.name}</div><div class="sub2">${rarName(it.rarity, it)} · ${it.base && !it.name.includes(it.base) ? it.base : SLOTS[it.slot]} · Stufe ${it.lvl}</div>`];
+  const L = [`<div class="n r-${it.rarity}">${it.name}</div><div class="sub2">${rarName(it.rarity, it)} · ${it.base && !it.name.includes(it.base) ? it.base : SLOTS[it.slot]} · Stufe ${it.lvl}${it.deep ? ` · Tiefe ${it.deep}` : ""}</div>`];
   // Schärfen/Verstärken hängen am Platz: jedes Teil zeigt den Wert, den es angelegt hätte
   const tu = S ? slotUp(it.slot) : 0, tn = tu ? ` <small class="tup">${it.slot === 'weapon' ? 'geschärft' : 'verstärkt'} +${tu}</small>` : '';
   if (it.dmg) { const ef = S ? wpnDmg(it, S.lvl) : it.dmg, cut = ef !== it.dmg;   // Waffen-Deckel (Welle 2a): offen zeigen, nie still kürzen
