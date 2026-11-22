@@ -177,7 +177,7 @@ eines Systems seinen Block hier lesen** (`grep -n '^\*\*' SYSTEME.md` zeigt die 
   `calib.mjs` (Eichung), `tree.mjs`, `ways.mjs`, `uniques.mjs`, `sets.mjs`, `potions.mjs`,
   `descent.mjs` (Held aus `tests/held.mjs`: echte Talente/Brett wie der Bot; `--sig`: Siegel Gefahr vs. Lohn), `kern.mjs` (Aschenkern), `lohn.mjs`, `acts.mjs`.
 - `tests/oneshot.mjs [klasse] [heldenstufe] [GS]` – Anteil Krypta-Boss-Siege mit dem ersten Treffer (Welle 1a).
-- `tests/bot.mjs [klasse] [tage] [läufe] [risiko] [--pots]` – Bot mit simulierter Uhr, für
+- `tests/bot.mjs [klasse] [tage] [läufe] [risiko] [--pots] [--ohne-abgrund]` (spielt seit 2026-11-22 den Abgrund: Rekord + 1, nach Tod eine Tiefe flacher; Spalten `tief`/`abst`) – Bot mit simulierter Uhr, für
   Balance-Fragen. **Deckt den Spieler *nach* der Geschichte kaum ab.** → E
 - `tests/personas.mjs [tage]` – Optimist/Realist/Pessimist, Auswertung in BOT-REVIEW.md.
 - Browser-Tests laufen mit `deviceScaleFactor: 1`.

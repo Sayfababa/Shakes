@@ -93,12 +93,36 @@ function actStep(log) {
   const r = Game.actFight(tgt.id, zr); if (r) { log.farm++; if (!r.win) log.actLoss++; return true; } return false;
 }
 
-let RISK = 0.8, POTS = false;
-export function run(cls = 'paladin', days = 7, risk = 0.8, pots = false) {
-  RISK = risk; POTS = pots;
-  clock = Date.UTC(2026, 0, 5, 8, 0, 0);
+// Abgrund wie ein Spieler (Grabsiegel, 2 am Tag): Ziel ist der Rekord + 1; nach einem Tod eine Tiefe flacher, bis wieder ein
+// Boss fällt. Räume: Kampf vor Schatz vor Elite (wie tests/descent.mjs), Ausgang nehmen, wenn jeder Kampf vorn unter 40 % liegt.
+// Sonst liefe der Bot ab Tag 12 nur noch Krypta-Abklingzeiten ab und das Endspiel bliebe ungemessen.
+const PRIO = { shrine: 0, fight: 1, treasure: 2, elite: 3 };
+let dTry = 1;
+function descStep(log) {
+  const S = G.S; if (!D.CRYPTS.some(c => Game.descOpen(c))) return false;
+  if (Game.descWeekDue()) Game.descClaimWeek();
+  if (!S.desc) { const d = Math.max(1, Math.min(dTry, Game.descMaxDepth())); if (!Game.descStart(d)) return false; log.desc++; }
+  const d = S.desc.d;
+  while (S.desc) {
+    const nx = Game.descNext(), node = j => Game.descNodeAt(j), exit = j => j !== 'boss' && D.DESC_ROOMS[node(j).t].exit;
+    const go = nx.filter(j => !exit(j)), out = nx.filter(j => exit(j) && (node(j).t !== 'well' || Game.descWellCost() <= S.gold + S.desc.sack.gold));
+    const risky = go.length && go.every(j => { const p = Game.descChance(j); return p != null && p < 0.4; });
+    const j = risky && out.length ? out[0] : go.sort((a, b) => (a === 'boss' ? 9 : PRIO[node(a).t]) - (b === 'boss' ? 9 : PRIO[node(b).t]))[0] ?? out[0];
+    if (j == null) break;
+    const boss = j === 'boss', r = Game.descEnter(j); if (!r) break;
+    if (!S.desc) { const o = r.res?.desc?.out || r.out, died = r.kind === 'fight' && !r.res?.win;
+      if (died) { log.descLoss++; dTry = Math.max(1, d - 1); } else if (boss) { log.descBoss++; dTry = d + 1; } }
+  }
+  if (S.desc) S.desc = null;   // Notausgang: nie hängen bleiben
+  return true;
+}
+
+let RISK = 0.8, POTS = false, DESC = true;
+export function run(cls = 'paladin', days = 7, risk = 0.8, pots = false, desc = true) {
+  RISK = risk; POTS = pots; DESC = desc;
+  clock = Date.UTC(2026, 0, 5, 8, 0, 0); dTry = 1;
   G.newChar('Bot', cls); G.S.tut = 99;
-  const log = { acts: 0, actLoss: 0, farm: 0, actBoss: [], pit: 0, pitLoss: 0, delves: 0, delveLoss: 0, lostGold: 0, tracks: { safe: 0, norm: 0, blood: 0 }, quests: [], bought: 0, trips: 0, tripLoss: 0, crypt: 0, cryptLoss: 0, arena: 0, arenaLoss: 0, perDay: [], brewed: 0, brewGold: 0, used: 0, potFights: 0, miss: {}, blocked: {}, spent: {} };
+  const log = { desc: 0, descLoss: 0, descBoss: 0, acts: 0, actLoss: 0, farm: 0, actBoss: [], pit: 0, pitLoss: 0, delves: 0, delveLoss: 0, lostGold: 0, tracks: { safe: 0, norm: 0, blood: 0 }, quests: [], bought: 0, trips: 0, tripLoss: 0, crypt: 0, cryptLoss: 0, arena: 0, arenaLoss: 0, perDay: [], brewed: 0, brewGold: 0, used: 0, potFights: 0, miss: {}, blocked: {}, spent: {} };
   const end = clock + days * 86400000;
   let nextDay = clock + 86400000, rival = null;
   while (clock < end) {
@@ -110,6 +134,7 @@ export function run(cls = 'paladin', days = 7, risk = 0.8, pots = false) {
         if (r) { log.crypt++; if (!r.win) log.cryptLoss++; acted = true; log.used += r.rew.used?.length || 0; if (r.rew.used?.length) log.potFights++; } }
     }
     acted = actStep(log) || acted;
+    if (DESC && !Game.descBusy() && Game.descLeft() > 0) acted = descStep(log) || acted;
     const champ = Q.available('vargo') && Q.current('vargo').champ && !Q.canComplete('vargo');
     if (champ && clock >= S.arenaTs && Game.winChance('champ', () => G.makeMonster(S.lvl + 3, 1.3)) >= 0.3) { const r = Game.champFight('vargo'); if (r) { log.arena++; if (!r.win) log.arenaLoss++; acted = true; } }
     if (!Game.pitBusy()) { const f = Game.pitFoes().filter(x => x.p >= 0.5).sort((p, q) => q.honor - p.honor)[0];
@@ -117,7 +142,7 @@ export function run(cls = 'paladin', days = 7, risk = 0.8, pots = false) {
     if (clock >= nextDay) {
       log.perDay.push({ day: log.perDay.length + 1, lvl: S.lvl, gold: S.gold, quests: log.quests.length, shards: S.shards.length,
         
-        akt: (() => { const a = G.curAct(); return G.actDone(a) ? 'fertig' : `${a.n} ${G.actProg(a)}/9`; })(), farm: log.farm, platz: Game.pitPlace(), stufen: D.CRYPTS.map(c => G.cryptTier(c)).join(''), crypt: log.crypt, cryptLoss: log.cryptLoss, omens: S.omens, title: S.title || '',
+        akt: (() => { const a = G.curAct(); return G.actDone(a) ? 'fertig' : `${a.n} ${G.actProg(a)}/9`; })(), farm: log.farm, platz: Game.pitPlace(), stufen: D.CRYPTS.map(c => G.cryptTier(c)).join(''), crypt: log.crypt, cryptLoss: log.cryptLoss, tief: Game.descRec().best, abst: log.desc, omens: S.omens, title: S.title || '',
         herbs: Object.values(S.herbs).reduce((a, b) => a + b, 0), pots: Object.values(S.pots).reduce((a, b) => a + b, 0), brewed: log.brewed, used: log.used });
       nextDay += 86400000;
     }
@@ -129,9 +154,9 @@ export function run(cls = 'paladin', days = 7, risk = 0.8, pots = false) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const [cls = 'paladin', days = 7, runs = 1, risk = 0.8] = process.argv.slice(2), pots = process.argv.includes('--pots');
+  const [cls = 'paladin', days = 7, runs = 1, risk = 0.8] = process.argv.slice(2), pots = process.argv.includes('--pots'), desc = !process.argv.includes('--ohne-abgrund');
   for (let i = 0; i < +runs; i++) {
-    const { log, S } = run(cls, +days, +risk, pots);
+    const { log, S } = run(cls, +days, +risk, pots, desc);
     console.log(`\n=== ${cls} · Lauf ${i + 1} ===`);
     console.table(log.perDay);
     console.log('Quests:', log.quests.join(' '));
@@ -140,7 +165,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     if (process.env.BOTDIAG) { const a = G.curAct(), z = G.actProg(a), st = G.stats(), pc = x => Math.round(x * 100);
       console.log(`DIAG St.${S.lvl} Akt ${a.n} ${z}/9: ${G.actDone(a) ? '–' : pc(Game.actChance(a, z))} % · Krypten ${D.CRYPTS.filter(c => G.cryptOpen(c)).map(c => `${c.id}:${G.cryptTier(c)}@${pc(Game.cryptChance(c))}%`).join(' ')}`
         + ` · Leben ${st.hp} Rüstung ${st.armor} Resi P${pc(st.res.phys)}/E${pc(st.res.elem)} Schaden ${st.dmg.join('–')} Int ${st.int}`); }
-    console.log(`Kämpfe: Akte ${log.acts} neu + ${log.farm} gefarmt (−${log.actLoss}) · Grube ${log.pit} (−${log.pitLoss}) · Krypta ${log.crypt} (−${log.cryptLoss}) · Grube ${log.arena} (−${log.arenaLoss}) · gekauft ${log.bought} · Titel ${S.title || '-'}${pots ? ` · gebraut ${log.brewed} (${log.brewGold} Gold) · getrunken ${log.used} in ${log.potFights} Kämpfen` : ''}`);
+    console.log(`Kämpfe: Akte ${log.acts} neu + ${log.farm} gefarmt (−${log.actLoss}) · Grube ${log.pit} (−${log.pitLoss}) · Krypta ${log.crypt} (−${log.cryptLoss}) · Grube ${log.arena} (−${log.arenaLoss}) · Abgrund ${log.desc} (Boss ${log.descBoss}, −${log.descLoss}, Rekord T${Game.descRec().best}) · gekauft ${log.bought} · Titel ${S.title || '-'}${pots ? ` · gebraut ${log.brewed} (${log.brewGold} Gold) · getrunken ${log.used} in ${log.potFights} Kämpfen` : ''}`);
     // Zutaten je Art: die Summe allein verbirgt, dass eine Zutat nur im letzten Akt fällt
     if (pots) { console.log('  Zutaten übrig: ' + Object.keys(D.HERBS).map(k => `${D.HERBS[k].name} ${S.herbs[k] || 0}`).join(' · '));
       const srt = o => Object.entries(o).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}×`).join(' · ') || '–';
