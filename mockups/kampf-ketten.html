@@ -97,6 +97,39 @@
   .brow .n { font-family: 'Alegreya SC'; font-size: .85rem; color: var(--text); } .brow .f { font-size: 11px; color: var(--gold); font-family: 'Alegreya SC'; }
   .brow.free .f { color: var(--dim); font-family: 'Alegreya'; font-style: italic; } .brow .x { color: var(--dim); text-align: center; }
   .btn2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 6px; margin-top: auto; } .btn2 button { height: 42px; }
+
+  /* Zauberbuch */
+  .book { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 10px !important; }
+  .book .sprow { flex: 1 1 0; }
+  .sprow { display: grid; grid-template-columns: 52px 1fr 62px; gap: 8px; align-items: center; padding: 7px 8px; border-image: url('../assets/ui/cell.webp') 8 fill / 4px stretch; }
+  .sprow.rest { opacity: .78; }
+  .sprow .n { font-family: 'Alegreya SC'; font-size: .9rem; color: var(--text); display: flex; justify-content: space-between; }
+  .sprow .n span { font-size: 11px; color: var(--dim); }
+  .rk { height: 7px; margin: 4px 0 3px; background: url('../assets/ui/track.webp') center / 100% 100%; position: relative; }
+  .rk i { position: absolute; inset: 1px auto 1px 1px; width: var(--r); background: url('../assets/ui/fill_gold.webp') center / 100% 100%; }
+  .sprow .f { font-size: 11px; color: var(--dim); line-height: 1.25; } .sprow .f b { color: var(--gold); font-weight: 500; }
+  .role { font-family: 'Alegreya SC'; font-size: 11px; text-align: center; padding: 2px 0; box-shadow: inset 0 0 0 1px #4a3a26; color: var(--dim); }
+  .role.st { color: #a9d6ff; box-shadow: inset 0 0 0 1px #3b5f7d; } .role.br { color: var(--gold); box-shadow: inset 0 0 0 1px #7a5a26; } .role.fi { color: #ff9a4a; box-shadow: inset 0 0 0 1px #7a3a12; }
+  .slotno { display: block; font-family: 'Grenze Gotisch'; font-size: 1.2rem; color: var(--gold); text-align: center; line-height: 1; margin-bottom: 3px; }
+  .slotno.off { font-family: 'Alegreya SC'; font-size: 11px; color: var(--dim); }
+  .syn { padding: 8px 10px; font-size: .8rem; line-height: 1.4; color: #cdbd9c; border-image: url('../assets/ui/parchment.webp') 24 fill / 10px stretch; }
+  .syn b { color: #f0d79a; }
+  /* Baum eines Zaubers */
+  .tree2 { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 5px; padding: 10px !important; }
+  .th { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: center; }
+  .th .n { font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.35rem; line-height: 1; }
+  .th .f { font-size: 11px; color: var(--dim); }
+  .lvl { display: grid; grid-template-columns: 26px 1fr; gap: 6px; align-items: stretch; }
+  .lvl .ro { font-family: 'Grenze Gotisch'; color: #6d5a3e; font-size: 1.15rem; text-align: center; display: flex; flex-direction: column; justify-content: center; line-height: 1; }
+  .lvl .ro small { font-family: 'Alegreya SC'; font-size: 11px; color: var(--dim); margin-top: 3px; }
+  .opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; } .opts.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tree2 .lvl { flex: 1 1 0; min-height: 0; } .tree2 .opts { height: 100%; }
+  .op { padding: 6px 7px; min-height: 74px; border-image: url('../assets/ui/cell.webp') 8 fill / 4px stretch; }
+  .op .n { font-family: 'Alegreya SC'; font-size: .8rem; color: var(--text); line-height: 1.15; margin-bottom: 2px; }
+  .op .f { font-size: .78rem; color: var(--dim); line-height: 1.25; } .op .f em { color: var(--blood-hi); font-style: normal; }
+  .op.on { box-shadow: 0 0 0 1px #e0b050, 0 0 10px rgba(224,176,80,.45); } .op.on .n { color: var(--gold); }
+  .lvl.lock .op { opacity: .45; } .lvl.lock .ro { color: #3e3324; }
+  .ebn { font-family: 'Alegreya SC'; font-size: 11px; color: var(--dim); margin: 2px 0 1px 32px; } .ebn b { color: var(--gold); font-weight: 500; }
 </style></head><body>
 <div class="wrap">
 
@@ -203,6 +236,72 @@
   <div class="note2"><b>Die Entscheidung fällt hier, nicht im Kampf.</b> Reihenfolge durch Antippen tauschen, je Glied „werfen“
     oder „halten“. Die Pfeile sagen, welche Folge das nächste Glied zündet. Unten drei Zahlen aus Probekämpfen (wie heute die
     Siegchance): wie oft die Kette ganz läuft und wie oft das gehaltene Glied nie fällt – so ist „halten“ ein Preis, kein Raten.</div></div>
+
+  <!-- 4 Zauberbuch -->
+  <div><div class="cap">4 · Zauberbuch: 5 Zauber, 3 aktiv</div>
+  <div class="phone">
+    <div class="hud2"><h1>Sayfa</h1><span class="coin"></span><span class="lv">958</span><span class="lv">Stufe 24</span></div>
+    <section class="panel book">
+      <h3 class="sec">Zauberbuch <span>aktiv 3 / 3 · antippen zum Tauschen</span></h3>
+      <div class="sprow"><div><span class="slotno">1</span><div class="sl"><img src="../assets/spells/frost.webp" alt=""></div></div>
+        <div><div class="n">Frostnova <span>Rang 9</span></div><div class="rk" style="--r:45%"><i></i></div><div class="f">Betäubt 1 Zug · <b>Kältebruch</b> gewählt</div></div><span class="role st">Starter</span></div>
+      <div class="sprow"><div><span class="slotno">2</span><div class="sl"><img src="../assets/spells/meteor.webp" alt=""></div></div>
+        <div><div class="n">Meteor <span>Rang 12</span></div><div class="rk" style="--r:60%"><i></i></div><div class="f">Bei Krit lädt das Nächste · <b>Einzelstein</b></div></div><span class="role br">Brücke</span></div>
+      <div class="sprow"><div><span class="slotno">3</span><div class="sl"><img src="../assets/spells/feuerball.webp" alt=""></div></div>
+        <div><div class="n">Feuerball <span>Rang 15</span></div><div class="rk" style="--r:75%"><i></i></div><div class="f">+100 % unter 30 % Leben · <b>Glutkern</b></div></div><span class="role fi">Finisher</span></div>
+      <div class="sprow rest"><div><span class="slotno off">ruht</span><div class="sl"><img src="../assets/spells/hagel.webp" alt=""></div></div>
+        <div><div class="n">Hagel <span>Rang 4</span></div><div class="rk" style="--r:20%"><i></i></div><div class="f">4 Treffer zu 35 % · lernt nur, wenn aktiv</div></div><span class="role st">Starter</span></div>
+      <div class="sprow rest"><div><span class="slotno off">ruht</span><div class="sl"><img src="../assets/spells/wall.webp" alt=""></div></div>
+        <div><div class="n">Eiswall <span>Rang 2</span></div><div class="rk" style="--r:10%"><i></i></div><div class="f">Schild aus 20 % Leben · ab Stufe 26</div></div><span class="role">Schutz</span></div>
+      <div class="syn"><b>Synergien</b> (jeder Rang eines anderen Zaubers stärkt diesen):<br>
+        Feuerball +24 % aus Meteor Rang 12 · Meteor +18 % aus Feuerball Rang 15 · Frostnova +8 % aus Hagel Rang 4</div>
+      <div class="btn2"><button>Zurück</button><button class="red">Baum: Meteor</button></div>
+    </section>
+    <nav class="tabs2"><a class="on">Held</a><a>Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></nav>
+  </div>
+  <div class="note2"><b>Fünf Zauber, drei Plätze.</b> Jeder Zauber steigt durch Benutzung im Rang (Balken), seine Rolle in der
+    Kette (Starter, Brücke, Finisher) folgt aus seinem Baum. Ruhende Zauber lernen nicht, stärken aber über Synergien die aktiven –
+    ein Grund, auch sie einmal zu führen. Hagel und Eiswall nutzen vorhandene Bilder.</div></div>
+
+  <!-- 5 Baum eines Zaubers -->
+  <div><div class="cap">5 · Baum des Meteors</div>
+  <div class="phone">
+    <div class="hud2"><h1>Sayfa</h1><span class="coin"></span><span class="lv">958</span><span class="lv">Stufe 24</span></div>
+    <section class="panel tree2">
+      <div class="th"><div class="sl" style="width:56px;height:56px"><img src="../assets/spells/meteor.webp" alt=""></div>
+        <div><div class="n">Meteor</div><div class="rk" style="--r:60%"><i></i></div><div class="f">Rang 12 / 20 · +36 % Wirkung · nächste Ebene bei Rang 15</div></div></div>
+
+      <div class="ebn">Ebene I · <b>Form</b> – wie er trifft</div>
+      <div class="lvl"><div class="ro">I<small>R5</small></div><div class="opts">
+        <div class="op on"><div class="n">Einzelstein</div><div class="f">350 % auf ein Ziel</div></div>
+        <div class="op"><div class="n">Splitterregen</div><div class="f">3 Treffer zu 130 %, jeder kann kritten</div></div>
+        <div class="op"><div class="n">Feuersäule</div><div class="f">250 %, brennt 3 Züge nach</div></div></div></div>
+
+      <div class="ebn">Ebene II · <b>Folge</b> – seine Rolle in der Kette</div>
+      <div class="lvl"><div class="ro">II<small>R10</small></div><div class="opts">
+        <div class="op"><div class="n">Einschlag</div><div class="f">Starter: betäubt immer</div></div>
+        <div class="op on"><div class="n">Funkenflug</div><div class="f">Brücke: bei Krit lädt das nächste Glied</div></div>
+        <div class="op"><div class="n">Weltenbrand</div><div class="f">Finisher: +100 % unter 30 % Leben</div></div></div></div>
+
+      <div class="ebn">Ebene III · <b>Wucht</b> – Zahlen und Takt</div>
+      <div class="lvl lock"><div class="ro">III<small>R15</small></div><div class="opts">
+        <div class="op"><div class="n">Kometenschweif</div><div class="f">lädt 2 Züge schneller</div></div>
+        <div class="op"><div class="n">Gestirn</div><div class="f">+45 % Krit-Chance</div></div>
+        <div class="op"><div class="n">Sternenmasse</div><div class="f">+30 % Schaden</div></div></div></div>
+
+      <div class="ebn">Ebene IV · <b>Schlüsselstein</b> – groß, mit Preis</div>
+      <div class="lvl lock"><div class="ro">IV<small>R20</small></div><div class="opts two">
+        <div class="op"><div class="n">Weltenende</div><div class="f">trifft doppelt · <em>lädt 3 Züge länger</em></div></div>
+        <div class="op"><div class="n">Sternenfall</div><div class="f">wirkt sofort zu Kampfbeginn · <em>danach nie wieder</em></div></div></div></div>
+
+      <div class="syn"><b>54 Varianten</b> für diesen Zauber. Umwählen einer Ebene: <b>480 Gold</b>, der Rang bleibt.</div>
+      <div class="btn2"><button>Zurück</button><button class="red">Übernehmen</button></div>
+    </section>
+    <nav class="tabs2"><a class="on">Held</a><a>Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></nav>
+  </div>
+  <div class="note2"><b>Vier Ebenen, je drei Wege, die letzte ein Schlüsselstein mit Preis.</b> Ebene II entscheidet die Rolle in
+    der Kette – derselbe Meteor ist Starter, Brücke oder Finisher. Die heutigen Wege (Sternenfall, Einschlag, Glutfeld, Komet,
+    Weltenbrand, Gestirn) wandern in diese Ebenen, nichts geht verloren. Gesperrte Ebenen sind sichtbar, damit man weiß, worauf man hinarbeitet.</div></div>
 
 </div>
 </body></html>
