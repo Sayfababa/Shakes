@@ -76,8 +76,12 @@ export function fight(A, B) {
     atk.turn++;
     // Zauber laden pro eigenem Zug um 1 (+ Zaubertempo); der stärkste geladene wird gewirkt
     const sps = atk.spells || []; let sp = null;
-    sps.forEach((x, i) => { atk.ch[i] = (atk.ch[i] || 0) + (1 + (atk.haste || 0)) * (x.m?.desperate && atk.cur < atk.hp * x.m.desperate ? 2 : 1); if (atk.ch[i] >= x.every) sp = i; });
-    if (sp !== null) { atk.ch[sp] -= sps[sp].every; spell(atk, def, sps[sp]); } else strike(atk, def);
+    const inc = x => (1 + (atk.haste || 0)) * (x.m?.desperate && atk.cur < atk.hp * x.m.desperate ? 2 : 1);
+    sps.forEach((x, i) => { atk.ch[i] = (atk.ch[i] || 0) + inc(x); if (atk.ch[i] >= x.every) sp = i; });
+    // Held (Seite mit Klasse): Zauber nach Lage statt nach Rang; -1 = halten und hauen. Gehaltenes behält höchstens einen Zug Vorrat über voll.
+    if (CFG.spellPick && atk.cls && sp !== null) { sp = pickSpell(atk, def, sps);
+      sps.forEach((x, i) => { if (i !== sp) atk.ch[i] = Math.min(atk.ch[i], x.every + inc(x)); }); }
+    if (sp !== null && sp >= 0) { atk.ch[sp] -= sps[sp].every; spell(atk, def, sps[sp]); } else strike(atk, def);
     if (atk.rage && def.cur > 0 && atk.cur < atk.hp / 2 && chance(atk.rage)) { say(atk.side, `${atk.name} rast vor Wut!`, { rage: true }); strike(atk, def); }
     if (def.bleedDmg && def.cur > 0) { def.cur -= def.bleedDmg; say(atk.side, `${def.name} blutet (${def.bleedDmg}).`, { tick: def.bleedDmg, tk: 'bleed' }); }
     if (def.poisonDmg && def.cur > 0) { def.cur -= def.poisonDmg;
@@ -110,6 +114,56 @@ export function fight(A, B) {
   // Normaler Hieb ohne Zufall (Grundlage für Zauber)
   function base(x) { return (x.dmg[0] + x.dmg[1]) / 2 * (1 + x[x.main] / CFG.mainDiv) * x.buff * pb(x); }
   function pb(x) { return x.rageN > 0 ? 1 + x.potRage : 1; }
+
+  // --- Zauber nach Lage (System B) – Schätzungen ohne Krit und ohne Ausweichen, mit Rüstung/Resi/Henker wie im Treffer ---
+  // Rüstungs-Faktor eines Zaubers wie in spell(): physisch → Rüstung (minus Durchbohren), sonst ganz vorbei
+  function spellRed(x, y, s) { return s.el && ELEMENTS[s.el].res !== 'phys' ? 1 : 1 - armorRed(y.armor, x.lvl, x.pen || 0) * (1 - Math.min(1, s.m?.pierce || 0)); }
+  // erwarteter Sofortschaden eines Zaubers (Grundwirkung + Weg „trifft zusätzlich“ + Detonation)
+  function spellEst(x, y, s) {
+    const m = s.m || {}, amp = (x.amp || 1) * (s.boost || 1), red = spellRed(x, y, s), o = { execute: m.execute, el: s.el || 'phys' };
+    const sh = m.fresh && y.cur > y.hp * 0.7 ? 1 + m.fresh : 1, one = k => scale(x, y, base(x) * k * amp * red * sh, o);
+    let d = s.kind === 'multi' ? s.hits * one(s.mult) : ['hit', 'stun', 'mark'].includes(s.kind) ? one(s.mult * (s.kind === 'mark' && y.cur < y.hp / 2 ? 2 : 1)) : 0;
+    if (d && m.strike) d += one(m.strike);
+    if (m.detonate && y.poisonDmg) d += y.poisonDmg * m.detonate;
+    return d;
+  }
+  // höchster Schaden, den y mit seinem nächsten Zug anrichten kann (Krit, Raserei-Doppelhieb, Eifer, Zorn) + die Ticks auf x
+  function threat(y, x) {
+    let hit = y.dmg[1] * (1 + y[y.main] / CFG.mainDiv) * (y.buff + (y.ramp || 0)) * pb(y);
+    hit = scale(y, x, hit, { arm: armorRed(x.armor, y.lvl, y.pen || 0) });
+    if (critChance(y, x.lvl) - (x.critRes || 0) > 0 && !y.hemorrhage) hit *= y.critMult || 2;
+    const n = (y.rage && y.cur < y.hp / 2 ? 2 : 1) + (y.zeal ? y.zeal : 0);
+    return hit * n + (x.poisonDmg || 0) + (x.bleedDmg || 0) + (x.burn?.n > 0 ? x.burn.d : 0);
+  }
+  // Wahl unter den vollen Zaubern: Index oder -1 (halten, normaler Hieb). Reihenfolge → E „Zauber nach Lage“.
+  function pickSpell(x, y, sps) {
+    const full = sps.map((s, i) => [s, i]).filter(([s, i]) => (x.ch[i] || 0) >= s.every); if (!full.length) return -1;
+    const ehp = y.cur + (y.shield || 0), sure = !y.lastBreath || y.lbUsed;   // „Letzter Atem“ überlebt den ersten tödlichen Treffer
+    const canStun = !y.stunned && !(y.stunImm > 0), dmgK = s => ['hit', 'multi', 'mark'].includes(s.kind) || (s.kind === 'stun' && canStun);
+    const dots = !!(x.poisonDmg || x.bleedDmg || x.burn?.n);
+    // 1 Heilung/Schild: unter halbem Leben oder wenn der nächste gegnerische Zug tödlich sein kann; nicht, wenn Heilung gebannt ist
+    const heal = full.filter(([s]) => (s.kind === 'shield' || (s.kind === 'heal' && (!(x.noheal > 0) || s.m?.cleanse && dots))));
+    if (heal.length && (x.cur < x.hp * 0.5 || threat(y, x) >= x.cur + (x.shield || 0))) return heal[0][1];
+    // 2 der Hieb tötet sicher (geringster Wurf, nicht blockbar) → alle Zauber halten
+    const low = scale(x, y, x.dmg[0] * (1 + x[x.main] / CFG.mainDiv) * x.buff * pb(x), { arm: armorRed(y.armor, x.lvl, x.pen || 0) });
+    if (sure && !y.block && low >= ehp) return -1;
+    // 3 der kleinste Schadenszauber, der tötet
+    const kill = sure ? full.filter(([s]) => dmgK(s) && spellEst(x, y, s) >= ehp).sort((p, q) => p[0].every - q[0].every) : [];
+    if (kill.length) return kill[0][1];
+    // 4 Betäubung, wenn sie greift
+    const st = full.find(([s]) => s.kind === 'stun' && canStun); if (st) return st[1];
+    // 5 Gift, wenn das neue deutlich stärker wäre als das laufende (nicht, solange der Gegner gereinigt ist)
+    const dot = full.find(([s]) => { if (s.kind !== 'dot' || y.cureN > 0) return false; const d = scale(x, y, base(x) * s.mult * (x.amp || 1) * (s.boost || 1) * spellRed(x, y, s), { el: s.el || 'phys' }), cur = y.poisonDmg || 0;
+      return cur < 0.8 * (s.m?.dotStack ? Math.min(d * s.m.dotStack, cur + d) : Math.max(cur, d)); });
+    if (dot) return dot[1];
+    // 6 Buff, solange er wachsen kann (oder seine Schwächung abgelaufen ist)
+    const bf = full.find(([s]) => s.kind === 'buff' && (x.buff < 1 + (s.max || 9) * (s.boost || 1) - 1e-6 || s.m?.weaken && !(y.weakN > 0))); if (bf) return bf[1];
+    // 7 der Schadenszauber mit dem höchsten erwarteten Schaden; Heilung mit Nebenwirkung (Raserei-Weg, Ausbrennen) zählt auch
+    const dm = full.filter(([s]) => dmgK(s)).sort((p, q) => spellEst(x, y, q[0]) - spellEst(x, y, p[0]));
+    if (dm.length) return dm[0][1];
+    const side = full.find(([s]) => s.kind === 'heal' && (s.m?.buff && x.buff < 2.5 || s.m?.cleanse && dots || s.m?.stunImmune && !(x.stunImm > 0)));
+    return side ? side[1] : -1;
+  }
   // Betäuben (Glocke, Zauber): nicht wenn unbetäubbar; danach ist der Gegner kurz „erschüttert“ (für Kombos)
   // Set „Tracht der Wäscherinnen“: unter halbem Leben heilt dich alles doppelt
   function healMul(x) { return x.lastStand && x.cur < x.hp * 0.5 ? CFG.lastStandMul : 1; }
@@ -196,11 +250,16 @@ export function fight(A, B) {
 
   // Henker und Krit auf rohen Schaden (für Hieb und Zauber); o: Zusatz-Krit/Henker eines Zauber-Wegs, force = sicherer Krit (Kombo),
   // o.el = Schadensart des Zaubers (sonst Hieb-Mischung des Angreifers) gegen die Resistenz des Ziels
-  function finish(x, y, raw, o = {}) {
+  // Der Teil ohne Zufall (auch für die Zauberwahl): Resistenz, Henker, Vergeltung, geschwächt/verwundbar
+  function scale(x, y, raw, o = {}) {
     let d = raw * resMul(x.mix, y, o.el, o.arm || 0, x.elemPen || 0); const ex = (x.execute || 0) + (o.execute || 0); if (ex && y.cur < y.hp * (0.3 + (x.execHp || 0))) d *= 1 + ex;   // Set „Schürze des Metzgers“ hebt die Schwelle
     if (x.vengeance) d *= 1 + x.vengeance * (1 - Math.max(0, x.cur) / x.hp);   // Vergeltung: je weniger eigenes Leben, desto härter
     if (x.weakN > 0) d *= 1 - x.weak;                  // geschwächt: macht weniger Schaden
     if (y.vulnN > 0) d *= 1 + y.vuln;                  // verwundbar: nimmt mehr Schaden
+    return d;
+  }
+  function finish(x, y, raw, o = {}) {
+    let d = scale(x, y, raw, o);
     // Ausbluten (Schlüsselstein): nie ein kritischer Treffer – dafür blutet jeder Hieb (siehe onHit)
     const crit = x.hemorrhage ? false : (o.force || chance(critChance(x, y.lvl, o.crit || 0) - (y.critRes || 0)));
     if (crit) d *= x.critMult || 2;

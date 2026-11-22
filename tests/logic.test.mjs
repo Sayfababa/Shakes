@@ -1600,3 +1600,52 @@ test('Weicher Deckel: Ausweichen/Krit wachsen bis zur Grenze immer weiter, errei
   assert.ok(e < 0.55 && e > 0.45, `Ausweichen ${e}`); assert.ok(evadeChance({ ...y, evade: 0.34 }, 28) > e, 'mehr Ausweichen bringt noch etwas');
   assert.ok(critChance({ lck: 80 }, 8) > critChance({ lck: 53 }, 8), 'mehr Glück bringt noch Krit');
 });
+
+// --- Zauber nach Lage (System B, combat.js pickSpell): ruft fight() auf, baut die Regel nicht nach ---
+// Ein Held, der sicher zuerst zieht, alle Zauber sofort voll (Weg „open“); erster eigener Zug zeigt die Wahl.
+test('Zauber nach Lage: Auswahlregeln des Helden', () => {
+  const sp = (id, kind, every, x = {}) => ({ id, name: id, every, kind, m: { open: 1 }, ...x });
+  const hero = (spells, x = {}) => ({ name: 'H', cls: 'sorceress', lvl: 20, main: 'int', str: 0, dex: 0, int: 0, con: 10, lck: 0, armor: 0, dmg: [10, 10], hp: 1000, first: 1, amp: 1, spells, ...x });
+  const foe = (x = {}) => ({ name: 'G', lvl: 20, main: 'str', str: 0, dex: 0, int: 0, con: 10, lck: 0, armor: 0, dmg: [5, 5], hp: 5000, ...x });
+  const first = (A, B) => { const l = fight(A, B).log.find(e => e.who === 'a'); return l.spell || 'Hieb'; };
+  const nova = sp('nova', 'stun', 5, { mult: 1.2 }), ball = sp('ball', 'hit', 3, { mult: 1.7 }), heal = sp('heal', 'heal', 6, { pct: 0.15 });
+  // Betäubung nicht auf Immune – dann der stärkere Schadenszauber (Feuerball statt Nova)
+  assert.equal(first(hero([ball, nova]), foe()), 'nova');
+  assert.equal(first(hero([ball, nova]), foe({ stunImm: 9 })), 'ball');
+  // Heilung bei vollem Leben halten, unter halbem Leben wirken
+  assert.equal(first(hero([heal]), foe()), 'Hieb');
+  assert.equal(first(hero([heal], { cur0: 400 }), foe()), 'heal');
+  // … aber nicht halten, wenn der nächste Gegnertreffer tödlich sein kann (80 % Leben, Gegner trifft für bis zu ~900)
+  assert.equal(first(hero([heal], { cur0: 800 }), foe({ dmg: [300, 450] })), 'heal');
+  // Heilung gebannt (Pakt) → halten
+  assert.equal(first(hero([heal], { cur0: 400, nohealSelf: 1 }), foe()), 'Hieb');
+  // Hieb tötet sicher → alle Zauber halten; Zauber tötet → der kleinste tötende
+  assert.equal(first(hero([ball, sp('meteor', 'hit', 7, { mult: 3.5 })]), foe({ hp: 5 })), 'Hieb');
+  assert.equal(first(hero([sp('meteor', 'hit', 7, { mult: 3.5 }), ball]), foe({ hp: 16 })), 'ball');
+  assert.equal(first(hero([ball, sp('meteor', 'hit', 7, { mult: 3.5 })]), foe({ hp: 30 })), 'meteor');
+  // Buff am Maximum nicht wiederholen
+  const cry = sp('cry', 'buff', 4, { v: 0.2, max: 0.4 });
+  assert.equal(first(hero([cry]), foe()), 'cry');
+  const r = fight(hero([cry]), foe()); const cries = r.log.filter(e => e.who === 'a' && e.spell === 'cry').length;
+  assert.equal(cries, 2, 'Kriegsschrei nur bis +40 % (zweimal)');
+  // Gift: neu nur, wenn das laufende schwächer als 80 % des neuen ist
+  const dot = sp('gift', 'dot', 4, { mult: 0.35 });
+  assert.equal(first(hero([dot]), foe()), 'gift');
+  assert.equal(first(hero([dot]), foe({ poisonDmg: 50 })), 'Hieb');
+  // Gehaltene Ladung bleibt (höchstens ein Zug Vorrat über voll): Kampf mit gehaltener Heilung zeigt später die Heilung
+  const long = fight(hero([heal]), foe({ dmg: [60, 60] }));
+  assert.ok(long.log.some(e => e.who === 'a' && e.spell === 'heal'), 'gehaltene Heilung kommt, sobald sie gebraucht wird');
+  // Monster (ohne Klasse) und Schalter aus: alter Takt (höchster Rang zuerst)
+  D.CFG.spellPick = false; try { assert.equal(first(hero([ball, nova]), foe({ stunImm: 9 })), 'nova'); } finally { D.CFG.spellPick = true; }
+});
+
+test('Zauber nach Lage: Nachhall und „Krone ohne Träger“ wirken nie öfter als zweimal', () => {
+  const ball = { id: 'ball', name: 'ball', every: 3, kind: 'hit', mult: 1.7, m: { open: 1 } };
+  for (let i = 0; i < 40; i++) {
+    const r = fight({ name: 'H', cls: 'sorceress', lvl: 20, main: 'int', str: 0, dex: 0, int: 0, con: 10, lck: 0, armor: 0, dmg: [10, 10], hp: 1000, first: 1, amp: 1, echo: 1, firstEcho: 1, spells: [ball] },
+      { name: 'G', lvl: 20, main: 'str', str: 0, dex: 0, int: 0, con: 10, lck: 0, armor: 0, dmg: [5, 5], hp: 5000 });
+    // Folge gleicher Zauber ohne Zug dazwischen: Grundwirkung + höchstens Nachhall + erstes Doppel
+    let run = 0, max = 0; for (const e of r.log) { if (e.who === 'a' && e.spell) { run++; max = Math.max(max, run); } else if (e.who === 'b' || (e.who === 'a' && !e.spell && !/hallt|zweimal/.test(e.t))) run = 0; }
+    assert.ok(max <= 3, `höchstens 3 Würfe am Stück, war ${max}`);
+  }
+});
