@@ -1358,3 +1358,65 @@ test('Das Verzeichnis leitet ab und vergisst keinen Weg', async () => {
   G.S.mats = { asche: 0, siegel: 9, staub: 9, blutstein: 9, leinen: 9, zahn: 9 };
   assert.equal(W.matBottleneck()?.k, 'asche', 'Der Engpass zeigt nicht auf das knappste Material');
 });
+
+// --- Welle 2a: Schadensarten, Resistenzen, Waffen-Deckel ---
+const { seeded } = await import('../js/rng.js');
+const C = await import('../js/combat.js');
+const firstDmg = (r, who, pred) => r.log.find(l => l.who === who && l.dmg && pred(l))?.dmg;
+
+test('Schadensarten: Feuer/Eis gegen Elementar-Resi, Hiebe gegen Phys.-Resi, Gegner verteilen ihren Schaden', () => {
+  fresh('sorceress'); G.S.lvl = 20; const A = { ...G.stats() }; A.hp *= 200;   // zäh genug, dass er zum Zaubern kommt
+  assert.equal(A.spells.find(s => s.id === 'feuerball').el, 'fire'); assert.equal(A.spells.find(s => s.id === 'frost').el, 'cold');
+  const B = G.makeMonster(20, 1, D.MONSTERS[0]); B.hp *= 50;
+  const run = res => seeded(7, () => fight(A, { ...B, res }));
+  const r0 = run({}), rE = run({ elem: 0.5 }), rP = run({ phys: 0.5 });
+  const fb = l => l.spell === 'Feuerball', hb = l => !l.spell;
+  // gleicher Würfel: Feuerball halbiert sich gegen Elementar-Resi, nicht gegen Phys.-Resi; beim Hieb umgekehrt
+  assert.ok(Math.abs(firstDmg(rE, 'a', fb) / firstDmg(r0, 'a', fb) - 0.5) < 0.02, 'Feuer ignoriert Elementar-Resi');
+  assert.equal(firstDmg(rP, 'a', fb), firstDmg(r0, 'a', fb), 'Feuer wird von Phys.-Resi gebremst');
+  assert.ok(Math.abs(firstDmg(rP, 'a', hb) / firstDmg(r0, 'a', hb) - 0.5) < 0.05, 'Hieb ignoriert Phys.-Resi');
+  // Gegner mit 60 % Feuer: gegen 50 % Elementar-Resi bleiben 1 − 0,6 × 0,5 = 70 % seines Hiebs
+  assert.ok(Math.abs(C.resMul({ fire: 0.6 }, { res: { elem: 0.5 } }) - 0.7) < 1e-9);
+  assert.ok(Math.abs(C.resMul({ cold: 0.3 }, { res: { phys: 0.2, elem: 0.4 } }) - (0.7 * 0.8 + 0.3 * 0.6)) < 1e-9);
+  // Daten: jede Mischung ≤ 100 %, jede Resi 0..CFG.resCap; jeder Akt- und Krypta-Boss hat eine erkennbare Mischung oder Resi
+  for (const m of [...D.MONSTERS, ...D.CRYPTS.map(c => c.boss), ...D.ACTS.map(a => a.boss)]) {
+    const x = C.mixOf(m.mix); assert.ok(x.phys >= 0 && x.fire + x.cold <= 1, m.name);
+    for (const v of Object.values(m.res || {})) assert.ok(v >= 0 && v <= D.CFG.resCap, m.name);
+  }
+  for (const b of [...D.CRYPTS.map(c => c.boss), ...D.ACTS.map(a => a.boss)]) assert.ok(b.mix || b.res, `Boss ohne Schadensart/Resi: ${b.name}`);
+  // Vor dem Kampf sichtbar: enemyInfo nennt Mischung und Resi, „Trifft dich“ rechnet deine Resi ein
+  const H = G.makeMonster(20, 1, D.MONSTERS.find(m => m.name === 'Höllenbrut')), e0 = Game.enemyInfo(H, A), e1 = Game.enemyInfo(H, { ...A, res: { phys: 0, elem: 0.5 } });
+  assert.equal(e0.mix.fire, 0.7); assert.equal(e0.res.elem, 0.2); assert.ok(e1.hit[1] < e0.hit[1], 'Resi senkt „Trifft dich“ nicht');
+});
+
+test('Resistenzen: aus Teilen summiert, im Kampf bei 75 % gedeckelt, Malus wirkt vor dem Deckel', () => {
+  fresh('barbarian'); G.S.lvl = 30;
+  G.S.equip.helm = makeItem(30, { slot: 'helm' }); G.S.equip.helm.mods = { elemr: 50, physr: 10 };
+  G.S.equip.ring1 = makeItem(30, { slot: 'ring' }); G.S.equip.ring1.mods = { elemr: 40 };
+  const A = G.stats(); assert.ok(Math.abs(A.res.elem - 0.9) < 1e-9 && Math.abs(A.res.phys - 0.1) < 1e-9, JSON.stringify(A.res));
+  assert.equal(C.resOf(A, 'elem'), D.CFG.resCap, 'Deckel 75 % greift nicht');
+  assert.equal(C.resOf({ res: { elem: 0.9 }, resPen: 0.1 }, 'elem'), 0.75, 'Malus vor dem Deckel: 90 − 10 = 80 → 75');
+  assert.ok(Math.abs(C.resOf({ res: { elem: 0.5 }, resPen: 0.2 }, 'elem') - 0.3) < 1e-9);
+  // Im Kampf: 90 % wirkt wie 75 % (gleicher Würfel, gleicher Schaden)
+  const B = G.makeMonster(30, 1, D.MONSTERS.find(m => m.name === 'Höllenbrut')); A.hp *= 50;
+  const hit = res => firstDmg(seeded(3, () => fight({ ...A, res }, B)), 'b', l => !l.spell);
+  assert.equal(hit({ elem: 0.9 }), hit({ elem: 0.75 })); assert.ok(hit({ elem: 0.75 }) < hit({ elem: 0 }));
+  // Abgrund: Malus je Tiefe ist ein Dateneintrag und heute aus
+  assert.ok(D.DESCENT.resMalus && D.DESCENT.resMalus.v === 0); for (const d of [1, 10, 50, 200]) assert.equal(Game.descResPen(d), 0);
+  // Affixe: nur Rüstungsteile und Schmuck, kleine Werte (Stufe I ≤ 11 %), beide auf einem Teil möglich
+  for (const k of ['physr', 'elemr']) { const a = D.AFFIXES.find(x => x.stat === k); assert.ok(!a.slots.includes('weapon') && a.slots.includes('ring') && a.side === 'suf');
+    assert.ok(L.tierBand(a, D.TIERS[0])[1] <= 11, `${k} Stufe I zu groß: ${L.tierBand(a, D.TIERS[0])}`); }
+  assert.ok(power0ok());
+  function power0ok() { const p0 = G.power(G.stats()); G.S.equip.helm.mods = {}; G.S.equip.ring1.mods = {}; return p0 > G.power(G.stats()); }   // power() kennt die Resi
+});
+
+test('Waffen-Deckel: Grundschaden wirkt höchstens wie Heldenstufe + 10, sichtbar im Tooltip', () => {
+  fresh('sorceress'); const S = G.S;
+  const w = makeItem(59, { slot: 'weapon', kind: 'staff' }); w.lvl = 59; w.mods = {}; S.equip.weapon = w;
+  S.lvl = 22; const a = G.stats().dmg, eff = L.wpnDmg(w, 22);
+  assert.notEqual(eff, w.dmg); assert.ok(eff[1] < w.dmg[1]);
+  const f = L.lvlScale(32) / L.lvlScale(59); assert.ok(Math.abs(eff[1] - Math.round(w.dmg[1] * f)) <= 1, `${eff} vs ${w.dmg}`);
+  S.lvl = 49; assert.equal(L.wpnDmg(w, 49), w.dmg, 'ab Heldenstufe GS − 10 voll'); const b = G.stats().dmg;
+  assert.ok(b[1] > a[1], 'höhere Heldenstufe hebt den Deckel nicht');
+  S.lvl = 22; w.lvl = 20; assert.equal(L.wpnDmg(w, 22), w.dmg, 'Waffe unter dem Deckel wird gekürzt');
+});

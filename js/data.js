@@ -67,6 +67,7 @@ export const STASH_W = 10, STASH_H = 6;
 const ATTR_SLOTS = ['weapon', 'helm', 'chest', 'belt', 'offhand', 'amulet', 'ring'];   // nicht Handschuhe, Stiefel
 const HIT_SLOTS = ['weapon', 'gloves', 'ring', 'amulet'];                               // Schaden: Waffe, Handschuhe, Schmuck
 const ARMOR_SLOTS = ['helm', 'chest', 'gloves', 'boots', 'belt', 'offhand'];
+const RES_SLOTS = [...ARMOR_SLOTS, 'amulet', 'ring'];                                // Resistenzen: Rüstungsteile und Schmuck
 export const AFFIXES = [
   { stat: 'str', per: 1, pre: 'Starker', suf: 'des Bären', side: 'pre', group: 'attr', slots: ATTR_SLOTS },
   { stat: 'dex', per: 1, pre: 'Flinker', suf: 'des Fuchses', side: 'pre', group: 'attr', slots: ATTR_SLOTS },
@@ -86,10 +87,19 @@ export const AFFIXES = [
   { stat: 'blockp', per: 1.33, pre: 'Wehrhafter', suf: 'des Walls', pct: 1, label: 'Blocken', side: 'suf', slots: ['offhand'] },
   { stat: 'evadep', per: 1.33, pre: 'Schemenhafter', suf: 'des Nebels', pct: 1, label: 'Ausweichen', side: 'suf', slots: ['boots', 'gloves'] },
   { stat: 'thornsp', per: 5, pre: 'Dorniger', suf: 'der Dornen', pct: 1, label: 'Dornen', side: 'suf', slots: ['chest', 'offhand'] },
+  // Resistenzen (Welle 2a): klein je Teil (Stufe I ≈ 9–10 %), Deckel CFG.resCap – beide auf 75 % zu bringen braucht fast jeden Platz.
+  // Eigene Gruppen: ein Teil darf beide tragen. per geeicht gegen Konstitution (tests/calib.mjs).
+  { stat: 'physr', per: 0.7, pre: 'Eherner', suf: 'des Steins', pct: 1, label: 'Phys.-Resi', side: 'suf', slots: RES_SLOTS },
+  { stat: 'elemr', per: 0.7, pre: 'Gebannter', suf: 'der Elemente', pct: 1, label: 'Elem.-Resi', side: 'suf', slots: RES_SLOTS },
 ];
 // Zauber-Boni (nur auf Waffen der Klasse, die den Zauber hat): "+N % Feuerball" stärkt Schaden/Heilung/Schild/Wirkung des Zaubers.
 // Werden am Dateiende aus SPELLS erzeugt (stat 'sk_<id>', cls).
 export const SKILL_PER = 2.7;
+// --- Schadensarten (Welle 2a): physisch, Feuer, Eis. Feuer und Eis zählen gegen dieselbe Resistenz (Elementar).
+// Gegner tragen `mix` (Anteil Feuer/Eis an ihren Hieben, Rest physisch) und `res` ({ phys, elem }, Anteil 0..1).
+// Zauber tragen `el` (fehlt = physisch). Helden-Hiebe sind physisch. Resistenzen gedeckelt bei CFG.resCap.
+export const ELEMENTS = { phys: { name: 'Physisch', short: 'Phys', res: 'phys' }, fire: { name: 'Feuer', short: 'Feuer', res: 'elem' }, cold: { name: 'Eis', short: 'Eis', res: 'elem' } };
+export const RES_NAMES = { phys: 'Phys.-Resi', elem: 'Elem.-Resi' };
 // Obergrenzen für Prozent-Boni (Summe aus allem)
 export const CAPS = { crit: 0.6, critMult: 3.5, leech: 0.4, thorns: 0.6, evade: 0.5, block: 0.5, pen: 0.9 };
 // Grammatisches Geschlecht der Grundgegenstände für Namen („Starke Kappe“, „Rostiges Beil“). Nicht Genanntes ist männlich. p = Mehrzahl.
@@ -278,13 +288,14 @@ export const SELL = { share: 0.5, legendMat: 1,
   mat: { weapon: 'asche', offhand: 'asche', helm: 'staub', belt: 'staub', chest: 'blutstein', ring: 'blutstein', gloves: 'leinen', boots: 'leinen', amulet: 'siegel' } };
 
 
+// mix/res: Schadensart und Resistenz (siehe ELEMENTS) – vor dem Kampf sichtbar (Vorbereitung, enemyInfo)
 export const MONSTERS = [
-  { name: 'Verfaulter Ghul', glyph: 'ghul', mat: 'zahn' }, { name: 'Gefallener', glyph: 'fallen', mat: 'asche' },
-  { name: 'Skelettkrieger', glyph: 'skelett', mat: 'staub' }, { name: 'Grabräuber', glyph: 'grabraeuber', mat: 'leinen' },
-  { name: 'Pestratte', glyph: 'pestratte', mat: 'schwanz' }, { name: 'Kultist der Glocke', glyph: 'kultist', mat: 'siegel' },
-  { name: 'Blutfürst', glyph: 'blutfuerst', mat: 'blutstein' }, { name: 'Sumpfhexe', glyph: 'sumpfhexe', mat: 'haar' },
-  { name: 'Knochenhund', glyph: 'knochenhund', mat: 'staub' }, { name: 'Gehäuteter', glyph: 'gehaeuteter', mat: 'blutstein' },
-  { name: 'Höllenbrut', glyph: 'hoellenbrut', mat: 'asche' }, { name: 'Wiedergänger', glyph: 'wiedergaenger', mat: 'leinen' },
+  { name: 'Verfaulter Ghul', glyph: 'ghul', mat: 'zahn' }, { name: 'Gefallener', glyph: 'fallen', mat: 'asche', mix: { fire: 0.5 } },
+  { name: 'Skelettkrieger', glyph: 'skelett', mat: 'staub', mix: { cold: 0.3 }, res: { phys: 0.1 } }, { name: 'Grabräuber', glyph: 'grabraeuber', mat: 'leinen' },
+  { name: 'Pestratte', glyph: 'pestratte', mat: 'schwanz' }, { name: 'Kultist der Glocke', glyph: 'kultist', mat: 'siegel', mix: { fire: 0.6 }, res: { elem: 0.1 } },
+  { name: 'Blutfürst', glyph: 'blutfuerst', mat: 'blutstein', mix: { fire: 0.4 } }, { name: 'Sumpfhexe', glyph: 'sumpfhexe', mat: 'haar', mix: { cold: 0.7 }, res: { elem: 0.15 } },
+  { name: 'Knochenhund', glyph: 'knochenhund', mat: 'staub', mix: { cold: 0.3 } }, { name: 'Gehäuteter', glyph: 'gehaeuteter', mat: 'blutstein' },
+  { name: 'Höllenbrut', glyph: 'hoellenbrut', mat: 'asche', mix: { fire: 0.7 }, res: { elem: 0.2 } }, { name: 'Wiedergänger', glyph: 'wiedergaenger', mat: 'leinen', mix: { cold: 0.5 } },
 ];
 
 // Streifzüge: Orte mit eigenen Monstern. Freigeschaltet über Stufe.
@@ -514,6 +525,8 @@ export const CFG = {
   monGrow: 2.7,                       // Monster-Attribute je Stufe (3 + Stufe × monGrow); power() und die Werte-Ansicht rechnen mit demselben Wert
   hemoBleed: 0.85,                    // Ausbluten: Grundstärke des Blutens je Treffer (dafür nie kritisch)
   igniteTurns: 3,                     // Brand (Schlüsselstein Verbrennung): wie viele Runden der Brand des Zaubers läuft
+  resCap: 0.75,                       // Resistenzen (Physisch, Elementar) wirken höchstens bis 75 % (Welle 2a)
+  wpnLvlAdd: 10,                      // Waffen-Grundschaden wirkt höchstens wie Gegenstandsstufe Heldenstufe + 10 (Tooltip zeigt „wirksam“)
   offWeapon: 0.7, offWeaponSpell: 0.6,  // fremde Waffe (nicht die der Klasse): Schaden ×0,7, Zauberkraft ×0,6                // Ausgleich für Zauber (Monster-Leben/-Schaden)
 };
 
@@ -547,9 +560,9 @@ export const SPELLS = {
     { id: 'falle', fx: '#a0703a', name: 'Fangeisen', lvl: 18, every: 6, kind: 'stun', mult: 1.4, text: '140 % Schaden und betäubt' },
   ],
   sorceress: [
-    { id: 'feuerball', fx: '#ff7a1a', name: 'Feuerball', lvl: 1, every: 3, kind: 'hit', mult: 1.7, text: '170 % Schaden, nicht blockbar' },
-    { id: 'frost', fx: '#9fd8ff', name: 'Frostnova', lvl: 8, every: 5, kind: 'stun', mult: 1.2, text: '120 % Schaden und betäubt' },
-    { id: 'meteor', fx: '#ff5a10', name: 'Meteor', lvl: 18, every: 7, kind: 'hit', mult: 3.5, text: '350 % Schaden' },
+    { id: 'feuerball', el: 'fire', fx: '#ff7a1a', name: 'Feuerball', lvl: 1, every: 3, kind: 'hit', mult: 1.7, text: '170 % Schaden, nicht blockbar' },
+    { id: 'frost', el: 'cold', fx: '#9fd8ff', name: 'Frostnova', lvl: 8, every: 5, kind: 'stun', mult: 1.2, text: '120 % Schaden und betäubt' },
+    { id: 'meteor', el: 'fire', fx: '#ff5a10', name: 'Meteor', lvl: 18, every: 7, kind: 'hit', mult: 3.5, text: '350 % Schaden' },
   ],
   witch: [
     { id: 'speer', fx: '#7fd13a', name: 'Knochenspeer', lvl: 1, every: 3, kind: 'hit', mult: 1.6, text: '160 % Schaden, nicht blockbar' },
@@ -588,7 +601,7 @@ export const EFFECT_NAMES = { dmgPct: 'Schaden', hpPct: 'Leben', armorPct: 'Rüs
   nohealSelf: 'Du kannst dich nicht heilen',
   hemorrhage: 'Bluten bei jedem Treffer – dafür nie kritisch', evadeCap: 'Ausweich-Grenze', critDmg: 'Krit-Schaden',
   tollback: 'Betäubung prallt zurück', firstEcho: 'Erster Zauber wirkt zweimal',
-  spellPct: 'Zauberschaden', ignite: 'Jeder Zauber setzt in Brand' };
+  spellPct: 'Zauberschaden', ignite: 'Jeder Zauber setzt in Brand', physRes: 'Phys.-Resi', elemRes: 'Elem.-Resi' };
 
 // --- Das Brett (neuer Talentbaum) ---
 // Drei Zweige, von unten nach oben: kleine Knoten, dazwischen zwei Notable (ändern eine Regel),
@@ -717,15 +730,15 @@ export const DIFFICULTIES = [
 ];
 export const CRYPTS = [
   { id: 'c1', name: 'Gruft der Wäscherinnen', lvl: 1, glyph: 'skull', floors: ['Knochenhund', 'Skelettkrieger', 'Wiedergänger', 'Grabräuber'],
-    boss: { name: 'Mutter Gerlinde, die Ertränkte', glyph: 'gerlinde', mech: { regen: 0.03, leech: 0.1 }, mechText: 'Zieht Leben aus dir und heilt sich' }, trophy: { hpPct: 0.05 } },
+    boss: { name: 'Mutter Gerlinde, die Ertränkte', glyph: 'gerlinde', mech: { regen: 0.03, leech: 0.1 }, mechText: 'Zieht Leben aus dir und heilt sich', mix: { cold: 0.4 }, res: { elem: 0.1 } }, trophy: { hpPct: 0.05 } },
   { id: 'c2', name: 'Die Pestkapelle', lvl: 6, glyph: 'rat', floors: ['Pestratte', 'Verfaulter Ghul', 'Kultist der Glocke', 'Gehäuteter'],
-    boss: { name: 'Bruder Aldemar, der Verseuchte', glyph: 'aldemar', mech: { poison: 0.25 }, mechText: 'Gift, das sich stapelt – kurze Kämpfe gewinnen' }, trophy: { dmgPct: 0.05 } },
+    boss: { name: 'Bruder Aldemar, der Verseuchte', glyph: 'aldemar', mech: { poison: 0.25 }, mechText: 'Gift, das sich stapelt – kurze Kämpfe gewinnen', mix: { fire: 0.2 }, res: { phys: 0.15 } }, trophy: { dmgPct: 0.05 } },
   { id: 'c3', name: 'Das Schlachthaus', lvl: 12, glyph: 'ghoul', floors: ['Gehäuteter', 'Gefallener', 'Blutfürst', 'Höllenbrut'],
-    boss: { name: 'Der Metzger von Vhal', glyph: 'butcher', mech: { execute: 0.6, rage: 0.4 }, mechText: 'Wird rasend und schlachtet Geschwächte' }, trophy: { crit: 0.03 } },
+    boss: { name: 'Der Metzger von Vhal', glyph: 'butcher', mech: { execute: 0.6, rage: 0.4 }, mechText: 'Wird rasend und schlachtet Geschwächte', res: { phys: 0.2 } }, trophy: { crit: 0.03 } },
   { id: 'c4', name: 'Turm der Glocke', lvl: 20, glyph: 'horn', floors: ['Kultist der Glocke', 'Sumpfhexe', 'Blutfürst', 'Höllenbrut'],
-    boss: { name: 'Der Glöckner', glyph: 'bellringer', mech: { toll: 1 }, mechText: 'Jeder dritte Schlag betäubt dich' }, trophy: { armorPct: 0.1, hpPct: 0.05 } },
+    boss: { name: 'Der Glöckner', glyph: 'bellringer', mech: { toll: 1 }, mechText: 'Jeder dritte Schlag betäubt dich', mix: { fire: 0.3, cold: 0.2 }, res: { elem: 0.1 } }, trophy: { armorPct: 0.1, hpPct: 0.05 } },
   { id: 'c5', name: 'Die Glocke', lvl: 26, shards: 4, floors: ['Kultist der Glocke', 'Wiedergänger', 'Blutfürst', 'Höllenbrut'],
-    boss: { name: 'Der Kronenlose', glyph: 'self', mech: { mirror: 1 }, mechText: 'Kämpft mit deinen eigenen Talenten' }, trophy: { dmgPct: 0.1, hpPct: 0.1 } },
+    boss: { name: 'Der Kronenlose', glyph: 'self', mech: { mirror: 1 }, mechText: 'Kämpft mit deinen eigenen Talenten', mix: { fire: 0.25, cold: 0.25 }, res: { phys: 0.1, elem: 0.1 } }, trophy: { dmgPct: 0.1, hpPct: 0.1 } },
 ];
 // Jeder erste Bosssieg (Krypta 1–4) bringt einen Glockensplitter. Vier öffnen "Die Glocke".
 export const SHARD_CRYPTS = ['c1', 'c2', 'c3', 'c4'];
@@ -976,6 +989,7 @@ export const DESCENT = {
   // `mods` je Tiefe: Platz für Siegel/Modifikatoren (Welle 2) – heute leer.
   diff: 1, lvlBase: 3, lvlPer: 2, diffPer: 0.02,
   depthMods: [],                    // Welle 2: [{ from: Tiefe, id, … }] – descAt() hängt sie an
+  resMalus: { per: 10, v: 0 },      // Resistenz-Malus: je `per` Tiefen −v auf beide Resistenzen (vor dem Deckel). Heute aus (v: 0).
   gold: 1.1, xp: 0.6,               // gegenüber einem Krypta-Kampf
   item: 0.35, eliteMinR: 2, bossMinR: 3,
   heart: 0.1, eliteHeart: 0.35,
@@ -1054,22 +1068,22 @@ export const ACT = { doneAt: [6, 9, 11, 15, 17, 19], zones: 8, elites: [3, 6], f
 export const ACTS = [
   { id: 'a1', n: 'I', intro: 'Die Glocke hat sie geweckt. Ansgar gräbt nicht mehr für die Toten – er gräbt sie aus.', say: 'Jedes Grab hier habe ich geschaufelt. Deins auch.', outro: 'Ansgar fällt in die Grube, die er selbst ausgehoben hat. Das Tor zur Gruft steht offen.',
     loc: 'friedhof', lvl: 1, top: 6, diff: 1.0, eliteDiff: 0.9, eliteHp: 1.0, bossMult: 0.52, crypt: 'c1', zones: ['Das Friedhofstor', 'Die Reihen der Armen', 'Das offene Grab', 'Die Wacht am Beinhaus', 'Der Weidenhang', 'Die Gräbergasse', 'Der Mauerbruch', 'Das Leichenhaus'],
-    boss: { name: 'Ansgar, der Totengräber', glyph: 'totengraeber', mech: { ward: 0.25, bleed: 0.3 }, mechText: 'Gräbt sich ein: kämpft hinter einem Wall aus Erde' } },
+    boss: { name: 'Ansgar, der Totengräber', glyph: 'totengraeber', mech: { ward: 0.25, bleed: 0.3 }, mechText: 'Gräbt sich ein: kämpft hinter einem Wall aus Erde', mix: { cold: 0.2 } } },
   { id: 'a2', n: 'II', intro: 'Das Rad dreht sich ohne Wasser. Was die Müllerin mahlt, war einmal ein Dorf.', say: 'Alles wird Mehl. Auch du.', outro: 'Das Mahlwerk steht still. Zum ersten Mal seit dem Glockenschlag ist es leise an der Mühle.',
     loc: 'muehle', lvl: 6, top: 12, diff: 1.05, eliteDiff: 0.95, eliteHp: 1.0, bossMult: 0.72, crypt: 'c2', zones: ['Der Mühlbach', 'Das Speichertor', 'Die Kornkammer', 'Der Rattenkeller', 'Das Wasserrad', 'Der Mahlboden', 'Die Sackkammer', 'Der Mühlstein'],
-    boss: { name: 'Die Müllerin', glyph: 'muellerin', mech: { rage: 0.6, armorMult: 1.3 }, mechText: 'Mahlt sich in Raserei – je länger der Kampf, desto härter' } },
+    boss: { name: 'Die Müllerin', glyph: 'muellerin', mech: { rage: 0.6, armorMult: 1.3 }, mechText: 'Mahlt sich in Raserei – je länger der Kampf, desto härter', mix: { fire: 0.3 } } },
   { id: 'a3', n: 'III', intro: 'Unter Vhal liegen mehr Tote, als oben je gelebt haben. Jemand hat begonnen, sie zu zählen.', say: 'Du fehlst in meinen Büchern. Das lässt sich richten.', outro: 'Die Schädelwand bricht. Niemand zählt mehr, und die Knochen bleiben liegen.',
     loc: 'katakomben', lvl: 12, top: 18, diff: 1.12, crypt: 'c3', zones: ['Der Einstieg', 'Die Ossuarien', 'Die Schädelwand', 'Der Brunnenschacht', 'Die Knochenhalle', 'Die Kammer der Ordnung', 'Der tiefe Gang', 'Das Zählwerk'],
-    boss: { name: 'Der Knochenordner', glyph: 'knochenordner', mech: { block: 0.35, armorMult: 1.4 }, mechText: 'Knochenschild: blockt viele Hiebe – Zauber treffen immer' } },
+    boss: { name: 'Der Knochenordner', glyph: 'knochenordner', mech: { block: 0.35, armorMult: 1.4 }, mechText: 'Knochenschild: blockt viele Hiebe – Zauber treffen immer', mix: { cold: 0.4 }, res: { phys: 0.1 } } },
   { id: 'a4', n: 'IV', intro: 'Im Moor hängt man nicht, um zu sterben. Man hängt, um zu bleiben.', say: 'Komm näher, Kind. Für dich habe ich noch einen Strick.', outro: 'Die Mutterweide sinkt ins Wasser. Die Stricke lösen sich, einer nach dem anderen.',
     loc: 'moor', lvl: 18, top: 24, diff: 1.25, crypt: 'c4', zones: ['Der Bohlenweg', 'Die Galgenweiden', 'Das stille Wasser', 'Die Hütte im Schilf', 'Der Strickbaum', 'Die Irrlichter', 'Das versunkene Dorf', 'Die Mutterweide'],
-    boss: { name: 'Die Mutter der Stricke', glyph: 'strickmutter', mech: { poison: 0.22, regen: 0.015 }, mechText: 'Würgt: Gift, das sich stapelt – und das Moor heilt sie' } },
+    boss: { name: 'Die Mutter der Stricke', glyph: 'strickmutter', mech: { poison: 0.22, regen: 0.015 }, mechText: 'Würgt: Gift, das sich stapelt – und das Moor heilt sie', mix: { cold: 0.4 }, res: { elem: 0.1 } } },
   { id: 'a5', n: 'V', intro: 'Sie haben den Altar umgedreht und beten zur Glocke. Die Glocke antwortet.', say: 'Ich habe sie als Erster gehört. Ich werde sie als Letzter hören.', outro: 'Der Erste Kultist verstummt mitten im Gebet. Unter dem Altar führt eine Treppe nach unten.',
     loc: 'kapelle', lvl: 24, top: 30, diff: 1.45, crypt: 'c5', zones: ['Der Kirchhof', 'Das Portal', 'Das Kirchenschiff', 'Die Sakristei', 'Der Glockenturm', 'Die Krypta der Äbte', 'Der Chor', 'Der Altar'],
-    boss: { name: 'Der Erste Kultist', glyph: 'kultist1', mech: { thorns: 0.3, regen: 0.02 }, mechText: 'Wer zuschlägt, trifft sich selbst – Dornen' } },
+    boss: { name: 'Der Erste Kultist', glyph: 'kultist1', mech: { thorns: 0.3, regen: 0.02 }, mechText: 'Wer zuschlägt, trifft sich selbst – Dornen', mix: { fire: 0.5 }, res: { elem: 0.1 } } },
   { id: 'a6', n: 'VI', intro: 'Hier wurde deine Krone gegossen. Die Glut hat nicht vergessen, wem sie gehört.', say: 'Du trugst sie einen Sommer. Ich trage sie, seit die Welt brennt.', outro: 'Der Aschenthron ist leer. Die Asche ist noch warm – wie eine Einladung.',
     loc: 'gruben', lvl: 30, top: 36, diff: 1.65, crypt: null, zones: ['Der Schlackenhang', 'Die Aschefelder', 'Der Schwefelsee', 'Die Brücke aus Ketten', 'Die Esse', 'Der Thronweg', 'Die Glutgruben', 'Der Aschenthron'],
-    boss: { name: 'Der Aschenkönig', glyph: 'aschenkoenig', mech: { execute: 0.5, regen: 0.025, crit: 0.12 }, mechText: 'Glut: heilt sich in der Asche und schlachtet Geschwächte' } },
+    boss: { name: 'Der Aschenkönig', glyph: 'aschenkoenig', mech: { execute: 0.5, regen: 0.025, crit: 0.12 }, mechText: 'Glut: heilt sich in der Asche und schlachtet Geschwächte', mix: { fire: 0.6 }, res: { elem: 0.15 } } },
 ];
 // (intro = Einleitung im Akt-Kopf, say = Satz des Bosses, sobald er als Nächstes wartet, outro = Nachruf nach seinem Fall)
 // Krypten: nur noch der Boss, frei nach dem Akt-Boss. Jede besiegte Stufe → nächste ist schwerer, Beute besser.

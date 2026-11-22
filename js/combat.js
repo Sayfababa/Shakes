@@ -2,13 +2,24 @@
 // Kämpfer: { name, cls?, str,dex,int,con,lck, armor, dmg:[a,b], hp, main, lvl,
 //            crit, evade, block, leech, bleed, rage, pen, regen, thorns, execute, first,
 //            poison (Gift je Treffer, stapelt), toll (jeder 3. Treffer betäubt) }  (Effekte optional, 0..1)
-import { CFG } from './data.js';
+import { CFG, ELEMENTS } from './data.js';
 import { roll, chance, rand } from './rng.js';
 
 const MAX_ROUNDS = 50;
 // Anteil ausgewichener Angriffe auf Dauer bei Ausweichchance p mit Serienbremse (höchstens k in Folge):
 // Kette über die Serienlänge 0..k → (p + p² + … + p^k) / (1 + p + … + p^k). Für power(), damit die Schätzung die Regel kennt.
 export function evadeShare(p, k = CFG.evadeStreak) { let num = 0, t = 1; for (let i = 1; i <= k; i++) { t *= p; num += t; } return num / (1 + num); }
+
+// Schadensarten (Welle 2a): Resistenz eines Kämpfers gegen eine Gruppe ('phys' | 'elem'), gedeckelt bei CFG.resCap.
+// resPen: Malus vor dem Deckel (Abgrund-Tiefe, DESCENT.resMalus). Unter 0 nimmt man mehr Schaden (bis doppelt).
+export const resOf = (f, k) => Math.max(-1, Math.min(CFG.resCap, (f.res?.[k] || 0) - (f.resPen || 0)));
+// Anteile eines Hiebs: mix = { fire, cold } (Rest physisch). Für Anzeige und power() dieselbe Regel wie im Kampf.
+export const mixOf = mix => { const fire = mix?.fire || 0, cold = mix?.cold || 0; return { phys: Math.max(0, 1 - fire - cold), fire, cold }; };
+// Schadensfaktor gegen y: el = Art eines Zaubers (fehlt bei Hieben → mix des Angreifers)
+export function resMul(mix, y, el) {
+  if (el) return 1 - resOf(y, ELEMENTS[el].res);
+  const m = mixOf(mix); return m.phys * (1 - resOf(y, 'phys')) + (m.fire + m.cold) * (1 - resOf(y, 'elem'));
+}
 
 export function fight(A, B) {
   const a = { ...A, cur: Math.min(A.hp, A.cur0 ?? A.hp), side: 'a', turn: 0, buff: 1, shield: 0, ch: [] }, b = { ...B, cur: B.hp, side: 'b', turn: 0, buff: 1, shield: 0, ch: [] };
@@ -103,7 +114,7 @@ export function fight(A, B) {
     let t = `${x.name} wirkt ${s.name}`, d = 0, anyCrit = false, extra = '';
     // Ein Zauber-Treffer läuft durch dieselben Werte wie ein Hieb (Henker, Krit, Lebensraub, Bluten, Gift, Glocke, Dornen)
     const hits = [];
-    const fo = { crit: m.crit, execute: m.execute, force: m.dazedCrit && y.dazed > 0 };
+    const fo = { crit: m.crit, execute: m.execute, force: m.dazedCrit && y.dazed > 0, el: s.el || 'phys' };
     if (fo.force) ev.combo = s.wn?.dazedCrit;
     let sh = 1; if (m.fresh && dmgKind && y.cur > y.hp * 0.7) { sh = 1 + m.fresh; ev.combo = s.wn?.fresh; }
     const zap = raw => { const r = finish(x, y, raw * sh, fo); hurt(y, r.d); d += r.d; hits.push(r.d); anyCrit ||= r.crit; extra += onHit(x, y, r.d, r.crit); return r; };
@@ -166,9 +177,10 @@ export function fight(A, B) {
     return t;
   }
 
-  // Henker und Krit auf rohen Schaden (für Hieb und Zauber); o: Zusatz-Krit/Henker eines Zauber-Wegs, force = sicherer Krit (Kombo)
+  // Henker und Krit auf rohen Schaden (für Hieb und Zauber); o: Zusatz-Krit/Henker eines Zauber-Wegs, force = sicherer Krit (Kombo),
+  // o.el = Schadensart des Zaubers (sonst Hieb-Mischung des Angreifers) gegen die Resistenz des Ziels
   function finish(x, y, raw, o = {}) {
-    let d = raw; const ex = (x.execute || 0) + (o.execute || 0); if (ex && y.cur < y.hp * (0.3 + (x.execHp || 0))) d *= 1 + ex;   // Set „Schürze des Metzgers“ hebt die Schwelle
+    let d = raw * resMul(x.mix, y, o.el); const ex = (x.execute || 0) + (o.execute || 0); if (ex && y.cur < y.hp * (0.3 + (x.execHp || 0))) d *= 1 + ex;   // Set „Schürze des Metzgers“ hebt die Schwelle
     if (x.vengeance) d *= 1 + x.vengeance * (1 - Math.max(0, x.cur) / x.hp);   // Vergeltung: je weniger eigenes Leben, desto härter
     if (x.weakN > 0) d *= 1 - x.weak;                  // geschwächt: macht weniger Schaden
     if (y.vulnN > 0) d *= 1 + y.vuln;                  // verwundbar: nimmt mehr Schaden

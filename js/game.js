@@ -3,7 +3,7 @@
 import { GRADES, CLASSES, CFG, CRYPTS, TALENTS, LOCATIONS, MONSTERS, TRACKS, DELVE, HERB_LOC, ALCH, POTIONS, HERBS, EXPED, EXP_TALES, EXP_NODES, EXP_EVENTS, EXP_GOALS, MATS, DESCENT, DESC_ROOMS, ELITE, PIT, PIT_STYLES, PIT_RIVALS, PIT_RANKS, PIT_SHOP, PIT_RULES, DIFFICULTIES, SETS, SET, ACTS, ACT, CRYPT, WANDER, WANDER_ST } from './data.js';
 import * as G from './state.js';
 import * as Q from './quests.js';
-import { fight } from './combat.js';
+import { fight, resMul, resOf, mixOf } from './combat.js';
 import { makeItem, makeSetItem } from './loot.js';
 import { pick, roll, chance, rand, seeded } from './rng.js';
 
@@ -208,7 +208,7 @@ export const blessed = A => G.S.bless ? { ...A, hp: Math.max(1, Math.round(A.hp 
 const probe = (n, one) => { const r = new Uint8Array(n); for (let i = 0; i < n; i++) r[i] = seeded(7919 * (i + 1), one) ? 1 : 0; return r; };
 const share = r => r.reduce((s, x) => s + x, 0) / r.length;
 function winRuns(key, makeEnemy, n, belt, bl) {
-  const A0 = belt ? { ...G.stats(), belt } : G.stats(), A = bl ? blessed(A0) : A0, sig = key + '|' + n + '|' + JSON.stringify([A.hp, A.dmg, A.armor, A[A.main], A.dex, A.lvl, S_omen(), belt?.map(b => b.id + b.trig)]);
+  const A0 = belt ? { ...G.stats(), belt } : G.stats(), A = bl ? blessed(A0) : A0, sig = key + '|' + n + '|' + JSON.stringify([A.hp, A.dmg, A.armor, A[A.main], A.dex, A.lvl, A.res, S_omen(), belt?.map(b => b.id + b.trig)]);
   if (threatCache.has(sig)) return threatCache.get(sig);
   const r = probe(n, () => fight(A, makeEnemy()).winner === 'a');
   if (threatCache.size > 200) threatCache.clear(); threatCache.set(sig, r); return r;
@@ -241,7 +241,8 @@ export const threatLabel = p => p >= 0.9 ? ['gering', 'low'] : p >= 0.65 ? ['mä
 
 // Werte eines Gegners aus Sicht des Helden (Vorbereitung): gleiche Formeln wie combat.js
 export function enemyInfo(m, A = G.stats()) {
-  const hitDmg = [0, 1].map(i => Math.round(m.dmg[i] * (1 + m[m.main] / CFG.mainDiv) * (1 - Math.min(0.6, A.armor / (A.armor + 20 + m.lvl * 8)))));
+  // Trifft dich: nach deiner Rüstung UND deinen Resistenzen gegen seine Schadensmischung (dieselbe Regel wie im Kampf)
+  const hitDmg = [0, 1].map(i => Math.round(m.dmg[i] * (1 + m[m.main] / CFG.mainDiv) * resMul(m.mix, A) * (1 - Math.min(0.6, A.armor / (A.armor + 20 + m.lvl * 8)))));
   const tags = [];
   if (m.poison) tags.push(['Gift, das sich stapelt', 'gegengift']); if (m.bleed) tags.push(['Lässt dich bluten', 'gegengift']);
   if (m.regen || m.leech) tags.push(['Heilt sich', 'weihwasser']); if (m.toll) tags.push(['Betäubt dich', 'wachsaft']);
@@ -249,7 +250,8 @@ export function enemyInfo(m, A = G.stats()) {
   const evade = Math.min(0.5, m.dex / (m.dex + A.dex * 3 + 40) + (m.evade || 0)), armor = Math.min(0.6, m.armor / (m.armor + 20 + A.lvl * 8));
   const crit = Math.min(0.6, CFG.critBase + m.lck / (m.lck + 100 + A.lvl * 5) + (m.crit || 0));
   if (evade >= 0.25) tags.push(['Weicht oft aus', 'jaegerblick']); if (armor >= 0.4) tags.push(['Schwer gepanzert', 'rostsaeure']); if (crit >= 0.2) tags.push(['Trifft oft kritisch', 'knochenmark']);
-  return { hp: m.hp, hit: hitDmg, evade, armor, crit, block: m.block || 0, tags };
+  // Schadensart und Resistenzen (Welle 2a): vorher sichtbar, damit kein Verlust unfair wirkt
+  return { hp: m.hp, hit: hitDmg, evade, armor, crit, block: m.block || 0, tags, mix: mixOf(m.mix), res: { phys: resOf(m, 'phys'), elem: resOf(m, 'elem') } };
 }
 
 // Was der Spieler mit einem Tippen für einen Trank tun kann (Vorbereitung): einpacken, brauen+einpacken, oder was fehlt
@@ -550,13 +552,15 @@ export function descEnemy(nd, u = G.S.desc.unrest) {
     m.name = `${m.name} (Elite)`; }
   return m;
 }
-const descHero = () => { const A = { ...G.stats(), belt: G.beltCombat() }; A.cur0 = Math.max(1, Math.round(A.hp * G.S.desc.hpf)); return A; };
+// Resistenz-Malus je Tiefe (DESCENT.resMalus, heute v: 0 = aus) – wirkt vor dem Deckel, wie im Kampf (resPen)
+export const descResPen = d => Math.floor((d || 0) / DESCENT.resMalus.per) * DESCENT.resMalus.v;
+const descHero = () => { const A = { ...G.stats(), belt: G.beltCombat() }; A.cur0 = Math.max(1, Math.round(A.hp * G.S.desc.hpf)); A.resPen = descResPen(G.S.desc.d); return A; };
 // Siegchance mit dem Leben, das du gerade hast (j = Raum-Index, 'boss' oder 'stair')
 export function descChance(j) {
   const D = G.S.desc; if (!D) return null; const stair = j === 'stair', nd = stair ? null : descNodeAt(j);
   if (!stair && !(nd === 'boss' || nd?.t === 'fight' || nd?.t === 'elite')) return null;
   const A = descHero(), c = descCrypt(), u = D.unrest + (stair ? DESCENT.stairUnrest : 0);
-  const key = 'desc|' + JSON.stringify([D.c, D.path, j, u, A.cur0, A.hp, A.dmg, A.armor, A[A.main], A.belt.map(b => b.id + b.trig)]);
+  const key = 'desc|' + JSON.stringify([D.c, D.path, j, u, A.cur0, A.hp, A.dmg, A.armor, A[A.main], A.res, A.resPen, A.belt.map(b => b.id + b.trig)]);
   if (threatCache.has(key)) return threatCache.get(key);
   let w = 0; for (let i = 0; i < 24; i++) if (fight(A, descEnemy(stair ? { t: 'fight', mob: pick(c.floors) } : nd, u)).winner === 'a') w++;
   const p = w / 24; if (threatCache.size > 200) threatCache.clear(); threatCache.set(key, p); return p;
@@ -676,7 +680,7 @@ function pitSides(B0, rule, belt = G.beltCombat()) {
 }
 const pitCache = new Map();
 function pitRuns(B0, rule, belt, n) {
-  const [A, B] = pitSides(B0, rule, belt), sig = [B0.rid, B0.place, rule, n, A.hp, A.dmg, A.armor, A[A.main], A.dex, A.lvl, A.belt.map(b => b.id + b.trig)].join('|');
+  const [A, B] = pitSides(B0, rule, belt), sig = [B0.rid, B0.place, rule, n, A.hp, A.dmg, A.armor, A[A.main], A.dex, A.lvl, JSON.stringify(A.res), A.belt.map(b => b.id + b.trig)].join('|');
   if (pitCache.has(sig)) return pitCache.get(sig);
   const r = probe(n, () => fight(A, B).winner === 'a');
   if (pitCache.size > 200) pitCache.clear(); pitCache.set(sig, r); return r;

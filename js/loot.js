@@ -62,7 +62,7 @@ export function makeItem(lvl, { luck = 0, slot, slots, cls, kind, minRarity = 0 
   // Einzigartige: feste Basis, feste Boni und Sonderbonus
   const uniq = rar.id === 'legendary' && rand() < UNIQUE_CHANCE ? pickUnique(pool) : null;
   if (uniq) base = [...BASES].reverse().find(b => b.slot === uniq.slot && (!uniq.kind || b.kind === uniq.kind) && okLvl(b)) || base;
-  const scale = (1 + ilvl * 0.18) * rar.mult;
+  const scale = lvlScale(ilvl) * rar.mult;
   const it = { id: uid(), slot: base.slot, kind: base.kind, base: base.name, art: artOf(base, rar), w: base.w, h: base.h, rarity: rar.id, lvl: ilvl, mods: {}, tiers: {} };
   if (base.armor) it.armor = Math.round(base.armor * scale);
   if (base.dmg) it.dmg = [Math.round(base.dmg[0] * scale), Math.round(base.dmg[1] * scale)];
@@ -81,6 +81,16 @@ export function makeItem(lvl, { luck = 0, slot, slots, cls, kind, minRarity = 0 
   return it;
 }
 
+// Grundwerte (Rüstung, Waffenschaden) wachsen mit der Gegenstandsstufe
+export const lvlScale = ilvl => 1 + ilvl * 0.18;
+// Wirksamer Waffen-Grundschaden (Welle 2a): wirkt höchstens wie Gegenstandsstufe Heldenstufe + CFG.wpnLvlAdd.
+// Gibt das Paar zurück, das im Kampf zählt; der Tooltip zeigt beides (keine stille Kürzung). Ohne Kürzung: it.dmg selbst.
+export const wpnCapLvl = heroLvl => heroLvl + CFG.wpnLvlAdd;
+export function wpnDmg(it, heroLvl) {
+  const cap = wpnCapLvl(heroLvl); if (!it?.dmg || !(it.lvl > cap)) return it?.dmg;
+  const f = lvlScale(cap) / lvlScale(it.lvl); return it.dmg.map(v => Math.max(1, Math.round(v * f)));
+}
+
 // Bild-Variante: gewöhnliche meist das Grundbild, seltene/legendäre meist eine der prächtigeren Varianten
 function artOf(base, rar) {
   const v = base.vars || []; if (!v.length) return base.art;
@@ -93,7 +103,7 @@ export function makeSetItem(setId, part, lvl) {
   const set = SETS.find(x => x.id === setId), p = set?.parts[part]; if (!p) return null;
   const okLvl = b => !b.minLvl || lvl >= b.minLvl;
   const base = [...BASES].reverse().find(b => b.slot === p.slot && okLvl(b)) || BASES.find(b => b.slot === p.slot);
-  const rar = RARITIES.find(r => r.id === 'set'), ilvl = Math.max(1, lvl), scale = (1 + ilvl * 0.18) * rar.mult;
+  const rar = RARITIES.find(r => r.id === 'set'), ilvl = Math.max(1, lvl), scale = lvlScale(ilvl) * rar.mult;
   const it = { id: uid(), slot: base.slot, kind: base.kind, base: base.name, art: artOf(base, rar), w: base.w, h: base.h,
     rarity: 'set', lvl: ilvl, mods: {}, tiers: {}, set: set.id, part, name: p.name };
   if (base.armor) it.armor = Math.round(base.armor * scale);

@@ -1,7 +1,7 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
 import { PLAYABLE, TREE, AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, STASH_W, STASH_H, SERVICES, SHARD_CRYPTS, TUTORIAL, BOUNTIES, SETS, SET } from './data.js';
-import { SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
-import { affixPool, tierOf } from './loot.js';
+import { ELEMENTS, RES_NAMES, SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
+import { affixPool, tierOf, wpnDmg, wpnCapLvl } from './loot.js';
 import { sellPrice, sellMat, potion, beltSlots, brewCost, canBrew, potMax, unreadable, restarted, herbPrice, canBuyHerb, herbLeft, herbSource } from './state.js';
 import { WIKI_CATS, wikiList, wikiEntry, upgradePaths, matBottleneck } from './wiki.js';
 import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, craftRaises, craftMat, baseMods, fusedMods, filterHits, filterOf, filterOn, setFilterMod, fuseMains, fuseFoods, fuseCheck, fuseFull, fusePromote, fuseReplaces, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
@@ -83,7 +83,9 @@ export function itemTip(it, cmp) {
   const L = [`<div class="n r-${it.rarity}">${it.name}</div><div class="sub2">${rarName(it.rarity, it)} · ${it.base && !it.name.includes(it.base) ? it.base : SLOTS[it.slot]} · Stufe ${it.lvl}</div>`];
   // Schärfen/Verstärken hängen am Platz: jedes Teil zeigt den Wert, den es angelegt hätte
   const tu = S ? slotUp(it.slot) : 0, tn = tu ? ` <small class="tup">${it.slot === 'weapon' ? 'geschärft' : 'verstärkt'} +${tu}</small>` : '';
-  if (it.dmg) L.push(`Schaden <b>${tempered(it.dmg[0], it.slot)}–${tempered(it.dmg[1], it.slot)}</b>${tn}`);
+  if (it.dmg) { const ef = S ? wpnDmg(it, S.lvl) : it.dmg, cut = ef !== it.dmg;   // Waffen-Deckel (Welle 2a): offen zeigen, nie still kürzen
+    L.push(`Schaden <b>${tempered(it.dmg[0], it.slot)}–${tempered(it.dmg[1], it.slot)}</b>${tn}${cut ? ` · wirksam <b class="down">${tempered(ef[0], it.slot)}–${tempered(ef[1], it.slot)}</b>` : ''}`);
+    if (cut) L.push(`<span class="down small">Wirkt wie Stufe ${wpnCapLvl(S.lvl)} – voll ab Heldenstufe ${it.lvl - CFG.wpnLvlAdd}</span>`); }
   if (it.armor) L.push(`Rüstung <b>${tempered(it.armor, it.slot)}</b>${tn}`);
   // Boni ohne Runen-Anteil, mit Stufe (I = beste)
   const runeOf = k => (it.runes || []).filter(r => r.stat === k).reduce((a, r) => a + r.v, 0);
@@ -201,6 +203,8 @@ export function viewStats() {
     </section>
     <section class="panel"><h2>Kampf</h2>
       <div class="grid2"><div class="stat"><span>Leben</span><b>${fmtN(st.hp)}</b></div><div class="stat"><span>Schaden</span><b>${st.dmg[0]}–${st.dmg[1]}</b></div>
+      ${['phys', 'elem'].map(k => { const v = st.res[k], on = Math.min(CFG.resCap, v);   // Resistenzen mit Deckel – was darüber liegt, steht in Klammern
+        return `<div class="stat"><span>${RES_NAMES[k]}</span><b>${Math.round(on * 100)} %<small class="dim"> / ${Math.round(CFG.resCap * 100)}${v > CFG.resCap ? ` (${Math.round(v * 100)})` : ''}</small></b></div>`; }).join('')}
       <div class="stat"><span>Rüstung</span><b>${st.armor}</b></div><div class="stat"><span>Krit</span><b>${Math.round(Math.min(0.6, CFG.critBase + st.lck / (st.lck + 100 + S.lvl * 5) + st.crit) * 100)} % · ×${st.critMult.toFixed(2).replace('.', ',').replace(/0$/, '')}</b></div></div>
       <p class="dim small">${effLine(Object.fromEntries(Object.entries(st).filter(([k, v]) => v && EFFECT_NAMES[k] && !['dmgPct', 'hpPct', 'armorPct', 'crit'].includes(k))))}</p>
       ${S.tampered ? '<p class="small down">Spielstand wurde von Hand verändert – für Handel gesperrt.</p>' : ''}</section>
@@ -700,13 +704,16 @@ export function viewPrep(c, m) {
   const head = `${monsterArt(m.glyph)}<div><h2>${m.name.split(',')[0]}</h2><p class="dim small">${c.name} · Stufe ${cryptTier(c) + 1} · Gegner-Stufe ${m.lvl}</p>${threat(pW)}</div>`;
   return prepCore(m, head, pW, same ? null : p0, `<button class="red" data-action="cryptgo" ${S.crypt.cd > Date.now() ? 'disabled' : ''}>Kämpfen</button>`, S.bless);
 }
+// Schadensart und Resistenz eines Gegners, kurz für das Handy: „Phys 70 · Eis 30 %“, „Phys 10 · Elem 25 %“
+const mixTxt = m => { const p = Object.entries(m).filter(([, v]) => v > 0); return p.length === 1 ? ELEMENTS[p[0][0]].name : p.map(([k, v]) => `${ELEMENTS[k].short} ${Math.round(v * 100)}`).join(' · ') + ' %'; };
+const resTxt = r => { const p = ['phys', 'elem'].filter(k => r[k]); return p.length ? p.map(k => `${k === 'phys' ? 'Phys' : 'Elem'} ${Math.round(r[k] * 100)}`).join(' · ') + ' %' : '–'; };
 // Vorbereitung: Kopf + Werte mit Trank-Hinweisen + Gürtel + Siegchance (Krypta und Grube)
 function prepCore(m, head, pW, p0, go, bless = 0, rule = null) {
   const e = enemyInfo(m), st = (k, v) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`, pc = x => Math.round(x * 100) + ' %';
   return `<div class="col prep">
     <section class="panel prephead">${head}</section>
     <section class="panel"><h2>Seine Werte <span class="h2r">gegen dich</span></h2>
-      <div class="grid2">${st('Leben', fmtN(e.hp))}${st('Trifft dich', e.hit.join('–'))}${st('Ausweichen', pc(e.evade))}${st('Krit', pc(e.crit))}${st('Rüstung', pc(e.armor))}${st('Blocken', e.block ? pc(e.block) : '–')}</div>
+      <div class="grid2">${st('Leben', fmtN(e.hp))}${st('Trifft dich', e.hit.join('–'))}${st('Ausweichen', pc(e.evade))}${st('Krit', pc(e.crit))}${st('Rüstung', pc(e.armor))}${st('Blocken', e.block ? pc(e.block) : '–')}${st('Schaden', mixTxt(e.mix))}${st('Resi', resTxt(e.res))}</div>
       ${e.tags.length ? `<div class="etags">${e.tags.slice(0, 4).map(([t, id]) => { const o = potOffer(id), nm = potion(id).name, weg = o.kind === 'pack' && packSlot(id, e.tags.map(x => x[1])).weg;
         const act = o.kind === 'pack' ? `${nm} ${weg ? `statt ${weg}` : 'einpacken'}` : o.kind === 'brew' ? `${nm} brauen · ${o.gold} G` : o.kind === 'in' ? `${nm} im Gürtel` : `${nm} · ${o.short || o.text}`;
         return `<span class="etag ${o.kind}" ${o.kind === 'pack' || o.kind === 'brew' ? `data-action="prepPot" data-id="${id}"` : ''}><b>${t}</b>${act}</span>`; }).join('')}</div>` : ''}</section>

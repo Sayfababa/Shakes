@@ -4,6 +4,9 @@
 // gewöhnliche Ausrüstung der Stufe). Ausgabe: Verhältnis je Bonus (1,00 = so gut wie das Hauptattribut).
 // Aufruf: node tests/calib.mjs [--per]   (--per: schlägt `per`-Werte vor, mit denen alle Boni gleich viel bringen)
 globalThis.localStorage = { _d: {}, getItem(k) { return this._d[k] ?? null; }, setItem(k, v) { this._d[k] = String(v); }, removeItem(k) { delete this._d[k]; } };
+// Fester Keim + Mittel über REPS Ausrüstungswürfe: mit einem Wurf schwankte Zaubertempo St. 20 zwischen 0,61 und 0,88 von Lauf zu Lauf
+let seed = 0xca1b; Math.random = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const REPS = 4;
 const D = await import('../js/data.js');
 const G = await import('../js/state.js');
 const { makeItem, tierBand, topTier } = await import('../js/loot.js');
@@ -11,7 +14,7 @@ const wantPer = process.argv.includes('--per');
 const perCls = process.argv.includes('--cls');   // flache Werte je Klasse zeigen – der Mittelwert versteckt den Entwurf
 
 const LV = [5, 10, 20, 30, 40], SLOTS = ['helm', 'chest', 'gloves', 'boots', 'belt', 'amulet', 'ring1', 'ring2', 'offhand'];
-const DEF = new Set(['con', 'lifep', 'evadep', 'blockp', 'thornsp', 'armor']);   // Verteidigung: gegen Konstitution messen
+const DEF = new Set(['con', 'lifep', 'evadep', 'blockp', 'thornsp', 'armor', 'physr', 'elemr']);   // Verteidigung (mit Resistenzen, Welle 2a): gegen Konstitution messen
 const tierVal = (a, L) => { const [lo, hi] = tierBand(a, topTier(L)); return (lo + hi) / 2; };   // beste freie Stufe, Mitte
 
 function hero(cls, L) {
@@ -27,7 +30,7 @@ function hero(cls, L) {
 const gain = (slot, k, v) => { const S = G.S, it = S.equip[slot], old = it.mods; it.mods = { [k]: v }; const p = G.power(); it.mods = old; return p; };
 
 const rows = {}, clsRows = {};
-for (const cls of D.PLAYABLE) for (const L of LV) {
+for (const cls of D.PLAYABLE) for (const L of LV) for (let rep = 0; rep < REPS; rep++) {
   hero(cls, L); const p0 = G.power(), main = D.CLASSES[cls].main;
   const ref = { off: gain('ring1', main, tierVal(main, L)) - p0, def: gain('ring1', 'con', tierVal('con', L)) - p0 };
   for (const a of D.AFFIXES) {
@@ -40,6 +43,11 @@ for (const cls of D.PLAYABLE) for (const L of LV) {
     const r1 = (g / unit) * tierVal(a, L) / r;
     (rows[key] ||= {})[L] = (rows[key][L] || []); rows[key][L].push(wantPer ? r1 / (a.per || 1) : r1);
     ((clsRows[key] ||= {})[L] ||= []).push(r1);
+    // Resistenzen wirken gestapelt (1 − Resi): ein Teil mehr bei schon 45 % auf dem Helm zeigt den Wert mitten im Farmen
+    if (a.stat === 'physr' || a.stat === 'elemr') {
+      const h = G.S.equip.helm, old = h.mods; h.mods = { [a.stat]: 45 }; const q0 = G.power(), q = gain(slot, a.stat, unit) - q0; h.mods = old;
+      ((rows[a.stat + ' bei 45 %'] ||= {})[L] ||= []).push(wantPer ? (q / unit) * tierVal(a, L) / r / (a.per || 1) : (q / unit) * tierVal(a, L) / r);
+    }
   }
 }
 const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
