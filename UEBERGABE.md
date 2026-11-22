@@ -29,6 +29,11 @@ einmal teuer geworden; die Herkunft steht in `entscheidungen/fallen.md`.
 
 ## Offen – wartet auf den Besitzer, nichts tun ohne sein Wort
 
+**Stand 2026-11-22: Wellen 1A, 1B, 2A, 2B-1, 2B-2 gebaut und zusammengeführt** (Boni-Umbau, Neustart v22, 3 Klassen,
+endloser Abgrund mit Leiter/Lohn/Abgrund-Stufen/Wochenlohn, Resistenzen, Grube wächst mit, Siegel, Aschenkern).
+Was genau und die **offenen Fragen an den Besitzer** stehen je Welle in `berichte/welle*.md` (Abschnitt „Offen").
+Die Befund-Liste darunter ist damit größtenteils erledigt.
+
 **Befunde 2026-11-19 (gemessen, nichts davon gebaut – Reihenfolge wählt er):**
 1. ~~Siegchance mit < ohne Tränke~~ **erledigt 2026-11-19**: gekoppelter Zufall, 200 Probekämpfe, „etwa gleich“
    im Rauschen, `bestBelt()` gekoppelt (→ E „Siegchance gekoppelt“ in kampf.md). Am echten iPhone nicht gemessen.
