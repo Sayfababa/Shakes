@@ -2,6 +2,9 @@
 // und gegen die Krypta-Bosse (mit ihren Mechaniken). Zeigt auch, was die Kampfkraft-Schätzung (power) sagt.
 // Aufruf: node tests/ways.mjs [klasse|all] [stufe|all] [kämpfe] [--check]   (--check: Fehler, wenn ein Weg aus dem Rahmen fällt)
 globalThis.localStorage = { _d: {}, getItem(k) { return this._d[k] ?? null; }, setItem(k, v) { this._d[k] = String(v); }, removeItem(k) { delete this._d[k]; } };
+// Fester Keim (2026-11-22): ohne ihn schwankte „Doppelgift“ auf St. 24 zwischen Läufen desselben Codes von −4,1 bis +0,5 Punkten
+// und riss den Rahmen zufällig (Falle: Kampf-Tests ohne Zufallskeim).
+let seed = 0x3a7; Math.random = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 const D = await import('../js/data.js');
 const G = await import('../js/state.js');
 const { makeItem } = await import('../js/loot.js');
