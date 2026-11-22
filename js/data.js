@@ -620,7 +620,7 @@ export const EFFECT_NAMES = { dmgPct: 'Schaden', hpPct: 'Leben', armorPct: 'Rüs
   tollback: 'Betäubung prallt zurück', firstEcho: 'Erster Zauber wirkt zweimal',
   spellPct: 'Zauberschaden', ignite: 'Jeder Zauber setzt in Brand', physRes: 'Phys.-Resi', elemRes: 'Elem.-Resi', elemPen: 'Elementar-Durchdringung',
   igniteBan: 'Brand verhindert Heilung', poisonPct: 'Gift: Anteil deines Lebens je Treffer', ramp: 'Zorn je Zug',
-  wardPerStr: 'Schild je Punkt Stärke', slowCast: 'Langsamere Zauberladung', lifePerStr: 'Leben je Punkt Stärke', hastePerLck: 'Zaubertempo je Punkt Glück' };
+  wardPerStr: 'Schild je Punkt Stärke', slowCast: 'Zauberladung', lifePerStr: 'Leben je Punkt Stärke', hastePerLck: 'Zaubertempo je Punkt Glück' };
 
 // --- Das Brett (neuer Talentbaum) ---
 // Drei Zweige, von unten nach oben: kleine Knoten, dazwischen zwei Notable (ändern eine Regel),

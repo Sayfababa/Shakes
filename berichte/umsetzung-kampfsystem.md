@@ -60,3 +60,6 @@ Schaden/Leben (ein Held stirbt in 3–5 Gegnertreffern) untersuchen.
 3. „Erste Neuwahl kostenlos“ ist über die Punkte-Erstattung gelöst; ein eigener Knopf „Stein ablegen“ ist nicht gebaut.
 
 ![Doppelzug auf dem iPhone 13 (390 × 844), Zeitachse zum Screenshot eingeschaltet](umsetzung-doppelzug.png)
+
+![Brett: Eisgrab gesetzt, Verbrennung/Nachhall gesperrt („nur ein Schlüsselstein“)](umsetzung-brett.png)
+![Einmaliger Hinweis nach dem Laden eines alten Stands mit drei Steinen](umsetzung-hinweis.png)

@@ -29,8 +29,12 @@ const gainTag = it => { const g = itemGain(it); return g > 0.01 ? `<i class="bet
 // dass acht einzelne Fundstellen bedeuten, dass die neunte Ansicht es wieder vergisst.
 const hitDots = it => { const n = filterHits(it); return n ? `<i class="fdots" title="${n} gesuchte Boni">${'<b></b>'.repeat(Math.min(n, 5))}</i>` : ''; };
 const pct = (a, b) => Math.max(0, Math.min(100, (a / b) * 100));
-const FLAGS = new Set(['first', 'toll', 'lastStand', 'tollback', 'firstEcho', 'venom', 'lastBreath', 'nohealSelf', 'hemorrhage']);   // an/aus – keine Prozentzahl
-const effLine = e => Object.entries(e).map(([k, v]) => `${EFFECT_NAMES[k]}${FLAGS.has(k) ? '' : (v < 0 ? ' −' : ' +') + Math.abs(Math.round(v * 100)) + '%'}`).join(', ');
+const FLAGS = new Set(['first', 'toll', 'lastStand', 'tollback', 'firstEcho', 'venom', 'lastBreath', 'nohealSelf', 'hemorrhage', 'igniteBan']);   // an/aus – keine Prozentzahl
+// Bindungen je Attributpunkt (Bruchteile eines Prozents): eine Nachkommastelle, sonst stünde „+1%“ für 0,6 %
+const PER_PT = new Set(['wardPerStr', 'lifePerStr', 'hastePerLck']);
+// Effekte, die als Malus gezählt werden (Wert positiv, Wirkung negativ): Anzeige mit Minus, im Brett in der Preis-Zeile
+const NEG = new Set(['slowCast']); const effVal = (k, v) => NEG.has(k) ? -v : v;
+const effLine = e => Object.entries(e).map(([k, v0]) => { const v = effVal(k, v0); return [k, v]; }).map(([k, v]) => `${EFFECT_NAMES[k]}${FLAGS.has(k) ? '' : (v < 0 ? ' −' : ' +') + (PER_PT.has(k) ? String(Math.round(Math.abs(v) * 1000) / 10).replace('.', ',') : Math.abs(Math.round(v * 100))) + '%'}`).join(', ');
 
 // Gemalte Monster/Bosse in assets/monsters/<glyph>.jpg, sonst SVG-Silhouette
 const MON_IMG = new Set(['totengraeber', 'muellerin', 'knochenordner', 'strickmutter', 'kultist1', 'aschenkoenig', 'gerlinde', 'aldemar', 'butcher', 'bellringer', 'ghul', 'fallen', 'skelett', 'grabraeuber', 'pestratte', 'kultist',
@@ -277,7 +281,7 @@ export function viewTalents(sel = null) {
       <p class="hint">${b.text} Voll ausgebaut öffnet sie beide Seiten.</p>
       <div class="row">${st.can ? '<button data-action="tlearn">Rang setzen</button>' : `<button class="off">${st.open ? (tp ? 'voll' : 'keine Punkte') : 'noch gesperrt'}</button>`}</div>`; }
   else if (sel) { const st = nodeState(sel.c, sel.r), n = st.node, key = n.kind === 'key';
-    const good = Object.fromEntries(Object.entries(n.eff).filter(([, v]) => v > 0)), bad = Object.fromEntries(Object.entries(n.eff).filter(([, v]) => v < 0));
+    const good = Object.fromEntries(Object.entries(n.eff).filter(([k, v]) => effVal(k, v) > 0)), bad = Object.fromEntries(Object.entries(n.eff).filter(([k, v]) => effVal(k, v) < 0));
     det = `<h4 class="${key ? 'keyn' : ''}">${n.name} <small>${key ? 'Schlüsselstein' : n.kind === 'nt' ? 'Notable' : `${st.r} / ${n.max}`}</small></h4>
       <p>${n.text}</p><p class="hint">${effLine(good)}${n.max > 1 ? ' je Rang' : ''}</p>
       ${Object.keys(bad).length ? `<p class="cost">${effLine(bad)}</p>` : ''}
