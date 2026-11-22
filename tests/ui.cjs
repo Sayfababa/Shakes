@@ -187,6 +187,28 @@ const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height:
       if (!after.fused.some(x => x === 1)) { failures++; console.log(`FEHLER ${tag}: Fusion nicht am Teil vermerkt`); }
     }
 
+    // Aschenkern (Welle 2B-2): Reiter „Kern“ erst mit Kern; Einzigartiges wählen, Ziel wählen, zwei Tipps, Marke mit gerenderter Farbe
+    const kn = await p.evaluate(async () => { const G = await import('./js/state.js'), L = await import('./js/loot.js'); const S = G.S;
+      let u = null; for (let i = 0; i < 60000 && !u; i++) { const it = L.makeItem(40, { slot: 'boots', minRarity: 4 }); if (it.unique) u = it; }
+      let t = null; for (let i = 0; i < 300 && !t; i++) { const it = L.makeItem(40, { slot: 'boots', minRarity: 3 }); if (!it.unique && !it.set) t = it; }
+      S.bag = S.bag.slice(0, 10); S.mats.aschenkern = 1; S.gold += 99999; G.addToBag(u); G.addToBag(t); G.save(); return u && t ? { u: u.id, t: t.id } : null; });
+    if (!kn) { failures++; console.log(`FEHLER ${tag}: kein Einzigartiges für den Aschenkern erzeugt`); }
+    else {
+      await p.reload(); await p.waitForTimeout(300); await tap('[data-v=traders]'); await tap('[data-t=halvar]'); await tap('[data-v=forge]');
+      if (!(await tap('[data-action=forgemode][data-m=core]'))) { failures++; console.log(`FEHLER ${tag}: kein Reiter „Kern“ trotz Aschenkern`); }
+      await tap(`[data-action=corepick][data-id="${kn.u}"]`); const ck = await p.evaluate(() => document.querySelector('[data-action=corekey]')?.dataset.k);
+      if (ck) await tap(`[data-action=corekey][data-k="${ck}"]`); await tap(`[data-action=coretarget][data-id="${kn.t}"]`); await chk('core1');
+      if (!(await tap('[data-action=corego]'))) { failures++; console.log(`FEHLER ${tag}: Einbrennen gesperrt:`, await p.evaluate(() => document.querySelector('.cmsg')?.textContent)); }
+      await chk('coreask'); if (!(await p.$('.dlg'))) { failures++; console.log(`FEHLER ${tag}: Aschenkern ohne Rückfrage`); }
+      await tap('[data-action=dlgok]'); await p.waitForTimeout(200); await chk('core2');
+      const ko = await p.evaluate(async (kn) => { const G = await import('./js/state.js'); const t = G.S.bag.find(x => x.id === kn.t);
+        return { core: !!t?.core, gone: !G.S.bag.some(x => x.id === kn.u) }; }, kn);
+      if (!ko.core || !ko.gone) { failures++; console.log(`FEHLER ${tag}: Aschenkern nicht eingebrannt`, ko); }
+      await tap('[data-v=hero]'); await p.waitForTimeout(150);
+      const mark = await p.evaluate((id) => { const e = document.querySelector(`[data-tip="${id}"].kern`); return e ? getComputedStyle(e, '::after').backgroundColor : null; }, kn.t);
+      if (!mark || mark === 'rgba(0, 0, 0, 0)') { failures++; console.log(`FEHLER ${tag}: Aschenkern-Marke im Beutel unsichtbar (${mark})`); }
+    }
+
     // Item antippen → Schmieden: Schmiede öffnet direkt mit diesem Item, angelegte Teile grün umrandet
     await p.evaluate(async () => { const L = await import('./js/loot.js'); const G = await import('./js/state.js'); let r; do r = L.makeItem(25, { slot: 'ring', minRarity: 2 }); while (r.unique); G.S.equip.ring1 = r; G.save(); });
     await p.reload(); await p.waitForTimeout(300);
@@ -434,8 +456,18 @@ const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height:
     else { await p.waitForTimeout(300);
       if (await p.$('[data-action=descweek]')) { failures++; console.log(`FEHLER ${tag}: Wochenlohn nach dem Abholen noch da`); } }
     await p.evaluate(async () => { const Gm = await import('./js/game.js'), G = await import('./js/state.js'); const r = Gm.descRec(); r.best = 0; r.wBest = 0; G.save(); });
+    // Siegel (Welle 2B-2): einlegen zeigt Gefahr → Lohn, der Platz passt ohne Scrollen, beim Hinabsteigen verbraucht
+    await p.evaluate(async () => { const Gm = await import('./js/game.js'), G = await import('./js/state.js'); Gm.addSigil('blut', 2, 1); Gm.addSigil('seele', 3, 1); Gm.addSigil('rune', 1, 1); G.save(); });
     await p.reload(); await p.waitForTimeout(300); await tap('[data-v=crypt]'); await tap('.ctabs [data-v=desc]');
+    for (const k of ['blut', 'seele', 'rune']) await tap(`[data-action=descsig][data-k=${k}]`);
+    await chk('descsig');
+    if ((await p.$$('.sigc.on')).length !== 3 || !/Gegner/.test(await p.evaluate(() => document.querySelector('.sigfx')?.textContent || ''))) { failures++; console.log(`FEHLER ${tag}: Siegel nicht eingelegt oder Gefahr nicht angezeigt`); }
+    const sh = await p.evaluate(() => { const m = document.querySelector('main'); return m.scrollHeight - m.clientHeight; });
+    if (sh > 1) { failures++; console.log(`FEHLER ${tag}: Abgrund mit Siegeln scrollt (${sh} px)`); }
     await tap('[data-action=descgo]'); await chk('descmap');
+    const left = await p.evaluate(async () => { const Gm = await import('./js/game.js'); return Gm.sigHave('blut', 2) + Gm.sigHave('seele', 3) + Gm.sigHave('rune', 1); });
+    if (left) { failures++; console.log(`FEHLER ${tag}: Siegel beim Hinabsteigen nicht verbraucht`); }
+    if (!(await p.$('.dtop .dsigs'))) { failures++; console.log(`FEHLER ${tag}: eingelegte Siegel im Lauf nicht sichtbar`); }
     if ((await p.$$('.node.next')).length < 2) { failures++; console.log(`FEHLER ${tag}: Abstieg ohne Wahl im ersten Raum`); }
     for (let k = 0; k < 2; k++) {
       const n = await p.$('[data-action=descsel]:not(.exit)'); if (!n) break;
