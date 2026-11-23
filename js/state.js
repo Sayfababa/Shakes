@@ -580,7 +580,7 @@ export function craftCheck(it, opId, stat) {
   if ((opId === 'chaos' || opId === 'values' || opId === 'remove') && !free.length) return 'Kein unversiegelter Bonus.';
   if (opId === 'add' && keys.length >= CRAFT.maxAff[it.rarity] && !rise)
     return it.risen ? 'Dieses Teil wurde schon erhoben.' : 'Kein Platz für weitere Boni.';
-  if (opId === 'add' && !affixRoom(it, keys, rise || it.rarity).length) return 'Kein passender Bonus mehr frei (Präfix/Suffix voll).';
+  if (opId === 'add' && !roomAny(it, keys, rise || it.rarity).length) return 'Kein passender Bonus mehr frei – jede Art steht schon drauf.';
   return null;
 }
 // Alle unversiegelten Boni neu (gleiche Anzahl), versiegelter bleibt – auch für Ysoldes „Neu weihen“
@@ -590,8 +590,8 @@ export function craft(id, opId, stat) {
   const need = craftMat(it, opId), rise = craftRaises(it, opId);
   const gold = craftGold(it), base = baseMods(it), tiers = { ...(it.tiers || {}) };
   const roll1 = k => { const a = AFFIXES.find(x => x.stat === k), T = rollTier(it.lvl, a.noDeep ? 0 : it.deep || 0); tiers[k] = T.t; base[k] = affixValue(AFFIXES.find(a => a.stat === k), T); };
-  // Ein neuer Bonus kommt nur, wo Präfix/Suffix und Gruppe frei sind (affixRoom) – dieselbe Regel wie bei der Beute
-  const add1 = (rar = it.rarity) => { const room = affixRoom(it, Object.keys(base), rar); if (room.length) roll1(pickAffix(room).stat); };
+  // Ein neuer Bonus kommt bevorzugt auf die freie Seite (affixRoom, wie bei der Beute); ist die voll, aber das Teil hat Platz, irgendwohin (roomAny)
+  const add1 = (rar = it.rarity) => { const side = affixRoom(it, Object.keys(base), rar), room = side.length ? side : roomAny(it, Object.keys(base), rar); if (room.length) roll1(pickAffix(room).stat); };
   const free = Object.keys(base).filter(k => k !== it.sealed);
   if (opId === 'seal') it.sealed = stat;
   else if (opId === 'chaos') { const n = free.length; for (const k of free) { delete base[k]; delete tiers[k]; }
@@ -637,7 +637,13 @@ export const fusePromote = (main, mainStat) => fuseFull(main) && !mainStat && !m
 // Welcher Bonus des Hauptteils weicht? Hat es den Futter-Bonus schon, ersetzt er genau diesen
 // (gleicher Bonus, anderer Wert/Stufe) – sonst der angetippte, aber nur bei vollem Teil.
 // Ein angetippter Bonus weicht nur, wenn er muss: Teil voll, oder der Futter-Bonus findet auf seiner Seite keinen Platz.
-const fuseNeedsRoom = (main, foodStat) => fuseFull(main) || !affixRoom(main, Object.keys(baseMods(main))).some(a => a.stat === foodStat);
+// Platz für einen weiteren Bonus, ohne Präfix/Suffix zu verlangen (das zeigt das Spiel nirgends – Besitzer 2026-11-23): erst die freie
+// Seite wie bei der Beute, sonst jede noch nicht vertretene Gruppe, solange die Gesamtzahl (CRAFT.maxAff) nicht erreicht ist.
+const groupKey = k => { const a = AFFIXES.find(x => x.stat === k); return a ? a.group || a.stat : k; };
+export function roomAny(it, keys = Object.keys(baseMods(it)), rar = it.rarity) {
+  if (keys.length >= (CRAFT.maxAff[rar] || 0)) return [];
+  const used = new Set(keys.map(groupKey)); return affixPool(it).filter(a => !keys.includes(a.stat) && !used.has(a.group || a.stat)); }
+const fuseNeedsRoom = (main, foodStat) => fuseFull(main) || !roomAny(main, Object.keys(baseMods(main))).some(a => a.stat === foodStat);
 export const fuseReplaces = (main, foodStat, mainStat) =>
   foodStat && foodStat in baseMods(main) ? foodStat : mainStat && mainStat in baseMods(main) && fuseNeedsRoom(main, foodStat) ? mainStat : null;
 
@@ -666,8 +672,8 @@ export function fuseCheck(main, food, foodStat, mainStat) {
   if (mainStat) return mainStat === main.sealed ? 'Dieser Bonus ist versiegelt.'
     : !(mainStat in mb) ? 'Bonus im Hauptteil antippen, der weichen soll.'
     : fits(Object.keys(mb).filter(k => k !== mainStat)) || loose(Object.keys(mb).filter(k => k !== mainStat)) ? null
-    : 'Passt nicht: ein Bonus derselben Gruppe bleibt stehen – den antippen.';
-  if (!fuseFull(main)) return 'Diese Seite (Präfix/Suffix) ist voll – Bonus im Hauptteil antippen, der weichen soll.';
+    : 'Ein Bonus derselben Art (z. B. zwei Attribute) bliebe stehen – den antippen.';
+  if (!fuseFull(main)) return roomAny(main, Object.keys(mb)).some(a => a.stat === foodStat) ? null : 'Ein Bonus derselben Art steht schon drauf – den im Hauptteil antippen.';
   if (nextRar(main.rarity) && !main.risen && fits(Object.keys(mb), nextRar(main.rarity))) return null;
   return 'Bonus im Hauptteil antippen, der weichen soll.';
 }
