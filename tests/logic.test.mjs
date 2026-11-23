@@ -1616,6 +1616,11 @@ test('Fusion: angetippter Bonus weicht auch von der anderen Seite (Suffixe voll,
   assert.ok(!S.bag.some(x => x.id === 'f'), 'Futter zerfällt');
   // Gruppe: Intelligenz kommt nicht zu Stärke dazu (beide Attribute), wenn Kon weicht
   const m2 = mk('m2', { con: 2, lifep: 8, physr: 10, str: 5 }), f2 = mk('f2', { int: 5 }); S.equip.chest = m2; S.bag = [f2];
-  assert.match(G.fuseCheck(m2, f2, 'int', 'con') || '', /Gruppe/);
+  assert.match(G.fuseCheck(m2, f2, 'int', 'con') || '', /derselben Art/);
+  // Teil nicht voll, nur die Seite voll: der Bonus kommt einfach dazu, nichts muss weichen – auch beim Umschmieden „hinzufügen“
+  const m3 = mk('m3', { con: 2, lifep: 8, physr: 10 }), f3 = mk('f3', { armor: 274 }); S.equip.chest = m3; S.bag = [f3];
+  assert.ok(G.roomAny(m3).some(a => a.stat === 'armor'), 'Umschmieden: Rüstung hätte trotz voller Suffix-Seite Platz (selten: 4 Boni gesamt)');
+  assert.equal(G.fuseCheck(m3, f3, 'armor', null), null); const r3 = G.fuse('m3', 'f3', 'armor', null); assert.ok(!r3.err && Object.keys(G.baseMods(m3)).length === 4);
+  assert.equal(G.roomAny(m3).length, 0, 'jetzt voll (4 von 4)');
   assert.equal(G.fuseCheck(m2, f2, 'int', 'str'), null, 'Stärke weicht → Intelligenz passt');
 });
