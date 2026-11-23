@@ -142,3 +142,8 @@ Gemessen (uniques.mjs, 300 Kämpfe × 3 Würfe, St. 14/24): sieben Stücke ohne 
 Reif der Zuflucht, Eisernes Gelübde, Knochenkrone) – die Antwort für alle, keine Wahl. Je Stück eine Bonus-Stufe schwächer und
 die Sonderwirkung um ~⅓ kleiner (Dornen, Schutz, Block, zweiter Atem). Danach schwächste Klasse +6 bis +16, im Feld der
 übrigen Einzigartigen; Test im Rahmen. Besitzer: „abschwächen“. Der Letzte Atem bleibt für eine Klasse bei +28 (Wirkung unverändert).
+
+### Fusion: angetippter Bonus weicht seitenunabhängig (2026-11-23)
+Besitzer: „das Futter geht eh kaputt, das soll den Schmiedeprozess nicht stoppen“. Ein angetippter Bonus darf weichen, auch wenn er
+auf der anderen Seite steht (Suffixe voll, Präfix weicht) – das Teil darf danach z. B. 4 Suffixe und 0 Präfixe tragen. Es bleiben:
+Gesamtzahl (`CRAFT.maxAff`) und Gruppe (nie zwei Boni derselben Gruppe, z. B. zwei Attribute). Test: logic „Fusion: angetippter Bonus …“.

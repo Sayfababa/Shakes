@@ -437,6 +437,9 @@ const TOUCH = matchMedia('(hover: none)').matches;
 const ACT_LABEL = { equip: 'Anlegen', unequip: 'Ablegen', buy: 'Kaufen', pitbuy: 'Kaufen', sell: 'Verkaufen', stashtip: 'In den Beutel' };
 document.addEventListener('pointerdown', () => Sound.unlock(), { passive: true });
 document.addEventListener('click', e => {
+  // Offenes Fenster (Teil-Detail, Rückfrage): ein Tipp daneben schließt nur das Fenster und löst sonst nichts aus –
+  // vorher öffnete er sofort das angetippte andere Teil (Besitzer 2026-11-23)
+  if (tip.className === 'touch' && !tip.hidden && !e.target.closest('#tip')) { hideTip(); return; }
   const el = e.target.closest('[data-action]');
   if (!el) { if (!e.target.closest('#tip')) hideTip(); return; }
   if (TOUCH && el.dataset.tip && !el.closest('#tip')) return showTouchTip(el);

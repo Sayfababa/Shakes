@@ -681,8 +681,10 @@ test('Kampfbericht: Anteile ergeben ~100 %, Niederlage gibt einen Tipp; Absicht 
   assert.ok(r.log.some(l => /Betäubung/.test(l.iB || '')), 'Glöckner zeigt seine Betäubung an');
 });
 
-const anyPath = (map, prefer) => { const path = []; for (let i = 0; i < map.rows.length; i++) { const opts = map.rows[i].map((n, j) => j).filter(j => !i || Game.expLinked(map.rows[i - 1][path[i - 1]], map.rows[i][j]));
-  path.push(opts.find(j => map.rows[i][j].t === prefer) ?? opts[0]); } return path; };
+// Alle Wege durchsuchen (vorher gierig Reihe für Reihe – verfehlte am 2026-11-23 ein erreichbares Ereignis): erst ein Weg über `prefer`, sonst irgendeiner
+const anyPath = (map, prefer) => { let first = null; const go = (i, path) => { if (i === map.rows.length) { first ??= path; return path.some((j, k) => map.rows[k][j].t === prefer) ? path : null; }
+  for (let j = 0; j < map.rows[i].length; j++) if (!i || Game.expLinked(map.rows[i - 1][path[i - 1]], map.rows[i][j])) { const r = go(i + 1, [...path, j]); if (r) return r; } return null; };
+  return go(0, []) ?? first; };
 test('Expedition: Karte, Weg, ohne Glut, blockiert Kämpfe, Ereignisse bei der Heimkehr, früh heimrufen', () => {
   const S = fresh('witch'); S.lvl = 12; S.glut = 0; let t = Date.now(); const real = Date.now; Date.now = () => t;
   try {
@@ -1599,4 +1601,21 @@ test('Weicher Deckel: Ausweichen/Krit wachsen bis zur Grenze immer weiter, errei
   const y = { dex: 59, evade: 0.24, evadeCap: 0.08 }, e = evadeChance(y, 28);
   assert.ok(e < 0.55 && e > 0.45, `Ausweichen ${e}`); assert.ok(evadeChance({ ...y, evade: 0.34 }, 28) > e, 'mehr Ausweichen bringt noch etwas');
   assert.ok(critChance({ lck: 80 }, 8) > critChance({ lck: 53 }, 8), 'mehr Glück bringt noch Krit');
+});
+
+test('Fusion: angetippter Bonus weicht auch von der anderen Seite (Suffixe voll, Präfix weicht) – Gruppe bleibt Regel', () => {
+  const S = fresh('sorceress'); S.lvl = 20; S.gold = 99999;
+  const base = D.BASES.find(b => b.slot === 'chest');
+  const mk = (id, mods) => ({ id, slot: 'chest', kind: base.kind, base: base.name, art: base.art, w: base.w, h: base.h, name: id, rarity: 'rare', lvl: 20, armor: 10, mods: { ...mods }, tiers: Object.fromEntries(Object.keys(mods).map(k => [k, 4])), value: 10 });
+  // wie im Bericht: Kon, Leben %, Phys.-Resi (drei Suffixe) + Stärke (Präfix); Futter bringt Rüstung (Suffix)
+  const main = mk('m', { con: 2, lifep: 8, physr: 10, str: 5 }), food = mk('f', { int: 5, thornsp: 25, lck: 12, armor: 274 });
+  S.equip.chest = main; S.bag = [food];
+  assert.equal(G.fuseCheck(main, food, 'armor', 'str'), null, 'Stärke darf weichen');
+  const r = G.fuse('m', 'f', 'armor', 'str'); assert.ok(!r.err, r.err);
+  assert.ok(!('str' in G.baseMods(main)) && G.baseMods(main).armor === 274 && Object.keys(G.baseMods(main)).length === 4);
+  assert.ok(!S.bag.some(x => x.id === 'f'), 'Futter zerfällt');
+  // Gruppe: Intelligenz kommt nicht zu Stärke dazu (beide Attribute), wenn Kon weicht
+  const m2 = mk('m2', { con: 2, lifep: 8, physr: 10, str: 5 }), f2 = mk('f2', { int: 5 }); S.equip.chest = m2; S.bag = [f2];
+  assert.match(G.fuseCheck(m2, f2, 'int', 'con') || '', /Gruppe/);
+  assert.equal(G.fuseCheck(m2, f2, 'int', 'str'), null, 'Stärke weicht → Intelligenz passt');
 });
