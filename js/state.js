@@ -659,9 +659,14 @@ export function fuseCheck(main, food, foodStat, mainStat) {
   // Präfix/Suffix und Gruppe (affixRoom): passt der Bonus nur, wenn einer derselben Seite weicht, muss man ihn antippen
   const fits = (keep, rar = main.rarity) => affixRoom(main, keep, rar).some(a => a.stat === foodStat);
   if (!fuseFull(main) && fits(Object.keys(mb))) return null;          // Platz frei: der Bonus kommt einfach dazu
+  // Ein angetippter Bonus darf weichen, egal auf welcher Seite er steht (Besitzer 2026-11-23: „das Futter geht eh kaputt, das soll
+  // den Schmiedeprozess nicht stoppen“) – Fusion darf die Präfix/Suffix-Aufteilung brechen. Es bleiben: Gesamtzahl und Gruppe
+  // (nie zwei Boni derselben Gruppe, z. B. zwei Attribute).
+  const loose = keep => keep.length < CRAFT.maxAff[main.rarity] && !keep.some(k => { const a = AFFIXES.find(x => x.stat === k), f = AFFIXES.find(x => x.stat === foodStat); return a && f && (a.group || a.stat) === (f.group || f.stat); });
   if (mainStat) return mainStat === main.sealed ? 'Dieser Bonus ist versiegelt.'
     : !(mainStat in mb) ? 'Bonus im Hauptteil antippen, der weichen soll.'
-    : fits(Object.keys(mb).filter(k => k !== mainStat)) ? null : 'Passt nur, wenn ein Bonus derselben Seite (Präfix/Suffix) weicht.';
+    : fits(Object.keys(mb).filter(k => k !== mainStat)) || loose(Object.keys(mb).filter(k => k !== mainStat)) ? null
+    : 'Passt nicht: ein Bonus derselben Gruppe bleibt stehen – den antippen.';
   if (!fuseFull(main)) return 'Diese Seite (Präfix/Suffix) ist voll – Bonus im Hauptteil antippen, der weichen soll.';
   if (nextRar(main.rarity) && !main.risen && fits(Object.keys(mb), nextRar(main.rarity))) return null;
   return 'Bonus im Hauptteil antippen, der weichen soll.';

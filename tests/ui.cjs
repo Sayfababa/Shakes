@@ -428,7 +428,12 @@ const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height:
     await p.reload(); await p.waitForTimeout(300); await tap('[data-v=trips]');
     if (!(await tap('.expbar.ready'))) { failures++; console.log(`FEHLER ${tag}: Expedition-Leiste fehlt/leuchtet nicht bei leerer Glut`); }
     await tap('[data-h="8"]'); await chk('exped');
-    for (let i = 0; i < 4; i++) { const nn = await p.$$('.node.next'); let n = nn[0]; for (const q of nn) if (await q.$('img[src*="event.webp"]')) n = q; if (!n) break; await n.tap(); await p.waitForTimeout(60); }
+    // Weg über ein Ereignis: alle Wege der Karte durchsuchen (gierig Reihe für Reihe verfehlte am 2026-11-23 ein erreichbares „?“)
+    const want = await p.evaluate(async loc => { const Gm = await import('./js/game.js'); const m = Gm.expedMap(loc, 8);
+      const go = (i, path) => { if (i === m.rows.length) return path.some((j, k) => m.rows[k][j].t === 'event') ? path : null;
+        for (let j = 0; j < m.rows[i].length; j++) if (!i || Gm.expLinked(m.rows[i - 1][path[i - 1]], m.rows[i][j])) { const r = go(i + 1, [...path, j]); if (r) return r; } return null; };
+      return go(0, []); }, await p.$eval('.node.next', e => e.dataset.l).catch(() => null));
+    for (let i = 0; i < 4; i++) { const nn = await p.$$('.node.next'); let n = want ? await p.$(`.node.next[data-r="${i}"][data-j="${want[i]}"]`) : nn[0]; if (!n) n = nn[0]; if (!n) break; await n.tap(); await p.waitForTimeout(60); }
     await chk('exped2'); if (await p.$('[data-action=expgo][disabled]')) { failures++; console.log(`FEHLER ${tag}: Weg lässt sich nicht vollständig wählen`); }
     await tap('[data-action=expgo]'); await chk('expaway');
     await tap('[data-v=crypt]'); await chk('expcrypt'); if (await p.$('[data-action=crypt]')) { failures++; console.log(`FEHLER ${tag}: Krypta während Expedition offen`); }

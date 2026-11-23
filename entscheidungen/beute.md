@@ -154,3 +154,8 @@ bringt Zauberin/Barbar +21–25 % legendär heim ohne Siegverlust. **Assassine:*
 heim 0,14 statt 0,31 legendär je Abstieg. Ursache: Geschick ist bei ihr Hauptattribut **und** Ausweichen/Erstschlag; im Abstieg
 läuft das Leben von Raum zu Raum mit, verlorenes Ausweichen summiert sich. Bei Zauberin/Barbar kostet Glück nur Hieb-Schaden,
 der dort wenig zählt. Nicht gelöst (keine pauschale Änderung): die Assassine farmt mit dem Standard-Build.
+
+### Fusion: angetippter Bonus weicht seitenunabhängig (2026-11-23)
+Besitzer: „das Futter geht eh kaputt, das soll den Schmiedeprozess nicht stoppen“. Ein angetippter Bonus darf weichen, auch wenn er
+auf der anderen Seite steht (Suffixe voll, Präfix weicht) – das Teil darf danach z. B. 4 Suffixe und 0 Präfixe tragen. Es bleiben:
+Gesamtzahl (`CRAFT.maxAff`) und Gruppe (nie zwei Boni derselben Gruppe, z. B. zwei Attribute). Test: logic „Fusion: angetippter Bonus …“.
