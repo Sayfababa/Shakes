@@ -66,6 +66,16 @@ const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height:
           : Math.abs(col - fr.width) > 2 ? `Figur-Spalte ${Math.round(col)} px ≠ Rahmen ${Math.round(fr.width)} px` : null; });
       if (bad) { failures++; console.log(`FEHLER ${tag}: Helden-Puppe (${mode}): ${bad}`); }
       if (mode === 'stash') await tap('[data-action=invmode]'); }
+    // Homescreen-App (2026-11-24): iOS gibt oben ~47 px und unten ~34 px Safe-Area – env() ist hier 0, darum nachstellen.
+    // Der Held-Bildschirm muss dann noch ganz hineinpassen (vorher ragte die Puppe oben und unten hinaus).
+    await tap('[data-v=hero]');
+    const safeBad = await p.evaluate(async () => { const s = document.createElement('style'); s.id = 'safetest';
+      s.textContent = '#app { padding-top: 47px !important; } .tabs { padding-bottom: 40px !important; }'; document.head.appendChild(s);
+      await new Promise(r => setTimeout(r, 120)); const m = document.querySelector('main').getBoundingClientRect(), k = [...document.querySelector('.hero').children].map(e => e.getBoundingClientRect());
+      const v = document.querySelector('.d2vals .kk')?.getBoundingClientRect(), vv = document.querySelector('.d2vals')?.getBoundingClientRect(); s.remove();
+      return k[0].top < m.top - 1 ? `oben ${Math.round(m.top - k[0].top)} px abgeschnitten` : k.at(-1).bottom > m.bottom + 1 ? `unten ${Math.round(k.at(-1).bottom - m.bottom)} px abgeschnitten`
+        : !v || v.bottom > vv.bottom + 1 ? 'Kampfkraft unter den Werten verschwunden' : null; });
+    if (safeBad) { failures++; console.log(`FEHLER ${tag}: Held mit Homescreen-Rändern: ${safeBad}`); }
     // Das Brett: JEDE Klasse mit TREE, nicht nur die erste – die Beschreibungen der Schlüsselsteine
     // sind je Klasse verschieden lang, und `.tdet` hat eine feste Höhe (sonst springt das Brett).
     const boards = await p.evaluate(async () => Object.keys((await import('./js/data.js')).TREE));
