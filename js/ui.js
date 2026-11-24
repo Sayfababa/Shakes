@@ -162,18 +162,27 @@ export function viewCreate(sel) {
 }
 
 // --- Held: Ausrüstungsfigur + Raster-Inventar ---
+// Ganzkörper-Figuren gibt es für die wählbaren Klassen (assets/heroes); andere fallen auf das Porträt zurück
+const HERO_FIG = new Set(['sorceress', 'assassin', 'barbarian']);
 export function viewHero(stash, pick = null) {
   const rk = rank(), st = stats(), pts = S.points + talentPoints();
   const slot = s => { const it = S.equip[s]; return `<div class="eslot es-${s} ${it ? rarCls(it) : ''}" ${it ? `data-tip="${it.id}" data-action="unequip" data-s="${s}"` : ''}>${it ? itemArt(it) : `<span class="ghost">${ghost(s)}</span>`}</div>`; };
   const mats = Object.entries(S.mats).filter(([, n]) => n > 0);
+  // Held in ganzer Gestalt (Besitzer 2026-11-24, Mockup held-ganzkoerper, Variante A): Figur hoch, die wichtigsten Werte daneben,
+  // Ausrüstung links und in einer Reihe darunter. Werte über dieselben Funktionen wie Kampf und Werte-Ansicht (nie abtippen).
+  const pct = v => `${Math.round(v * 100)} %`, res = k => Math.round(Math.min(k === 'phys' ? CFG.resCapPhys : CFG.resCap, st.res[k]) * 100);
+  const vals = [['Leben', fmtN(st.hp)], ['Schaden', `${st.dmg[0]}–${st.dmg[1]}`], ['Zauberkraft', `×${st.amp.toFixed(2).replace('.', ',')}`], ['Rüstung', fmtN(st.armor)],
+    ['Ausweichen', pct(evadeChance(st, 3 + S.lvl * CFG.monGrow))], ['Blocken', pct(Math.min(0.5, st.block || 0))],
+    ['Krit', `${pct(critChance(st, S.lvl))} · ×${st.critMult.toFixed(1).replace('.', ',')}`], ['Resi', `${res('phys')} / ${res('elem')} %`], ['Zaubertempo', `+${Math.round((st.haste || 0) * 100)} %`]];
+  const fig = HERO_FIG.has(S.cls) ? `assets/heroes/${S.cls}.webp` : P(S.cls);
   return `<div class="hero">
-    <section class="panel doll">
-      <div class="dside">${slot('helm')}${slot('weapon')}${slot('gloves')}${slot('ring1')}</div>
-      <div class="dmid"><div class="pfill"><img class="portrait fr-${rk.frame}" src="${P(S.cls)}" alt="" title="${rk.title}"></div><div class="drow">${slot('chest')}${slot('belt')}</div></div>
-      <div class="dside">${slot('amulet')}${slot('offhand')}${slot('boots')}${slot('ring2')}</div>
+    <section class="panel doll2">
+      <div class="d2side">${slot('helm')}${slot('weapon')}${slot('gloves')}${slot('ring1')}</div>
+      <div class="d2fig"><img src="${fig}" alt="" title="${rk.title}"></div>
+      <div class="d2vals">${vals.map(([n, v]) => `<div><span>${n}</span><b>${v}</b></div>`).join('')}<div class="kk"><span>Kampfkraft</span><b>${fmtN(power(st))}</b></div></div>
+      <div class="d2row">${slot('amulet')}${slot('chest')}${slot('belt')}${slot('offhand')}${slot('boots')}${slot('ring2')}</div>
     </section>
     <div class="herobar">
-      <span class="kkline">Kampfkraft <b>${fmtN(power(st))}</b></span>
       <button class="${S.points ? 'red' : ''}" data-action="go" data-v="stats">Werte${S.points ? ' ·' + S.points : ''}</button>
       <button class="${talentPoints() ? 'red' : ''}" data-action="go" data-v="talents">Talente${talentPoints() ? ' ·' + talentPoints() : ''}</button>
       <button class="${waysPending() ? 'red' : ''}" data-action="go" data-v="spells">Zauber${waysPending() ? ' ·' + waysPending() : ''}</button>

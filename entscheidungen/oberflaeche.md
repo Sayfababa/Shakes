@@ -78,3 +78,10 @@ Held: Name (und Titel) steht oben in der Kopfzeile, nicht unter dem Portrait. **
 ### Tipp daneben schließt nur (2026-11-23)
 Ist ein Fenster offen (Teil-Detail, Rückfrage), schließt ein Tipp außerhalb nur das Fenster und löst nichts aus (vorher öffnete er
 sofort das andere Teil). Ein zweiter Tipp öffnet es. Gilt für alle `tip.className === touch`-Fenster (main.js, Klick-Handler).
+
+### Held in ganzer Gestalt (2026-11-24)
+Helden-Bildschirm Variante A (Mockup `held-ganzkoerper`): Ganzkörper-Figur (`assets/heroes/<klasse>.webp`, 512×1024, Besitzer-Bild),
+daneben Leben, Schaden, Zauberkraft, Rüstung, Ausweichen (gegen Gegner der eigenen Stufe), Blocken, Krit, Resi, Zaubertempo, Kampfkraft –
+über dieselben Funktionen wie Kampf/Werte-Ansicht. Ausrüstung links (Helm, Waffe, Handschuhe, Ring) und als Reihe darunter.
+**Im Kampf bleibt das quadratische Porträt** (Gegner sind auch Kopfbilder, Zahlen/Effekte sind darauf ausgelegt).
+Figur-Höhe 5 × --s: mit Tutorial-Leiste ragte der Beutel bei 5,4 um 6 px heraus (ui.cjs).
