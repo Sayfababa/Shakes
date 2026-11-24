@@ -9,6 +9,10 @@ const groupOf = a => a.group || a.stat;
 // Abgrund-Stufen (minDepth) nur mit einer Tiefe ab minDepth – sonst nie (Krypta, Akte, Schmiede).
 export function rollTier(ilvl, depth = 0) { return weighted(TIERS.filter(t => ilvl >= t.minLvl && (t.minDepth || 0) <= depth)); }
 // Beste Stufe, die diese Gegenstandsstufe freischaltet (Einzigartige/Sets: ihre Stufe wird darauf gekürzt)
+// Beste Stufe, die auf diesem Teil für diesen Bonus möglich ist (Gegenstandsstufe; Abgrund-Stufen nur mit Tiefe, nie für noDeep-Boni).
+// Für die Anzeige „beste Stufe hier“ – dieselbe Regel wie rollTier, nicht abgetippt.
+export const bestTier = (it, stat) => { const a = AFFIXES.find(x => x.stat === stat), d = a?.noDeep ? 0 : it.deep || 0;
+  return TIERS.find(t => (it.lvl || 1) >= t.minLvl && (t.minDepth || 0) <= d)?.t ?? TIERS[TIERS.length - 1].t; };
 export const topTier = ilvl => TIERS.find(t => !t.minDepth && ilvl >= t.minLvl)?.t ?? TIERS[TIERS.length - 1].t;
 // Fester Wertebereich eines Bonus auf Stufe t (Welle 1a, PoE-Art): TIERS.flat/pct × per, ganzzahlig. Von V aufwärts
 // beginnt jede Stufe über der vorigen – zwei Stufen teilen nie einen Wert, darum liest tierOf die Stufe eindeutig ab.
