@@ -6,6 +6,8 @@ const SCR = [['i13app', 390, 844, 0], ['i13band', 390, 844, 60]];
 (async () => { await new Promise(r => setTimeout(r, 700)); const b = await chromium.launch(); let bad = 0;
   await Promise.all(SCR.map(async ([nm, w, h, cut]) => {
     const c = await b.newContext({ ...devices['iPhone 15 Pro Max'], viewport: { width: w, height: h }, deviceScaleFactor: 1 }); const p = await c.newPage();
+    // Homescreen-App (2026-11-24): Safe-Area oben ~47 px, unten ~34 px nachstellen (env() ist in Chromium 0); nur im App-Fall (cut 0), SAFE=0 schaltet ab
+    if (process.env.SAFE !== '0' && !cut) await p.addInitScript(() => addEventListener('DOMContentLoaded', () => { const s = document.createElement('style'); s.textContent = '#app { padding-top: 47px !important; } .tabs { padding-bottom: 40px !important; }'; document.head.appendChild(s); }));
     await p.goto('http://localhost:8781/'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(300);
     await p.tap('[data-c="sorceress"]'); await p.fill('#nm', 'Sayfa'); await p.tap('[data-action=create]'); await p.waitForTimeout(150);
     if (cut) await p.addStyleTag({ content: `#app { bottom: ${cut}px !important; }` });

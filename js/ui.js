@@ -272,7 +272,7 @@ export function viewWays(sid) {
     ${SPELL_TREE[sid].map((opts, t) => { const open = wayOpen(sp, t);
       return `<section class="panel waytier ${open ? '' : 'locked'}"><h2>Stufe ${t + 1} <span class="h2r">${open ? (ch[t] == null ? '<b class="hot">wählen</b>' : 'gewählt') : `ab Stufe ${Math.max(sp.lvl, TREE_LVL[t])}`}</span></h2>
         <div class="wayopts">${opts.map((o, i) => `<button class="way ${ch[t] === i ? 'on' : ''}" ${open ? `data-action="way" data-s="${sid}" data-t="${t}" data-i="${i}"` : 'disabled'}><b>${o.name}</b><small>${o.text}</small></button>`).join('')}</div></section>`; }).join('')}
-    <p class="small dim waynote">Erste Wahl je Stufe gratis, Umentscheiden ${cost} Gold. Vor einer Krypta lohnt es sich: Reinigen hilft gegen Gift, Bannen gegen Heilung, Unbeugsam gegen Betäubung.</p></div>`;
+    <p class="small dim waynote">Erste Wahl je Stufe gratis, Umentscheiden ${cost} Gold. Vor einer Krypta: Reinigen hilft gegen Gift, Bannen gegen Heilung, Unbeugsam gegen Betäubung.</p></div>`;
 }
 const GRADES_TXT = () => GRADES.map(g => `<div class="stat small"><span class="g-${g.id}">${g.name}</span><span>${g.min ? `≥ ${Math.round(g.min * 100)} % Leben` : 'sonst'} → ${g.bonus ? `+${Math.round(g.bonus * 100)} % Gold${g.id === 'dom' ? ', mehr Beute' : ''}` : 'kein Bonus'}</span></div>`).join('');
 
@@ -969,7 +969,7 @@ function viewDescRes(res) {
     ...(o.sig || []).map(x => `<span title="${sigName(x)}">${sigImg(x.id)}<i class="nm">${sigKind(x.id).name} </i>×${x.n}</span>`)];
   return `<div class="col descres">${cryptTabs('desc')}<section class="panel"><h2>Entkommen · ${o.how}</h2>${o.rec ? `<p class="small ${o.rec.best ? 'up' : ''}">${o.rec.best ? `Neuer Rekord: <b>Tiefe ${o.rec.d}</b>` : `Tiefe ${o.rec.d} geschafft`} – Tiefe ${o.rec.d + 1} ist offen.</p>` : ''}
     <div class="drows"><p><span>Räume</span><b>${o.rooms} · Unruhe ×${descMult(o.unrest)}</b></p><p><span>Erfahrung</span><b>${o.xp} EP</b></p><p><span>Gold</span><b class="up">+${o.gold}</b></p></div></section>
-    <section class="panel"><h2>Gesichert</h2><div class="xloot">
+    <section class="panel dgot vscroll"><h2>Gesichert</h2><div class="xloot">
       ${o.items.length ? `<p>${o.items.map(it => `<span class="r-${it.rarity}">${it.name}</span>${it.soldFull ? ' <span class="dim small">(Beutel voll, verkauft)</span>' : ''}`).join(' · ')}</p>` : ''}
       ${chips.length ? `<p class="xrow">${chips.join('')}</p>` : ''}${!o.items.length && !chips.length ? '<p class="dim">nur Gold</p>' : ''}</div></section>
     <div class="btns"><button class="red" data-action="descok">Weiter</button></div></div>`;
