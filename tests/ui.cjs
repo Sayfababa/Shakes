@@ -72,9 +72,9 @@ const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height:
     const safeBad = await p.evaluate(async () => { const s = document.createElement('style'); s.id = 'safetest';
       s.textContent = '#app { padding-top: 47px !important; } .tabs { padding-bottom: 40px !important; }'; document.head.appendChild(s);
       await new Promise(r => setTimeout(r, 120)); const m = document.querySelector('main').getBoundingClientRect(), k = [...document.querySelector('.hero').children].map(e => e.getBoundingClientRect());
-      const v = document.querySelector('.d2vals .kk')?.getBoundingClientRect(), vv = document.querySelector('.d2vals')?.getBoundingClientRect(); s.remove();
+      const v = document.querySelector('.d2vals > div:last-child')?.getBoundingClientRect(), vv = document.querySelector('.d2vals')?.getBoundingClientRect(); s.remove();   // letzte Zeile (Kampfkraft, wenn angezeigt)
       return k[0].top < m.top - 1 ? `oben ${Math.round(m.top - k[0].top)} px abgeschnitten` : k.at(-1).bottom > m.bottom + 1 ? `unten ${Math.round(k.at(-1).bottom - m.bottom)} px abgeschnitten`
-        : !v || v.bottom > vv.bottom + 1 ? 'Kampfkraft unter den Werten verschwunden' : null; });
+        : !v || v.bottom > vv.bottom + 1 ? 'letzte Wertezeile unten abgeschnitten' : null; });
     if (safeBad) { failures++; console.log(`FEHLER ${tag}: Held mit Homescreen-Rändern: ${safeBad}`); }
     // Auswahl-Modus zeigt dieselben Markierungen wie der Beutel (▲ Verbesserung, Filter-Punkte) – sonst weiß man nicht, was man wählt (2026-11-24)
     { const cnt = () => p.evaluate(() => [document.querySelectorAll('.invp .better').length, document.querySelectorAll('.invp .fdots').length].join('/'));

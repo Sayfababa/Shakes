@@ -449,7 +449,8 @@ export const sellMat = it => it.rarity === 'legendary' && SELL.mat[it.slot] ? SE
 export function sellOff(it) { const g = sellPrice(it), m = sellMat(it); S.gold += g; if (m) addMat(m, SELL.legendMat); return { gold: g, mat: m }; }
 export function sell(id) { const it = removeFromBag(id); if (it) sellOff(it); }
 // Gewinn an Kampfkraft, wenn das Teil angelegt würde (Anzeige ▲ ab 1 %) – null für Angelegtes
-export const itemGain = it => { if (!it?.slot || Object.values(S.equip).includes(it)) return null; const p = powerWith(it); return (p.then - p.now) / Math.max(1, p.now); };
+// Bei ausgeschalteter Kampfkraft-Anzeige (CFG.showPower) gibt es kein ▲ – und „Ramsch“ schützt dann auch nichts mehr darüber (Besitzer: Variante b)
+export const itemGain = it => { if (!CFG.showPower || !it?.slot || Object.values(S.equip).includes(it)) return null; const p = powerWith(it); return (p.then - p.now) / Math.max(1, p.now); };
 // --- Ramsch verkaufen (Besitzer 2026-11-24): mehrere Teile auf einmal, ohne etwas Wertvolles zu verlieren ---
 // Nur aus dem Beutel (nie Angelegtes, nie Lager), nur zerbrochen/gewöhnlich/magisch. Geschützt: Beute-Filter-Treffer,
 // Runen, Sonderbonus, Aschenkern, Einzigartige/Sets und alles, was dich verbessern würde (▲).

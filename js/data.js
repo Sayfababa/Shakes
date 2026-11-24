@@ -546,6 +546,9 @@ export const CFG = {
   powerExp: 0.35,
   lootLuck: { exp: { rare: 0.75, legendary: 1.5 }, ref: [2, 10] },
   tempoMode: false, tempoCap: 1.6, critCharge: 0.34, dexHaste: 0,
+  // Kampfkraft-Anzeige (Zahl, ▲, Vergleich, Einblendung, „+N“ an Attributen) – vom Besitzer vorerst ausgeschaltet (2026-11-24): sie überschätzt
+  // Heilung (→ E „Kampfkraft überschätzt Heilung“). Die Rechnung läuft weiter (Bot, Händler-Auswahl). Wieder an: true.
+  showPower: false,
   igniteTurns: 3,                     // Brand (Schlüsselstein Verbrennung): wie viele Runden der Brand des Zaubers läuft
   resCap: 0.75, resCapPhys: 0.5,      // Deckel Elementar-Resi 75 % (D2/PoE), Phys.-Resi 50 % (D2 „Schaden reduziert“, stapelt mit Rüstung)
   wpnLvlAdd: 10,                      // Waffen-Grundschaden wirkt höchstens wie Gegenstandsstufe Heldenstufe + 10 (Tooltip zeigt „wirksam“)

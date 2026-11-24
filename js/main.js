@@ -115,6 +115,7 @@ function betterTxt(it) { const g = UI.itemGain(it);
   return (it.unique ? ' <b class="uniq-txt">Einzigartig!</b>' : it.special ? ' <b class="uniq-txt">✦</b>' : '') + (g > 0.01 ? ` <b class="better-txt">▲ +${Math.round(g * 100)} % Kampfkraft</b>` : ''); }
 // Kurze Einblendung nach dem Anlegen: alte → neue Kampfkraft
 function toast(before) {
+  if (!CFG.showPower) return;   // Kampfkraft-Anzeige aus (data.js)
   const after = G.power(), d = after - before; if (!d) return;
   const el = document.createElement('div'); el.className = 'toast ' + (d > 0 ? 'up' : 'down');
   el.innerHTML = `Kampfkraft ${UI.fmtN(before)} → <b>${UI.fmtN(after)}</b> <span>${d > 0 ? '▲ +' : '▼ −'}${Math.abs(Math.round(d / Math.max(1, before) * 100))} %</span>`;
@@ -271,7 +272,7 @@ const actions = {
   // Ramsch verkaufen: Rückfrage mit Anzahl und Gold; was geschützt ist, steht dabei (state.js junkItems)
   junk: () => { const L = G.junkItems(); if (!L.length) return note('Kein Ramsch im Beutel – alles ist geschützt oder wertvoll.');
     const g = L.reduce((s, it) => s + G.sellPrice(it), 0);
-    ask(`${L.length} Teil${L.length > 1 ? 'e' : ''} verkaufen für <b>${g} Gold</b>?<br><small class="dim">Nur zerbrochen, gewöhnlich, magisch aus dem Beutel. Bleiben: Filter-Treffer, Runen, Sonderbonus, Verbesserungen (▲), Angelegtes, Lager.</small>`,
+    ask(`${L.length} Teil${L.length > 1 ? 'e' : ''} verkaufen für <b>${g} Gold</b>?<br><small class="dim">Nur zerbrochen, gewöhnlich, magisch aus dem Beutel. Bleiben: Filter-Treffer, Runen, Sonderbonus${CFG.showPower ? ', Verbesserungen (▲)' : ''}, Angelegtes, Lager.</small>`,
       'Verkaufen', () => { const r = G.sellJunk(); G.save(); render(); note(`${r.n} Teile verkauft: +${r.gold} Gold.`); }, true); },
   // Beute-Filter (Einstellungen): Wahl steht im Spielstand, die Punkte leitet ui.js daraus ab
   filmod: d => { G.setFilterMod(d.k); G.save(); render(); },
