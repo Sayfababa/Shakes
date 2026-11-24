@@ -16,6 +16,10 @@ const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height:
   const b = await chromium.launch();
   await Promise.all(['iPhone 13 App'].map(async dev => {   // ein Gerät: iPhone 13 als App
     const c = await b.newContext(ctxFor(dev)); const p = await c.newPage(); const errs = [];
+    // Homescreen-App (2026-11-24): iOS gibt oben ~47 px und unten ~34 px Safe-Area; env() ist in Chromium 0. Ohne das passte im Test,
+    // was am iPhone hinter der unteren Leiste verschwand (Held, Abgrund, Abstiegs-Ergebnis). SAFE=0 schaltet es für Vergleiche ab.
+    if (process.env.SAFE !== '0') await p.addInitScript(() => addEventListener('DOMContentLoaded', () => { const s = document.createElement('style'); s.id = 'safearea';
+      s.textContent = '#app { padding-top: 47px !important; } .tabs { padding-bottom: 40px !important; }'; document.head.appendChild(s); }));
     p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'error' && errs.push(m.text()));
     const tag = dev.replace(/ /g, '');
     const chk = async n => {
@@ -501,10 +505,15 @@ const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height:
       const n = await p.$('[data-action=descsel]:not(.exit)'); if (!n) break;
       await n.tap(); await chk('descsel' + k); await tap('[data-action=descgo2]'); await tap('[data-action=skip]'); if (!k) await chk('descfight'); await tap('[data-action=go][data-v=desc]');
       if (!(await p.$('.descv'))) break; }
+    // Langer Sack (Fehlerbericht 2026-11-24, Homescreen-App): „Weiter“ darf nicht unter der Leiste verschwinden
+    if (await p.$('.descv')) await p.evaluate(async () => { const G = await import('./js/state.js'), L = await import('./js/loot.js'); const k = G.S.desc.sack;
+      for (let i = 0; i < 26; i++) k.items.push(L.makeItem(G.S.desc.lvl, { minRarity: 1 })); Object.assign(k.mats, { asche: 9, staub: 7, blutstein: 3, zahn: 2, leinen: 4, haar: 5 }); G.save(); });
     if (await p.$('.descv')) { await chk('descrun'); await tap('[data-action=descstair]'); await chk('descask');
       if (!(await p.$('[data-action=descstair].red'))) { failures++; console.log(`FEHLER ${tag}: Stiege ohne Rückfrage`); }
       await tap('[data-action=descstair]'); await tap('[data-action=skip]'); await tap('[data-action=go][data-v=desc]'); }
     await chk('descres'); if (!(await p.$('.descres'))) { failures++; console.log(`FEHLER ${tag}: Abstieg ohne Bilanz`); }
+    { const b = await p.evaluate(() => { const m = document.querySelector('main').getBoundingClientRect(), r = document.querySelector('.descres > .btns')?.getBoundingClientRect(); return r ? Math.round(r.bottom - m.bottom) : null; });
+      if (b == null || b > 1) { failures++; console.log(`FEHLER ${tag}: Abstieg-Bilanz – „Weiter“ nicht sichtbar (${b} px)`); } }
     await tap('[data-action=descok]');
     await p.evaluate(async () => { const G = await import('./js/state.js'); const S = G.S; S.attrs = { str: 5, dex: 5, int: 5, con: 6, lck: 3 }; S.equip = {}; G.save(); });
     await p.reload(); await p.waitForTimeout(300); await tap('[data-v=crypt]'); await tap('.ctabs [data-v=desc]'); await tap('[data-action=descgo]');

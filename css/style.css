@@ -687,7 +687,7 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .fnum.combo { font-size: 1.25rem; color: var(--fx, #ffd76a); text-shadow: 0 2px 0 #000, 0 0 4px #000, 0 0 14px var(--fx, #a06a10); }
 .fnum.status { font-size: .8rem; color: #d8c8a8; }
 @media (max-height: 720px) { .way { min-height: 54px; padding: 5px 7px; } .way small { font-size: max(11px, .7rem); } .waytier h2 { margin-bottom: 3px; } }
-@media (min-height: 760px) { .way { min-height: 78px; } .way b { font-size: 1.12rem; } .way small { font-size: .84rem; } }
+@media (min-height: 760px) { .way { min-height: 66px; } .way b { font-size: 1.12rem; } .way small { font-size: .84rem; } }
 @media (max-height: 620px) { .gradesp { display: none; } }   /* winzige Handys: Zauber und Wege haben Vorrang */
 @media (max-height: 620px) { .waynote { display: none; } .way { min-height: 48px; } }
 
@@ -1345,3 +1345,8 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 
 /* Auswahl-Modus: ▲ (oben rechts) und Filter-Punkte (oben links) bleiben sichtbar – der Haken sitzt darum unten rechts (Besitzer 2026-11-24) */
 .pickmark { top: auto; bottom: 2px; right: 2px; }
+
+/* Homescreen-App (2026-11-24): Knöpfe unten müssen sichtbar bleiben, auch mit Safe-Area oben/unten */
+.desc.tightmax .drules p:not(.down), .desc.tightmax .dhead .drec { display: none; }
+.descres > .panel.dgot { flex: 1 1 auto !important; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }   /* lange Beute: nur die Liste rollt, „Weiter" bleibt */
+.ways.tight .way { min-height: 0; } .ways.tighter .waynote { display: none; }   /* Zauber-Wege in der App: erst Kästen enger, dann der Hinweis weg */

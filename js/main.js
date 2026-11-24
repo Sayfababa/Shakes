@@ -56,8 +56,8 @@ function render() {
 
 // Vorbereitung: Gürtel als Liste; reicht die Höhe nicht (kleine Handys, iOS-App), als Reihe nebeneinander
 function fitPrep() {
-  const pr = document.querySelector('.prep, .pit, .pitshopv, .acts, .actv, .wander, .exped, .expev, .expresv, .desc, .descv, .descres, .craft, .crypts'), m = pr?.parentElement; if (!pr) return;
-  pr.classList.remove('tight', 'tighter', 'tightest');
+  const pr = document.querySelector('.prep, .ways, .pit, .pitshopv, .acts, .actv, .wander, .exped, .expev, .expresv, .desc, .descv, .descres, .craft, .crypts'), m = pr?.parentElement; if (!pr) return;
+  pr.classList.remove('tight', 'tighter', 'tightest', 'tightmax');
   // zu hoch – oder (Umschmieden) Boni im Kasten abgeschnitten
   const low = () => pr.lastElementChild.getBoundingClientRect().bottom > m.getBoundingClientRect().bottom + 1
     || [...pr.querySelectorAll('.caff')].some(e => e.getBoundingClientRect().bottom > e.closest('.panel').getBoundingClientRect().bottom - 2);
@@ -69,6 +69,8 @@ function fitPrep() {
   if (low()) pr.classList.add('tighter');
   // Dritter Schritt (Abgrund mit Siegel-Platz, Welle 2B-2): nur Erklärtes weg, die Warnung vor dem Verlust bleibt.
   if (low()) pr.classList.add('tightest');
+  // Vierter Schritt (Homescreen-App mit Safe-Area, 2026-11-24): von den Regeln bleibt nur die Warnung.
+  if (low()) pr.classList.add('tightmax');
 }
 // Tutorial: nächster Schritt, sobald die Bedingung erfüllt ist
 function tutCheck() {
