@@ -1822,3 +1822,22 @@ test('Ramsch verkaufen: nur Ramsch aus dem Beutel, Wertvolles/Gesuchtes/Verbesse
   S.equip.ring1 = null; S.equip.ring2 = null; const up = mk('magic', { mods: { int: 50 } }); assert.ok(!G.junkItems().includes(up));
   assert.deepEqual(G.sellJunk(), { n: 0, gold: 0 });
 });
+
+test('Auswahl-Modus: mehrere Teile verkaufen/verschieben über die Einzelfunktionen, volles Lager nimmt nur, was passt', () => {
+  const S = fresh('sorceress'); S.lvl = 20; S.gold = 0; S.bag = []; S.stash = [];
+  const its = Array.from({ length: 6 }, (_, i) => { const it = makeItem(20, { slot: 'ring' }); G.addToBag(it); return it; });
+  const ids = its.map(i => i.id), want = its.slice(0, 3).reduce((s, it) => s + G.sellPrice(it), 0);
+  const r = G.sellMany(ids.slice(0, 3)); assert.deepEqual(r, { n: 3, gold: want }); assert.equal(S.gold, want);
+  assert.equal(S.bag.length, 3); assert.deepEqual(G.sellMany(ids.slice(0, 3)), { n: 0, gold: 0 }, 'schon Verkauftes zählt nicht doppelt');
+  // ins Lager und zurück
+  assert.deepEqual(G.moveMany(ids.slice(3)), { n: 3, of: 3 }); assert.equal(S.bag.length, 0); assert.equal(S.stash.length, 3);
+  assert.deepEqual(G.moveMany(ids.slice(3, 5), 'stash'), { n: 2, of: 2 }); assert.equal(S.bag.length, 2);
+  const g0 = S.gold, p = G.sellPrice(its[5]); assert.deepEqual(G.sellMany([its[5].id], 'stash'), { n: 1, gold: p }); assert.equal(S.gold, g0 + p);
+  // Lager voll: nur so viele, wie Platz ist; der Rest bleibt im Beutel
+  S.stash = [];
+  const fill = []; for (let i = 0; i < 200; i++) { const it = makeItem(20, { slot: 'ring' }); if (!G.addToBag(it)) break; if (!G.stashPut(it.id)) { fill.push(it); break; } }
+  const rest = S.bag.map(i => i.id); const m = G.moveMany(rest); assert.ok(m.n < m.of || m.of === 0); assert.equal(S.bag.length, m.of - m.n);
+  // Angelegtes ist nie in der Auswahl: eine Id vom Körper bewirkt nichts
+  S.equip.ring1 = makeItem(20, { slot: 'ring' }); const eq = S.equip.ring1.id;
+  assert.deepEqual(G.sellMany([eq]), { n: 0, gold: 0 }); assert.deepEqual(G.moveMany([eq]), { n: 0, of: 1 }); assert.ok(S.equip.ring1);
+});

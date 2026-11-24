@@ -10,6 +10,7 @@ let expSel = { loc: null, h: 8, path: [] }, expRes = null, expAsk = false;
 let pitBack = 'arena';   // woher man in Vargos Laden kam
 let titleBack = 'pitshop';  // ... und woher man ins Titel-Fenster kam
 let stashOn = false;        // Beutel oder Lager im Helden-Bildschirm
+let pickIds = null;         // Auswahl-Modus im Helden-Bildschirm: Set der angehakten Teile (null = aus); hideTip() fasst ihn nicht an
 let forgeSel = { mat: null, slot: null, mode: 'rune', item: null, stat: null, msg: '' }, forgeRes = null, FG = null;
 let descSt = { d: null, j: null, msg: '', res: null };
 let wPath = [], wInfo = null, wanderRes = null, actSel = null, zoneSel = null, prepC = null, prepM = null, alchSel = POTIONS[0].id, alchBack = 'traders';
@@ -31,7 +32,7 @@ function render() {
     forge: () => UI.viewForge(forgeSel, forgeRes),
     npc: () => turnin ? UI.viewTurnin(turnin, turninBy) : UI.viewNpc(npc),
     filter: UI.viewFilter,
-    arena: () => S.wander && !S.desc ? UI.viewWanderAway('vargo') : S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : UI.viewArena(), hero: () => UI.viewHero(stashOn),
+    arena: () => S.wander && !S.desc ? UI.viewWanderAway('vargo') : S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : UI.viewArena(), hero: () => UI.viewHero(stashOn, pickIds),
     pitprep: () => S.wander && !S.desc ? UI.viewWanderAway('vargo') : S.exp ? UI.viewAway('vargo') : S.desc ? UI.viewDescAway('vargo') : pitSel && prepM ? UI.viewPitPrep(pitSel, prepM) : UI.viewArena(),
     pitshop: () => UI.viewPitShop(pitBack),
     wplan: () => S.wander || S.exp || S.desc || !Game.wanderAct() ? UI.viewTrips() : UI.viewWanderPlan(wPath, wInfo),
@@ -252,7 +253,7 @@ const actions = {
   create: () => { const n = document.getElementById('nm').value.trim() || 'Namenloser'; G.newChar(n, pickCls);
     G.journal(`${n} erwacht im Grab. Drei Gestalten warten am Friedhofstor.`); view = 'traders'; render(); },
   wipe: () => ask('Held wirklich vernichten?<small>Stufe, Ausrüstung und Fortschritt sind dann fort.</small>', 'Vernichten', () => { G.wipe(); pickCls = null; render(); }, true),
-  go: d => { view = d.v; turnin = null; expAsk = false; if (d.v === 'alch') alchBack = null; if (d.v === 'forge') { forgeRes = null; stopForge(); } if (d.v === 'npc') npc = d.n || npc; if (view !== 'fight') { F = null; clearTimeout(fightTimer); } render(); },
+  go: d => { view = d.v; pickIds = null; turnin = null; expAsk = false; if (d.v === 'alch') alchBack = null; if (d.v === 'forge') { forgeRes = null; stopForge(); } if (d.v === 'npc') npc = d.n || npc; if (view !== 'fight') { F = null; clearTimeout(fightTimer); } render(); },
   attr: d => { G.addAttr(d.k); render(); },
   learn: d => { if (G.learn(+d.b, +d.t)) render(); },
   // Das Brett: erst antippen (Beschreibung unten), dann setzen – wie beim Item-Fenster
@@ -276,7 +277,18 @@ const actions = {
   filmod: d => { G.setFilterMod(d.k); G.save(); render(); },
   filtier: d => { G.setFilterTier(+d.t); G.save(); render(); },
   filclear: () => { G.filterOf().mods = []; G.save(); render(); },
-  invmode: () => { stashOn = !stashOn; render(); },
+  invmode: () => { stashOn = !stashOn; pickIds = null; render(); },
+  // Auswahl-Modus: Tipp hakt an/ab statt ein Fenster zu öffnen; Aktionen gelten für alle Angehakten (state.js sellMany/moveMany)
+  selmode: () => { pickIds = pickIds ? null : new Set(); render(); },
+  selpick: d => { if (!pickIds) return; pickIds.has(d.id) ? pickIds.delete(d.id) : pickIds.add(d.id); render(); },
+  selall: () => { const L = stashOn ? G.S.stash || [] : G.S.bag; pickIds = pickIds && pickIds.size === L.length ? new Set() : new Set(L.map(it => it.id)); render(); },
+  selsell: () => { const L = (stashOn ? G.S.stash || [] : G.S.bag).filter(it => pickIds?.has(it.id)); if (!L.length) return note('Erst Teile antippen.');
+    const gold = L.reduce((s, it) => s + G.sellPrice(it), 0), dear = L.filter(precious);
+    ask(`${L.length} Teil${L.length > 1 ? 'e' : ''} verkaufen für <b>${gold} Gold</b>?${dear.length ? `<br><small class="down">Darunter wertvoll: ${dear.map(it => it.name).join(', ')}</small>` : ''}`,
+      'Verkaufen', () => { const r = G.sellMany(L.map(it => it.id), stashOn ? 'stash' : 'bag'); pickIds = new Set(); G.save(); render(); note(`${r.n} Teile verkauft: +${r.gold} Gold.`); }, true); },
+  selmove: () => { const ids = [...(pickIds || [])].filter(id => (stashOn ? G.S.stash || [] : G.S.bag).some(it => it.id === id)); if (!ids.length) return note('Erst Teile antippen.');
+    const r = G.moveMany(ids, stashOn ? 'stash' : 'bag'); pickIds = new Set(); G.save(); render();
+    note(r.n === r.of ? `${r.n} Teile ${stashOn ? 'in den Beutel' : 'ins Lager'} gelegt.` : `${r.n} von ${r.of} verschoben – ${stashOn ? 'Beutel' : 'Lager'} voll.`); },
   stashput: d => { if (!G.stashPut(d.id)) return note('Im Lager ist kein Platz.'); hideTip(); render(); },
   stashtip: d => { if (!G.stashTake(d.id)) return note('Im Beutel ist kein Platz.'); hideTip(); render(); },
   sellstash: d => { const it = (G.S.stash || []).find(x => x.id === d.id); if (!it) return;
