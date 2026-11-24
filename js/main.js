@@ -534,6 +534,10 @@ function fitApp() {
   const portrait = innerHeight >= innerWidth, full = portrait ? screen.height : screen.width;
   document.documentElement.classList.toggle('shortvp', full - innerHeight > 40); fitPrep();
 }
+// Kein Zoom (Ruckeln 2026-11-24): iOS zoomt bei Doppeltipp oder zwei Fingern trotz Viewport-Sperre hinein,
+// danach muss alles größer gemalt werden. Gesten abfangen; ist doch gezoomt, beim nächsten Tipp zurücksetzen.
+for (const ev of ['gesturestart', 'gesturechange']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
+document.addEventListener('touchend', () => { if ((visualViewport?.scale || 1) > 1.01) { const m = document.querySelector('meta[name=viewport]'), c = m.content; m.content = c + ', x=1'; setTimeout(() => { m.content = c; }, 50); } }, { passive: true });
 addEventListener('resize', fitApp); addEventListener('orientationchange', () => setTimeout(fitApp, 300)); fitApp(); document.fonts?.ready.then(fitPrep);
 // Anzeige-Info (Einstellungen → „Anzeige-Maße“): zum Fehlersuchen am Handy
 actions.dbg = () => { const t = document.querySelector('.tabs')?.getBoundingClientRect();
