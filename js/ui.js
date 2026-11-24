@@ -136,7 +136,7 @@ export function readyDots(t = Date.now()) {
     crypt: (S.crypt.cd > 0 && t >= S.crypt.cd && CRYPTS.some(c => cryptOpen(c))) || (S.pit?.ts > 0 && t >= S.pit.ts) };
 }
 export function navBar(view) {
-  const tabs = [['hero', 'Held'], ['trips', 'Streifzug'], ['traders', 'Händler'], ['forge', 'Schmiede'], ['alch', 'Alchemie'], ['crypt', 'Krypta']];
+  const tabs = [['hero', 'Held'], ['traders', 'Händler'], ['forge', 'Schmiede'], ['alch', 'Alchemie'], ['trips', 'Streifzug'], ['crypt', 'Krypta']];   // Reihenfolge vom Besitzer (2026-11-24)
   const map = { wplan: 'trips', opts: 'hero', act: 'trips', zoneprep: 'trips', prep: 'crypt', desc: 'crypt', arena: 'crypt', pitprep: 'crypt', pitshop: 'crypt', stats: 'hero', talents: 'hero', spells: 'hero', ways: 'hero', npc: 'trips', bounties: 'trips', exped: 'trips' };
   // Nur echte Handlungsaufforderungen markieren – ein Dauer-Punkt auf jedem Tab sagt nichts mehr
   const badge = { hero: S.points + talentPoints() + waysPending() > 0, traders: [...Object.keys(TRADERS), 'vargo'].some(canComplete), arena: false,
