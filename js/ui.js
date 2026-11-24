@@ -1,7 +1,7 @@
 // Rendering: reine String-Templates. Keine Spiellogik.
 import { PLAYABLE, TREE, AFFIXES, GIVERS, CRAFT, TIERS, RUNES, FORGE, GRADES, ATTR_INFO, SPELLS, MONSTERS, NPCS, CLASSES, ATTRS, SLOTS, RARITIES, CFG, TALENTS, EFFECT_NAMES, CRYPTS, DIFFICULTIES, LOCATIONS, TRADERS, LOYALTY, MATS, INV_W, INV_H, STASH_W, STASH_H, SERVICES, SHARD_CRYPTS, TUTORIAL, BOUNTIES, SETS, SET } from './data.js';
 import { MAT_ART, SIGILS, ASHCORE, ELEMENTS, RES_NAMES, SPELL_TREE, TREE_LVL, POTIONS, HERBS, TRIGGERS, ALCH, EXPED, EXP_NODES, HERB_LOC, DESCENT, DESC_ROOMS, ACTS, ACT, CRYPT, WANDER, WANDER_ST, PIT, PIT_STYLES, PIT_RANKS, PIT_SHOP, PIT_RULES } from './data.js';
-import { affixPool, tierOf, wpnDmg, wpnCapLvl } from './loot.js';
+import { affixPool, tierOf, wpnDmg, wpnCapLvl, bestTier } from './loot.js';
 import { sellPrice, sellMat, potion, beltSlots, brewCost, canBrew, potMax, unreadable, restarted, herbPrice, canBuyHerb, herbLeft, herbSource } from './state.js';
 import { WIKI_CATS, wikiList, wikiEntry, upgradePaths, matBottleneck } from './wiki.js';
 import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, craftRaises, craftMat, baseMods, fusedMods, filterHits, filterOf, filterOn, setFilterMod, fuseMains, fuseFoods, fuseCheck, coreUniques, coreKeys, coreEff, coreTargets, coreCheck, fuseFull, fusePromote, fuseReplaces, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
@@ -84,6 +84,8 @@ export function viewSets() {
 // --- Items ---
 export function itemTip(it, cmp) {
   const L = [`<div class="n r-${it.rarity}">${it.name}</div><div class="sub2">${rarName(it.rarity, it)} · ${it.base && !it.name.includes(it.base) ? it.base : SLOTS[it.slot]} · Stufe ${it.lvl}${it.deep ? ` · Tiefe ${it.deep}` : ""}</div>`];
+  // Beste mögliche Stufe auf diesem Teil (Besitzer 2026-11-24: „bisher ist unbekannt, was auf der Stufe der höchste Tier ist“)
+  const bt = Object.keys(it.mods || {}).length ? bestTier(it, '') : null; if (bt != null && !it.unique && !it.set) L.push(`<span class="small dim">Beste Stufe hier: ${tierTag(bt)}</span>`);
   // Schärfen/Verstärken hängen am Platz: jedes Teil zeigt den Wert, den es angelegt hätte
   const tu = S ? slotUp(it.slot) : 0, tn = tu ? ` <small class="tup">${it.slot === 'weapon' ? 'geschärft' : 'verstärkt'} +${tu}</small>` : '';
   if (it.dmg) { const ef = S ? wpnDmg(it, S.lvl) : it.dmg, cut = ef !== it.dmg;   // Waffen-Deckel (Welle 2a): offen zeigen, nie still kürzen
@@ -95,7 +97,8 @@ export function itemTip(it, cmp) {
   const fus = fusedMods(it);
   for (const [k, v] of Object.entries(it.mods)) { const b = v - runeOf(k); if (b <= 0) continue; const t = tierOf(k, b);
     const mark = it.sealed === k ? '<i class="seal">versiegelt</i>' : fus.includes(k) ? '<i class="fus">fusioniert</i>' : '';
-    L.push(`<span class="m ${t != null && t <= 2 ? 'hi' : ''}">+${b} ${STAT_NAME(k)}${t != null ? ` ${tierTag(t)}` : ''}${mark}</span>`); }
+    const top = t != null && !it.unique && !it.set && t <= bestTier(it, k) ? '<i class="tmax">max</i>' : '';
+    L.push(`<span class="m ${t != null && t <= 2 ? 'hi' : ''}">+${b} ${STAT_NAME(k)}${t != null ? ` ${tierTag(t)}` : ''}${top}${mark}</span>`); }
   if (it.fx) L.push(`<span class="special">${it.unique ? '' : '✦ '}${effLine(it.fx)}</span>`);
   if (it.core) L.push(`<span class="core-l">Aschenkern: ${effLine(it.core.eff)} <i class="dim">(aus ${it.core.from})</i></span>`);
   if (it.set) L.push(setBox(it.set, it));

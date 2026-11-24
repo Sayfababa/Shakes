@@ -1306,3 +1306,4 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .core-l, .tip .core-l { color: #ff6a3a; }
 .corev .h2r { display: inline-flex; align-items: center; gap: 3px; } .corev .h2r .matimg { width: 16px; height: 16px; object-fit: contain; }
 .fsumm1 { padding: 6px 0 2px; margin: 0; } .fsumm1 b { font-family: 'Alegreya SC'; font-weight: 500; color: var(--gold); }
+.tmax { font-style: normal; font-family: 'Alegreya SC'; font-size: max(11px, .62rem); color: var(--gold); margin-left: 4px; }   /* Bonus hat schon die beste Stufe, die dieses Teil kann */

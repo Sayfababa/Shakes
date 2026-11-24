@@ -1624,3 +1624,13 @@ test('Fusion: angetippter Bonus weicht auch von der anderen Seite (Suffixe voll,
   assert.equal(G.roomAny(m3).length, 0, 'jetzt voll (4 von 4)');
   assert.equal(G.fuseCheck(m2, f2, 'int', 'str'), null, 'Stärke weicht → Intelligenz passt');
 });
+
+test('Beste Stufe hier: Gegenstandsstufe bestimmt die Grenze, Abgrund-Stufen nur mit Tiefe', () => {
+  const { bestTier } = Ld;
+  assert.equal(bestTier({ lvl: 26 }, 'lck'), 2, 'Stufe 26: höchstens II');
+  assert.equal(bestTier({ lvl: 35 }, 'lck'), 1, 'ab 35: I');
+  assert.equal(bestTier({ lvl: 11 }, 'lck'), 4); assert.equal(bestTier({ lvl: 40, deep: 15 }, 'lck'), 0, 'Abgrund ab Tiefe 15: I+');
+  assert.equal(bestTier({ lvl: 40, deep: 22 }, 'physr'), 1, 'noDeep-Bonus: keine Abgrund-Stufe');
+  // gleiche Regel wie das Würfeln: nie besser als bestTier
+  for (let i = 0; i < 300; i++) { const it = makeItem(1 + (i % 45), { minRarity: 2 }); for (const [k, v] of Object.entries(it.mods)) if (!it.unique && !it.set) { const t = Ld.tierOf(k, v); if (t != null) assert.ok(t >= bestTier(it, k), `${k} Stufe ${t} auf Gegenstandsstufe ${it.lvl}`); } }
+});
