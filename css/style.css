@@ -1343,3 +1343,6 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 /* Ganze Figur zeigen (Besitzer 2026-11-24): bei wenig Höhe (Homescreen-App) wurde das Bild unten beschnitten – jetzt verkleinert es sich
    im Rahmen (contain, unten bündig). Rahmenfarbe = Randton der Bilder (gemessen ~#1c1815), damit die Seitenränder nicht auffallen. */
 .d2fig { background: #1c1815; } .d2fig img { object-fit: contain; object-position: 50% 100%; }
+
+/* Auswahl-Modus: ▲ (oben rechts) und Filter-Punkte (oben links) bleiben sichtbar – der Haken sitzt darum unten rechts (Besitzer 2026-11-24) */
+.pickmark { top: auto; bottom: 2px; right: 2px; }

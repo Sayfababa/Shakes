@@ -198,7 +198,7 @@ function pickPanel(stash, g, pick) {
       <button class="tiny" data-action="selall">${n === g.list.length && n ? 'Keine' : 'Alle'}</button>
       <button class="tiny on" data-action="selmode">Fertig</button></div>
       <div class="inv" style="--w:${g.w};--h:${g.h}">
-        ${g.list.map(it => `<div class="cellitem ${rarCls(it)} ${pick.has(it.id) ? 'picked' : ''}" style="left:${it.x / g.w * 100}%;top:${it.y / g.h * 100}%;width:${it.w / g.w * 100}%;height:${it.h / g.h * 100}%" data-action="selpick" data-id="${it.id}">${itemArt(it)}${pick.has(it.id) ? '<i class="pickmark"></i>' : ''}</div>`).join('')}
+        ${g.list.map(it => `<div class="cellitem ${rarCls(it)} ${pick.has(it.id) ? 'picked' : ''}" style="left:${it.x / g.w * 100}%;top:${it.y / g.h * 100}%;width:${it.w / g.w * 100}%;height:${it.h / g.h * 100}%" data-action="selpick" data-id="${it.id}">${itemArt(it)}${gainTag(it)}${hitDots(it)}${pick.has(it.id) ? '<i class="pickmark"></i>' : ''}</div>`).join('')}
       </div>
       <div class="pickbar"><button class="tiny red ${n ? '' : 'off'}" data-action="selsell">Verkaufen${n ? ` · ${gold}` : ''}</button>
         <button class="tiny ${n ? '' : 'off'}" data-action="selmove">${stash ? 'In den Beutel' : 'Ins Lager'}${n ? ` · ${n}` : ''}</button></div>
