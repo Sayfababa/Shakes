@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup – Held in ganzer Gestalt</title>
+<link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+SC:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  html, body { overflow: auto; height: auto; }
+  .wrap { display: flex; gap: 28px; padding: 24px; align-items: flex-start; width: max-content; }
+  .phone { width: 390px; height: 844px; position: relative; display: flex; flex-direction: column; padding: 10px; gap: 7px; box-sizing: border-box;
+    border: 1px solid #2a2118; box-shadow: 0 0 0 6px #0b0907, 0 0 40px #000; background: var(--noise), var(--stonetex), radial-gradient(ellipse at 50% 20%, #241a12, #0b0907 70%); }
+  .phone > .panel { flex: none; }
+  .cap { font-family: 'Alegreya SC'; color: var(--gold); text-align: center; margin-bottom: 8px; font-size: 1rem; }
+  .note2 { width: 390px; color: var(--dim); font-size: .85rem; margin-top: 10px; line-height: 1.35; } .note2 b { color: var(--gold); font-weight: 500; }
+  .hudm { display: flex; align-items: center; justify-content: space-between; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.5rem; }
+  .hudm small { font-family: 'Alegreya SC'; font-size: .8rem; color: var(--text); }
+  .tabsm { margin-top: auto; display: flex; gap: 3px; } .tabsm a { flex: 1; min-width: 0; overflow: hidden; text-align: center; padding: 9px 0; font-family: 'Alegreya SC'; font-size: 10.5px; color: var(--dim);
+    border: 5px solid transparent; border-image: url('../assets/ui/tab.webp') 16 fill / 8px stretch; }
+  .tabsm a.on { color: var(--gold-hi); border-image-source: url('../assets/ui/tab_on.webp'); }
+  .sl { width: 44px; height: 44px; background: #07080b; border: 1px solid #000; box-shadow: inset 0 0 0 1px #2a2620, inset 0 0 10px #000; }
+  .sl.tall { height: 66px; } .sl.r { background-color: rgba(150,140,30,.2); } .sl.m { background-color: rgba(50,50,170,.22); } .sl.l { background-color: rgba(170,100,25,.26); }
+  .fig { position: relative; overflow: hidden; border: 1px solid #000; box-shadow: inset 0 0 0 1px #6b5530, 0 0 12px #000; background: #050403; }
+  .fig img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 15%; filter: saturate(.9); }
+  .fig .ph { position: absolute; inset: auto 0 6px 0; text-align: center; font-family: 'Alegreya SC'; font-size: 11px; color: #c9b48a; text-shadow: 0 1px 2px #000; }
+  .fig::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, transparent 55%, rgba(0,0,0,.75)); }
+  .vals { display: grid; gap: 3px; font-size: .78rem; align-content: start; }
+  .vals div { display: flex; justify-content: space-between; gap: 6px; border-bottom: 1px solid #241c14; padding: 2px 0; }
+  .vals span { color: var(--dim); } .vals b { color: var(--gold-hi); font-weight: 500; font-family: 'Alegreya SC'; }
+  .vals .kk { margin-top: 4px; border: 0; } .vals .kk b { font-family: 'Grenze Gotisch'; font-size: 1.15rem; }
+  .bagm { flex: none; } .bagm .grid { height: 204px; background: linear-gradient(#0003, #0003), repeating-linear-gradient(90deg, #15110d 0 34px, #0b0907 34px 35px); border: 1px solid #000; }
+  .bh { display: flex; justify-content: space-between; font-family: 'Grenze Gotisch'; color: var(--gold); margin-bottom: 4px; }
+  .bh i { font-style: normal; font-family: 'Alegreya SC'; font-size: .7rem; color: var(--text); border: 1px solid #3a2e22; padding: 2px 6px; }
+  .btn3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; } .btn3 a { text-align: center; font-family: 'Alegreya SC'; font-size: .78rem; color: #f0d9a8; padding: 7px 0;
+    border: 8px solid transparent; border-image: url('../assets/ui/btn_red.webp') 16 fill / 8px stretch; }
+  /* A: Figur + Werte daneben */
+  .dA { display: grid; grid-template-columns: 44px 150px 1fr; gap: 8px; padding: 10px; }
+  .dA .col { display: grid; gap: 6px; align-content: start; } .dA .fig { height: 300px; }
+  .dA .row6 { grid-column: 1 / -1; display: flex; gap: 6px; justify-content: space-between; }
+  /* B: Diablo-Puppe, Werte unter der Figur */
+  .dB { display: grid; grid-template-columns: 44px 1fr 44px; gap: 8px; padding: 10px; }
+  .dB .col { display: grid; gap: 6px; align-content: start; } .dB .fig { height: 250px; }
+  .dB .mid { display: grid; gap: 6px; } .dB .r2 { display: flex; gap: 6px; justify-content: center; }
+  .strip { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px 8px; font-size: .74rem; }
+  .strip div { display: flex; flex-direction: column; align-items: center; border: 1px solid #241c14; padding: 2px 0; background: #0806054d; }
+  .strip span { color: var(--dim); font-size: 11px; } .strip b { color: var(--gold-hi); font-family: 'Alegreya SC'; font-weight: 500; }
+</style></head><body>
+<div class="wrap">
+
+<div><div class="cap">A · Figur, Werte daneben</div>
+<div class="phone">
+  <div class="hudm">Sayfa <small>35111 Gold · Stufe 15</small></div>
+  <section class="panel dA">
+    <div class="col"><div class="sl r"></div><div class="sl tall l"></div><div class="sl m"></div><div class="sl r"></div></div>
+    <div class="fig"><img src="../assets/portraits/sorceress.jpg" alt=""><div class="ph">Platzhalter – Ganzkörperbild fehlt</div></div>
+    <div class="vals">
+      <div><span>Leben</span><b>2.140</b></div><div><span>Schaden</span><b>88–131</b></div><div><span>Zauberkraft</span><b>×1,62</b></div>
+      <div><span>Rüstung</span><b>39 %</b></div><div><span>Ausweichen</span><b>14 %</b></div><div><span>Blocken</span><b>18 %</b></div>
+      <div><span>Krit</span><b>21 % · ×2,4</b></div><div><span>Resi phys/elem</span><b>12/31 %</b></div><div><span>Zaubertempo</span><b>+18 %</b></div>
+      <div class="kk"><span>Kampfkraft</span><b>230.526</b></div>
+    </div>
+    <div class="row6"><div class="sl m"></div><div class="sl r"></div><div class="sl"></div><div class="sl l"></div><div class="sl r"></div><div class="sl m"></div></div>
+  </section>
+  <div class="btn3"><a>Werte ·5</a><a>Talente</a><a>Zauber</a></div>
+  <section class="panel bagm"><div class="bh">Beutel <span><i>Lager</i> <i>Wählen</i> <i>Ramsch</i> <i>Ordnen</i></span></div><div class="grid"></div></section>
+  <div class="tabsm"><a class="on">Held</a><a>Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></div>
+</div>
+<p class="note2"><b>A:</b> Figur groß (Hochformat 1 : 2), rechts neun Werte + Kampfkraft auf einen Blick. Links Helm, Waffe, Handschuhe, Ring; darunter Amulett, Brust, Gürtel, Nebenhand, Stiefel, Ring.
+Die Ausrüstung hängt nicht mehr „am Körper“, dafür sind die Werte immer sichtbar. Der Beutel bleibt voll sichtbar (10 × 6), alles passt ohne Scrollen.</p></div>
+
+<div><div class="cap">B · Puppe wie Diablo, Werte darunter</div>
+<div class="phone">
+  <div class="hudm">Sayfa <small>35111 Gold · Stufe 15</small></div>
+  <section class="panel dB">
+    <div class="col"><div class="sl r"></div><div class="sl tall l"></div><div class="sl m"></div><div class="sl r"></div></div>
+    <div class="mid"><div class="fig"><img src="../assets/portraits/sorceress.jpg" alt=""><div class="ph">Platzhalter – Ganzkörperbild fehlt</div></div>
+      <div class="r2"><div class="sl r"></div><div class="sl"></div></div></div>
+    <div class="col"><div class="sl m"></div><div class="sl tall l"></div><div class="sl r"></div><div class="sl m"></div></div>
+    <div class="strip"><div><span>Leben</span><b>2.140</b></div><div><span>Schaden</span><b>88–131</b></div><div><span>Rüstung</span><b>39 %</b></div><div><span>Kampfkraft</span><b>230.526</b></div>
+      <div><span>Zauberkraft</span><b>×1,62</b></div><div><span>Krit</span><b>21 %</b></div><div><span>Ausweichen</span><b>14 %</b></div><div><span>Resi</span><b>12/31 %</b></div></div>
+  </section>
+  <div class="btn3"><a>Werte ·5</a><a>Talente</a><a>Zauber</a></div>
+  <section class="panel bagm"><div class="bh">Beutel <span><i>Lager</i> <i>Wählen</i> <i>Ramsch</i> <i>Ordnen</i></span></div><div class="grid"></div></section>
+  <div class="tabsm"><a class="on">Held</a><a>Streifzug</a><a>Händler</a><a>Schmiede</a><a>Alchemie</a><a>Krypta</a></div>
+</div>
+<p class="note2"><b>B:</b> wie heute aufgebaut (Ausrüstung links und rechts der Figur), die Figur wird höher und zeigt den ganzen Körper. Acht Werte stehen als Leiste direkt unter der Puppe.
+Vertrauter, aber die Werte stehen unter statt neben der Figur.</p></div>
+
+</div></body></html>
