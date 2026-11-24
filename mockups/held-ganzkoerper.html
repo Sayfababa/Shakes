@@ -42,6 +42,11 @@
   .strip { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px 8px; font-size: .74rem; }
   .strip div { display: flex; flex-direction: column; align-items: center; border: 1px solid #241c14; padding: 2px 0; background: #0806054d; }
   .strip span { color: var(--dim); font-size: 11px; } .strip b { color: var(--gold-hi); font-family: 'Alegreya SC'; font-weight: 500; }
+  .prompts { width: 808px; margin: 0 24px 40px; } .prompts h2 { font-family: 'Grenze Gotisch'; color: var(--gold); margin: 0 0 6px; }
+  .note3 { color: var(--text); font-size: .9rem; line-height: 1.4; } .note3 code, .prompts code { color: var(--gold-hi); }
+  .pr { margin-top: 12px; border: 1px solid #3a2e22; background: #0806059c; } .prh { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-bottom: 1px solid #2a2118; }
+  .prh b { font-family: 'Alegreya SC'; color: var(--gold); font-weight: 500; } .prh button { font-family: 'Alegreya SC'; background: #1a140f; color: var(--gold-hi); border: 1px solid #5a4630; padding: 3px 10px; cursor: pointer; }
+  pre { margin: 0; padding: 10px; white-space: pre-wrap; font-size: .8rem; line-height: 1.4; color: #d8ccb2; font-family: ui-monospace, Menlo, monospace; }
 </style></head><body>
 <div class="wrap">
 
@@ -84,4 +89,47 @@ Die Ausrüstung hängt nicht mehr „am Körper“, dafür sind die Werte immer 
 <p class="note2"><b>B:</b> wie heute aufgebaut (Ausrüstung links und rechts der Figur), die Figur wird höher und zeigt den ganzen Körper. Acht Werte stehen als Leiste direkt unter der Puppe.
 Vertrauter, aber die Werte stehen unter statt neben der Figur.</p></div>
 
-</div></body></html>
+</div>
+<section class="prompts"><h2>Prompts für die Ganzkörper-Figuren</h2><p class="note3">Mitschicken: die drei heutigen Porträts (<code>assets/portraits/sorceress.jpg</code>, <code>assassin.jpg</code>, <code>barbarian.jpg</code>) als Vorlage für Gesicht und Malstil. Ergebnis als <code>assets/heroes.png</code> (alle drei) oder drei Einzelbilder ins Repo legen bzw. schicken – ich schneide und binde sie ein. Vorlage im Repo: <code>assets/reference/hero_fullbody_prompt.md</code>.</p>
+<div class="pr"><div class="prh"><b>Alle drei auf einem Bild (1536×1024, drei Hochformat-Felder)</b><button onclick="navigator.clipboard.writeText(document.getElementById('p0').innerText);this.textContent='Kopiert'">Kopieren</button></div><pre id="p0">Create ONE image, 1536x1024 px, divided into three equal vertical panels side by side (each exactly 512x1024, no gaps, no borders, no text).
+Each panel shows ONE full-body character standing, from head to feet, feet fully visible near the bottom edge, head in the upper fifth,
+the figure filling about 85 % of the panel height, centered. Slight three-quarter view, weight on one leg, calm but dangerous stance.
+Match the attached class portraits EXACTLY: same faces, same hair, same costume colors, same painterly dark-fantasy realism like
+Diablo II / Diablo IV key art, gritty, worn and dirty materials, scars, dramatic low-key lighting from one side,
+dark brown-black smoky background with a faint vignette, muted desaturated palette with small accents. Grim and serious, not heroic, not sexualized.
+The three panels must share the same camera height, the same light direction and the same color grading, so they look like one set.
+
+1 (left) THE SORCERESS: the woman from the sorceress portrait – dark curly hair, thin gold circlet with a red gem on her forehead,
+  deep blue robes and a high-collared cloak with tarnished gold embroidery, leather belt with small vials, worn boots under the robe hem.
+  One hand raised with crackling violet-blue arcane lightning (the only bright accent), the other hand holding a tall gnarled wooden staff
+  with a dull blue crystal. Cold, focused expression.
+2 (middle) THE ASSASSIN: the woman from the assassin portrait – deep black hood shadowing the upper face, only lips and jaw lit,
+  layered dark leather armor, wrapped forearms and shins, many small straps and buckles, a long dark scarf.
+  A curved dagger in each hand held low and reversed, a third knife on the thigh. Lean, ready to strike, almost blending into the dark.
+3 (right) THE BARBARIAN: the man from the barbarian portrait – long wild dark hair, braided beard, scarred bare chest and arms,
+  heavy fur mantle over the shoulders, iron bracers, studded leather war-kilt, fur-wrapped boots.
+  A huge two-handed battle axe resting on his shoulder or gripped at his side, mouth slightly open in a growl, veins on the arms.
+
+Plain dark background in every panel (no scenery, no floor line beyond a soft shadow under the feet), so the figures can be cut out cleanly.</pre></div>
+<div class="pr"><div class="prh"><b>Einzeln: Zauberin (768×1536)</b><button onclick="navigator.clipboard.writeText(document.getElementById('p1').innerText);this.textContent='Kopiert'">Kopieren</button></div><pre id="p1">Create ONE image, 768x1536 px, one full-body character standing, from head to feet, feet fully visible near the bottom edge, head in the upper fifth, figure filling about 85 % of the height, centered. Slight three-quarter view, weight on one leg, calm but dangerous stance.
+Match the attached class portraits EXACTLY: same face, same hair, same costume colors, same painterly dark-fantasy realism like Diablo II / Diablo IV key art, gritty, worn and dirty materials, scars, dramatic low-key lighting from one side, dark brown-black smoky background with a faint vignette, muted desaturated palette with small accents. Grim and serious, not heroic, not sexualized.
+THE SORCERESS: the woman from the sorceress portrait – dark curly hair, thin gold circlet with a red gem on her forehead,
+  deep blue robes and a high-collared cloak with tarnished gold embroidery, leather belt with small vials, worn boots under the robe hem.
+  One hand raised with crackling violet-blue arcane lightning (the only bright accent), the other hand holding a tall gnarled wooden staff
+  with a dull blue crystal. Cold, focused expression.
+Plain dark background (no scenery, no floor line beyond a soft shadow under the feet), so the figure can be cut out cleanly.</pre></div>
+<div class="pr"><div class="prh"><b>Einzeln: Assassine (768×1536)</b><button onclick="navigator.clipboard.writeText(document.getElementById('p2').innerText);this.textContent='Kopiert'">Kopieren</button></div><pre id="p2">Create ONE image, 768x1536 px, one full-body character standing, from head to feet, feet fully visible near the bottom edge, head in the upper fifth, figure filling about 85 % of the height, centered. Slight three-quarter view, weight on one leg, calm but dangerous stance.
+Match the attached class portraits EXACTLY: same face, same hair, same costume colors, same painterly dark-fantasy realism like Diablo II / Diablo IV key art, gritty, worn and dirty materials, scars, dramatic low-key lighting from one side, dark brown-black smoky background with a faint vignette, muted desaturated palette with small accents. Grim and serious, not heroic, not sexualized.
+THE ASSASSIN: the woman from the assassin portrait – deep black hood shadowing the upper face, only lips and jaw lit,
+  layered dark leather armor, wrapped forearms and shins, many small straps and buckles, a long dark scarf.
+  A curved dagger in each hand held low and reversed, a third knife on the thigh. Lean, ready to strike, almost blending into the dark.
+Plain dark background (no scenery, no floor line beyond a soft shadow under the feet), so the figure can be cut out cleanly.</pre></div>
+<div class="pr"><div class="prh"><b>Einzeln: Barbar (768×1536)</b><button onclick="navigator.clipboard.writeText(document.getElementById('p3').innerText);this.textContent='Kopiert'">Kopieren</button></div><pre id="p3">Create ONE image, 768x1536 px, one full-body character standing, from head to feet, feet fully visible near the bottom edge, head in the upper fifth, figure filling about 85 % of the height, centered. Slight three-quarter view, weight on one leg, calm but dangerous stance.
+Match the attached class portraits EXACTLY: same face, same hair, same costume colors, same painterly dark-fantasy realism like Diablo II / Diablo IV key art, gritty, worn and dirty materials, scars, dramatic low-key lighting from one side, dark brown-black smoky background with a faint vignette, muted desaturated palette with small accents. Grim and serious, not heroic, not sexualized.
+THE BARBARIAN: the man from the barbarian portrait – long wild dark hair, braided beard, scarred bare chest and arms,
+  heavy fur mantle over the shoulders, iron bracers, studded leather war-kilt, fur-wrapped boots.
+  A huge two-handed battle axe resting on his shoulder or gripped at his side, mouth slightly open in a growl, veins on the arms.
+Plain dark background (no scenery, no floor line beyond a soft shadow under the feet), so the figure can be cut out cleanly.</pre></div>
+<div class="pr"><div class="prh"><b>Negativ-Prompt (falls das Tool ihn kennt)</b><button onclick="navigator.clipboard.writeText(document.getElementById('p4').innerText);this.textContent='Kopiert'">Kopieren</button></div><pre id="p4">text, letters, watermark, logo, frame, border, cartoon, anime, chibi, 3d render, plastic skin, bright colors, smooth glossy, cropped feet, cropped head, cut-off weapon, extra fingers, extra limbs, multiple characters per panel, scenery, sexualized pose.</pre></div>
+</section>
+</body></html>
