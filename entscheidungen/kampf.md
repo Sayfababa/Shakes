@@ -146,3 +146,6 @@ Hauptattribut; ungedämpft 2,4), Ausbluten 0,6, Brand 0,5, Kältestarre-Abschlag
 Dornen ×2–3 (hält auf der Kontrollhälfte nicht). Ergebnis: Rangkorrelation 0,80 / 0,79, Bot-Wahl 67–78 % unter den Besten.
 **Offen:** Zauberin – die Kampfkraft wählt Verbrennung, im Kampf ist Koloss·Eisgrab überall vorn (Eisgrab unterschätzt);
 Assassine St. 20 Rangkorrelation 0,46–0,59 (Ausweichen streut stark). Eich-Test `calib.mjs` unverändert im Rahmen.
+
+### Kampfkraft überschätzt Heilung (Befund 2026-11-24, NICHT behoben – Besitzer: „erstmal so lassen“)
+Fall des Besitzers: Zauberin St. 17, Haube des Pakts (Fluch: keine Heilung) gegen nackten Eisenhelm. Kampfkraft: Eisenhelm +38 
