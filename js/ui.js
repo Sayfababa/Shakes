@@ -1044,7 +1044,7 @@ export function viewWanderPlan(path, info = null) {
 // Was gerade gefiltert wird, gegliedert statt als Fließtext. Reihenfolge wie in der Knopf-Liste;
 // Zauber erkennt man am Schlüssel (`sk_`), alles, was weder Grundwert noch Abwehr ist, zählt als Angriff.
 const FGROUPS = [['Grundwerte', k => ['str', 'dex', 'int', 'con', 'lck'].includes(k)],
-  ['Abwehr', k => ['armor', 'lifep', 'blockp', 'evadep', 'thornsp'].includes(k)],
+  ['Abwehr', k => ['armor', 'lifep', 'blockp', 'evadep', 'thornsp', 'physr', 'elemr'].includes(k)],   // Resistenzen sind Abwehr (standen unter Angriff)
   ['Zauber', k => k.startsWith('sk_')], ['Angriff', () => true]];
 function filterSum(f, stats) {
   if (!f.mods.length) return '<p class="small dim">Nichts gewählt – Boni unten antippen.</p>';
@@ -1052,7 +1052,9 @@ function filterSum(f, stats) {
   for (const [name, test] of FGROUPS) { const ks = left.filter(test); ks.forEach(k => left.splice(left.indexOf(k), 1)); if (ks.length) rows.push([name, ks]); }
   const order = ['Grundwerte', 'Angriff', 'Abwehr', 'Zauber'];
   rows.sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
-  return `<div class="fsumm">${rows.map(([n, ks]) => `<div><b>${n}</b><span>${ks.map(k => `<i>${STAT_NAME(k)}</i>`).join(' · ')}</span></div>`).join('')}</div>`;
+  // Nur noch die Zahl je Gruppe: welche gewählt sind, zeigen die Knöpfe unten (gold umrandet). Die volle Liste drückte die
+  // unteren Knöpfe aus dem Bild (Besitzer 2026-11-24: „kann untere nicht auswählen“).
+  return `<p class="small fsumm1">${rows.map(([n, ks]) => `<b>${n}</b> ${ks.length}`).join(' · ')}</p>`;
 }
 export function viewFilter() {
   // Zauber-Boni (`sk_<id>`) tragen ihre Klasse: fremde gehoeren nicht in die Liste - "% Kriegsschrei"
@@ -1060,7 +1062,7 @@ export function viewFilter() {
   const f = filterOf(), stats = [...new Map(AFFIXES.filter(a => !a.cls || a.cls === S.cls).map(a => [a.stat, a])).values()];
   return `<div class="col filterv"><section class="panel"><h2>Beute-Filter <span class="h2r">${f.mods.length ? `${f.mods.length} gewählt` : 'aus'}</span></h2>
     ${filterSum(f, stats)}
-    <div class="optrow"><span>Mindestens Stufe</span><div class="optbtns">${TIERS.filter(t => !t.deep).map(t =>
+    <div class="optrow"><span>Stufe ${TIERS.find(t => t.t === f.tier)?.name || ''} oder besser <small class="dim">(I ist die beste)</small></span><div class="optbtns five">${TIERS.filter(t => !t.deep).map(t =>
       `<button class="tiny ${f.tier === t.t ? 'on' : ''}" data-action="filtier" data-t="${t.t}">${t.name}</button>`).join('')}</div></div></section>
     <section class="panel fcol"><div class="fpick">${stats.map(a =>
       `<button class="tiny ${f.mods.includes(a.stat) ? 'on' : ''}" data-action="filmod" data-k="${a.stat}">${STAT_NAME(a.stat)}</button>`).join('')}</div></section>
