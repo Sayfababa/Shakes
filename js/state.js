@@ -448,6 +448,15 @@ export const sellPrice = it => Math.max(1, Math.round(it.value * SELL.share));
 export const sellMat = it => it.rarity === 'legendary' && SELL.mat[it.slot] ? SELL.mat[it.slot] : null;
 export function sellOff(it) { const g = sellPrice(it), m = sellMat(it); S.gold += g; if (m) addMat(m, SELL.legendMat); return { gold: g, mat: m }; }
 export function sell(id) { const it = removeFromBag(id); if (it) sellOff(it); }
+// Gewinn an Kampfkraft, wenn das Teil angelegt würde (Anzeige ▲ ab 1 %) – null für Angelegtes
+export const itemGain = it => { if (!it?.slot || Object.values(S.equip).includes(it)) return null; const p = powerWith(it); return (p.then - p.now) / Math.max(1, p.now); };
+// --- Ramsch verkaufen (Besitzer 2026-11-24): mehrere Teile auf einmal, ohne etwas Wertvolles zu verlieren ---
+// Nur aus dem Beutel (nie Angelegtes, nie Lager), nur zerbrochen/gewöhnlich/magisch. Geschützt: Beute-Filter-Treffer,
+// Runen, Sonderbonus, Aschenkern, Einzigartige/Sets und alles, was dich verbessern würde (▲).
+const JUNK_RAR = ['broken', 'normal', 'magic'];
+export const junkItems = () => S.bag.filter(it => it.slot && JUNK_RAR.includes(it.rarity) && !it.special && !it.fx && !it.core && !it.unique && !it.set
+  && !it.runes?.length && !filterHits(it) && !((itemGain(it) ?? 0) > 0.01));
+export function sellJunk() { let n = 0, gold = 0; for (const it of junkItems()) { const x = removeFromBag(it.id); if (!x) continue; gold += sellOff(x).gold; n++; } return { n, gold }; }
 export function journal(t) { S.journal.unshift({ t, ts: now() }); S.journal.length = Math.min(S.journal.length, 30); }
 
 // --- Krypten ---
