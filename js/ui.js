@@ -158,7 +158,7 @@ export function viewCreate(sel) {
 }
 
 // --- Held: Ausrüstungsfigur + Raster-Inventar ---
-export function viewHero(stash) {
+export function viewHero(stash, pick = null) {
   const rk = rank(), st = stats(), pts = S.points + talentPoints();
   const slot = s => { const it = S.equip[s]; return `<div class="eslot es-${s} ${it ? rarCls(it) : ''}" ${it ? `data-tip="${it.id}" data-action="unequip" data-s="${s}"` : ''}>${it ? itemArt(it) : `<span class="ghost">${ghost(s)}</span>`}</div>`; };
   const mats = Object.entries(S.mats).filter(([, n]) => n > 0);
@@ -174,18 +174,34 @@ export function viewHero(stash) {
       <button class="${talentPoints() ? 'red' : ''}" data-action="go" data-v="talents">Talente${talentPoints() ? ' ·' + talentPoints() : ''}</button>
       <button class="${waysPending() ? 'red' : ''}" data-action="go" data-v="spells">Zauber${waysPending() ? ' ·' + waysPending() : ''}</button>
     </div>
-    ${invPanel(stash, mats)}
+    ${invPanel(stash, mats, pick)}
   </div>`;
+}
+
+// Auswahl-Modus: gleiches Raster, Teile mit Haken, unten Verkaufen und Verschieben für alle Angehakten
+function pickPanel(stash, g, pick) {
+  const sel = g.list.filter(it => pick.has(it.id)), gold = sel.reduce((s, it) => s + sellPrice(it), 0), n = sel.length;
+  return `<section class="panel invp picking"><div class="invhead"><span>${n} gewählt</span>
+      <button class="tiny" data-action="selall">${n === g.list.length && n ? 'Keine' : 'Alle'}</button>
+      <button class="tiny on" data-action="selmode">Fertig</button></div>
+      <div class="inv" style="--w:${g.w};--h:${g.h}">
+        ${g.list.map(it => `<div class="cellitem ${rarCls(it)} ${pick.has(it.id) ? 'picked' : ''}" style="left:${it.x / g.w * 100}%;top:${it.y / g.h * 100}%;width:${it.w / g.w * 100}%;height:${it.h / g.h * 100}%" data-action="selpick" data-id="${it.id}">${itemArt(it)}${pick.has(it.id) ? '<i class="pickmark"></i>' : ''}</div>`).join('')}
+      </div>
+      <div class="pickbar"><button class="tiny red ${n ? '' : 'off'}" data-action="selsell">Verkaufen${n ? ` · ${gold}` : ''}</button>
+        <button class="tiny ${n ? '' : 'off'}" data-action="selmove">${stash ? 'In den Beutel' : 'Ins Lager'}${n ? ` · ${n}` : ''}</button></div>
+    </section>`;
 }
 
 // Beutel und Lager liegen am selben Platz – ein Knopf schaltet um. Das Raster ist dasselbe,
 // nur die Liste und die Tipp-Aktion unterscheiden sich.
-function invPanel(stash, mats) {
+// pick: Set der angehakten Ids im Auswahl-Modus (sonst null) – dann öffnet ein Tipp kein Fenster, sondern hakt an/ab
+function invPanel(stash, mats, pick = null) {
   const g = stash ? { list: S.stash || [], w: STASH_W, h: STASH_H } : { list: S.bag, w: INV_W, h: INV_H };
   const act = stash ? 'stashtip' : 'equip';
+  if (pick) return pickPanel(stash, g, pick);
   return `<section class="panel invp"><div class="invhead"><span>${stash ? 'Lager' : 'Beutel'}</span>
       <button class="tiny ${stash ? 'on' : ''}" data-action="invmode">${stash ? 'Beutel' : 'Lager'}</button>
-      ${stash ? '' : '<button class="tiny" data-action="junk">Ramsch</button>'}<button class="tiny" data-action="sort" data-g="${stash ? 'stash' : 'bag'}">Ordnen</button></div>
+      <button class="tiny" data-action="selmode">Wählen</button>${stash ? '' : '<button class="tiny" data-action="junk">Ramsch</button>'}<button class="tiny" data-action="sort" data-g="${stash ? 'stash' : 'bag'}">Ordnen</button></div>
       <div class="inv" style="--w:${g.w};--h:${g.h}">
         ${g.list.map(it => `<div class="cellitem ${rarCls(it)}" style="left:${it.x / g.w * 100}%;top:${it.y / g.h * 100}%;width:${it.w / g.w * 100}%;height:${it.h / g.h * 100}%" data-tip="${it.id}" data-action="${act}" data-id="${it.id}">${itemArt(it)}${gainTag(it)}${hitDots(it)}</div>`).join('')}
       </div>

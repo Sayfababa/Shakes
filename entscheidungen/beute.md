@@ -152,3 +152,10 @@ Gesamtzahl (`CRAFT.maxAff`) und Gruppe (nie zwei Boni derselben Gruppe, z. B. zw
 Knopf „Ramsch“ im Beutel (Besitzer: mehrere Teile auf einmal, ohne etwas kaputt zu machen). `junkItems`/`sellJunk` in state.js:
 nur Beutel, nur zerbrochen/gewöhnlich/magisch; geschützt sind Beute-Filter-Treffer, Runen, Sonderbonus, Aschenkern, Einzigartige/Sets
 und Verbesserungen (▲, dieselbe Regel `itemGain` wie die Anzeige). Rückfrage mit Anzahl und Gold. Tests: logic, fuzz (Aktion sellJunk).
+
+### Auswahl-Modus im Beutel/Lager (2026-11-24)
+Knopf „Wählen“: Tipp hakt an statt ein Fenster zu öffnen; unten „Verkaufen · Gold“ und „Ins Lager“ / „In den Beutel“.
+`sellMany`/`moveMany` in state.js laufen über die Einzelfunktionen (sell, sellStash, stashPut, stashTake); was nicht passt, bleibt liegen
+und die Meldung sagt „3 von 5 verschoben“. Rückfrage beim Verkauf nennt wertvolle Teile beim Namen. Angelegtes ist nie wählbar.
+**Falle, die zugeschlagen hat:** die Aktion hieß zuerst `pick` – die Heldenwahl heißt schon so, das Objekt-Literal überschrieb sie
+still (Browser-Test fing es). Neue `data-action`-Namen vorher mit grep prüfen. Tests: logic, fuzz (sellMany/moveMany), Browser.

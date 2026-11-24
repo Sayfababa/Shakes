@@ -428,6 +428,13 @@ export const itemGain = it => { if (!it?.slot || Object.values(S.equip).includes
 const JUNK_RAR = ['broken', 'normal', 'magic'];
 export const junkItems = () => S.bag.filter(it => it.slot && JUNK_RAR.includes(it.rarity) && !it.special && !it.fx && !it.core && !it.unique && !it.set
   && !it.runes?.length && !filterHits(it) && !((itemGain(it) ?? 0) > 0.01));
+// Auswahl-Modus (Besitzer 2026-11-24): mehrere Teile aus Beutel ODER Lager auf einmal – jede Aktion läuft über die Einzelfunktion
+// (sell/sellStash/stashPut/stashTake), keine zweite Logik. Angelegtes kommt nie vor (nur Ids aus dem jeweiligen Raster).
+// Rückgabe: wie viele es geschafft haben; was nicht passt (Lager/Beutel voll), bleibt einfach liegen.
+export function sellMany(ids, from = 'bag') { let n = 0, gold = 0;
+  for (const id of ids) { const it = (from === 'stash' ? S.stash || [] : S.bag).find(x => x.id === id); if (!it) continue;
+    const g = sellPrice(it); if (from === 'stash' ? sellStash(id) : (sell(id), true)) { n++; gold += g; } } return { n, gold }; }
+export function moveMany(ids, from = 'bag') { let n = 0; for (const id of ids) if (from === 'stash' ? stashTake(id) : stashPut(id)) n++; return { n, of: ids.length }; }
 export function sellJunk() { let n = 0, gold = 0; for (const it of junkItems()) { const x = removeFromBag(it.id); if (!x) continue; gold += sellOff(x).gold; n++; } return { n, gold }; }
 export function journal(t) { S.journal.unshift({ t, ts: now() }); S.journal.length = Math.min(S.journal.length, 30); }
 

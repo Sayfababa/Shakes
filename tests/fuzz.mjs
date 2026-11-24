@@ -91,6 +91,8 @@ const actions = {
     const b = { ...it }; delete b.price; if (G.addToBag(b)) { G.S.gold -= it.price; shop.splice(shop.indexOf(it), 1); } },
   sell: () => { const it = pick(G.S.bag); if (it) G.sell(it.id); },
   sellJunk: () => G.sellJunk(),
+  sellMany: () => { const L = Math.random() < .5 ? G.S.bag : G.S.stash || []; G.sellMany(L.filter(() => Math.random() < .3).map(i => i.id), L === G.S.bag ? 'bag' : 'stash'); },
+  moveMany: () => { const L = Math.random() < .5 ? G.S.bag : G.S.stash || []; G.moveMany(L.filter(() => Math.random() < .4).map(i => i.id), L === G.S.bag ? 'bag' : 'stash'); },
   stashPut: () => { const it = pick(G.S.bag); if (it) G.stashPut(it.id); },
   stashTake: () => { const it = pick(G.S.stash || []); if (it) G.stashTake(it.id); },
   sellStash: () => { const it = pick(G.S.stash || []); if (it) G.sellStash(it.id); },
