@@ -4,7 +4,7 @@ import { MAT_ART, SIGILS, ASHCORE, ELEMENTS, RES_NAMES, SPELL_TREE, TREE_LVL, PO
 import { affixPool, tierOf, wpnDmg, wpnCapLvl, bestTier } from './loot.js';
 import { sellPrice, sellMat, potion, beltSlots, brewCost, canBrew, potMax, unreadable, restarted, herbPrice, canBuyHerb, herbLeft, herbSource } from './state.js';
 import { WIKI_CATS, wikiList, wikiEntry, upgradePaths, matBottleneck } from './wiki.js';
-import { treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, craftRaises, craftMat, baseMods, fusedMods, filterHits, filterOf, filterOn, setFilterMod, fuseMains, fuseFoods, fuseCheck, coreUniques, coreKeys, coreEff, coreTargets, coreCheck, fuseFull, fusePromote, fuseReplaces, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
+import { itemGain, treeRanks, nodeState, bridgeState, talentPointsSpent, setCount, setOwned, setsWorn, slotUp, tempered, waysPending, wayOpen, wayCost, craftItems, craftCheck, craftGold, craftRaises, craftMat, baseMods, fusedMods, filterHits, filterOf, filterOn, setFilterMod, fuseMains, fuseFoods, fuseCheck, coreUniques, coreKeys, coreEff, coreTargets, coreCheck, fuseFull, fusePromote, fuseReplaces, forgeTargets, canForge, forgeQuestMat, power, powerWith, powerAttr, S, stats, xpNeed, rank, talentPoints, talentState, respecCost, cryptFloor, cryptOpen, cryptLvl, cryptTier, cryptAct, actProg, actDone, actOpen, actZoneLvl, curAct, locOpen, loyalty, shopFor, omen, serviceState, bounties, bountyReward } from './state.js';
 import { current, available, objectives, canComplete } from './quests.js';
 // Stufen-Marke eines Bonus; Abgrund-Stufen (I+, I++) tragen zusätzlich .deep und einen Titel (CSS: .tier.t0 / .tier.t-1)
 export const tierTag = t => { const T = TIERS.find(x => x.t === t); return T ? `<i class="tier t${t}${T.deep ? ' deep' : ''}"${T.deep ? ' title="Abgrund-Stufe"' : ''}>${T.name}</i>` : ''; };
@@ -22,7 +22,7 @@ const rarName = (id, it) => it?.unique ? 'Einzigartig' : RARITIES.find(r => r.id
 export const fmtT = s => s >= 3600 ? `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` : `${Math.floor(s / 60)}:${String(Math.max(0, s % 60)).padStart(2, '0')}`;
 export const fmtN = n => n.toLocaleString('de-DE');
 // Kampfkraft-Änderung durch ein Item (in %), null wenn nicht vergleichbar
-export const itemGain = it => { if (!it?.slot || Object.values(S.equip).includes(it)) return null; const p = powerWith(it); return (p.then - p.now) / Math.max(1, p.now); };
+export { itemGain } from './state.js';   // Gewinn an Kampfkraft beim Anlegen (▲) – liegt in state.js, weil „Ramsch verkaufen“ dieselbe Regel braucht
 const gainTag = it => { const g = itemGain(it); return g > 0.01 ? `<i class="better" title="besser">▲</i>` : ''; };
 // Beute-Filter: je getroffenem Bonus ein Punkt, oben LINKS (oben rechts sitzt schon das ▲).
 // EIN Helfer fuer alle Felder - die Set-Farbe und das Orange der Einzigartigen haben gelehrt,
@@ -185,7 +185,7 @@ function invPanel(stash, mats) {
   const act = stash ? 'stashtip' : 'equip';
   return `<section class="panel invp"><div class="invhead"><span>${stash ? 'Lager' : 'Beutel'}</span>
       <button class="tiny ${stash ? 'on' : ''}" data-action="invmode">${stash ? 'Beutel' : 'Lager'}</button>
-      <button class="tiny" data-action="sort" data-g="${stash ? 'stash' : 'bag'}">Ordnen</button></div>
+      ${stash ? '' : '<button class="tiny" data-action="junk">Ramsch</button>'}<button class="tiny" data-action="sort" data-g="${stash ? 'stash' : 'bag'}">Ordnen</button></div>
       <div class="inv" style="--w:${g.w};--h:${g.h}">
         ${g.list.map(it => `<div class="cellitem ${rarCls(it)}" style="left:${it.x / g.w * 100}%;top:${it.y / g.h * 100}%;width:${it.w / g.w * 100}%;height:${it.h / g.h * 100}%" data-tip="${it.id}" data-action="${act}" data-id="${it.id}">${itemArt(it)}${gainTag(it)}${hitDots(it)}</div>`).join('')}
       </div>

@@ -265,6 +265,11 @@ const actions = {
     if (precious(it) && d.sure !== '1') return showTouchTip({ dataset: { tip: it.id, action: 'equip', id: it.id } }, true);
     G.sell(d.id); hideTip(); render(); },
   sort: d => { G.sortGrid(d.g || 'bag'); render(); },
+  // Ramsch verkaufen: Rückfrage mit Anzahl und Gold; was geschützt ist, steht dabei (state.js junkItems)
+  junk: () => { const L = G.junkItems(); if (!L.length) return note('Kein Ramsch im Beutel – alles ist geschützt oder wertvoll.');
+    const g = L.reduce((s, it) => s + G.sellPrice(it), 0);
+    ask(`${L.length} Teil${L.length > 1 ? 'e' : ''} verkaufen für <b>${g} Gold</b>?<br><small class="dim">Nur zerbrochen, gewöhnlich, magisch aus dem Beutel. Bleiben: Filter-Treffer, Runen, Sonderbonus, Verbesserungen (▲), Angelegtes, Lager.</small>`,
+      'Verkaufen', () => { const r = G.sellJunk(); G.save(); render(); note(`${r.n} Teile verkauft: +${r.gold} Gold.`); }, true); },
   // Beute-Filter (Einstellungen): Wahl steht im Spielstand, die Punkte leitet ui.js daraus ab
   filmod: d => { G.setFilterMod(d.k); G.save(); render(); },
   filtier: d => { G.setFilterTier(+d.t); G.save(); render(); },

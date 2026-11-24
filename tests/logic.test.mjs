@@ -1116,7 +1116,7 @@ test('Ausbluten: blutet bei jedem Treffer und schaltet Krits ab', async () => {
   // Ausweich-Grenze: ohne evadeCap bei 50 %, mit darüber
   const flink = { ...held, dex: 400, hp: 999999 }, schlaeger = { ...puppe, dex: 10, dmg: [5, 5] };
   const quote = e => { let aus = 0, tr = 0;
-    for (let i = 0; i < 60; i++) for (const l of fight({ ...flink, ...e }, { ...schlaeger }).log) {
+    for (let i = 0; i < 300; i++) for (const l of fight({ ...flink, ...e }, { ...schlaeger }).log) {
       if (l.who !== 'b') continue; if (l.miss) aus++; else if (l.dmg) tr++; }
     return aus / (aus + tr); };
   const q0 = quote({}), q1 = quote({ evadeCap: 0.2 });
@@ -1633,4 +1633,23 @@ test('Beste Stufe hier: Gegenstandsstufe bestimmt die Grenze, Abgrund-Stufen nur
   assert.equal(bestTier({ lvl: 40, deep: 22 }, 'physr'), 1, 'noDeep-Bonus: keine Abgrund-Stufe');
   // gleiche Regel wie das Würfeln: nie besser als bestTier
   for (let i = 0; i < 300; i++) { const it = makeItem(1 + (i % 45), { minRarity: 2 }); for (const [k, v] of Object.entries(it.mods)) if (!it.unique && !it.set) { const t = Ld.tierOf(k, v); if (t != null) assert.ok(t >= bestTier(it, k), `${k} Stufe ${t} auf Gegenstandsstufe ${it.lvl}`); } }
+});
+
+test('Ramsch verkaufen: nur Ramsch aus dem Beutel, Wertvolles/Gesuchtes/Verbesserungen bleiben, Gold stimmt', () => {
+  const S = fresh('sorceress'); S.lvl = 20; S.gold = 0; S.bag = []; S.stash = [];
+  const mk = (rarity, x = {}) => { const it = makeItem(20, { slot: 'ring', minRarity: 0 }); Object.assign(it, { rarity, special: undefined, fx: undefined, unique: undefined, set: undefined, core: undefined, runes: [] }, x); delete it.x; G.addToBag(it); return it; };
+  // angelegter Ring sehr stark, damit kein Beutel-Ring eine Verbesserung ist
+  S.equip.ring1 = { ...makeItem(20, { slot: 'ring' }), mods: { int: 999 } }; S.equip.ring2 = { ...makeItem(20, { slot: 'ring' }), mods: { int: 999 } };
+  const junk = [mk('broken', { mods: {} }), mk('normal', { mods: {} }), mk('magic', { mods: { lck: 1 } })];
+  const keep = [mk('rare'), mk('magic', { special: 'leech', fx: { leech: 0.06 } }), mk('magic', { runes: [{ stat: 'int', v: 1 }] }), mk('magic', { mods: { critc: 9 } })];
+  G.filterOf().mods = ['critc']; G.filterOf().tier = 5;   // das letzte ist ein Filter-Treffer
+  const stashIt = makeItem(20, { slot: 'ring' }); stashIt.rarity = 'broken'; S.stash.push(stashIt);
+  const want = junk.reduce((s, it) => s + G.sellPrice(it), 0);
+  assert.deepEqual(G.junkItems().map(i => i.id).sort(), junk.map(i => i.id).sort());
+  const r = G.sellJunk(); assert.equal(r.n, 3); assert.equal(r.gold, want); assert.equal(S.gold, want);
+  assert.deepEqual(S.bag.map(i => i.id).sort(), keep.map(i => i.id).sort(), 'Geschütztes bleibt im Beutel');
+  assert.ok(S.stash.includes(stashIt) && S.equip.ring1 && S.equip.ring2, 'Lager und Angelegtes unberührt');
+  // ein magischer Ring, der besser wäre (▲), bleibt
+  S.equip.ring1 = null; S.equip.ring2 = null; const up = mk('magic', { mods: { int: 50 } }); assert.ok(!G.junkItems().includes(up));
+  assert.deepEqual(G.sellJunk(), { n: 0, gold: 0 });
 });

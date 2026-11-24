@@ -147,3 +147,8 @@ die Sonderwirkung um ~⅓ kleiner (Dornen, Schutz, Block, zweiter Atem). Danach 
 Besitzer: „das Futter geht eh kaputt, das soll den Schmiedeprozess nicht stoppen“. Ein angetippter Bonus darf weichen, auch wenn er
 auf der anderen Seite steht (Suffixe voll, Präfix weicht) – das Teil darf danach z. B. 4 Suffixe und 0 Präfixe tragen. Es bleiben:
 Gesamtzahl (`CRAFT.maxAff`) und Gruppe (nie zwei Boni derselben Gruppe, z. B. zwei Attribute). Test: logic „Fusion: angetippter Bonus …“.
+
+### Ramsch verkaufen (2026-11-24)
+Knopf „Ramsch“ im Beutel (Besitzer: mehrere Teile auf einmal, ohne etwas kaputt zu machen). `junkItems`/`sellJunk` in state.js:
+nur Beutel, nur zerbrochen/gewöhnlich/magisch; geschützt sind Beute-Filter-Treffer, Runen, Sonderbonus, Aschenkern, Einzigartige/Sets
+und Verbesserungen (▲, dieselbe Regel `itemGain` wie die Anzeige). Rückfrage mit Anzahl und Gold. Tests: logic, fuzz (Aktion sellJunk).

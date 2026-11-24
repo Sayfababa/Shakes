@@ -90,6 +90,7 @@ const actions = {
   buy: () => { const t = pick(Object.keys(D.TRADERS)), shop = G.shopFor(t), it = pick(shop); if (!it || G.S.gold < it.price) return;
     const b = { ...it }; delete b.price; if (G.addToBag(b)) { G.S.gold -= it.price; shop.splice(shop.indexOf(it), 1); } },
   sell: () => { const it = pick(G.S.bag); if (it) G.sell(it.id); },
+  sellJunk: () => G.sellJunk(),
   stashPut: () => { const it = pick(G.S.bag); if (it) G.stashPut(it.id); },
   stashTake: () => { const it = pick(G.S.stash || []); if (it) G.stashTake(it.id); },
   sellStash: () => { const it = pick(G.S.stash || []); if (it) G.sellStash(it.id); },
