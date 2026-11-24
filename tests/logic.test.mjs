@@ -272,7 +272,9 @@ test('Gegenstandsnamen: richtiges Geschlecht, nie ein Schrägstrich; alte Namen 
 test('Rat bei schlechter Siegchance: Punkte, dann Beutel, sonst stärker werden', () => {
   const S = fresh(); assert.equal(Game.weakAdvice(0.9), null); assert.match(Game.weakAdvice(0.1), /Punkte verteilen/);
   S.points = 0; S.lvl = 1; assert.match(Game.weakAdvice(0.1), /wiederholen/);
-  const it = makeItem(8, { slot: 'chest', minRarity: 3 }); G.addToBag(it); assert.match(Game.weakAdvice(0.1), /Beutel/);
+  const it = makeItem(8, { slot: 'chest', minRarity: 3 }); G.addToBag(it);
+  // „Im Beutel liegt Besseres (▲)“ nur, wenn die Kampfkraft-Anzeige an ist (CFG.showPower) – sonst verwiese der Rat auf ein unsichtbares ▲
+  const was = D.CFG.showPower; try { D.CFG.showPower = true; assert.match(Game.weakAdvice(0.1), /Beutel/); D.CFG.showPower = false; assert.doesNotMatch(Game.weakAdvice(0.1), /Beutel/); } finally { D.CFG.showPower = was; }
 });
 
 test('Jeder Akt hat Einleitung, Boss-Satz und Nachruf; jeder Händler mehrere Sätze', () => {
@@ -1650,8 +1652,11 @@ test('Ramsch verkaufen: nur Ramsch aus dem Beutel, Wertvolles/Gesuchtes/Verbesse
   assert.deepEqual(S.bag.map(i => i.id).sort(), keep.map(i => i.id).sort(), 'Geschütztes bleibt im Beutel');
   assert.ok(S.stash.includes(stashIt) && S.equip.ring1 && S.equip.ring2, 'Lager und Angelegtes unberührt');
   // ein magischer Ring, der besser wäre (▲), bleibt
-  S.equip.ring1 = null; S.equip.ring2 = null; const up = mk('magic', { mods: { int: 50 } }); assert.ok(!G.junkItems().includes(up));
-  assert.deepEqual(G.sellJunk(), { n: 0, gold: 0 });
+  // ▲-Schutz nur mit Kampfkraft-Anzeige; ist sie aus (CFG.showPower, Besitzer: Variante b), wird auch eine Verbesserung mit verkauft
+  S.equip.ring1 = null; S.equip.ring2 = null; const up = mk('magic', { mods: { int: 50 } }); const was = D.CFG.showPower;
+  try { D.CFG.showPower = true; assert.ok(!G.junkItems().includes(up)); D.CFG.showPower = false; assert.ok(G.junkItems().includes(up)); D.CFG.showPower = true; } finally { D.CFG.showPower = was; }
+  D.CFG.showPower = true;
+  assert.deepEqual(G.sellJunk(), { n: 0, gold: 0 }); D.CFG.showPower = was;
 });
 
 test('Auswahl-Modus: mehrere Teile verkaufen/verschieben über die Einzelfunktionen, volles Lager nimmt nur, was passt', () => {
@@ -1671,4 +1676,15 @@ test('Auswahl-Modus: mehrere Teile verkaufen/verschieben über die Einzelfunktio
   // Angelegtes ist nie in der Auswahl: eine Id vom Körper bewirkt nichts
   S.equip.ring1 = makeItem(20, { slot: 'ring' }); const eq = S.equip.ring1.id;
   assert.deepEqual(G.sellMany([eq]), { n: 0, gold: 0 }); assert.deepEqual(G.moveMany([eq]), { n: 0, of: 1 }); assert.ok(S.equip.ring1);
+});
+
+test('Kampfkraft-Anzeige aus (CFG.showPower): kein ▲, keine Zahl im Teil-Fenster, Held, Werte; Wert-Vergleich bleibt', () => {
+  const S = fresh('sorceress'); S.lvl = 15; S.points = 3; const it = makeItem(15, { slot: 'helm', minRarity: 2 }); G.addToBag(it);
+  const was = D.CFG.showPower;
+  try {
+    D.CFG.showPower = false;
+    assert.equal(G.itemGain(it), null);
+    const tip = UI.itemTip(it, true); assert.doesNotMatch(tip, /Kampfkraft/); assert.doesNotMatch(UI.viewHero(false), /Kampfkraft|class="better"/); assert.doesNotMatch(UI.viewStats(), /Kampfkraft/);
+    D.CFG.showPower = true; assert.match(UI.viewHero(false), /Kampfkraft/);
+  } finally { D.CFG.showPower = was; }
 });

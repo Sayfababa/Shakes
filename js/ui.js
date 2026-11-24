@@ -112,7 +112,7 @@ export function itemTip(it, cmp) {
     const p = powerWith(it), a = stats(), b = p.st, g = (p.then - p.now) / Math.max(1, p.now);
     const row = (n, x, y, f = v => fmtN(Math.round(v))) => { const d = y - x; return Math.abs(d) < 0.5 ? '' : `<span class="${d > 0 ? 'up' : 'down'}">${n} ${d > 0 ? '+' : '−'}${f(Math.abs(d))}</span>`; };
     const diffs = [row('Schaden', (a.dmg[0] + a.dmg[1]) / 2, (b.dmg[0] + b.dmg[1]) / 2), row('Leben', a.hp, b.hp), row('Rüstung', a.armor, b.armor)].filter(Boolean);
-    L.push(`<div class="cmpbox ${g > 0.005 ? 'up' : g < -0.005 ? 'down' : ''}"><div class="kk">Kampfkraft ${fmtN(p.now)} → <b>${fmtN(p.then)}</b> <span>${g >= 0 ? '+' : '−'}${Math.abs(Math.round(g * 100))} %</span></div>`
+    L.push(`<div class="cmpbox ${!CFG.showPower ? '' : g > 0.005 ? 'up' : g < -0.005 ? 'down' : ''}">${CFG.showPower ? `<div class="kk">Kampfkraft ${fmtN(p.now)} → <b>${fmtN(p.then)}</b> <span>${g >= 0 ? '+' : '−'}${Math.abs(Math.round(g * 100))} %</span></div>` : ''}`
       + `<div class="sub2">${p.old ? 'statt ' + p.old.name : 'Platz ist frei'}</div>${diffs.length ? `<div class="dl">${diffs.join(' · ')}</div>` : ''}</div>`);
   }
   return L[0] + L.slice(1).map(x => x.startsWith('<div') ? x : x + '<br>').join('').replace(/<br>$/, '');
@@ -175,7 +175,7 @@ export function viewHero(stash, pick = null) {
     <section class="panel doll2">
       <div class="d2side">${slot('helm')}${slot('weapon')}${slot('gloves')}${slot('ring1')}</div>
       <div class="d2fig"><img src="${fig}" alt="" title="${rk.title}"></div>
-      <div class="d2vals">${vals.map(([n, v]) => `<div><span>${n}</span><b>${v}</b></div>`).join('')}<div class="kk"><span>Kampfkraft</span><b>${fmtN(power(st))}</b></div></div>
+      <div class="d2vals">${vals.map(([n, v]) => `<div><span>${n}</span><b>${v}</b></div>`).join('')}${CFG.showPower ? `<div class="kk"><span>Kampfkraft</span><b>${fmtN(power(st))}</b></div>` : ''}</div>
       <div class="d2row">${slot('amulet')}${slot('chest')}${slot('belt')}${slot('offhand')}${slot('boots')}${slot('ring2')}</div>
     </section>
     <div class="herobar">
@@ -229,9 +229,9 @@ function attrNow(k, st) {
 export function viewStats() {
   const st = stats(), c = CLASSES[S.cls], rc = respecCost(), P0 = power(st);
   return `<div class="col statsv"><div class="vscroll">
-    <section class="panel"><h2>Werte <span class="h2r">${S.points ? `<b class="hot">${S.points}</b> frei · <span class="up">grün</span> = Kampfkraft je Punkt` : `Kampfkraft <b>${fmtN(P0)}</b>`}</span></h2>
+    <section class="panel"><h2>Werte <span class="h2r">${S.points ? `<b class="hot">${S.points}</b> frei${CFG.showPower ? ' · <span class="up">grün</span> = Kampfkraft je Punkt' : ''}` : CFG.showPower ? `Kampfkraft <b>${fmtN(P0)}</b>` : ''}</span></h2>
       ${Object.entries(ATTRS).map(([k, n]) => `<div class="stat attr"><span><span class="an">${n}${k === c.main ? ' <i class="dim">(Haupt)</i>' : ''}</span><small>${k === c.main ? 'Schaden · ' : ''}${ATTR_INFO[k]}</small></span>
-        <span class="av"><small class="dim">${attrNow(k, st)}</small><b>${st[k]}</b>${S.points ? `<button data-action="attr" data-k="${k}">+<small class="up">${Math.max(0, powerAttr(k))}</small></button>` : ''}</span></div>`).join('')}
+        <span class="av"><small class="dim">${attrNow(k, st)}</small><b>${st[k]}</b>${S.points ? `<button data-action="attr" data-k="${k}">+${CFG.showPower ? `<small class="up">${Math.max(0, powerAttr(k))}</small>` : ''}</button>` : ''}</span></div>`).join('')}
     </section>
     <section class="panel"><h2>Kampf</h2>
       <div class="grid2"><div class="stat"><span>Leben</span><b>${fmtN(st.hp)}</b></div><div class="stat"><span>Schaden</span><b>${st.dmg[0]}–${st.dmg[1]}</b></div>

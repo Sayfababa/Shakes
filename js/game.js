@@ -234,7 +234,7 @@ export function weakAdvice(p) {
   if (S.points > 0) return `${S.points} Punkte verteilen (Held → Werte)`;
   if (G.talentPoints() > 0) return 'Talentpunkt offen (Held → Talente)';
   if (G.waysPending() > 0) return 'Zauber-Weg wählen (Held → Zauber)';
-  const pw = G.power(); if (S.bag.some(it => it.slot && G.powerWith(it).then > pw * 1.01)) return 'Im Beutel liegt Besseres (grünes ▲)';
+  const pw = G.power(); if (CFG.showPower && S.bag.some(it => it.slot && G.powerWith(it).then > pw * 1.01)) return 'Im Beutel liegt Besseres (grünes ▲)';
   return 'Zu stark für dich: Gebiete wiederholen, beim Händler rüsten';
 }
 export const threatLabel = p => p >= 0.9 ? ['gering', 'low'] : p >= 0.65 ? ['mäßig', 'mid'] : p >= 0.35 ? ['hoch', 'high'] : ['tödlich', 'deadly'];

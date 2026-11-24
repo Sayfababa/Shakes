@@ -534,6 +534,9 @@ export const CFG = {
   monHp: 1.15, monDmg: 0.9,         // Welle 2a: 1,0 → 0,9 – Feuer/Eis gehen jetzt an der Rüstung vorbei (D2/PoE), sonst +~19 % Schaden ohne Resi
   monGrow: 2.7,                       // Monster-Attribute je Stufe (3 + Stufe × monGrow); power() und die Werte-Ansicht rechnen mit demselben Wert
   hemoBleed: 0.85,                    // Ausbluten: Grundstärke des Blutens je Treffer (dafür nie kritisch)
+  // Kampfkraft-Anzeige (Zahl, ▲, Vergleich, Einblendung, „+N“ an Attributen) – vom Besitzer vorerst ausgeschaltet (2026-11-24): sie überschätzt
+  // Heilung (→ E „Kampfkraft überschätzt Heilung“). Die Rechnung läuft weiter (Bot, Händler-Auswahl). Wieder an: true.
+  showPower: false,
   igniteTurns: 3,                     // Brand (Schlüsselstein Verbrennung): wie viele Runden der Brand des Zaubers läuft
   resCap: 0.75, resCapPhys: 0.5,      // Deckel Elementar-Resi 75 % (D2/PoE), Phys.-Resi 50 % (D2 „Schaden reduziert“, stapelt mit Rüstung)
   wpnLvlAdd: 10,                      // Waffen-Grundschaden wirkt höchstens wie Gegenstandsstufe Heldenstufe + 10 (Tooltip zeigt „wirksam“)
