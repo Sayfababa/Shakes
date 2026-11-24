@@ -85,3 +85,9 @@ daneben Leben, Schaden, Zauberkraft, Rüstung, Ausweichen (gegen Gegner der eige
 über dieselben Funktionen wie Kampf/Werte-Ansicht. Ausrüstung links (Helm, Waffe, Handschuhe, Ring) und als Reihe darunter.
 **Im Kampf bleibt das quadratische Porträt** (Gegner sind auch Kopfbilder, Zahlen/Effekte sind darauf ausgelegt).
 Figur-Höhe 5 × --s: mit Tutorial-Leiste ragte der Beutel bei 5,4 um 6 px heraus (ui.cjs).
+
+### Homescreen-Ränder (2026-11-24)
+Als Homescreen-App gibt iOS oben ~47 px und unten ~34 px Safe-Area (`env(safe-area-inset-*)` in #app/.tabs). In Chromium-Tests ist das 0 –
+der Held-Bildschirm passte im Test, auf dem iPhone ragte die Puppe oben/unten hinaus. Jetzt: Puppe nimmt die Resthöhe (höchstens 5 × --s),
+Werte rücken zusammen. ui.cjs stellt die Ränder per eingespieltem CSS nach (Gegenprobe: alte Fassung meldet „oben 36 px abgeschnitten“).
+**Neue Ansichten mit fester Höhe immer auch mit diesen Rändern prüfen.**
