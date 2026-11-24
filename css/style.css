@@ -10,6 +10,7 @@
             radial-gradient(circle at 6px calc(100% - 6px), #8a7556 0 1.4px, #000 2px, transparent 2.6px), radial-gradient(circle at calc(100% - 6px) calc(100% - 6px), #8a7556 0 1.4px, #000 2px, transparent 2.6px);
 }
 * { box-sizing: border-box; }
+html { touch-action: manipulation; -webkit-text-size-adjust: 100%; }   /* kein Doppeltipp-Zoom (Ruckeln 2026-11-24) */
 html, body { margin: 0; height: 100%; overflow: hidden; color: var(--text); background: #050403;
   font: 15px/1.28 'Alegreya', Georgia, serif; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
 small { font-size: max(11px, .83em); }   /* Schrift nie unter 11 px – auch ohne eigene Größe */
@@ -846,13 +847,16 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .node img.mon { width: 100%; height: 100%; object-fit: cover; filter: saturate(.7); }
 .node .q, .trail .q, .steps .q { font-family: 'Grenze Gotisch'; font-size: 1.5rem; color: var(--gold); text-shadow: 0 0 6px #000; line-height: 1; }
 .node.on { box-shadow: inset 0 0 10px #000, 0 0 0 2px var(--gold-hi), 0 0 12px rgba(226,192,122,.45); }
-.node.next { box-shadow: inset 0 0 10px #000, 0 0 0 1px rgba(226,192,122,.6); animation: nodePulse 1.6s infinite; cursor: pointer; }
+.node.next { box-shadow: inset 0 0 10px #000, 0 0 0 1px rgba(226,192,122,.6); cursor: pointer; }
 .node.off { opacity: .4; filter: grayscale(.6); } .node.danger { box-shadow: inset 0 0 10px #000, 0 0 0 1px #8a1c13; }
 .node.danger.on { box-shadow: inset 0 0 10px #000, 0 0 0 2px var(--blood-hi), 0 0 12px rgba(170,30,20,.5); }
 .node.goal { width: 50px; height: 50px; } .node.start { width: 34px; height: 34px; }
 .node label { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); white-space: nowrap; font-family: 'Alegreya SC'; font-size: max(11px, .6rem); color: var(--dim); text-shadow: 0 1px 0 #000, 0 0 3px #000; pointer-events: none; }
 .node.on label { color: var(--gold); }
-@keyframes nodePulse { 50% { box-shadow: inset 0 0 10px #000, 0 0 0 2px rgba(226,192,122,.85); } }
+/* Ruckeln (2026-11-24): Pulsieren nur über die Deckkraft eines fertigen Rings – das schiebt die Grafikkarte,
+   statt jedes Bild den Schatten neu zu malen (vorher 60 Neuberechnungen je Sekunde auf der Karte) */
+.node.next::after { content: ''; position: absolute; inset: 0; pointer-events: none; box-shadow: 0 0 0 2px rgba(226,192,122,.85); opacity: 0; animation: nodePulse 1.6s ease-in-out infinite; will-change: opacity; }
+@keyframes nodePulse { 50% { opacity: 1; } }
 .xsum p { margin: 2px 0; } .xprev b { color: var(--gold-hi); font-weight: 500; } .xsum .hot { color: var(--blood-hi); }
 .exped > .btns { margin-top: 0; }
 .expbar.ready i { color: var(--gold-hi); }
@@ -909,7 +913,6 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .node.exit.off { opacity: .35; }
 .node.elite { box-shadow: inset 0 0 10px #000, 0 0 0 2px #6969ff; } .node.elite label { color: #8f8fff; }
 .node.boss { box-shadow: inset 0 0 10px #000, 0 0 0 2px var(--blood-hi); } .node.boss label { color: var(--blood-hi); }
-.node.exit.next, .node.elite.next, .node.boss.next { animation: nodePulse 1.6s infinite; }
 .node.on, .node.boss.on, .node.elite.on, .node.exit.on { box-shadow: inset 0 0 10px #000, 0 0 0 3px var(--gold-hi), 0 0 14px rgba(226,192,122,.6); animation: none; }
 /* Feste Hoehe wie beim Brett (.tdet): der Kasten traegt je nach Raum eine bis drei Zeilen
    (Schrein 47 px, Kampf 67, Brunnen 86). Ohne Deckel nimmt die Karte darueber den Rest – sie
