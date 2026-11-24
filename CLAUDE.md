@@ -119,7 +119,7 @@ Die Blöcke je System (wo der Code liegt, harte Grenzen) stehen in **`SYSTEME.md
 - Neue Features: Logik in game.js/state.js (DOM-frei), dann Test ergänzen.
 
 ## Navigation
-- Untere Leiste: **6 Tabs** Held · Streifzug · Händler · Schmiede · Alchemie · Krypta (`navBar`).
+- Untere Leiste: **6 Tabs** Held · Händler · Schmiede · Alchemie · Streifzug · Krypta (`navBar`, Reihenfolge vom Besitzer 2026-11-24).
 - Im Krypta-Tab oben Reiter **Krypten | Abgrund | Grube** (`cryptTabs(on)`).
 - Schmiede/Alchemie zusätzlich über Halvar/Ysolde (dann mit „Zurück").
 - **Fenster mit mehreren Türen merken sich die Tür**: `pitBack`, `titleBack`, `alchBack`.
