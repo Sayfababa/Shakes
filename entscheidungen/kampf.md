@@ -148,4 +148,8 @@ Dornen ×2–3 (hält auf der Kontrollhälfte nicht). Ergebnis: Rangkorrelation 
 Assassine St. 20 Rangkorrelation 0,46–0,59 (Ausweichen streut stark). Eich-Test `calib.mjs` unverändert im Rahmen.
 
 ### Kampfkraft überschätzt Heilung (Befund 2026-11-24, NICHT behoben – Besitzer: „erstmal so lassen“)
-Fall des Besitzers: Zauberin St. 17, Haube des Pakts (Fluch: keine Heilung) gegen nackten Eisenhelm. Kampfkraft: Eisenhelm +38 
+Fall des Besitzers: Zauberin St. 17, Haube des Pakts (Fluch: keine Heilung) gegen nackten Eisenhelm. Kampfkraft: Eisenhelm +38 %,
+im Kampf aber 25 % gegen 48 % Sieg (Krypta-Bosse 33/61, Abgrund-Boss 78/85). Ursache: power() rechnet Heilung als Dauerrate –
+5 % Lebensraub bei hohem Zauberschaden zählt fast wie doppeltes Leben (Haube ohne Fluch: Kampfkraft +83 %, Sieg +3 Punkte).
+Vorschlag liegt vor: Heilung × Züge bis zum Kill statt Dauerrate; Schilde vom Fluch ausnehmen (der Kampf blockiert sie nicht).
+Folge, solange es so bleibt: ▲ und Kampfkraft-Vergleich können bei Lebensraub-/Fluch-Teilen in die falsche Richtung zeigen.
