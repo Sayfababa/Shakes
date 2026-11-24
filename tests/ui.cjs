@@ -57,6 +57,15 @@ const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height:
     await tap('[data-v=crypt]'); await chk('wanderaway'); await tap('[data-v=trips]'); await tap('[data-action=wclaim]'); await chk('wanderres'); await tap('[data-action=wok]');
     await tap('.act[data-action=act]'); await chk('actboss'); await tap('.zone.boss'); await chk('zoneboss'); await tap('.pback'); await tap('.zone.done'); await chk('zonereplay');
     for (const v of ['trips', 'hero', 'stats', 'talents', 'spells', 'crypt', 'forge', 'alch']) { await tap('[data-v=hero]'); await tap(`[data-v=${v}]`); await chk(v); }
+    // Helden-Puppe (2026-11-24): in Safari maß die Figur-Spalte die Bildgröße – Werte rechts draußen, Puppe oben abgeschnitten.
+    // Darum hier: Werte ganz in der Puppe, Puppe nicht über dem oberen Rand, Figur-Spalte so breit wie ihr Rahmen. Auch im Lager-Modus.
+    for (const mode of ['bag', 'stash']) { await tap('[data-v=hero]'); if (mode === 'stash') await tap('[data-action=invmode]');
+      const bad = await p.evaluate(() => { const m = document.querySelector('main').getBoundingClientRect(), d = document.querySelector('.doll2'), v = document.querySelector('.d2vals'), f = document.querySelector('.d2fig');
+        if (!d || !v || !f) return 'Puppe fehlt'; const R = e => e.getBoundingClientRect(), dr = R(d), vr = R(v), fr = R(f), col = parseFloat(getComputedStyle(d).gridTemplateColumns.split(' ')[1]);
+        return dr.top < m.top - 1 ? `oben abgeschnitten (${Math.round(m.top - dr.top)} px)` : vr.right > dr.right + 1 || vr.width < 80 ? `Werte ragen hinaus/zu schmal (${Math.round(vr.width)} px)`
+          : Math.abs(col - fr.width) > 2 ? `Figur-Spalte ${Math.round(col)} px ≠ Rahmen ${Math.round(fr.width)} px` : null; });
+      if (bad) { failures++; console.log(`FEHLER ${tag}: Helden-Puppe (${mode}): ${bad}`); }
+      if (mode === 'stash') await tap('[data-action=invmode]'); }
     // Das Brett: JEDE Klasse mit TREE, nicht nur die erste – die Beschreibungen der Schlüsselsteine
     // sind je Klasse verschieden lang, und `.tdet` hat eine feste Höhe (sonst springt das Brett).
     const boards = await p.evaluate(async () => Object.keys((await import('./js/data.js')).TREE));
