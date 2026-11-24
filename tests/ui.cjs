@@ -76,6 +76,10 @@ const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height:
       return k[0].top < m.top - 1 ? `oben ${Math.round(m.top - k[0].top)} px abgeschnitten` : k.at(-1).bottom > m.bottom + 1 ? `unten ${Math.round(k.at(-1).bottom - m.bottom)} px abgeschnitten`
         : !v || v.bottom > vv.bottom + 1 ? 'Kampfkraft unter den Werten verschwunden' : null; });
     if (safeBad) { failures++; console.log(`FEHLER ${tag}: Held mit Homescreen-Rändern: ${safeBad}`); }
+    // Auswahl-Modus zeigt dieselben Markierungen wie der Beutel (▲ Verbesserung, Filter-Punkte) – sonst weiß man nicht, was man wählt (2026-11-24)
+    { const cnt = () => p.evaluate(() => [document.querySelectorAll('.invp .better').length, document.querySelectorAll('.invp .fdots').length].join('/'));
+      const a = await cnt(); if (await tap('[data-action=selmode]')) { const b = await cnt(); await tap('[data-action=selmode]');
+        if (a !== b) { failures++; console.log(`FEHLER ${tag}: Auswahl-Modus verliert Markierungen (▲/Filter ${a} → ${b})`); } } }
     // Das Brett: JEDE Klasse mit TREE, nicht nur die erste – die Beschreibungen der Schlüsselsteine
     // sind je Klasse verschieden lang, und `.tdet` hat eine feste Höhe (sonst springt das Brett).
     const boards = await p.evaluate(async () => Object.keys((await import('./js/data.js')).TREE));
