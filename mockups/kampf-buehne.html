@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup – Kampf als Bühne</title>
+<link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+SC:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  html, body { overflow: auto; height: auto; }
+  .wrap { display: flex; gap: 28px; padding: 24px; align-items: flex-start; width: max-content; }
+  .phone { width: 375px; height: 667px; position: relative; display: flex; flex-direction: column; padding: 8px; gap: 5px;
+    border: 1px solid #2a2118; box-shadow: 0 0 0 6px #0b0907, 0 0 40px #000; background: var(--noise), var(--stonetex), radial-gradient(ellipse at 50% 20%, #241a12, #070504 70%); }
+  .phone > * { flex: none; }
+  .cap { font-family: 'Alegreya SC'; color: var(--gold); text-align: center; margin-bottom: 8px; font-size: 1rem; }
+  .note2 { width: 375px; color: var(--dim); font-size: .85rem; margin-top: 10px; line-height: 1.4; } .note2 b { color: var(--gold); font-weight: 500; }
+  .hudm { display: flex; align-items: center; justify-content: space-between; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.4rem; }
+  .hudm small { font-family: 'Alegreya SC'; font-size: .78rem; color: var(--text); }
+  .tabsm { margin-top: auto; display: flex; gap: 3px; } .tabsm a { flex: 1; text-align: center; padding: 8px 2px; font-family: 'Alegreya SC'; font-size: .68rem; color: var(--dim); border-image: url('../assets/ui/tab.webp') 16 fill / 8px stretch; }
+  .tabsm a.on { color: var(--gold-hi); border-image-source: url('../assets/ui/tab_on.webp'); }
+  .subm { display: flex; gap: 3px; } .subm a { flex: 1; text-align: center; padding: 5px 2px; font-family: 'Alegreya SC'; font-size: max(11px,.7rem); color: var(--dim); border-image: url('../assets/ui/tab.webp') 16 fill / 7px stretch; }
+  .subm a.on { color: var(--gold-hi); border-image-source: url('../assets/ui/tab_on.webp'); }
+
+  /* --- Die Werkbank: zwei Teile, Rinne in der Mitte --- */
+  .fuse { flex: 0 0 auto; display: grid; grid-template-columns: 1fr 26px 1fr; gap: 0; padding: 6px 7px; }
+  .side { display: flex; flex-direction: column; gap: 4px; }
+  .side > h5 { margin: 0; font-family: 'Alegreya SC'; font-size: max(11px,.66rem); letter-spacing: .04em; text-align: center;
+    padding: 2px 0; color: var(--dim); background: #0a0908; box-shadow: inset 0 0 0 1px #241f19; }
+  .side.main > h5 { color: var(--gold-hi); background: #140f09; box-shadow: inset 0 0 0 1px #6e5a30; }
+  .side.food > h5 { color: #c0301e; background: #150a08; box-shadow: inset 0 0 0 1px #5a211a; }
+  /* Kopf: Bild + Name */
+  .ihead { display: flex; gap: 5px; align-items: center; padding: 3px 4px; background: #0a0908; box-shadow: inset 0 0 0 1px #241f19; }
+  .ihead img { width: 34px; height: 34px; object-fit: contain; image-rendering: auto; }
+  .ihead div { min-width: 0; }
+  .ihead b { display: block; font-family: 'Alegreya SC'; font-size: max(11px,.72rem); font-weight: 500; line-height: 1.1;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ihead em { font-style: normal; font-family: 'Alegreya SC'; font-size: max(11px,.6rem); color: var(--dim); }
+  .side.food .ihead { box-shadow: inset 0 0 0 1px #4a1d17; }
+  .side.food .ihead img { opacity: .55; filter: grayscale(.4); }
+  /* Bonus-Zeilen */
+  .mods { display: flex; flex-direction: column; gap: 2px; }
+  .mods .m { display: flex; justify-content: space-between; align-items: center; gap: 4px; min-height: 34px; padding: 5px; font-size: max(11px,.74rem); color: var(--text);
+    background: #0a0908; box-shadow: inset 0 0 0 1px #1e1a15; cursor: pointer; line-height: 1.15; }
+  .mods .m s { text-decoration: none; color: var(--dim); font-family: 'Alegreya SC'; font-size: max(11px,.6rem); }
+  .mods .m.dim { color: var(--dim); }
+  .mods .m.sealed { box-shadow: inset 0 0 0 1px #3a3020; color: var(--dim); cursor: default; }
+  .mods .m.sealed s { color: var(--gold); }
+  .mods .m.pick { background: #16110a; box-shadow: inset 0 0 0 2px var(--gold-hi); color: var(--gold-hi); }
+  .mods .m.pickr { background: #170a08; box-shadow: inset 0 0 0 2px #c0301e; color: #e0a090; }
+  .mods .m.gone { color: #5a4e42; text-decoration: line-through; }
+  .mods .empty { padding: 4px 5px; font-size: max(11px,.72rem); color: var(--dim); font-style: italic;
+    background: #0a0908; box-shadow: inset 0 0 0 1px dashed; outline: 1px dashed #332b22; outline-offset: -1px; }
+  .mods .m.new { background: #14110a; box-shadow: inset 0 0 0 2px var(--gold-hi); color: var(--gold-hi); }
+  /* Rinne mit dem Pfeil */
+  .gut { position: relative; }
+  .gut .ar { position: absolute; left: 50%; transform: translate(-50%,-50%); font-family: 'Grenze Gotisch'; font-size: 1.5rem;
+    color: var(--gold-hi); text-shadow: 0 0 8px rgba(226,192,122,.45); }
+  .gut .bar { position: absolute; left: 50%; top: 8px; bottom: 8px; width: 1px; background: linear-gradient(#241f19, #332b22, #241f19); }
+  /* Platz wählen */
+  .pickbox { padding: 5px 6px; }
+  .pickbox h5 { margin: 0 0 4px; font-family: 'Alegreya SC'; font-size: max(11px,.7rem); color: var(--gold); font-weight: 500; }
+  .cpickm { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .cpickm .cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; position: relative;
+    background: #0a0908; box-shadow: inset 0 0 0 1px #241f19; cursor: pointer; }
+  .cpickm .cell img { width: 80%; height: 80%; object-fit: contain; }
+  .cpickm .cell.on { box-shadow: inset 0 0 0 2px var(--gold-hi); }
+  .cpickm .cell.no { opacity: .3; cursor: default; }
+  .cpickm .cell i { position: absolute; bottom: 1px; right: 2px; font-style: normal; font-family: 'Alegreya SC';
+    font-size: max(11px,.55rem); color: var(--gold); }
+  /* Fußleiste: was passiert, was es kostet */
+  .fdet { flex: 1 1 auto; min-height: 104px; padding: 7px 9px; display: flex; flex-direction: column; gap: 4px; }
+  .fdet h4 { margin: 0; font-family: 'Grenze Gotisch'; font-size: 1.05rem; color: var(--gold-hi); font-weight: 500; }
+  .fdet p { margin: 0; font-size: .84rem; color: var(--text); line-height: 1.25; }
+  .fdet p.cost { color: #c8705f; font-style: italic; }
+  .fdet p.hint { font-family: 'Alegreya SC'; font-size: max(11px,.68rem); color: var(--dim); }
+  .fdet .row { display: flex; gap: 6px; margin-top: auto; }
+  .fdet button { flex: 1; font-size: .82rem; padding: 6px; }
+  .glut { display: flex; align-items: center; gap: 5px; font-family: 'Alegreya SC'; font-size: max(11px,.68rem); color: var(--dim); }
+  .glut .tr { flex: 1; height: 5px; background: #0a0908; box-shadow: inset 0 0 0 1px #241f19; position: relative; }
+  .glut .tr span { position: absolute; inset: 0 auto 0 0; background: linear-gradient(#c09a55, #7a5a22); }
+  .glut .tr b { position: absolute; top: 0; bottom: 0; background: #7d150d; opacity: .8; }
+  .strip { display: flex; gap: 5px; padding: 5px 6px; align-items: center; }
+  .strip .lbl { font-family: 'Alegreya SC'; font-size: max(11px,.62rem); color: var(--dim); }
+  .strip .cell { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
+    background: #0a0908; box-shadow: inset 0 0 0 1px #241f19; }
+  .strip .cell img { width: 82%; height: 82%; object-fit: contain; }
+  .strip .cell.m { box-shadow: inset 0 0 0 2px var(--gold-hi); }
+  .strip .cell.f { box-shadow: inset 0 0 0 2px #c0301e; } .strip .cell.f img { opacity: .55; }
+  .strip .sp { flex: 1; }
+  .r-magic { color: var(--r-magic); } .r-rare { color: var(--r-rare); }
+  .up { font-family: 'Alegreya SC'; font-size: max(11px,.66rem); color: #00c400; }
+
+.kb { display: flex; flex-direction: column; gap: 6px; height: 100%; }
+.kb .foe { display: flex; align-items: center; gap: 8px; padding: 6px 10px; }
+.kb .foe .nm { font-family: 'Grenze Gotisch'; color: var(--blood-hi); font-size: 1.15rem; white-space: nowrap; }
+.kb .foe .lv { font-family: 'Alegreya SC'; font-size: .72rem; color: var(--dim); }
+.kb .hpw { flex: 1; position: relative; height: 12px; background: #000; box-shadow: 0 0 0 1px #3a2a1e, inset 0 0 4px #000; }
+.kb .hpw i { position: absolute; top: 0; bottom: 0; left: 0; }
+.kb .hpw .ghost { background: #f0e6c8; opacity: .85; }                 /* C: Nachschatten, läuft verzögert hinterher */
+.kb .hpw .now { background: linear-gradient(#d23a26, #6a0d06); }
+.kb .hpw .mark { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; background: var(--gold); box-shadow: 0 0 4px var(--gold); }
+.kb .hpt { font-family: 'Alegreya SC'; font-size: .72rem; color: var(--dim); min-width: 58px; text-align: right; }
+.kb .stage { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 0; }
+.kb .stage .scene { position: absolute; inset: 6px; background: linear-gradient(rgba(5,4,3,.35), rgba(5,4,3,.8)), url('../assets/places/katakomben.webp') center / cover; }
+.kb .stage::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 60px 20px #000; pointer-events: none; }
+.kb .hero { position: absolute; left: 0; bottom: 6px; height: 94%; transition: transform .12s;
+  -webkit-mask-image: radial-gradient(ellipse 50% 58% at 50% 52%, #000 70%, transparent 100%); mask-image: radial-gradient(ellipse 50% 58% at 50% 52%, #000 70%, transparent 100%); }
+.kb .mon { position: absolute; right: 4%; top: 14%; width: 46%; aspect-ratio: 1; object-fit: cover;
+  -webkit-mask-image: radial-gradient(closest-side, #000 62%, transparent 100%); mask-image: radial-gradient(closest-side, #000 62%, transparent 100%); }
+.kb .lunge { transform: translateX(34px) rotate(2deg); }
+.kb .hit { filter: brightness(1.8) saturate(.6); transform: translateX(8px); }
+.kb .num { position: absolute; font-family: 'Grenze Gotisch'; font-size: 2.1rem; color: #f3e2b8; text-shadow: 0 2px 0 #000, 0 0 6px #000; }
+.kb .num.fire { color: #ff9a3a; } .kb .num.crit { font-size: 3.2rem; color: #ff4a2a; text-shadow: 0 3px 0 #000, 0 0 18px #a01a0a; }
+.kb .num small { display: block; font-family: 'Alegreya SC'; font-size: .8rem; letter-spacing: .08em; color: inherit; text-align: center; }
+.kb .proj { position: absolute; width: 54px; height: 54px; border-radius: 50%; box-shadow: 0 0 22px 8px rgba(255,120,30,.55); }
+.kb .trail { position: absolute; height: 10px; border-radius: 2px; background: linear-gradient(90deg, transparent, rgba(255,140,40,.75)); filter: blur(2px); }
+.kb .status { position: absolute; right: 6%; top: 8%; display: flex; gap: 4px; }
+.kb .status b { font-family: 'Alegreya SC'; font-size: .7rem; padding: 1px 6px; color: #ffb060; background: rgba(0,0,0,.7); box-shadow: inset 0 0 0 1px #8a4a10; }
+.kb .intent { position: absolute; right: 6%; bottom: 8%; font-family: 'Alegreya SC'; font-size: .74rem; color: #e8c6b0; background: rgba(40,8,4,.85); padding: 3px 8px; box-shadow: inset 0 0 0 1px #8a1c13; }
+.kb .flash { position: absolute; inset: 0; background: radial-gradient(circle at 70% 42%, rgba(255,255,255,.55), transparent 55%); }
+.kb .freeze { position: absolute; left: 0; right: 0; top: 0; text-align: center; font-family: 'Alegreya SC'; font-size: .68rem; color: var(--dim); padding-top: 4px; letter-spacing: .1em; }
+.kb .phase { position: absolute; left: 0; right: 0; top: 36%; text-align: center; background: linear-gradient(90deg, transparent, rgba(60,6,4,.92) 15%, rgba(60,6,4,.92) 85%, transparent); padding: 8px 0; }
+.kb .phase b { display: block; font-family: 'Grenze Gotisch'; font-size: 1.5rem; color: var(--blood-hi); }
+.kb .phase small { font-family: 'Alegreya'; font-size: .86rem; color: #e8d8b8; }
+.kb .me { display: flex; align-items: center; gap: 8px; padding: 6px 10px; }
+.kb .me .nm { font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.1rem; }
+.kb .bar2 { display: grid; grid-template-columns: repeat(3, 1fr) 1.15fr; gap: 6px; padding: 8px; }
+.kb .sp { position: relative; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a0907; box-shadow: inset 0 0 0 1px #3a3024; overflow: hidden; }
+.kb .sp img { width: 38px; height: 38px; opacity: .8; }
+.kb .sp small { font-family: 'Alegreya SC'; font-size: max(11px, .62rem); color: var(--dim); line-height: 1; margin-top: 2px; }
+.kb .sp .ld { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: #1a140f; } .kb .sp .ld i { display: block; height: 100%; background: linear-gradient(90deg, #4a6ad0, #8fa4ff); }
+.kb .sp.fire { box-shadow: inset 0 0 0 2px #ffb060, 0 0 14px rgba(255,140,40,.6); } .kb .sp.fire img { opacity: 1; transform: scale(1.12); } .kb .sp.fire small { color: #ffd08a; }
+.kb .ks { height: 64px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #0a0907; box-shadow: inset 0 0 0 1px #3a3024; }
+.kb .ks b { font-family: 'Alegreya SC'; font-size: .74rem; color: var(--dim); } .kb .ks small { font-size: max(11px, .62rem); color: var(--dim); }
+.kb .ks.on { box-shadow: inset 0 0 0 2px var(--gold), 0 0 12px rgba(226,192,122,.5); } .kb .ks.on b { color: var(--gold-hi); }
+.kb .tick { padding: 6px 10px; font-size: .84rem; line-height: 1.3; }
+.kb .tick p { margin: 0; color: var(--dim); } .kb .tick p:last-child { color: var(--text); }
+.kb .tick .up { color: #ff9a3a; } .kb .tick .hot { color: var(--blood-hi); }
+.kb .skip { height: 44px; width: 100%; }
+</style></head><body><div class="wrap"><div><div class="cap">1 · Hieb: die Figur stößt vor, der Gegner zuckt</div><div class="phone"><main><div class="kb">
+  <section class="panel foe"><span class="nm">Mutter Gerlinde</span><div class="hpw"><i class="ghost" style="width:86%"></i><i class="now" style="width:82%"></i><span class="mark"></span></div><span class="hpt">869 / 1060</span></section>
+  <section class="panel stage"><div class="scene"></div><img class="hero lunge" src="../assets/heroes/sorceress.webp" alt=""><img class="mon hit" src="../assets/monsters/gerlinde.jpg" alt=""><div class="num" style="right:24%;top:18%">41</div><div class="status"><b>Brennt</b></div><div class="intent">holt aus · 2 Züge</div></section>
+  <section class="panel me"><span class="nm">Sayfa</span><div class="hpw"><i class="now" style="width:78%"></i></div><span class="hpt">172 / 221</span></section>
+  <section class="panel bar2"><div class="sp "><img src="../assets/spells/feuerball.webp" alt=""><small>Feuerball</small><div class="ld"><i style="width:66%"></i></div></div><div class="sp "><img src="../assets/spells/frost.webp" alt=""><small>Frostnova</small><div class="ld"><i style="width:40%"></i></div></div><div class="sp "><img src="../assets/spells/meteor.webp" alt=""><small>Meteor</small><div class="ld"><i style="width:28%"></i></div></div>
+  <div class="ks "><b>Nachhall</b><small>2× im Kampf</small></div></section>
+  <section class="panel tick"><p>Gerlinde trifft für 27.</p><p>Sayfa trifft für <b>41</b>.</p></section>
+  <button class="skip">Überspringen</button></div></main></div></div><div><div class="cap">2 · Zauber: Feuerball lädt voll, fliegt, Nachhall leuchtet</div><div class="phone"><main><div class="kb">
+  <section class="panel foe"><span class="nm">Mutter Gerlinde</span><div class="hpw"><i class="ghost" style="width:74%"></i><i class="now" style="width:66%"></i><span class="mark"></span></div><span class="hpt">700 / 1060</span></section>
+  <section class="panel stage"><div class="scene"></div><img class="hero " src="../assets/heroes/sorceress.webp" alt=""><img class="mon " src="../assets/monsters/gerlinde.jpg" alt=""><div class="trail" style="left:30%;top:44%;width:30%"></div><img class="proj" src="../assets/spells/feuerball.webp" style="left:56%;top:38%" alt=""><div class="num fire" style="right:20%;top:12%">88<small>Feuerball</small></div><div class="status"><b>Brennt</b><b>Nachhall</b></div></section>
+  <section class="panel me"><span class="nm">Sayfa</span><div class="hpw"><i class="now" style="width:78%"></i></div><span class="hpt">172 / 221</span></section>
+  <section class="panel bar2"><div class="sp fire"><img src="../assets/spells/feuerball.webp" alt=""><small>Feuerball</small><div class="ld"><i style="width:100%"></i></div></div><div class="sp "><img src="../assets/spells/frost.webp" alt=""><small>Frostnova</small><div class="ld"><i style="width:60%"></i></div></div><div class="sp "><img src="../assets/spells/meteor.webp" alt=""><small>Meteor</small><div class="ld"><i style="width:42%"></i></div></div>
+  <div class="ks on"><b>Nachhall</b><small>löst aus!</small></div></section>
+  <section class="panel tick"><p>Brand wirkt: 14.</p><p><span class="up">Feuerball</span> trifft für <b>88</b> – <span class="up">Nachhall</span>: gleich noch einmal.</p></section>
+  <button class="skip">Überspringen</button></div></main></div></div><div><div class="cap">3 · Krit + Boss-Moment: Stillstand, Nachschatten, Mechanik als Banner</div><div class="phone"><main><div class="kb">
+  <section class="panel foe"><span class="nm">Mutter Gerlinde</span><div class="hpw"><i class="ghost" style="width:62%"></i><i class="now" style="width:46%"></i><span class="mark"></span></div><span class="hpt">488 / 1060</span></section>
+  <section class="panel stage"><div class="scene"></div><img class="hero lunge" src="../assets/heroes/sorceress.webp" alt=""><img class="mon hit" src="../assets/monsters/gerlinde.jpg" alt=""><div class="flash"></div><div class="freeze">— Stillstand 0,25 s —</div><div class="num crit" style="right:10%;top:9%">KRIT 112</div><div class="phase" style="top:56%"><b>Die Ertränkte trinkt</b><small>Zieht Leben aus dir und heilt sich</small></div></section>
+  <section class="panel me"><span class="nm">Sayfa</span><div class="hpw"><i class="now" style="width:64%"></i></div><span class="hpt">141 / 221</span></section>
+  <section class="panel bar2"><div class="sp "><img src="../assets/spells/feuerball.webp" alt=""><small>Feuerball</small><div class="ld"><i style="width:33%"></i></div></div><div class="sp "><img src="../assets/spells/frost.webp" alt=""><small>Frostnova</small><div class="ld"><i style="width:85%"></i></div></div><div class="sp "><img src="../assets/spells/meteor.webp" alt=""><small>Meteor</small><div class="ld"><i style="width:71%"></i></div></div>
+  <div class="ks "><b>Nachhall</b><small>2× im Kampf</small></div></section>
+  <section class="panel tick"><p><span class="hot">Sayfa trifft KRITISCH für 112.</span></p><p>Gerlinde zieht 18 Leben und heilt sich.</p></section>
+  <button class="skip">Überspringen</button></div></main></div></div></div></body></html>
