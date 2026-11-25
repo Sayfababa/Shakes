@@ -197,3 +197,18 @@ hat das perfekte Teil" bleibt Material + Fusion max. 1 + Beute, die mit der Stuf
 **Testfalle:** `values` würfelte früher alle Boni – Tests, die darüber Stufen sammelten (Abgrund-Leiter), sahen jetzt nur noch einen
 Bonus, und war der ein `noDeep`-Bonus, nie Abgrund-Stufen (1 von 6 Läufen rot). Jetzt reihum alle Boni. Tests: logic (drei neue Fälle:
 nur der angetippte; Angebot bezahlt/verschieden/übersteht Neuladen/Wahl; Erheben), ui (`craftoffer`, Neuladen), fuzz nimmt Angebote an.
+
+### Schmiede ruhig: festes Raster (2026-11-25)
+Besitzer: „Beim Schmieden verschiebt sich das UI, Anzeigen werden größer, kleiner." Gemessen (100 Eingriffe Umschmieden, 100 Tipps
+Fusion, iPhone 13 als App): 6 bzw. 7 verschiedene Lagen der Kästen, Sparschritt `tight` in jedem zweiten Schritt (fitPrep schaltete
+je nach Bonuszahl und Meldungslänge um – **das** war das Größer/Kleiner), Teile 34 px, Bonus-Zeilen 26–35 px. Ursachen: Angebot höher
+als die Knöpfe (+100 px), Meldung 1 oder 2 Zeilen, Teile-Leiste eine oder zwei Reihen.
+**Gebaut:** `.umv`/`.fusev` – Leisten je eine Reihe (48 px, seitlich wischen, Lage bleibt über das Neuzeichnen, Gewähltes wird ins
+Bild gerollt), Mitte füllt den Rest (rollt nur im Notfall), unten ein Kasten fester Höhe; das Angebot sind drei Kacheln **im** Knopf-
+Raster, „Nehmen" in der festen Fußzeile. fitPrep lässt beide aus. **Regel:** in einem Fenster, in dem man wiederholt tippt, darf
+sich nichts nach dem Inhalt richten – feste Höhen, Text kurz genug für seine Zeile.
+**Test:** `tests/forge.cjs` (in quick und voll) – eine Lage, kein Sparschritt, Tippziele ≥ 40×36, nichts abgeschnitten. Auf dem alten
+Stand rot (Gegenprobe). `ui.cjs`/`uifuzz.cjs` nehmen die Wisch-Leisten von „ragt heraus" aus.
+**Nebenbefund:** die 27 neuen Item-Bilder kippten `tests/sets.mjs` (fester Keim, 4 Würfe): Grundformen ohne Variante verbrauchten
+vorher keinen Wurf in `artOf`. Bildwahl würfelt jetzt mit `Math.random` (Optik darf den Spiel-Zufall nicht verschieben), die
+Set-Messung mittelt über 16 Würfe (Streuung je Wurf 6–8 Pkt; Ø 48 Würfe vorher/nachher 17,2/19,4, beide im Rahmen bis 22).
