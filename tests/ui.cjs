@@ -180,9 +180,22 @@ const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height:
     await tap('[data-action=forgemode][data-m=craft]'); await tap(`.cpick [data-id="${rid}"]`); await chk('craft');
     const k = await p.evaluate(() => document.querySelector('.caff')?.dataset.k); await tap(`.caff[data-k="${k}"]`); await tap('[data-o=seal]');
     const v0 = await p.evaluate(() => document.querySelector('.caff.sealed span')?.textContent);
-    for (let i = 0; i < 3; i++) if (!(await tap('[data-o=values]'))) { failures++; console.log(`FEHLER ${tag}: Werte würfeln gesperrt:`, await p.evaluate(() => document.querySelector('.cmsg')?.textContent)); }
+    // Gezielt (2026-11-25): ohne angetippten Bonus gesperrt, mit einem freien Bonus geht es – das Siegel hält trotzdem
+    if (!(await p.$('[data-o=values][disabled]'))) { failures++; console.log(`FEHLER ${tag}: Wert würfeln ohne angetippten Bonus nicht gesperrt`); }
+    await tap('.ccard .caff:not(.sealed)');
+    for (let i = 0; i < 3; i++) if (!(await tap('[data-o=values]:not([disabled])'))) { failures++; console.log(`FEHLER ${tag}: Wert würfeln gesperrt:`, await p.evaluate(() => document.querySelector('.cmsg')?.textContent)); }
     const v1 = await p.evaluate(() => document.querySelector('.caff.sealed span')?.textContent); await chk('craft2');
     if (!v0 || v0 !== v1) { failures++; console.log(`FEHLER ${tag}: Siegel hält nicht (${v0} → ${v1})`); }
+    // Hinzufügen: Platz schaffen (Tilgen), Angebot erscheint, Neuladen ändert es nicht, Wahl setzt den Bonus
+    await tap('.ccard .caff:not(.sealed):not(.on)'); await tap('[data-o=remove]:not([disabled])'); await tap('[data-o=add]:not([disabled])');
+    const off = await p.evaluate(() => [...document.querySelectorAll('.coffer .caff span')].map(e => e.textContent)); await chk('craftoffer');
+    if (!off.length) { failures++; console.log(`FEHLER ${tag}: Hinzufügen ohne Angebot`); }
+    else { await p.reload(); await p.waitForTimeout(300); await tap('[data-v=forge]'); await tap('[data-action=forgemode][data-m=craft]'); await tap(`.cpick [data-id="${rid}"]`);
+      const off2 = await p.evaluate(() => [...document.querySelectorAll('.coffer .caff span')].map(e => e.textContent));
+      if (JSON.stringify(off) !== JSON.stringify(off2)) { failures++; console.log(`FEHLER ${tag}: Angebot nach Neuladen anders`, off, off2); }
+      await tap('.coffer [data-action=offersel]'); await tap('[data-action=offertake]');
+      const got = await p.evaluate(() => [...document.querySelectorAll('.ccard .caff span')].map(e => e.textContent));
+      if ((await p.$('.coffer')) || !got.includes(off[0])) { failures++; console.log(`FEHLER ${tag}: gewählter Bonus nicht aufs Teil (${off[0]})`); } }
     // Fusionieren: zwei gleiche Dolche, ein Bonus wandert herüber, das Futter zerfällt
     const fu = await p.evaluate(async () => { const L = await import('./js/loot.js'); const G = await import('./js/state.js');
       const mk = n => { for (let i = 0; i < 6000; i++) { const it = L.makeItem(22, { slot: 'weapon', kind: 'dagger' });

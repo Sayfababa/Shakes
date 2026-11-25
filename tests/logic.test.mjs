@@ -413,6 +413,11 @@ test('Keine Gold-Schleifen: Glücksgriff und Ladenware kosten mehr, als ihr Verk
 
 // --- Umschmieden: gegen Fehler und Ausnutzen ---
 const craftable = (rar = 3, lvl = 25) => { let it; do it = makeItem(lvl, { slot: 'amulet', minRarity: rar }); while (it.unique || it.rarity !== D.RARITIES[rar].id); return it; };
+// Umschmieden wie ein Spieler (seit 2026-11-25 gezielt): braucht der Eingriff einen Bonus, wird der erste freie angetippt;
+// ein Angebot (Hinzufügen/Erheben) wird gleich angenommen – Angebot und Wahl prüfen eigene Tests unten.
+const craftDo = (id, op, stat) => { const it = [...Object.values(G.S.equip), ...G.S.bag].find(x => x?.id === id), o = D.CRAFT.ops.find(x => x.id === op);
+  if (o?.stat && stat == null && it) stat = Object.keys(G.baseMods(it)).find(k => k !== it.sealed);
+  const r = G.craft(id, op, stat); if (!r.offer) return r; const q = G.craftPick(id, 0); return { ...r, rise: q.rise, k: q.k }; };
 const richCraft = () => { const S = fresh(); S.gold = 1e7; for (const k of Object.keys(D.MATS)) S.mats[k] = 1e4; S.bag = []; return S; };
 
 test('Umschmieden: Versiegelter Bonus bleibt bei allem unverändert, Runen und Sonderbonus auch', () => {
@@ -420,56 +425,56 @@ test('Umschmieden: Versiegelter Bonus bleibt bei allem unverändert, Runen und S
     const S = richCraft(), it = craftable(); it.glut = it.glutMax = 9999; it.fx = { crit: 0.06 }; it.special = 'crit';
     S.equip.amulet = it; G.forge('amulet', 'zahn', 15); const runeDmg = it.runes[0].v;
     const k = Object.keys(G.baseMods(it))[0], v = G.baseMods(it)[k], t = it.tiers[k];
-    assert.ok(!G.craft(it.id, 'seal', k).err); assert.equal(it.sealed, k);
-    for (let i = 0; i < 30; i++) for (const op of ['chaos', 'values', 'remove', 'add']) { G.craft(it.id, op);
+    assert.ok(!craftDo(it.id, 'seal', k).err); assert.equal(it.sealed, k);
+    for (let i = 0; i < 30; i++) for (const op of ['chaos', 'values', 'remove', 'add']) { craftDo(it.id, op);
       assert.equal(G.baseMods(it)[k], v, 'versiegelter Wert verändert'); assert.equal(it.tiers[k], t);
       assert.ok((it.mods.dmg || 0) >= runeDmg, 'Rune verloren'); assert.equal(it.special, 'crit');
       assert.ok(Object.keys(G.baseMods(it)).length <= D.CRAFT.maxAff.rare, 'zu viele Boni');
       for (const [s, tt] of Object.entries(it.tiers)) assert.ok(tt >= 1 && tt <= 5 && G.baseMods(it)[s] >= 1, 'Stufe ohne Bonus'); }
-    assert.ok(G.craft(it.id, 'seal', Object.keys(G.baseMods(it)).find(x => x !== k)).err, 'zweites Siegel');
+    assert.ok(craftDo(it.id, 'seal', Object.keys(G.baseMods(it)).find(x => x !== k)).err, 'zweites Siegel');
   }
 });
 
 test('Umschmieden: kostet genau Material und Gold, beliebig oft – keine Schmiedeglut mehr, auch alte vollendete Teile', () => {
   const S = richCraft(), it = craftable(2, 20); S.bag = [it]; S.bag[0].x = 0; S.bag[0].y = 0;
   for (let i = 0; i < 60; i++) { const m = S.mats.staub, g = S.gold, cg = G.craftGold(it);
-    const r = G.craft(it.id, 'values'); assert.ok(!r.err, `Eingriff ${i + 1}: ${r.err}`);
-    assert.equal(S.mats.staub, m - 2); assert.equal(S.gold, g - cg); }
+    const r = craftDo(it.id, 'values'); assert.ok(!r.err, `Eingriff ${i + 1}: ${r.err}`);
+    assert.equal(S.mats.staub, m - D.CRAFT.ops.find(o => o.id === 'values').n); assert.equal(S.gold, g - cg); }
   assert.ok(!it.crafted, 'kein Teil wird mehr vollendet');
   it.crafted = 'Alt'; it.glut = 0; it.glutMax = 24;   // Spielstand von vor der Änderung
-  assert.ok(!G.craft(it.id, 'values').err, 'altes vollendetes Teil bleibt gesperrt');
+  assert.ok(!craftDo(it.id, 'values').err, 'altes vollendetes Teil bleibt gesperrt');
 });
 
 test('Umschmieden: Grenzen – Einzigartige, gewöhnliche, zu wenig Material/Gold, voll', () => {
   const S = richCraft(); let u; do u = makeItem(25, { slot: 'helm', minRarity: 4 }); while (!u.unique);
-  S.bag = [u]; assert.ok(G.craft(u.id, 'add').err);
-  const n = makeItem(5, { slot: 'helm' }); n.rarity = 'normal'; S.bag = [n]; assert.ok(G.craft(n.id, 'add').err);
-  const it = craftable(2, 20); S.bag = [it]; S.mats.staub = 1; assert.ok(G.craft(it.id, 'values').err); S.mats.staub = 99; S.gold = 0; assert.ok(G.craft(it.id, 'values').err);
-  S.gold = 1e6; while (Object.keys(G.baseMods(it)).length < 2) G.craft(it.id, 'add');
-  S.mats.kronsplitter = 0; assert.ok(G.craft(it.id, 'add').err, 'magisch über 2 Boni ohne Kronsplitter');
-  assert.ok(G.craft('gibtsnicht', 'add').err);
+  S.bag = [u]; assert.ok(craftDo(u.id, 'add').err);
+  const n = makeItem(5, { slot: 'helm' }); n.rarity = 'normal'; S.bag = [n]; assert.ok(craftDo(n.id, 'add').err);
+  const it = craftable(2, 20); S.bag = [it]; S.mats.staub = 1; assert.ok(craftDo(it.id, 'values').err); S.mats.staub = 99; S.gold = 0; assert.ok(craftDo(it.id, 'values').err);
+  S.gold = 1e6; while (Object.keys(G.baseMods(it)).length < 2) craftDo(it.id, 'add');
+  S.mats.kronsplitter = 0; assert.ok(craftDo(it.id, 'add').err, 'magisch über 2 Boni ohne Kronsplitter');
+  assert.ok(craftDo('gibtsnicht', 'add').err);
 });
 
 // Erheben: der einzige Weg, in der Umschmiede über die Grenze der Seltenheit zu kommen.
 test('Erheben: Kronsplitter macht ein volles magisches Teil selten – einmal je Teil', () => {
   const S = richCraft(), it = craftable(2, 20); S.bag = [it]; it.glut = 99;
-  while (Object.keys(G.baseMods(it)).length < 2) G.craft(it.id, 'add');
+  while (Object.keys(G.baseMods(it)).length < 2) craftDo(it.id, 'add');
   const dmg = JSON.stringify([it.dmg, it.armor]), splitter = S.mats.kronsplitter;
-  const r = G.craft(it.id, 'add');
+  const r = craftDo(it.id, 'add');
   assert.ok(!r.err, 'mit Kronsplitter muss es gehen: ' + r.err);
   assert.equal(it.rarity, 'rare', 'steigt zu selten auf');
   assert.equal(Object.keys(G.baseMods(it)).length, 3, 'dritter Bonus da');
   assert.equal(S.mats.kronsplitter, splitter - D.CRAFT.raise.n, 'Splitter verbraucht');
   assert.equal(JSON.stringify([it.dmg, it.armor]), dmg, 'Grundwerte bleiben – kein geschenkter Grundwert');
   // Zweimal erheben darf niemand, auch nicht über die Fusion.
-  while (Object.keys(G.baseMods(it)).length < 4) G.craft(it.id, 'add');
-  assert.ok(G.craft(it.id, 'add').err, 'selten -> legendär ist zu');
+  while (Object.keys(G.baseMods(it)).length < 4) craftDo(it.id, 'add');
+  assert.ok(craftDo(it.id, 'add').err, 'selten -> legendär ist zu');
   assert.equal(G.fusePromote(it, null), null, 'auch die Fusion hebt ein erhobenes Teil nicht weiter');
 });
 
 test('Umschmieden: Stufe I nur ab Gegenstandsstufe 20, auch beim Neu-Würfeln', () => {
   const S = richCraft(), it = craftable(3, 8); S.bag = [it]; it.glut = it.glutMax = 1e6;
-  for (let i = 0; i < 300; i++) { G.craft(it.id, i % 2 ? 'chaos' : 'values'); assert.ok(Object.values(it.tiers).every(t => t >= 3), 'zu hohe Stufe auf niedriger Gegenstandsstufe'); }
+  for (let i = 0; i < 300; i++) { craftDo(it.id, i % 2 ? 'chaos' : 'values'); assert.ok(Object.values(it.tiers).every(t => t >= 3), 'zu hohe Stufe auf niedriger Gegenstandsstufe'); }
 });
 
 test('Umschmieden: kein Gold durch Craften+Verkaufen – bei keinem Eingriff, keiner Stufe, keiner Seltenheit', () => {
@@ -477,7 +482,7 @@ test('Umschmieden: kein Gold durch Craften+Verkaufen – bei keinem Eingriff, ke
   for (const op of ['add', 'chaos', 'values', 'remove']) for (const rar of [2, 3, 4]) for (const L of [10, 25, 40]) {
     let spent = 0, gain = 0;
     for (let i = 0; i < 150; i++) { const it = craftable(rar, L); S.bag = [it]; const v0 = it.value, g0 = S.gold;
-      if (G.craft(it.id, op).err) continue; spent += g0 - S.gold; gain += it.value - v0; }
+      if (craftDo(it.id, op).err) continue; spent += g0 - S.gold; gain += it.value - v0; }
     assert.ok(gain < spent || !spent && !gain, `${op}/${rar}/${L}: Wertzuwachs ${gain} > Kosten ${spent}`);   // volle Teile: „Hinzufügen“ geht nicht – dann nichts
   }
 });
@@ -526,9 +531,9 @@ test('Boni-Pools: Kampf-Boni nur auf passenden Plätzen, Zauber-Boni nur auf der
 test('Umschmieden bleibt im Pool des Teils (Chaos/Hinzufügen/Werte)', () => {
   const S = fresh('sorceress'); S.gold = 1e9; for (const k of Object.keys(D.MATS)) S.mats[k] = 999;
   for (let r = 0; r < 40; r++) {
-    let it; do it = makeItem(25, { slot: r % 2 ? 'boots' : 'weapon', minRarity: 3 }); while (it.unique); it.kind = r % 2 ? it.kind : 'staff';
+    let it; do it = makeItem(25, { slot: r % 2 ? 'boots' : 'weapon', kind: r % 2 ? undefined : 'staff', minRarity: 3 }); while (it.unique);
     S.bag = []; G.addToBag(it);
-    for (let i = 0; i < 6; i++) G.craft(it.id, ['chaos', 'add', 'values'][i % 3]);
+    for (let i = 0; i < 6; i++) craftDo(it.id, ['chaos', 'add', 'values'][i % 3]);
     const pool = new Set(affixPool(it).map(a => a.stat));
     for (const k of Object.keys(G.baseMods(it))) assert.ok(pool.has(k), `${k} auf ${it.slot}/${it.kind}`);
   }
@@ -859,7 +864,7 @@ test('Abgrund-Leiter (Welle 2B-1): jede Tiefe um denselben Anteil stärker, Lohn
   { const S = G.S; S.gold = 1e7; S.mats = Object.fromEntries(Object.keys(D.MATS).map(k => [k, 999]));
     const mk = depth => { for (let i = 0; i < 500; i++) { const it = makeItem(60, { slot: 'amulet', minRarity: 3, depth }); if (!it.unique && !it.set && it.rarity === 'rare') return it; } };
     const seen = depth => { const it = mk(depth); G.S.bag = [Object.assign(it, { x: 0, y: 0 })]; const out = new Set();
-      for (let i = 0; i < 300; i++) { const r = G.craft(it.id, 'values'); if (r?.err) break; delete it.craftN; delete it.risen; Object.values(it.tiers).forEach(t => out.add(t)); } return [it, out]; };
+      for (let i = 0; i < 300; i++) { const ks = Object.keys(G.baseMods(it)), r = craftDo(it.id, 'values', ks[i % ks.length]); if (r?.err) break; delete it.craftN; delete it.risen; Object.values(it.tiers).forEach(t => out.add(t)); } return [it, out]; };
     const [a, sa] = seen(deep[1].minDepth), [b, sb] = seen(0);
     assert.equal(a.deep, deep[1].minDepth); assert.equal(b.deep, undefined);
     assert.ok(sa.has(deep[0].t) && sa.has(deep[1].t), 'Umschmieden aus der Tiefe würfelt Abgrund-Stufen');
@@ -1328,8 +1333,8 @@ test('Die Marke am fusionierten Bonus folgt dem Bonus', async () => {
   let r = G.fuse(a.id, b.id, k, null); assert.ok(!r.err, r.err);
   assert.deepEqual(G.fusedMods(r.it), [k]);
   r.it.glut = 30; delete r.it.crafted; fill();
-  assert.ok(!G.craftCheck(r.it, 'values'), G.craftCheck(r.it, 'values'));
-  G.craft(r.it.id, 'values');
+  assert.ok(!G.craftCheck(r.it, 'values', k), G.craftCheck(r.it, 'values', k));
+  craftDo(r.it.id, 'values', k);
   assert.deepEqual(G.fusedMods(r.it), [], 'nach neu gewuerfelten Werten ist die Marke noch da');
 
   // Ein Bonus, der entfernt wird, nimmt seine Marke mit; die der anderen bleiben.
@@ -1337,11 +1342,11 @@ test('Die Marke am fusionierten Bonus folgt dem Bonus', async () => {
   r = G.fuse(a.id, b.id, k, null); assert.ok(!r.err, r.err);
   r.it.glut = 30; delete r.it.crafted; fill();
   r.it.sealed = k;                                    // versiegelt: `remove` trifft einen anderen
-  G.craft(r.it.id, 'remove');
+  craftDo(r.it.id, 'remove');
   assert.deepEqual(G.fusedMods(r.it), [k], 'die Marke des gebliebenen Bonus ist verschwunden');
   r.it.glut = 30; delete r.it.crafted; fill(); delete r.it.sealed;
   while (Object.keys(G.baseMods(r.it)).length > 1 && !G.craftCheck(r.it, 'remove')) {
-    G.craft(r.it.id, 'remove'); r.it.glut = 30; delete r.it.crafted; fill();
+    craftDo(r.it.id, 'remove'); r.it.glut = 30; delete r.it.crafted; fill();
   }
   if (!(k in G.baseMods(r.it))) assert.deepEqual(G.fusedMods(r.it), [], 'die Marke haengt an einem Bonus, den es nicht mehr gibt');
 });
@@ -1581,7 +1586,7 @@ test('Aschenkern: eine Wirkung je Teil, Einzigartiges zerfällt, Nachteile wande
   // Umschmieden lässt ihn stehen, als Futter taugt er nicht
   const t2 = plain('gloves'); t2.core = { from: 'x', key: 'crit', eff: { crit: 0.05 } }; G.addToBag(t2);
   t.rarity = t2.rarity; t.kind = t2.kind; assert.ok(!G.fuseFoods(t).includes(t2), 'Kern-Teil nie Futter');
-  G.craft(t.id, 'chaos'); assert.equal(t.core.key, 'dmgPct', 'Neu würfeln lässt den Kern stehen');
+  craftDo(t.id, 'chaos'); assert.equal(t.core.key, 'dmgPct', 'Neu würfeln lässt den Kern stehen');
   // Speichern/Laden
   G.save(); const L2 = G.load(); assert.deepEqual(L2.equip.gloves.core.eff, { dmgPct: 0.12 });
   // Marke: Klasse am Feld und eine CSS-Regel dafür, Zeile im Tooltip
@@ -1856,4 +1861,48 @@ test('Kampfkraft-Anzeige aus (CFG.showPower): kein ▲, keine Zahl im Teil-Fenst
     const tip = UI.itemTip(it, true); assert.doesNotMatch(tip, /Kampfkraft/); assert.doesNotMatch(UI.viewHero(false), /Kampfkraft|class="better"/); assert.doesNotMatch(UI.viewStats(), /Kampfkraft/);
     D.CFG.showPower = true; assert.match(UI.viewHero(false), /Kampfkraft/);
   } finally { D.CFG.showPower = was; }
+});
+
+// --- Gezieltes Umschmieden (2026-11-25, mockups/umschmieden.png) ---
+test('Umschmieden gezielt: Wert würfeln, Ersetzen, Tilgen wirken nur auf den angetippten Bonus', () => {
+  for (let rep = 0; rep < 60; rep++) {
+    const S = richCraft(), it = craftable(3, 25); S.bag = [it]; const keys = Object.keys(G.baseMods(it)); if (keys.length < 3) continue;
+    for (const op of ['values', 'chaos', 'remove']) assert.equal(G.craft(it.id, op).err, 'Bonus antippen.', `${op} ohne Antippen`);
+    const [k, s2] = keys; G.craft(it.id, 'seal', s2); assert.ok(G.craft(it.id, 'values', s2).err, 'versiegelter Bonus lässt sich würfeln');
+    const snap = () => { const b = G.baseMods(it); return Object.fromEntries(Object.entries(b).filter(([x]) => x !== k)); };
+    let rest = snap(); const m = S.mats.staub; assert.ok(!G.craft(it.id, 'values', k).err); assert.deepEqual(snap(), rest, 'Wert würfeln traf einen anderen');
+    assert.ok(k in G.baseMods(it)); assert.equal(S.mats.staub, m - D.CRAFT.ops.find(o => o.id === 'values').n);
+    const n = Object.keys(G.baseMods(it)).length; rest = snap(); assert.ok(!G.craft(it.id, 'chaos', k).err);
+    const after = G.baseMods(it), neu = Object.keys(after).filter(x => !(x in rest));
+    assert.ok(!(k in after), 'Ersetzen ließ den Bonus stehen'); assert.equal(Object.keys(after).length, n, 'Ersetzen änderte die Zahl');
+    assert.equal(neu.length, 1); for (const [x, v] of Object.entries(rest)) assert.equal(after[x], v, 'Ersetzen traf einen anderen');
+    const j = neu[0]; rest = G.baseMods(it); assert.ok(!G.craft(it.id, 'remove', j).err);
+    assert.ok(!(j in G.baseMods(it)), 'Tilgen traf nicht den angetippten'); assert.equal(Object.keys(G.baseMods(it)).length, n - 1);
+  }
+});
+
+test('Hinzufügen: drei verschiedene Boni zur Wahl, bezahlt beim Würfeln, Angebot übersteht Neuladen, gewählter kommt drauf', () => {
+  for (let rep = 0; rep < 40; rep++) {
+    const S = richCraft(), it = craftable(3, 25); S.bag = [it];
+    while (Object.keys(G.baseMods(it)).length >= D.CRAFT.maxAff.rare) G.craft(it.id, 'remove', Object.keys(G.baseMods(it))[0]);
+    const before = G.baseMods(it), m = S.mats.blutstein, g = S.gold, cost = G.craftGold(it);
+    const r = G.craft(it.id, 'add'); assert.ok(!r.err, r.err); assert.ok(r.offer.length >= 1 && r.offer.length <= 3);
+    assert.equal(S.mats.blutstein, m - D.CRAFT.ops.find(o => o.id === 'add').n, 'nicht beim Würfeln bezahlt'); assert.equal(S.gold, g - cost);
+    assert.deepEqual(G.baseMods(it), before, 'das Angebot hat schon etwas verändert');
+    const ks = r.offer.map(o => o.k), pool = new Set(L.affixPool(it).map(a => a.stat));
+    assert.equal(new Set(ks).size, ks.length, 'doppelter Bonus im Angebot'); for (const k of ks) { assert.ok(pool.has(k), k); assert.ok(!(k in before), 'schon drauf'); }
+    for (const op of D.CRAFT.ops) assert.ok(G.craft(it.id, op.id, Object.keys(before)[0]).err, `${op.id} während eines Angebots`);
+    G.save(); const raw = localStorage.getItem('aschenkrone_v1'); G.load(); const it2 = G.S.bag.find(x => x.id === it.id);
+    assert.deepEqual(it2.offer, r.offer, 'Angebot nach Neuladen anders'); assert.ok(raw.includes('"offer"'));
+    const i = rep % r.offer.length, o = r.offer[i], q = G.craftPick(it2.id, i); assert.ok(!q.err);
+    assert.equal(G.baseMods(it2)[o.k], o.v, 'nicht der gewählte'); assert.equal(it2.tiers[o.k], o.t); assert.ok(!it2.offer);
+    assert.equal(Object.keys(G.baseMods(it2)).length, Object.keys(before).length + 1);
+  }
+});
+
+test('Erheben bietet ebenfalls drei an – das Teil steigt erst bei der Wahl auf, der Splitter ist sofort weg', () => {
+  const S = richCraft(), it = craftable(2, 20); S.bag = [it]; S.mats.kronsplitter = 1;
+  while (Object.keys(G.baseMods(it)).length < D.CRAFT.maxAff.magic) { const r = G.craft(it.id, 'add'); G.craftPick(it.id, 0); assert.ok(!r.err, r.err); }
+  const r = G.craft(it.id, 'add'); assert.ok(!r.err, r.err); assert.equal(S.mats.kronsplitter, 0); assert.equal(it.rarity, 'magic'); assert.ok(r.offer.length >= 1);
+  G.craftPick(it.id, r.offer.length - 1); assert.equal(it.rarity, 'rare'); assert.ok(it.risen); assert.equal(Object.keys(G.baseMods(it)).length, D.CRAFT.maxAff.magic + 1);
 });

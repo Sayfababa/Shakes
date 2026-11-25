@@ -1354,3 +1354,8 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .desc.tightmax .drules p:not(.down), .desc.tightmax .dhead .drec { display: none; }
 .descres > .panel.dgot { flex: 1 1 auto !important; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }   /* lange Beute: nur die Liste rollt, „Weiter" bleibt */
 .ways.tight .way { min-height: 0; } .ways.tighter .waynote { display: none; }   /* Zauber-Wege in der App: erst Kästen enger, dann der Hinweis weg */
+/* Angebot beim Hinzufügen/Erheben (2026-11-25): goldener Rahmen wie fusionierte Boni – hier wird gewählt, nicht gewürfelt */
+.coffer { box-shadow: inset 0 0 0 1px #6b5526, inset 0 0 14px rgba(176,138,62,.18); }
+.coffer h2 { font-family: 'Alegreya SC'; font-size: .82rem; color: var(--gold); margin-bottom: 4px; }
+.coffer .btns { margin-top: 6px; } .coffer .cmsg { margin: 4px 0 0; }
+.spellsv.tight .gradesp { display: none; }   /* Zauber in der App: reicht der Platz nicht, hat die Zauberliste Vorrang (wie auf winzigen Handys) */

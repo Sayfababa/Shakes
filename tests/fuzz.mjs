@@ -104,7 +104,7 @@ const actions = {
   respec: () => { if (Math.random() < 0.05) G.respec(); },
   service: () => { const t = pick(Object.keys(D.SERVICES)); G.doService(t, pick(D.SERVICES[t]).id); },
   forge: () => G.forge(pick(Object.keys(G.S.equip)), pick(Object.keys(D.RUNES)), Math.floor(Math.random() * 16)),
-  craft: () => { const it = pick(G.craftItems()); if (!it) return; const op = pick(D.CRAFT.ops).id; G.craft(it.id, op, pick(Object.keys(it.mods || {}))); },
+  craft: () => { const it = pick(G.craftItems()); if (!it) return; if (it.offer && Math.random() < 0.7) return G.craftPick(it.id, Math.floor(Math.random() * it.offer.length)); const op = pick(D.CRAFT.ops).id; G.craft(it.id, op, pick(Object.keys(it.mods || {}))); },
   bounty: () => G.claimBounty(Math.floor(Math.random() * 3)),
   quest: () => { for (const t of D.GIVERS) if (Q.canComplete(t)) Q.complete(t, Q.current(t).choice ? pick(Q.current(t).choice).id : undefined); },
   wait: () => { clock += Math.floor(Math.random() * 3600e3); G.tickGlut(); },
