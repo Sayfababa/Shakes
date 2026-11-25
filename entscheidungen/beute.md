@@ -171,3 +171,29 @@ Knopf „Wählen“: Tipp hakt an statt ein Fenster zu öffnen; unten „Verkauf
 und die Meldung sagt „3 von 5 verschoben“. Rückfrage beim Verkauf nennt wertvolle Teile beim Namen. Angelegtes ist nie wählbar.
 **Falle, die zugeschlagen hat:** die Aktion hieß zuerst `pick` – die Heldenwahl heißt schon so, das Objekt-Literal überschrieb sie
 still (Browser-Test fing es). Neue `data-action`-Namen vorher mit grep prüfen. Tests: logic, fuzz (sellMany/moveMany), Browser.
+
+### Umschmieden gezielt (2026-11-25)
+Besitzer: „Crafting noch irgendwie langweilig, besteht fast nur aus Fusionieren, Rest viel zu random." Vier von fünf Eingriffen
+würfelten das Ergebnis *nach* dem Klick (GameGene-Joseki „Zufall im Ergebnis abbauen", https://gamegene.app/joseki/reduce-output-randomness).
+Mockup `mockups/umschmieden.png`, gewählt 1+2+3 (Chancen-Anzeige nicht).
+**Gebaut:** `CRAFT.ops[].stat` = wirkt nur auf den angetippten Bonus (Wert würfeln `values`, Ersetzen `chaos`, Tilgen `remove`); ohne
+Antippen gesperrt, der versiegelte nicht antippbar. Ersetzen würfelt aus `craftSwapRoom(it, k)` (was ohne ihn passt, nie er selbst).
+`CRAFT.ops[].pick` = Hinzufügen würfelt ein **Angebot** von 3 verschiedenen Boni (`it.offer = [{k, t, v}]`, bei Erheben `it.offerRise`).
+**Bezahlt wird beim Würfeln**, das Angebot steht am Teil (im Spielstand) bis `craftPick(id, i)` – Neuladen bringt kein neues. Solange es
+steht, sperrt `craftCheck` jeden anderen Eingriff. Erheben (Kronsplitter) bietet genauso drei an; der Splitter ist sofort weg, das Teil
+steigt erst bei der Wahl auf. Kein neues Save-Feld nötig (ein Teil ohne `offer` ist einfach eins ohne Angebot).
+**Gemessen** (`node tests/craftmess.mjs <klasse> 20 1000`, dieselbe Spielweise alt/neu: besten Bonus versiegeln, Platz → hinzufügen,
+sonst den schwächsten ersetzen oder seinen Wert würfeln; Maß = Kampfkraft-Gewinn des Amuletts nach 8/16/32 Material):
+| | alt 16 Mat | neu, alle Preise 2 | neu, gewählte Preise |
+|---|---|---|---|
+| Zauberin selten | Ø 656 | Ø 1912 | Ø 1633 |
+| Assassine selten | Ø 392 | – | Ø 1034 |
+| Barbar selten | Ø 457 | – | Ø 1128 |
+| Zauberin magisch | Ø 669 | Ø 775 | Ø 693 |
+Selbst bei doppeltem Preis (4) blieb Selten ~2× stärker – der Großteil kommt aus der Wahl beim Hinzufügen. **Gewählt: 3 für Wert
+würfeln/Ersetzen/Hinzufügen, 2 für Tilgen/Versiegeln.** Bewusst: gezielt soll sich lohnen (Besitzer-Wunsch); die Bremse gegen „jeder
+hat das perfekte Teil" bleibt Material + Fusion max. 1 + Beute, die mit der Stufe veraltet. Magisch ändert sich kaum (2 Plätze, über
+2 nur mit Kronsplitter). **Offen:** ob 3 auf Dauer zu großzügig ist, zeigt erst Spielen – Stellschraube ist `n` in `CRAFT.ops`.
+**Testfalle:** `values` würfelte früher alle Boni – Tests, die darüber Stufen sammelten (Abgrund-Leiter), sahen jetzt nur noch einen
+Bonus, und war der ein `noDeep`-Bonus, nie Abgrund-Stufen (1 von 6 Läufen rot). Jetzt reihum alle Boni. Tests: logic (drei neue Fälle:
+nur der angetippte; Angebot bezahlt/verschieden/übersteht Neuladen/Wahl; Erheben), ui (`craftoffer`, Neuladen), fuzz nimmt Angebote an.
