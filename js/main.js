@@ -383,7 +383,11 @@ const actions = {
     if (r.err) { forgeSel.msg = `<span class="down">${r.err}</span>`; return render(); }
     const after = G.baseMods(r.it); forgeSel.changed = Object.keys(after).filter(k => after[k] !== before[k]);
     const lost = Object.keys(before).filter(k => !(k in after));
-    forgeSel.msg = `${r.op.name}${lost.length ? ` · getilgt: ${lost.map(k => k === 'dmg' ? 'Schaden' : k).join(', ')}` : ''}`;
+    const nm = k => UI.STAT_NAME(k).replace(/^% /, ''), got = Object.keys(after).filter(k => !(k in before));
+    forgeSel.msg = d.o === 'remove' && lost.length ? `Getilgt: ${lost.map(nm).join(', ')}`
+      : d.o === 'chaos' && lost.length ? `Ersetzt: ${nm(lost[0])} → <b>${got.map(nm).join(', ')}</b>`
+      : d.o === 'values' && forgeSel.stat ? (pc => `${nm(forgeSel.stat)}: +${before[forgeSel.stat]}${pc} → <b>+${after[forgeSel.stat]}${pc}</b>`)(/^% /.test(UI.STAT_NAME(forgeSel.stat)) ? ' %' : '')
+      : r.op.name;
     if (r.offer) { forgeSel.opick = null; forgeSel.msg = ''; return render(); }   // Angebot: erst wählen, dann wirkt es
     if (d.o !== 'values') forgeSel.stat = null; render(); toast(pw); },
   // Angebot aus „Hinzufügen“/„Erheben“: antippen wählt, „nehmen“ setzt den Bonus aufs Teil
