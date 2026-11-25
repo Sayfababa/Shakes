@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup – Umschmieden</title>
+<link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+SC:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  html, body { overflow: auto; height: auto; }
+  .wrap { display: flex; gap: 28px; padding: 24px; align-items: flex-start; width: max-content; }
+  .phone { width: 375px; height: 667px; position: relative; display: flex; flex-direction: column; padding: 8px; gap: 5px;
+    border: 1px solid #2a2118; box-shadow: 0 0 0 6px #0b0907, 0 0 40px #000; background: var(--noise), var(--stonetex), radial-gradient(ellipse at 50% 20%, #241a12, #070504 70%); }
+  .phone > * { flex: none; }
+  .cap { font-family: 'Alegreya SC'; color: var(--gold); text-align: center; margin-bottom: 8px; font-size: 1rem; }
+  .note2 { width: 375px; color: var(--dim); font-size: .85rem; margin-top: 10px; line-height: 1.4; } .note2 b { color: var(--gold); font-weight: 500; }
+  .hudm { display: flex; align-items: center; justify-content: space-between; font-family: 'Grenze Gotisch'; color: var(--gold); font-size: 1.4rem; }
+  .hudm small { font-family: 'Alegreya SC'; font-size: .78rem; color: var(--text); }
+  .tabsm { margin-top: auto; display: flex; gap: 3px; } .tabsm a { flex: 1; text-align: center; padding: 8px 2px; font-family: 'Alegreya SC'; font-size: .68rem; color: var(--dim); border-image: url('../assets/ui/tab.webp') 16 fill / 8px stretch; }
+  .tabsm a.on { color: var(--gold-hi); border-image-source: url('../assets/ui/tab_on.webp'); }
+  .subm { display: flex; gap: 3px; } .subm a { flex: 1; text-align: center; padding: 5px 2px; font-family: 'Alegreya SC'; font-size: max(11px,.7rem); color: var(--dim); border-image: url('../assets/ui/tab.webp') 16 fill / 7px stretch; }
+  .subm a.on { color: var(--gold-hi); border-image-source: url('../assets/ui/tab_on.webp'); }
+
+  /* --- Die Werkbank: zwei Teile, Rinne in der Mitte --- */
+  .fuse { flex: 0 0 auto; display: grid; grid-template-columns: 1fr 26px 1fr; gap: 0; padding: 6px 7px; }
+  .side { display: flex; flex-direction: column; gap: 4px; }
+  .side > h5 { margin: 0; font-family: 'Alegreya SC'; font-size: max(11px,.66rem); letter-spacing: .04em; text-align: center;
+    padding: 2px 0; color: var(--dim); background: #0a0908; box-shadow: inset 0 0 0 1px #241f19; }
+  .side.main > h5 { color: var(--gold-hi); background: #140f09; box-shadow: inset 0 0 0 1px #6e5a30; }
+  .side.food > h5 { color: #c0301e; background: #150a08; box-shadow: inset 0 0 0 1px #5a211a; }
+  /* Kopf: Bild + Name */
+  .ihead { display: flex; gap: 5px; align-items: center; padding: 3px 4px; background: #0a0908; box-shadow: inset 0 0 0 1px #241f19; }
+  .ihead img { width: 34px; height: 34px; object-fit: contain; image-rendering: auto; }
+  .ihead div { min-width: 0; }
+  .ihead b { display: block; font-family: 'Alegreya SC'; font-size: max(11px,.72rem); font-weight: 500; line-height: 1.1;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ihead em { font-style: normal; font-family: 'Alegreya SC'; font-size: max(11px,.6rem); color: var(--dim); }
+  .side.food .ihead { box-shadow: inset 0 0 0 1px #4a1d17; }
+  .side.food .ihead img { opacity: .55; filter: grayscale(.4); }
+  /* Bonus-Zeilen */
+  .mods { display: flex; flex-direction: column; gap: 2px; }
+  .mods .m { display: flex; justify-content: space-between; align-items: center; gap: 4px; min-height: 34px; padding: 5px; font-size: max(11px,.74rem); color: var(--text);
+    background: #0a0908; box-shadow: inset 0 0 0 1px #1e1a15; cursor: pointer; line-height: 1.15; }
+  .mods .m s { text-decoration: none; color: var(--dim); font-family: 'Alegreya SC'; font-size: max(11px,.6rem); }
+  .mods .m.dim { color: var(--dim); }
+  .mods .m.sealed { box-shadow: inset 0 0 0 1px #3a3020; color: var(--dim); cursor: default; }
+  .mods .m.sealed s { color: var(--gold); }
+  .mods .m.pick { background: #16110a; box-shadow: inset 0 0 0 2px var(--gold-hi); color: var(--gold-hi); }
+  .mods .m.pickr { background: #170a08; box-shadow: inset 0 0 0 2px #c0301e; color: #e0a090; }
+  .mods .m.gone { color: #5a4e42; text-decoration: line-through; }
+  .mods .empty { padding: 4px 5px; font-size: max(11px,.72rem); color: var(--dim); font-style: italic;
+    background: #0a0908; box-shadow: inset 0 0 0 1px dashed; outline: 1px dashed #332b22; outline-offset: -1px; }
+  .mods .m.new { background: #14110a; box-shadow: inset 0 0 0 2px var(--gold-hi); color: var(--gold-hi); }
+  /* Rinne mit dem Pfeil */
+  .gut { position: relative; }
+  .gut .ar { position: absolute; left: 50%; transform: translate(-50%,-50%); font-family: 'Grenze Gotisch'; font-size: 1.5rem;
+    color: var(--gold-hi); text-shadow: 0 0 8px rgba(226,192,122,.45); }
+  .gut .bar { position: absolute; left: 50%; top: 8px; bottom: 8px; width: 1px; background: linear-gradient(#241f19, #332b22, #241f19); }
+  /* Platz wählen */
+  .pickbox { padding: 5px 6px; }
+  .pickbox h5 { margin: 0 0 4px; font-family: 'Alegreya SC'; font-size: max(11px,.7rem); color: var(--gold); font-weight: 500; }
+  .cpickm { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .cpickm .cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; position: relative;
+    background: #0a0908; box-shadow: inset 0 0 0 1px #241f19; cursor: pointer; }
+  .cpickm .cell img { width: 80%; height: 80%; object-fit: contain; }
+  .cpickm .cell.on { box-shadow: inset 0 0 0 2px var(--gold-hi); }
+  .cpickm .cell.no { opacity: .3; cursor: default; }
+  .cpickm .cell i { position: absolute; bottom: 1px; right: 2px; font-style: normal; font-family: 'Alegreya SC';
+    font-size: max(11px,.55rem); color: var(--gold); }
+  /* Fußleiste: was passiert, was es kostet */
+  .fdet { flex: 1 1 auto; min-height: 104px; padding: 7px 9px; display: flex; flex-direction: column; gap: 4px; }
+  .fdet h4 { margin: 0; font-family: 'Grenze Gotisch'; font-size: 1.05rem; color: var(--gold-hi); font-weight: 500; }
+  .fdet p { margin: 0; font-size: .84rem; color: var(--text); line-height: 1.25; }
+  .fdet p.cost { color: #c8705f; font-style: italic; }
+  .fdet p.hint { font-family: 'Alegreya SC'; font-size: max(11px,.68rem); color: var(--dim); }
+  .fdet .row { display: flex; gap: 6px; margin-top: auto; }
+  .fdet button { flex: 1; font-size: .82rem; padding: 6px; }
+  .glut { display: flex; align-items: center; gap: 5px; font-family: 'Alegreya SC'; font-size: max(11px,.68rem); color: var(--dim); }
+  .glut .tr { flex: 1; height: 5px; background: #0a0908; box-shadow: inset 0 0 0 1px #241f19; position: relative; }
+  .glut .tr span { position: absolute; inset: 0 auto 0 0; background: linear-gradient(#c09a55, #7a5a22); }
+  .glut .tr b { position: absolute; top: 0; bottom: 0; background: #7d150d; opacity: .8; }
+  .strip { display: flex; gap: 5px; padding: 5px 6px; align-items: center; }
+  .strip .lbl { font-family: 'Alegreya SC'; font-size: max(11px,.62rem); color: var(--dim); }
+  .strip .cell { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
+    background: #0a0908; box-shadow: inset 0 0 0 1px #241f19; }
+  .strip .cell img { width: 82%; height: 82%; object-fit: contain; }
+  .strip .cell.m { box-shadow: inset 0 0 0 2px var(--gold-hi); }
+  .strip .cell.f { box-shadow: inset 0 0 0 2px #c0301e; } .strip .cell.f img { opacity: .55; }
+  .strip .sp { flex: 1; }
+  .r-magic { color: var(--r-magic); } .r-rare { color: var(--r-rare); }
+  .up { font-family: 'Alegreya SC'; font-size: max(11px,.66rem); color: #00c400; }
+</style></head><body><div class="wrap"><div><div class="cap">Heute: Antippen nur fürs Versiegeln, der Rest würfelt</div><div class="phone"><main><div class="col forge craft"><nav class="subtabs"><a class="" data-action="forgemode" data-m="rune">Runen</a><a class="on" data-action="forgemode" data-m="craft">Umschmieden</a><a class="" data-action="forgemode" data-m="fuse">Fusionieren</a></nav>
+    <section class="panel"><div class="cpick"><div class="fslot r-rare on  " data-action="craftpick" data-id="dpv7r787"><img class="iart" src="assets/items/amulet_b.webp" alt="" draggable="false"></div><div class="fslot r-magic   " data-action="craftpick" data-id="96ff2vd5"><img class="iart" src="assets/items/hornhelm.webp" alt="" draggable="false"></div><div class="fslot r-magic   " data-action="craftpick" data-id="htlcvryo"><img class="iart" src="assets/items/amulet_a.webp" alt="" draggable="false"></div><div class="fslot r-magic   " data-action="craftpick" data-id="ng7wlzol"><img class="iart" src="assets/items/mask_b.webp" alt="" draggable="false"></div><div class="fslot r-magic   " data-action="craftpick" data-id="8obiqlvs"><img class="iart" src="assets/items/wand.webp" alt="" draggable="false"></div><div class="fslot r-rare   " data-action="craftpick" data-id="8mg176lr"><img class="iart" src="assets/items/helm.webp" alt="" draggable="false"></div></div></section>
+    <section class="panel grow"><div class="ccard"><div class="cname r-rare">Blutwacht (Amulett)</div>
+      <div class="caffs"><div class="caff    " data-action="craftstat" data-k="dmg"><span>+2 Schaden</span><i class="tier t4">IV</i></div><div class="caff    " data-action="craftstat" data-k="lck"><span>+27 Glück</span><i class="tier t2">II</i></div><div class="caff   on " data-action="craftstat" data-k="dex"><span>+1 Geschick</span><i class="tier t5">V</i></div><div class="caff    " data-action="craftstat" data-k="con"><span>+1 Konstitution</span><i class="tier t5">V</i></div></div>
+      
+      </div></section>
+    <section class="panel"><div class="cops"><button class="cop " data-action="craftop" data-o="seal" title="Ein Bonus bleibt bei allem Folgenden unverändert (einer je Item). (Kultistensiegel)"><img class="matimg" src="assets/forge/siegel.webp" alt=""><b>Versiegeln</b><small><i class="">4/2</i></small></button><button class="cop " data-action="craftop" data-o="chaos" title="Alle unversiegelten Boni werden neu gewürfelt. (Höllenasche)"><img class="matimg" src="assets/forge/asche.webp" alt=""><b>Neu würfeln</b><small><i class="">7/2</i></small></button><button class="cop " data-action="craftop" data-o="values" title="Gleiche Boni, neue Werte und Stufen. (Knochenstaub)"><img class="matimg" src="assets/forge/staub.webp" alt=""><b>Werte würfeln</b><small><i class="">9/2</i></small></button><button class="cop " data-action="craftop" data-o="add" disabled="" title="Ein neuer Bonus, wenn Platz ist. (Blutstein)"><img class="matimg" src="assets/forge/blutstein.webp" alt=""><b>Hinzufügen</b><small><i class="">6/2</i></small></button><button class="cop " data-action="craftop" data-o="remove" title="Ein zufälliger unversiegelter Bonus verschwindet. (Grableinen)"><img class="matimg" src="assets/forge/leinen.webp" alt=""><b>Tilgen</b><small><i class="">5/2</i></small></button></div>
+      <p class="small cmsg">Je Eingriff 529 Gold · <b>Geschick</b> gewählt · <span class="down">Kein Platz für weitere Boni.</span></p></section></div></main></div></div><div><div class="cap">Neu (1+3): Bonus antippen – Wert würfeln, Ersetzen, Tilgen nur auf ihn</div><div class="phone"><main><div class="col forge craft"><nav class="subtabs"><a class="" data-action="forgemode" data-m="rune">Runen</a><a class="on" data-action="forgemode" data-m="craft">Umschmieden</a><a class="" data-action="forgemode" data-m="fuse">Fusionieren</a></nav>
+    <section class="panel"><div class="cpick"><div class="fslot r-rare on  " data-action="craftpick" data-id="dpv7r787"><img class="iart" src="assets/items/amulet_b.webp" alt="" draggable="false"></div><div class="fslot r-magic   " data-action="craftpick" data-id="96ff2vd5"><img class="iart" src="assets/items/hornhelm.webp" alt="" draggable="false"></div><div class="fslot r-magic   " data-action="craftpick" data-id="htlcvryo"><img class="iart" src="assets/items/amulet_a.webp" alt="" draggable="false"></div><div class="fslot r-magic   " data-action="craftpick" data-id="ng7wlzol"><img class="iart" src="assets/items/mask_b.webp" alt="" draggable="false"></div><div class="fslot r-magic   " data-action="craftpick" data-id="8obiqlvs"><img class="iart" src="assets/items/wand.webp" alt="" draggable="false"></div><div class="fslot r-rare   " data-action="craftpick" data-id="8mg176lr"><img class="iart" src="assets/items/helm.webp" alt="" draggable="false"></div></div></section>
+    <section class="panel grow"><div class="ccard"><div class="cname r-rare">Blutwacht (Amulett)</div>
+      <div class="caffs"><div class="caff    " data-action="craftstat" data-k="dmg"><span>+2 Schaden</span><i class="tier t4">IV</i></div><div class="caff    " data-action="craftstat" data-k="lck"><span>+27 Glück</span><i class="tier t2">II</i></div><div class="caff   on " data-action="craftstat" data-k="dex"><span>+1 Geschick</span><i class="tier t5">V</i></div><div class="caff    " data-action="craftstat" data-k="con"><span>+1 Konstitution</span><i class="tier t5">V</i></div></div>
+      
+      </div></section>
+    <section class="panel"><div class="cops"><button class="cop"><img class="matimg" src="assets/forge/siegel.webp" alt=""><b>Versiegeln</b><small><i>4/2</i></small></button><button class="cop"><img class="matimg" src="assets/forge/staub.webp" alt=""><b>Wert würfeln</b><small><i>9/?</i></small></button><button class="cop"><img class="matimg" src="assets/forge/asche.webp" alt=""><b>Ersetzen</b><small><i>7/?</i></small></button><button class="cop" disabled=""><img class="matimg" src="assets/forge/blutstein.webp" alt=""><b>Hinzufügen</b><small><i>6/?</i></small></button><button class="cop"><img class="matimg" src="assets/forge/leinen.webp" alt=""><b>Tilgen</b><small><i>5/?</i></small></button></div>
+      <p class="small cmsg"><b>Geschick</b> angetippt · <b>Wert würfeln</b>: neuer Wert nur für ihn · <b>Ersetzen</b>: an seiner Stelle ein anderer Bonus · <b>Tilgen</b>: genau er verschwindet. Ohne Antippen gesperrt. <span class="dim">„?“ = Preis nach Messung</span></p></section></div></main></div></div><div><div class="cap">Neu (2): Hinzufügen bietet drei an, du wählst</div><div class="phone"><main><div class="col forge craft"><nav class="subtabs"><a class="" data-action="forgemode" data-m="rune">Runen</a><a class="on" data-action="forgemode" data-m="craft">Umschmieden</a><a class="" data-action="forgemode" data-m="fuse">Fusionieren</a></nav>
+    <section class="panel"><div class="cpick"><div class="fslot r-rare on  " data-action="craftpick" data-id="dpv7r787"><img class="iart" src="assets/items/amulet_b.webp" alt="" draggable="false"></div><div class="fslot r-magic   " data-action="craftpick" data-id="96ff2vd5"><img class="iart" src="assets/items/hornhelm.webp" alt="" draggable="false"></div><div class="fslot r-magic   " data-action="craftpick" data-id="htlcvryo"><img class="iart" src="assets/items/amulet_a.webp" alt="" draggable="false"></div><div class="fslot r-magic   " data-action="craftpick" data-id="ng7wlzol"><img class="iart" src="assets/items/mask_b.webp" alt="" draggable="false"></div><div class="fslot r-magic   " data-action="craftpick" data-id="8obiqlvs"><img class="iart" src="assets/items/wand.webp" alt="" draggable="false"></div><div class="fslot r-rare   " data-action="craftpick" data-id="8mg176lr"><img class="iart" src="assets/items/helm.webp" alt="" draggable="false"></div></div></section>
+    <section class="panel grow"><div class="ccard"><div class="cname r-rare">Blutwacht (Amulett)</div>
+      <div class="caffs"><div class="caff" data-action="craftstat" data-k="dmg"><span>+2 Schaden</span><i class="tier t4">IV</i></div><div class="caff" data-action="craftstat" data-k="lck"><span>+27 Glück</span><i class="tier t2">II</i></div><div class="caff" data-action="craftstat" data-k="con"><span>+1 Konstitution</span><i class="tier t5">V</i></div></div>
+      
+      </div></section>
+    <section class="panel"><div style="font-family:'Alegreya SC';font-size:.8rem;color:var(--gold);margin-bottom:4px">Blutstein gewirkt – wähle einen Bonus</div>
+      <div class="caffs"><div class="caff "><span>+11 % Feuer-Resi</span><i class="tier t3">III</i></div><div class="caff on"><span>+14 Konstitution</span><i class="tier t2">II</i></div><div class="caff "><span>+6 % Ausweichen</span><i class="tier t4">IV</i></div></div>
+      <div class="btns" style="margin-top:6px"><button class="red">Konstitution nehmen</button></div>
+      <p class="small dim cmsg" style="margin-top:4px">Schon bezahlt · bleibt am Teil, bis du wählst, auch nach Neuladen. Erheben (Kronsplitter) bietet genauso drei an.</p></section></div></main></div></div></div></body></html>
