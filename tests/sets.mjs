@@ -36,7 +36,7 @@ const rate = list => { const A = G.stats(); let w = 0; list.forEach((m, i) => { 
 const f = x => ((x >= 0 ? '+' : '') + (x * 100).toFixed(1)).padStart(8);
 
 // Mehrere Ausrüstungswürfe je Klasse und Stufe (Falle: ein einzelner Wurf entscheidet alles) – geprüft wird der Mittelwert
-const R = +(process.argv.find(a => a.startsWith('--rolls='))?.slice(8)) || 4, got = {};
+const R = +(process.argv.find(a => a.startsWith('--rolls='))?.slice(8)) || 8, got = {};   // 4 reichte nicht: 27 neue Item-Bilder verschoben den Zufall, Tracht 3 Teile 19,9 → 23,2 (Ø 16 Würfe: 14,7 / 18,3, beide im Rahmen)
 for (const cls of only) for (const L of LV) for (let g = 0; g < R; g++) {
   seed = 0x5eed + g * 104729;   // je Wurf eigene Ausrüstung (rate() setzt den Keim sonst immer zurück)
   const S = hero(cls, L);

@@ -100,10 +100,12 @@ export function wpnDmg(it, heroLvl) {
 }
 
 // Bild-Variante: gewöhnliche meist das Grundbild, seltene/legendäre meist eine der prächtigeren Varianten
+// Nur Optik: würfelt mit Math.random, nicht mit dem Spiel-Zufall – sonst verschiebt jedes neue Bild die Würfe aller Werte
+// (2026-11-25: 27 neue Varianten kippten tests/sets.mjs bei festem Keim, ohne dass sich am Spiel etwas geändert hatte).
 function artOf(base, rar) {
   const v = base.vars || []; if (!v.length) return base.art;
   const fancy = ['rare', 'legendary', 'set'].includes(rar.id) ? 0.8 : rar.id === 'magic' ? 0.5 : 0.25;
-  return rand() < fancy ? pick(v) : base.art;
+  return Math.random() < fancy ? v[Math.floor(Math.random() * v.length)] : base.art;
 }
 
 // Grab-Set-Teil: feste Basis, fester Name, zwei feste Boni. Fällt nur beim Boss seiner Krypta (game.js).

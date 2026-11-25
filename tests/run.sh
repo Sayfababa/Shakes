@@ -19,11 +19,11 @@ lohn() { node tests/lohn.mjs all 30 --check > "$T/lohn.full"; rc=$?; grep -E 'âš
 bot() { for c in barbarian assassin sorceress; do node tests/bot.mjs $c 3 1 | grep -E "KÃ¤mpfe" | sed "s/^/$c: /" & done; wait; }
 
 if [ "$1" = "quick" ]; then
-  set -- logic ui trader prep
+  set -- logic ui trader prep forge
 elif [ -n "$1" ]; then
   :  # einzelne Teile, z. B. sh tests/run.sh logic ui
 else
-  set -- logic bot fuzz ways potions descent lohn acts sets uniques kern tree caps ui trader prep uifuzz
+  set -- logic bot fuzz ways potions descent lohn acts sets uniques kern tree caps ui trader prep forge uifuzz
 fi
 for t in "$@"; do
   case $t in
@@ -35,6 +35,7 @@ for t in "$@"; do
     ui)     node tests/ui.cjs ;;
     trader) node tests/trader.cjs ;;
     prep) node tests/prep.cjs ;;
+    forge) node tests/forge.cjs 100 ;;
     descent) desc ;;
     lohn) lohn ;;
     acts) acts ;;
