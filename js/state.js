@@ -565,8 +565,12 @@ export function craftCheck(it, opId, stat) {
   if ((S.mats[need.mat] || 0) < need.n) return rise ? `Es braucht ${MATS[CRAFT.raise.mat]} aus dem Abgrund.` : 'Zu wenig Material.';
   if (S.gold < craftGold(it)) return 'Zu wenig Gold.';
   const base = baseMods(it), keys = Object.keys(base), free = keys.filter(k => k !== it.sealed);
+  if (it.offer) return 'Erst einen Bonus aus dem Angebot wählen.';
   if (opId === 'seal') { if (it.sealed) return 'Schon ein Bonus versiegelt.'; if (!stat || !base[stat]) return 'Bonus antippen, der bleiben soll.'; }
-  if ((opId === 'chaos' || opId === 'values' || opId === 'remove') && !free.length) return 'Kein unversiegelter Bonus.';
+  if (op.stat && !free.length) return 'Kein unversiegelter Bonus.';
+  if (op.stat && (!stat || !base[stat])) return 'Bonus antippen.';
+  if (op.stat && stat === it.sealed) return 'Versiegelt – bleibt, wie er ist.';
+  if (opId === 'chaos' && !craftSwapRoom(it, stat).length) return 'Für diesen Bonus gibt es keinen anderen.';
   if (opId === 'add' && keys.length >= CRAFT.maxAff[it.rarity] && !rise)
     return it.risen ? 'Dieses Teil wurde schon erhoben.' : 'Kein Platz für weitere Boni.';
   if (opId === 'add' && !roomAny(it, keys, rise || it.rarity).length) return 'Kein passender Bonus mehr frei – jede Art steht schon drauf.';
@@ -581,18 +585,22 @@ export function craft(id, opId, stat) {
   const roll1 = k => { const a = AFFIXES.find(x => x.stat === k), T = rollTier(it.lvl, a.noDeep ? 0 : it.deep || 0); tiers[k] = T.t; base[k] = affixValue(AFFIXES.find(a => a.stat === k), T); };
   // Ein neuer Bonus kommt bevorzugt auf die freie Seite (affixRoom, wie bei der Beute); ist die voll, aber das Teil hat Platz, irgendwohin (roomAny)
   const add1 = (rar = it.rarity) => { const side = affixRoom(it, Object.keys(base), rar), room = side.length ? side : roomAny(it, Object.keys(base), rar); if (room.length) roll1(pickAffix(room).stat); };
-  const free = Object.keys(base).filter(k => k !== it.sealed);
   if (opId === 'seal') it.sealed = stat;
-  else if (opId === 'chaos') { const n = free.length; for (const k of free) { delete base[k]; delete tiers[k]; }
-    for (let i = 0; i < n; i++) add1(); }
-  else if (opId === 'values') for (const k of free) roll1(k);
-  else if (opId === 'add') add1(rise || it.rarity);
-  else if (opId === 'remove') { const k = free[Math.floor(rand() * free.length)]; delete base[k]; delete tiers[k]; }
+  else if (opId === 'values') roll1(stat);
+  else if (opId === 'chaos') { const room = craftSwapRoom(it, stat); delete base[stat]; delete tiers[stat]; roll1(pickAffix(room).stat); }
+  else if (opId === 'remove') { delete base[stat]; delete tiers[stat]; }
+  else if (opId === 'add') {   // Angebot: verschiedene Boni, jeder mit eigener Stufe und eigenem Wert; bezahlt wird jetzt
+    const side = affixRoom(it, Object.keys(base), rise || it.rarity); let room = side.length ? side : roomAny(it, Object.keys(base), rise || it.rarity);
+    const offer = []; while (offer.length < (op.pick || 1) && room.length) { const a = pickAffix(room); room = room.filter(x => x !== a && (x.group || x.stat) !== (a.group || a.stat));
+      const T = rollTier(it.lvl, a.noDeep ? 0 : it.deep || 0); offer.push({ k: a.stat, t: T.t, v: affixValue(a, T) }); }
+    it.offer = offer; if (rise) it.offerRise = rise;
+    S.mats[need.mat] -= need.n; S.gold -= gold; return { it, op, offer };
+  }
   it.tiers = tiers; setBase(it, base);
   // Neu gewuerfelt heisst: nicht mehr fusioniert. Bei `values`/`chaos` wuerfelt roll1() auch die
   // STUFE neu - und die Stufe ist genau das, was bei der Fusion mitwandert; die Markierung waere
   // danach eine Luege. Deshalb fallen alle angefassten (`free`) Boni aus der Liste.
-  if (opId === 'values' || opId === 'chaos') it.fmods = fusedMods(it).filter(k => !free.includes(k));
+  if (opId === 'values' || opId === 'chaos') it.fmods = fusedMods(it).filter(k => k !== stat);
   if (opId !== 'seal') keepFused(it);
   // Der Aufstieg ändert nur die Zahl der Boni und die Farbe – dmg/armor des Grundgegenstands bleiben,
   // sonst bekäme man einen seltenen Grundwert geschenkt (gleiche Regel wie beim Fusionieren).
@@ -601,6 +609,22 @@ export function craft(id, opId, stat) {
   renameMagic(it); it.value = itemValue(it);
   return { it, op, rise };
 }
+
+// Ersetzen: was darf an die Stelle des angetippten Bonus? Alles, was ohne ihn passt – nur nicht er selbst.
+export function craftSwapRoom(it, k) {
+  const keys = Object.keys(baseMods(it)).filter(x => x !== k), side = affixRoom(it, keys);
+  return (side.length ? side : roomAny(it, keys)).filter(a => a.stat !== k);
+}
+// Angebot annehmen: der gewählte Bonus kommt drauf (bei Erheben steigt das Teil jetzt auf). Bezahlt war schon.
+export function craftPick(id, i) {
+  const it = findAny(id), o = it?.offer?.[i]; if (!o) return { err: 'Kein Angebot.' };
+  const base = baseMods(it); base[o.k] = o.v; it.tiers = { ...(it.tiers || {}), [o.k]: o.t }; setBase(it, base);
+  if (it.offerRise) { it.rarity = it.offerRise; it.risen = true; }
+  delete it.offer; delete it.offerRise; keepFused(it); renameMagic(it); it.value = itemValue(it);
+  return { it, k: o.k, rise: it.risen && it.rarity };
+}
+// Wie sähe das Teil mit Angebot i aus? (Vergleich, Messung) – ändert nichts
+export function offerPreview(it, i) { const c = structuredClone(it), o = c.offer[i]; const b = baseMods(c); b[o.k] = o.v; setBase(c, b); delete c.offer; return c; }
 
 // --- Fusionieren: ein Bonus wandert von einem gleichartigen Teil herüber, der Spender zerfällt ---
 // Der bestimmte Gegenpol zum Umschmieden: hier würfelt nichts, du wählst. Gebremst wird das über

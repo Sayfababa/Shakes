@@ -249,7 +249,7 @@ export function viewStats() {
 // Zauber: wirken im Kampf von selbst
 export function viewSpells() {
   const st = stats();
-  return `<div class="col"><section class="panel"><h2>Zauber <span class="h2r">Zauberkraft ×${st.amp.toFixed(2).replace('.', ',')}${st.haste ? ` · Tempo +${Math.round(st.haste * 100)} %` : ''}</span><button class="tiny" data-action="go" data-v="hero">Zurück</button></h2>
+  return `<div class="col spellsv"><section class="panel"><h2>Zauber <span class="h2r">Zauberkraft ×${st.amp.toFixed(2).replace('.', ',')}${st.haste ? ` · Tempo +${Math.round(st.haste * 100)} %` : ''}</span><button class="tiny" data-action="go" data-v="hero">Zurück</button></h2>
     <p class="small">Wirken von selbst und nutzen <b>alle deine Werte</b> wie ein Hieb. Stärker durch <b>Intelligenz</b>, schneller durch <b>Zaubertempo</b>.</p>${st.offWeapon ? '<p class="small down">Du trägst eine fremde Waffe – Zauber geschwächt.</p>' : ''}</section>
     ${SPELLS[S.cls].map(sp => { const on = S.lvl >= sp.lvl, cur = st.spells.find(x => x.id === sp.id), bo = Math.round(((st.spells.find(x => x.id === sp.id)?.boost || 1) / (1 + (cur?.m?.mult || 0)) - 1) * 100);
       const pend = on && waysPending(sp.id), ev = cur?.every || sp.every;
@@ -618,14 +618,19 @@ function viewCraft(sel) {
   // heißt dann anders und zeigt das andere Material, sonst verspricht er etwas, das er nicht tut.
   const ops = CRAFT.ops.map(op => { const err = it ? craftCheck(it, op.id, sel.stat) : 'Kein Item';
     const rise = it ? craftRaises(it, op.id) : null, need = it ? craftMat(it, op.id) : op;
-    const nm = rise ? 'Erheben' : op.name, tip = rise ? `Ein gewürfelter Bonus – und das Teil steigt zu ${RARITIES.find(r => r.id === rise).name.toLowerCase()} auf.` : op.text;
+    const nm = rise ? 'Erheben' : op.name, tip = rise ? `Drei Boni zur Wahl – und das Teil steigt zu ${RARITIES.find(r => r.id === rise).name.toLowerCase()} auf.` : op.text;
     return `<button class="cop ${rise ? 'rise' : ''}" data-action="craftop" data-o="${op.id}" ${err ? 'disabled' : ''} title="${tip} (${MATS[need.mat]})">${matImg(need.mat)}<b>${nm}</b><small><i class="${(S.mats[need.mat] || 0) < need.n ? 'down' : ''}">${S.mats[need.mat] || 0}/${need.n}</i></small></button>`; }).join('');
   const why = it && CRAFT.ops.map(op => craftCheck(it, op.id, sel.stat)).find(e => e && !/Material|Bonus antippen/.test(e));
+  // Angebot (Hinzufügen/Erheben): steht dort, wo sonst die Knöpfe sind – bezahlt ist schon, andere Eingriffe warten
+  const offer = it?.offer ? `<section class="panel coffer"><h2>${MATS[it.offerRise ? CRAFT.raise.mat : 'blutstein']} gewirkt – wähle einen Bonus</h2>
+      <div class="caffs">${it.offer.map((o, i) => `<div class="caff ${sel.opick === i ? 'on' : ''}" data-action="offersel" data-i="${i}"><span>+${o.v} ${STAT_NAME(o.k)}</span>${tierTag(o.t)}</div>`).join('')}</div>
+      <div class="btns"><button class="red" data-action="offertake" ${sel.opick == null ? 'disabled' : ''}>${sel.opick == null ? 'Bonus antippen' : 'Nehmen'}</button></div>
+      <p class="small dim cmsg">Schon bezahlt · bleibt am Teil, bis du wählst${it.offerRise ? ` · danach ist es ${RARITIES.find(r => r.id === it.offerRise).name.toLowerCase()}` : ''}.</p></section>` : '';
   return `<div class="col forge craft">${forgeTabs(sel)}
     <section class="panel"><div class="cpick">${list.map(x => `<div class="fslot ${rarCls(x)} ${x.id === sel.item ? 'on' : ''} ${x.crafted ? 'full' : ''} ${Object.values(S.equip).includes(x) ? 'eq' : ''}" data-action="craftpick" data-id="${x.id}">${itemArt(x)}${hitDots(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`).join('') || '<span class="dim small">Nichts zum Umschmieden. Magische Items fallen bei Monstern und Händlern.</span>'}</div></section>
     <section class="panel grow">${card}</section>
-    <section class="panel"><div class="cops">${ops}</div>
-      <p class="small cmsg">${sel.msg || (it ? `Je Eingriff ${craftGold(it)} Gold · ${sel.stat ? `<b>${STAT_NAME(sel.stat)}</b> gewählt` : 'zum Versiegeln einen Bonus antippen'}${why ? ` · <span class="down">${why}</span>` : ''}${craftHint(it)}` : 'Material bestimmt den Eingriff, Schmiedeglut wie oft.')}</p></section></div>`;
+    ${offer || `<section class="panel"><div class="cops">${ops}</div>
+      <p class="small cmsg">${sel.msg || (it ? `Je Eingriff ${craftGold(it)} Gold · ${sel.stat ? `<b>${STAT_NAME(sel.stat).replace(/^% /, '')}</b> angetippt – Wert würfeln, Ersetzen und Tilgen wirken nur auf ihn` : 'Bonus antippen: Versiegeln, Wert würfeln, Ersetzen und Tilgen wirken auf ihn'}${why ? ` · <span class="down">${why}</span>` : ''}${craftHint(it)}` : 'Material bestimmt den Eingriff.')}</p></section>`}</div>`;
 }
 
 // --- Fusionieren: zwei gleichartige Teile, ein Bonus wandert, das Futter zerfällt ---
@@ -639,7 +644,7 @@ function craftHint(it) {
   if (!full || !up) return '';
   const nm = RARITIES.find(r => r.id === up).name.toLowerCase();
   return (S.mats[CRAFT.raise.mat] || 0) >= CRAFT.raise.n
-    ? `<br><span class="gold">Erheben macht es ${nm}: ein gewürfelter Bonus für einen ${MATS[CRAFT.raise.mat]}.</span>`
+    ? `<br><span class="gold">Erheben macht es ${nm}: drei Boni zur Wahl für einen ${MATS[CRAFT.raise.mat]}.</span>`
     // Die rote Zeile darüber nennt den Splitter schon – hier steht nur noch der andere Weg.
     : `<br>Sonst führt nur das <b>Fusionieren</b> darüber: ein zweites Teil gleicher Form und Seltenheit.`;
 }

@@ -56,11 +56,12 @@ function render() {
 
 // Vorbereitung: Gürtel als Liste; reicht die Höhe nicht (kleine Handys, iOS-App), als Reihe nebeneinander
 function fitPrep() {
-  const pr = document.querySelector('.prep, .ways, .pit, .pitshopv, .acts, .actv, .wander, .exped, .expev, .expresv, .desc, .descv, .descres, .craft, .crypts'), m = pr?.parentElement; if (!pr) return;
+  const pr = document.querySelector('.prep, .ways, .spellsv, .pit, .pitshopv, .acts, .actv, .wander, .exped, .expev, .expresv, .desc, .descv, .descres, .craft, .crypts'), m = pr?.parentElement; if (!pr) return;
   pr.classList.remove('tight', 'tighter', 'tightest', 'tightmax');
   // zu hoch – oder (Umschmieden) Boni im Kasten abgeschnitten
   const low = () => pr.lastElementChild.getBoundingClientRect().bottom > m.getBoundingClientRect().bottom + 1
-    || [...pr.querySelectorAll('.caff')].some(e => e.getBoundingClientRect().bottom > e.closest('.panel').getBoundingClientRect().bottom - 2);
+    || [...pr.querySelectorAll('.caff')].some(e => e.getBoundingClientRect().bottom > e.closest('.panel').getBoundingClientRect().bottom - 2)
+    || [...pr.querySelectorAll('.gradesp')].some(e => e.scrollHeight > e.clientHeight + 1);   // Zauber: Kampfbewertung schrumpft, ihr Inhalt läuft aus
   if (!low()) return;
   pr.classList.add('tight');
   // Ein Schritt reicht nicht immer: die Panels der Vorbereitung sind `flex: none`, sie schrumpfen
@@ -370,7 +371,7 @@ const actions = {
     forgeSel.msg = `${r.food.name} zerfiel · der Bonus sitzt jetzt in <b class="gold">${r.it.name}</b>`
       + (r.replaced ? ' · ein alter Bonus wich' : '') + (r.promote ? ' · <b class="gold">aufgestiegen</b>' : '');
     render(); toast(pw); },
-  craftpick: d => { forgeSel.item = d.id; forgeSel.stat = null; forgeSel.msg = ''; forgeSel.changed = null; render(); },
+  craftpick: d => { forgeSel.item = d.id; forgeSel.stat = null; forgeSel.opick = null; forgeSel.msg = ''; forgeSel.changed = null; render(); },
   craftstat: d => { forgeSel.stat = forgeSel.stat === d.k ? null : d.k; forgeSel.msg = ''; render(); },
   craftop: d => { const it = G.craftItems().find(x => x.id === forgeSel.item); const before = it ? { ...G.baseMods(it) } : {}, pw = G.power();
     const r = G.craft(forgeSel.item, d.o, forgeSel.stat);
@@ -378,7 +379,13 @@ const actions = {
     const after = G.baseMods(r.it); forgeSel.changed = Object.keys(after).filter(k => after[k] !== before[k]);
     const lost = Object.keys(before).filter(k => !(k in after));
     forgeSel.msg = `${r.op.name}${lost.length ? ` · getilgt: ${lost.map(k => k === 'dmg' ? 'Schaden' : k).join(', ')}` : ''}`;
-    if (d.o === 'seal') forgeSel.stat = null; render(); toast(pw); },
+    if (r.offer) { forgeSel.opick = null; forgeSel.msg = ''; return render(); }   // Angebot: erst wählen, dann wirkt es
+    if (d.o !== 'values') forgeSel.stat = null; render(); toast(pw); },
+  // Angebot aus „Hinzufügen“/„Erheben“: antippen wählt, „nehmen“ setzt den Bonus aufs Teil
+  offersel: d => { forgeSel.opick = +d.i; render(); },
+  offertake: () => { const pw = G.power(), r = G.craftPick(forgeSel.item, forgeSel.opick);
+    if (r.err) { forgeSel.msg = `<span class="down">${r.err}</span>`; return render(); }
+    forgeSel.changed = [r.k]; forgeSel.opick = null; forgeSel.msg = r.rise ? 'Erhoben' : 'Hinzugefügt'; render(); toast(pw); },
   forgeitem: d => { const S = G.S, it = findItem(d.id); if (!it) return; hideTip(); stopForge(); forgeRes = null;
     const slot = Object.entries(S.equip).find(([, x]) => x === it)?.[0];
     if (G.craftItems().includes(it)) Object.assign(forgeSel, { mode: 'craft', item: it.id, stat: null, msg: '', changed: null }); else Object.assign(forgeSel, { mode: 'rune' });

@@ -276,10 +276,13 @@ export const CRAFT = {
   gold: [10, 5], goldValue: 0.6,                                   // Gold = a + Gegenstandsstufe × b + Wert × goldValue
   ops: [
     { id: 'seal', name: 'Versiegeln', mat: 'siegel', n: 2, text: 'Ein Bonus bleibt bei allem Folgenden unverändert (einer je Item).' },
-    { id: 'chaos', name: 'Neu würfeln', mat: 'asche', n: 2, text: 'Alle unversiegelten Boni werden neu gewürfelt.' },
-    { id: 'values', name: 'Werte würfeln', mat: 'staub', n: 2, text: 'Gleiche Boni, neue Werte und Stufen.' },
-    { id: 'add', name: 'Hinzufügen', mat: 'blutstein', n: 2, text: 'Ein neuer Bonus, wenn Platz ist.' },
-    { id: 'remove', name: 'Tilgen', mat: 'leinen', n: 2, text: 'Ein zufälliger unversiegelter Bonus verschwindet.' },
+    // Gezielt statt gewürfelt (Besitzer 2026-11-25, Mockup mockups/umschmieden.png): `stat` = wirkt nur auf den angetippten
+    // Bonus; `pick` = Hinzufügen würfelt so viele Boni als Angebot, der Spieler wählt einen (bezahlt beim Würfeln, das
+    // Angebot bleibt am Teil bis zur Wahl – Neuladen bringt kein neues). Preise nach tests/craftmess.mjs.
+    { id: 'values', name: 'Wert würfeln', mat: 'staub', n: 3, stat: true, text: 'Der angetippte Bonus bekommt neuen Wert und neue Stufe.' },
+    { id: 'chaos', name: 'Ersetzen', mat: 'asche', n: 3, stat: true, text: 'Der angetippte Bonus weicht einem anderen, gewürfelten.' },
+    { id: 'add', name: 'Hinzufügen', mat: 'blutstein', n: 3, pick: 3, text: 'Drei Boni zur Wahl – einer kommt drauf.' },
+    { id: 'remove', name: 'Tilgen', mat: 'leinen', n: 2, stat: true, text: 'Der angetippte Bonus verschwindet.' },
   ],
   // Erheben: „Hinzufügen" ist bei einem vollen Teil sonst tot. Mit einem Kronsplitter geht es doch –
   // das Teil bekommt einen gewürfelten Bonus und steigt eine Seltenheit auf. Der Preis ist bewusst
