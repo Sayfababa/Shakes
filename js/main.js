@@ -48,8 +48,12 @@ function render() {
   };
   if (view === 'fight' && !F) view = 'hero';
   tutCheck();
+  // Seitlich gewischte Leisten (Umschmieden) behalten ihre Lage über das Neuzeichnen – sonst springt die Wahl aus dem Bild
+  const keepX = view === 'forge' ? [...document.querySelectorAll('.umv .cpick, .fusev .cpick')].map(e => e.scrollLeft) : null;
   app.innerHTML = UI.hud(view === 'fight' ? '' : UI.tutorial(S.tut)) + `<main>${(views[view] || views.hero)()}</main>` + UI.navBar(view === 'fight' ? F.back : view);
   const log = document.getElementById('log'); if (log) log.scrollTop = log.scrollHeight;
+  if (keepX) document.querySelectorAll('.umv .cpick, .fusev .cpick').forEach((e, i) => { e.scrollLeft = keepX[i] || 0; });
+  document.querySelectorAll('.umv .cpick .fslot.on, .fusev .cpick .fslot.on').forEach(e => e.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
   fitPrep();
   G.save();
 }
@@ -58,6 +62,7 @@ function render() {
 function fitPrep() {
   const pr = document.querySelector('.prep, .ways, .spellsv, .pit, .pitshopv, .acts, .actv, .wander, .exped, .expev, .expresv, .desc, .descv, .descres, .craft, .crypts'), m = pr?.parentElement; if (!pr) return;
   pr.classList.remove('tight', 'tighter', 'tightest', 'tightmax');
+  if (pr.matches('.umv, .fusev')) return;   // Umschmieden hat ein festes Raster – kein Sparschritt, sonst springen die Größen
   // zu hoch – oder (Umschmieden) Boni im Kasten abgeschnitten
   const low = () => pr.lastElementChild.getBoundingClientRect().bottom > m.getBoundingClientRect().bottom + 1
     || [...pr.querySelectorAll('.caff')].some(e => e.getBoundingClientRect().bottom > e.closest('.panel').getBoundingClientRect().bottom - 2)

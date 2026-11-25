@@ -27,13 +27,16 @@ const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height:
       // Namen und Überstand mitgeben – sonst sucht man beim nächsten Fehler lange
       const over = await p.evaluate(() => { const m = document.querySelector('main').getBoundingClientRect();
         return [...document.querySelectorAll('main *')].filter(e => { const r = e.getBoundingClientRect();
-          return (r.bottom > m.bottom + 1 || r.right > m.right + 1) && !e.closest('.vscroll, .wlist, .log, .note p, .fnum, .goldpop, .proj, .burst, .spellname'); })
+          return (r.bottom > m.bottom + 1 || r.right > m.right + 1) && !e.closest('.vscroll, .wlist, .umv .cpick, .fusev .cpick, .log, .note p, .fnum, .goldpop, .proj, .burst, .spellname'); })
           .map(e => { const r = e.getBoundingClientRect(); return (e.className || e.tagName) + ' +' + Math.round(Math.max(r.bottom - m.bottom, r.right - m.right)); }); });
       if (over.length) { failures++; console.log(`FEHLER ${tag} ${n}: ${over.length} Elemente ragen heraus`, over.slice(0, 3)); }
-      // Item-Felder dürfen nie über ihr Panel hinausragen (Laden, Beutel, Figur, Schmiede)
+      // Item-Felder dürfen nie über ihr Panel hinausragen (Laden, Beutel, Figur, Schmiede); seitlich wischbare Leisten der Schmiede ausgenommen
       const spill = await p.evaluate(() => [...document.querySelectorAll('.panel .sitem, .panel .cellitem, .panel .eslot, .panel .fslot, .panel .mtile')].filter(e => {
-        if (e.closest('.vscroll')) return false; const r = e.getBoundingClientRect(), q = e.closest('.panel').getBoundingClientRect(); return r.bottom > q.bottom + 1 || r.right > q.right + 1 || r.left < q.left - 1 || r.top < q.top - 1; }).length);
+        if (e.closest('.vscroll, .umv .cpick, .fusev .cpick')) return false; const r = e.getBoundingClientRect(), q = e.closest('.panel').getBoundingClientRect(); return r.bottom > q.bottom + 1 || r.right > q.right + 1 || r.left < q.left - 1 || r.top < q.top - 1; }).length);
       if (spill) { failures++; console.log(`FEHLER ${tag} ${n}: ${spill} Item-Felder ragen über ihr Panel`); }
+      // Feste Zeilen der Schmiede (Umschmieden/Fusion, 2026-11-25) dürfen Text nie verschlucken
+      const cutTxt = await p.evaluate(() => [...document.querySelectorAll('.fbot .cmsg, .cfoot span, .otile small, .otake')].filter(e => e.scrollHeight > e.clientHeight + 3 || e.scrollWidth > e.clientWidth + 3).map(e => e.textContent.slice(0, 60)));
+      if (cutTxt.length) { failures++; console.log(`FEHLER ${tag} ${n}: Schmiede-Text abgeschnitten`, cutTxt); }
       // Abgeschnittener Inhalt in Karten (z. B. Ortskarte: „Stufe/Zeit“ unten weg)
       const clip = await p.evaluate(() => [...document.querySelectorAll('main .trip *, main .crypt *, main .tcard *')].filter(e => { const r = e.getBoundingClientRect(), q = e.closest('.trip, .crypt, .tcard').getBoundingClientRect(); return r.height && r.bottom > q.bottom + 1; }).map(e => e.className || e.tagName));
       if (clip.length) { failures++; console.log(`FEHLER ${tag} ${n}: abgeschnitten: ${clip.slice(0, 3).join(' | ')}`); }
@@ -188,14 +191,14 @@ const ctxFor = () => ({ ...devices['iPhone 13'], viewport: { width: 390, height:
     if (!v0 || v0 !== v1) { failures++; console.log(`FEHLER ${tag}: Siegel hält nicht (${v0} → ${v1})`); }
     // Hinzufügen: Platz schaffen (Tilgen), Angebot erscheint, Neuladen ändert es nicht, Wahl setzt den Bonus
     await tap('.ccard .caff:not(.sealed):not(.on)'); await tap('[data-o=remove]:not([disabled])'); await tap('[data-o=add]:not([disabled])');
-    const off = await p.evaluate(() => [...document.querySelectorAll('.coffer .caff span')].map(e => e.textContent)); await chk('craftoffer');
+    const off = await p.evaluate(() => [...document.querySelectorAll('.otile small')].map(e => e.textContent)); await chk('craftoffer');
     if (!off.length) { failures++; console.log(`FEHLER ${tag}: Hinzufügen ohne Angebot`); }
     else { await p.reload(); await p.waitForTimeout(300); await tap('[data-v=forge]'); await tap('[data-action=forgemode][data-m=craft]'); await tap(`.cpick [data-id="${rid}"]`);
-      const off2 = await p.evaluate(() => [...document.querySelectorAll('.coffer .caff span')].map(e => e.textContent));
+      const off2 = await p.evaluate(() => [...document.querySelectorAll('.otile small')].map(e => e.textContent));
       if (JSON.stringify(off) !== JSON.stringify(off2)) { failures++; console.log(`FEHLER ${tag}: Angebot nach Neuladen anders`, off, off2); }
-      await tap('.coffer [data-action=offersel]'); await tap('[data-action=offertake]');
+      await tap('.otile[data-action=offersel]'); await tap('[data-action=offertake]:not([disabled])');
       const got = await p.evaluate(() => [...document.querySelectorAll('.ccard .caff span')].map(e => e.textContent));
-      if ((await p.$('.coffer')) || !got.includes(off[0])) { failures++; console.log(`FEHLER ${tag}: gewählter Bonus nicht aufs Teil (${off[0]})`); } }
+      if ((await p.$('.otile')) || !got.some(t => t.includes(off[0]))) { failures++; console.log(`FEHLER ${tag}: gewählter Bonus nicht aufs Teil (${off[0]})`); } }
     // Fusionieren: zwei gleiche Dolche, ein Bonus wandert herüber, das Futter zerfällt
     const fu = await p.evaluate(async () => { const L = await import('./js/loot.js'); const G = await import('./js/state.js');
       const mk = n => { for (let i = 0; i < 6000; i++) { const it = L.makeItem(22, { slot: 'weapon', kind: 'dagger' });

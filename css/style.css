@@ -1359,3 +1359,34 @@ button.red { background: none; border-image: url('../assets/ui/btn_red.webp') 14
 .coffer h2 { font-family: 'Alegreya SC'; font-size: .82rem; color: var(--gold); margin-bottom: 4px; }
 .coffer .btns { margin-top: 6px; } .coffer .cmsg { margin: 4px 0 0; }
 .spellsv.tight .gradesp { display: none; }   /* Zauber in der App: reicht der Platz nicht, hat die Zauberliste Vorrang (wie auf winzigen Handys) */
+/* --- Umschmieden: festes Raster (2026-11-25, „beim Schmieden verschiebt sich das UI") ---
+   Teile eine Reihe (seitlich wischen), Teil in der Mitte füllt den Rest, unten ein Kasten fester Höhe:
+   fünf Knöpfe oder drei Angebots-Kacheln, darunter eine Fußzeile fester Höhe (Meldung oder „Nehmen"). */
+:is(.umv, .fusev) > .cpickp { flex: none; padding-top: 6px; padding-bottom: 6px; }
+:is(.umv, .fusev) .cpick { flex-wrap: nowrap; justify-content: flex-start; gap: 6px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 1px; }
+:is(.umv, .fusev) .cpick::-webkit-scrollbar { display: none; }
+:is(.umv, .fusev) .cpick .fslot { flex: none; width: 48px; height: 48px; }
+.umv > .ccardp { flex: 1 1 auto !important; min-height: 0; display: flex; flex-direction: column; justify-content: flex-start; overflow-y: auto; overscroll-behavior: contain; }
+.umv .ccard { gap: 6px; } .umv .cname { font-size: 1.25rem; } .umv .caff { min-height: 40px; padding: 0 10px; font-size: .98rem; }
+.umv .coffhd { margin: 8px 2px 0; text-align: center; }
+.umv > .cbot { flex: none; padding-top: 8px; padding-bottom: 8px; }
+.umv .cops { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; height: 92px; }
+.umv .cop { height: 92px; min-height: 0; padding: 6px 2px; justify-content: center; }
+.umv .cop img { width: 38px; height: 38px; }
+.umv .cops:has(.otile) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.umv .otile { gap: 2px; padding: 6px 4px; } .umv .otile .ov { font-family: 'Grenze Gotisch'; font-size: 1.25rem; line-height: 1.3; color: var(--r-magic); letter-spacing: 0; text-transform: none; }
+.umv .otile small { font-family: 'Alegreya'; font-size: .82rem; color: var(--text); text-transform: none; letter-spacing: 0; line-height: 1.15; white-space: normal; }
+.umv .otile.on { border-image-source: url('../assets/ui/tab_on.webp'); box-shadow: 0 0 10px rgba(200,150,60,.35); }
+.umv .cfoot { height: 46px; margin-top: 6px; display: flex; align-items: center; }
+.umv .cfoot .cmsg { margin: 0; width: 100%; line-height: 1.25; display: flex; flex-direction: column; }
+.umv .cfoot .cmsg span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .umv .cfoot .cmsg i { font-style: normal; }
+.umv .cfoot .otake { width: 100%; height: 44px; }
+/* Fusionieren im festen Raster: Leisten je eine Reihe (auch ohne Hauptteil gleich hoch), Vergleich füllt den Rest, unten feste Höhe */
+.fusev .cpickp .cpick { min-height: 50px; align-items: center; }
+.fusev > .fboard { flex: 1 1 auto !important; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: block; }
+.fusev .fuse2 { height: auto; min-height: 100%; }
+.fusev .fside .caff { min-height: 40px; padding: 0 7px; font-size: .9rem; }
+.fusev > .fbot { flex: none; padding-top: 8px; padding-bottom: 8px; }
+.fusev .fbot .cmsg { margin: 0 0 6px; height: 3.75em; line-height: 1.25; overflow: hidden; }
+.fusev .fbot .big-btn { width: 100%; height: 44px; margin: 0; }

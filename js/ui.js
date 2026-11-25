@@ -624,17 +624,23 @@ function viewCraft(sel) {
     const rise = it ? craftRaises(it, op.id) : null, need = it ? craftMat(it, op.id) : op;
     const nm = rise ? 'Erheben' : op.name, tip = rise ? `Drei Boni zur Wahl – und das Teil steigt zu ${RARITIES.find(r => r.id === rise).name.toLowerCase()} auf.` : op.text;
     return `<button class="cop ${rise ? 'rise' : ''}" data-action="craftop" data-o="${op.id}" ${err ? 'disabled' : ''} title="${tip} (${MATS[need.mat]})">${matImg(need.mat)}<b>${nm}</b><small><i class="${(S.mats[need.mat] || 0) < need.n ? 'down' : ''}">${S.mats[need.mat] || 0}/${need.n}</i></small></button>`; }).join('');
-  const why = it && CRAFT.ops.map(op => craftCheck(it, op.id, sel.stat)).find(e => e && !/Material|Bonus antippen/.test(e));
-  // Angebot (Hinzufügen/Erheben): steht dort, wo sonst die Knöpfe sind – bezahlt ist schon, andere Eingriffe warten
-  const offer = it?.offer ? `<section class="panel coffer"><h2>${MATS[it.offerRise ? CRAFT.raise.mat : 'blutstein']} gewirkt – wähle einen Bonus</h2>
-      <div class="caffs">${it.offer.map((o, i) => `<div class="caff ${sel.opick === i ? 'on' : ''}" data-action="offersel" data-i="${i}"><span>+${o.v} ${STAT_NAME(o.k)}</span>${tierTag(o.t)}</div>`).join('')}</div>
-      <div class="btns"><button class="red" data-action="offertake" ${sel.opick == null ? 'disabled' : ''}>${sel.opick == null ? 'Bonus antippen' : 'Nehmen'}</button></div>
-      <p class="small dim cmsg">Schon bezahlt · bleibt am Teil, bis du wählst${it.offerRise ? ` · danach ist es ${RARITIES.find(r => r.id === it.offerRise).name.toLowerCase()}` : ''}.</p></section>` : '';
-  return `<div class="col forge craft">${forgeTabs(sel)}
-    <section class="panel"><div class="cpick">${list.map(x => `<div class="fslot ${rarCls(x)} ${x.id === sel.item ? 'on' : ''} ${x.crafted ? 'full' : ''} ${Object.values(S.equip).includes(x) ? 'eq' : ''}" data-action="craftpick" data-id="${x.id}">${itemArt(x)}${hitDots(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`).join('') || '<span class="dim small">Nichts zum Umschmieden. Magische Items fallen bei Monstern und Händlern.</span>'}</div></section>
-    <section class="panel grow">${card}</section>
-    ${offer || `<section class="panel"><div class="cops">${ops}</div>
-      <p class="small cmsg">${sel.msg || (it ? `Je Eingriff ${craftGold(it)} Gold · ${sel.stat ? `<b>${STAT_NAME(sel.stat).replace(/^% /, '')}</b> angetippt – Wert würfeln, Ersetzen und Tilgen wirken nur auf ihn` : 'Bonus antippen: Versiegeln, Wert würfeln, Ersetzen und Tilgen wirken auf ihn'}${why ? ` · <span class="down">${why}</span>` : ''}${craftHint(it)}` : 'Material bestimmt den Eingriff.')}</p></section>`}</div>`;
+  const why = it && CRAFT.ops.map(op => craftCheck(it, op.id, sel.stat)).find(e => e && !/Material|Bonus antippen/.test(e) && !(craftHint(it) && /Kein Platz/.test(e)));
+  // Festes Raster (Besitzer 2026-11-25: „beim Schmieden verschiebt sich das UI"): oben eine Reihe Teile (seitlich wischen),
+  // in der Mitte das Teil, unten immer derselbe Kasten – fünf Knöpfe ODER drei Angebots-Kacheln, darunter eine feste
+  // Fußzeile (Meldung ODER „Nehmen"). Nichts wechselt die Höhe, kein Sparschritt (fitPrep lässt .umv aus).
+  const offer = it?.offer;
+  const tiles = offer ? offer.map((o, i) => { const nm = STAT_NAME(o.k), pct = /^% /.test(nm);
+    return `<button class="cop otile ${sel.opick === i ? 'on' : ''}" data-action="offersel" data-i="${i}"><b class="ov">+${o.v}${pct ? ' %' : ''}</b><small>${nm.replace(/^% /, '')}</small>${tierTag(o.t)}</button>`; }).join('') : '';
+  const sn = k => STAT_NAME(k).replace(/^% /, '');
+  const foot = offer
+    ? `<button class="red otake" data-action="offertake" ${sel.opick == null ? 'disabled' : ''}>${sel.opick == null ? `Bonus wählen · schon bezahlt${offer && it.offerRise ? ', wird ' + RARITIES.find(r => r.id === it.offerRise).name.toLowerCase() : ''}` : `${sn(offer[sel.opick].k)} nehmen`}</button>`
+    : `<p class="small cmsg">${!it ? 'Material bestimmt den Eingriff.'
+      : `<span>${sel.stat ? `<b>${sn(sel.stat)}</b> angetippt` : 'Erst einen Bonus antippen'} · ${craftGold(it)} Gold</span>`
+        + `<span>${sel.msg || (why ? `<i class="down">${why}</i>` : '')}${!sel.msg ? craftHint(it) : ''}</span>`}</p>`;
+  return `<div class="col forge craft umv">${forgeTabs(sel)}
+    <section class="panel cpickp"><div class="cpick">${list.map(x => `<div class="fslot ${rarCls(x)} ${x.id === sel.item ? 'on' : ''} ${x.crafted ? 'full' : ''} ${Object.values(S.equip).includes(x) ? 'eq' : ''}" data-action="craftpick" data-id="${x.id}">${itemArt(x)}${hitDots(x)}${Object.values(S.equip).includes(x) ? '<i>an</i>' : ''}</div>`).join('') || '<span class="dim small">Nichts zum Umschmieden. Magische Items fallen bei Monstern und Händlern.</span>'}</div></section>
+    <section class="panel grow ccardp">${card}${offer ? `<p class="small gold coffhd">${MATS[it.offerRise ? CRAFT.raise.mat : 'blutstein']} gewirkt – unten einen von ${offer.length} Boni wählen</p>` : ''}</section>
+    <section class="panel cbot"><div class="cops">${offer ? tiles : ops}</div><div class="cfoot">${foot}</div></section></div>`;
 }
 
 // --- Fusionieren: zwei gleichartige Teile, ein Bonus wandert, das Futter zerfällt ---
@@ -648,9 +654,9 @@ function craftHint(it) {
   if (!full || !up) return '';
   const nm = RARITIES.find(r => r.id === up).name.toLowerCase();
   return (S.mats[CRAFT.raise.mat] || 0) >= CRAFT.raise.n
-    ? `<br><span class="gold">Erheben macht es ${nm}: drei Boni zur Wahl für einen ${MATS[CRAFT.raise.mat]}.</span>`
+    ? ` <span class="gold">Voll · Erheben (${MATS[CRAFT.raise.mat]}): drei zur Wahl, wird ${nm}.</span>`
     // Die rote Zeile darüber nennt den Splitter schon – hier steht nur noch der andere Weg.
-    : `<br>Sonst führt nur das <b>Fusionieren</b> darüber: ein zweites Teil gleicher Form und Seltenheit.`;
+    : ` Weiter nur über <b>Fusionieren</b>.`;
 }
 function fuseRows(it, picked, side, dropped, blocked) {
   const base = baseMods(it);
@@ -691,19 +697,22 @@ function viewFuse(sel) {
   const msg = sel.msg ? sel.msg
     : !main ? (pairs ? '<span class="gold">Zwei Teile im Beutel passen zusammen.</span> Hauptteil oben wählen.'
       : `Je Teil nur ${CRAFT.fuse.max === 1 ? 'eine Fusion' : CRAFT.fuse.max + ' Fusionen'} – danach nie wieder.`)
+    : !foods.length ? 'Für dieses Teil liegt kein Futter im Beutel – anderes Hauptteil wählen.'
     : room ? `Hier ist noch Platz für ${room === 1 ? 'einen Bonus' : room + ' Boni'} – der neue kommt dazu, die Farbe bleibt. Aufsteigen kann nur ein <b>volles</b> Teil.`
     : !food ? 'Futter unten antippen. Nur gleiche Grundform, gleiche Seltenheit, nur aus dem Beutel.'
     : blocked && blocked.size >= Object.keys(baseMods(food)).length ? '<span class="down">Von diesem Futter kann nichts herüber</span> – die Boni gehören nicht auf diesen Platz oder sind im Hauptteil versiegelt.'
     : err ? `<span class="down">${err}</span>`
     : `${drop && drop === sel.stat ? `<b>${STAT_NAME(sel.stat)}</b> wird ersetzt: <span class="down">+${baseMods(main)[drop]}</span> &rarr; <b>+${baseMods(food)[drop]}</b>` : `Es wandert <b>${STAT_NAME(sel.stat)}</b>`}${drop && drop !== sel.stat ? `, dafür weicht <span class="down">${STAT_NAME(drop)}</span>` : promote ? ` – das Teil steigt zu <b class="r-${promote}">${RARITIES.find(r => r.id === promote).name.toLowerCase()}</b> auf` : ''} · ${craftGold(main)} Gold`;
+  // Festes Raster wie beim Umschmieden (2026-11-25): beide Leisten immer da und eine Reihe hoch, der Vergleich füllt den Rest,
+  // unten Meldung (feste Höhe) und Knopf – nichts springt, wenn man Hauptteil, Futter oder Bonus wechselt.
   return `<div class="col forge craft fusev">${forgeTabs(sel)}
-    <section class="panel"><div class="cpick">${mains.map(x => cell(x, x.id === sel.item)).join('')
+    <section class="panel cpickp"><div class="cpick">${mains.map(x => cell(x, x.id === sel.item)).join('')
       || '<span class="dim small">Nichts zum Fusionieren. Es braucht magische, seltene oder legendäre Teile.</span>'}</div></section>
-    <section class="panel grow">${board}</section>
-    ${main ? `<section class="panel"><div class="cpick">${foods.map(x => cell(x, x.id === sel.food, 'f')).join('')
-      || '<span class="dim small">Kein passendes Futter im Beutel.</span>'}</div></section>` : ''}
-    <section class="panel"><p class="small cmsg">${msg}</p>
-      ${main && food && !err ? '<button class="red big-btn" data-action="fusego">Fusionieren</button>' : `<button disabled>Fusionieren</button>`}</section></div>`;
+    <section class="panel grow fboard">${board}</section>
+    <section class="panel cpickp ffood"><div class="cpick">${main ? foods.map(x => cell(x, x.id === sel.food, 'f')).join('')
+      || '<span class="dim small">Kein passendes Futter im Beutel.</span>' : '<span class="dim small">Futter erscheint hier, sobald oben ein Hauptteil gewählt ist.</span>'}</div></section>
+    <section class="panel fbot"><p class="small cmsg">${msg}</p>
+      ${main && food && !err ? '<button class="red big-btn" data-action="fusego">Fusionieren</button>' : `<button class="big-btn" disabled>Fusionieren</button>`}</section></div>`;
 }
 
 // --- Aschenkern (ASHCORE): eine Wirkung eines Einzigartigen wandert in ein anderes Teil, das Einzigartige zerfällt ---
